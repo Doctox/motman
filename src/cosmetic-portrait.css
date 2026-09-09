@@ -2,7 +2,7 @@
   --frame-art-size:138%;--avatar-inset:9%;position:relative;isolation:isolate;
   display:block;overflow:visible!important;border-style:solid;transition:filter .3s ease,transform .3s var(--motion);
 }
-.cosmetic-frame>.cosmetic-avatar-clip{position:absolute!important;z-index:0;inset:var(--avatar-inset);display:block!important;overflow:hidden!important;border-radius:50%!important;background:#f4ebd9}
+.cosmetic-frame>.cosmetic-avatar-clip{position:absolute!important;z-index:0;inset:calc(var(--avatar-inset) + var(--avatar-decale-y,0%)) calc(var(--avatar-inset) - var(--avatar-decale-x,0%)) calc(var(--avatar-inset) - var(--avatar-decale-y,0%)) calc(var(--avatar-inset) + var(--avatar-decale-x,0%));display:block!important;overflow:hidden!important;border-radius:50%!important;background:#f4ebd9}
 .cosmetic-frame>.cosmetic-avatar-clip>.cosmetic-avatar-image{width:100%!important;height:100%!important;display:block;object-fit:cover!important;border-radius:50%!important}
 .cosmetic-frame>.cosmetic-frame-art{position:absolute;z-index:3;left:50%;top:50%;width:var(--frame-art-size)!important;height:var(--frame-art-size)!important;max-width:none!important;object-fit:contain!important;border-radius:0!important;pointer-events:none;user-select:none;transform:translate(-50%,-50%);transform-origin:center;filter:drop-shadow(0 3px 4px #132d2435)}
 .cosmetic-frame>.cosmetic-avatar-animation{position:absolute;z-index:4;left:50%;top:50%;width:214%;height:214%;max-width:none;display:block;pointer-events:none;user-select:none;transform:translate(-50%,-50%);transform-origin:center}
@@ -14,21 +14,21 @@
 .cosmetic-frame[data-frame="cadre-terracotta"]{border-color:#bf674d!important;box-shadow:0 0 0 2px #fff8ec,0 0 0 4px #e7b19f!important}
 .cosmetic-frame[data-frame="cadre-encre"]{border-color:#153f49!important;box-shadow:0 0 0 2px #f8f2e7,0 0 0 4px #54727a!important}
 .cosmetic-frame[data-frame="cadre-laiton"]{border-color:#9b742d!important;box-shadow:0 0 0 2px #fff8e6,0 0 0 4px #d2b56b!important}
-.cosmetic-frame[data-frame="cadre-rosee"]{--frame-art-size:140%;--avatar-inset:10%}
-.cosmetic-frame[data-frame="cadre-coquelicot"]{--frame-art-size:140%;--avatar-inset:11%}
-.cosmetic-frame[data-frame="cadre-porcelaine"]{--frame-art-size:138%;--avatar-inset:12%}
-.cosmetic-frame[data-frame="cadre-herbier"]{--frame-art-size:138%;--avatar-inset:9%}
+.cosmetic-frame[data-frame="cadre-rosee"]{--frame-art-size:140%;--avatar-inset:10%;--avatar-decale-x:1.2%;--avatar-decale-y:-1.9%}
+.cosmetic-frame[data-frame="cadre-coquelicot"]{--frame-art-size:140%;--avatar-inset:11%;--avatar-decale-y:-2.3%}
+.cosmetic-frame[data-frame="cadre-porcelaine"]{--frame-art-size:138%;--avatar-inset:12%;--avatar-decale-y:4.7%}
+.cosmetic-frame[data-frame="cadre-herbier"]{--frame-art-size:138%;--avatar-inset:9%;--avatar-decale-x:2.0%;--avatar-decale-y:-1.6%}
 .cosmetic-frame[data-frame="cadre-maree"]{--frame-art-size:140%;--avatar-inset:12%}
-.cosmetic-frame[data-frame="cadre-bibliotheque"]{--frame-art-size:142%;--avatar-inset:11%}
+.cosmetic-frame[data-frame="cadre-bibliotheque"]{--frame-art-size:142%;--avatar-inset:11%;--avatar-decale-x:-1.2%;--avatar-decale-y:-3.7%}
 .cosmetic-frame[data-frame="cadre-braise"]{--frame-art-size:139%;--avatar-inset:9%}
-.cosmetic-frame[data-frame="cadre-royal"]{--frame-art-size:142%;--avatar-inset:13%}
-.cosmetic-frame[data-frame="cadre-encrier"]{--frame-art-size:142%;--avatar-inset:12%}
-.cosmetic-frame[data-frame="cadre-clair-de-lune"]{--frame-art-size:136%;--avatar-inset:15%}
-.cosmetic-frame[data-frame="cadre-givre"]{--frame-art-size:144%;--avatar-inset:15%}
-.cosmetic-frame[data-frame="cadre-aurore"]{--frame-art-size:144%;--avatar-inset:16%}
-.cosmetic-frame[data-frame="cadre-constellation"]{--frame-art-size:139%;--avatar-inset:16%}
-.cosmetic-frame[data-frame="cadre-dragon-dore"]{--frame-art-size:146%;--avatar-inset:17%}
-.cosmetic-frame[data-frame="cadre-jardin-des-songes"]{--frame-art-size:147%;--avatar-inset:18%}
+.cosmetic-frame[data-frame="cadre-royal"]{--frame-art-size:142%;--avatar-inset:13%;--avatar-decale-y:3.7%}
+.cosmetic-frame[data-frame="cadre-encrier"]{--frame-art-size:142%;--avatar-inset:12%;--avatar-decale-x:0.7%;--avatar-decale-y:-1.8%}
+.cosmetic-frame[data-frame="cadre-clair-de-lune"]{--frame-art-size:136%;--avatar-inset:15%;--avatar-decale-x:2.9%}
+.cosmetic-frame[data-frame="cadre-givre"]{--frame-art-size:144%;--avatar-inset:15%;--avatar-decale-x:1.1%}
+.cosmetic-frame[data-frame="cadre-aurore"]{--frame-art-size:144%;--avatar-inset:16%;--avatar-decale-y:5.8%}
+.cosmetic-frame[data-frame="cadre-constellation"]{--frame-art-size:139%;--avatar-inset:16%;--avatar-decale-y:8.7%}
+.cosmetic-frame[data-frame="cadre-dragon-dore"]{--frame-art-size:146%;--avatar-inset:17%;--avatar-decale-y:5.3%}
+.cosmetic-frame[data-frame="cadre-jardin-des-songes"]{--frame-art-size:147%;--avatar-inset:18%;--avatar-decale-y:-1.0%}
 .cosmetic-frame[data-frame="cadre-rosee"]>.cosmetic-frame-art{--mm-cadre-duree:7.5s;animation:mmFrameRosee var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-coquelicot"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-porcelaine"]>.cosmetic-frame-art{--mm-cadre-duree:8.2s;animation:mmFrameSingular var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-herbier"]>.cosmetic-frame-art{--mm-cadre-duree:8.5s;animation:mmFrameHerbier var(--mm-cadre-duree) ease-in-out infinite}
