@@ -8,7 +8,7 @@ import { BoardWordHighlight, type BoardWordHighlightState } from './BoardWordHig
 import { ClueZoom } from './ClueZoom'
 import { loadPlayerCosmetics } from './cosmetics'
 import { GameOptionsOverlay, ReportPlayerOverlay } from './GameOverlays'
-import { canUseReroll, gameWordCellIndexes, REWARD_EFFECT_LIFETIME_MS, REWARD_STEP_MS } from './gameRules'
+import { canUseReroll, gameWordCellIndexes, REWARD_EFFECT_LIFETIME_MS } from './gameRules'
 import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
@@ -31,6 +31,7 @@ import { DuelPlayer, LeaveMatchPanel, ResultPanel } from './game/DuelPresentatio
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
+import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 
@@ -190,40 +191,40 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     stopAnimationTimer()
     setWrongCells(new Set())
     setRevealedWrong({})
-    const steps: Array<{ points: number; run: () => void }> = []
-    ;(turn.wrongPlacements ?? []).forEach(placement => steps.push({ points: 0, run: () => {
-      setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
-      setWrongCells(new Set([placement.cellIndex]))
-      setRevealedWrong({ [placement.cellIndex]: placement.letter })
-      setStatus(owner === 'player' ? `${placement.letter} n’est pas ici` : `${opponentNameRef.current} essaie ${placement.letter}`)
-      haptic([35, 45, 35])
-      playEffect('error')
-    }}))
-    turn.correct.forEach(cellIndex => steps.push({ points: cellIndex === turn.aidedCell ? 0 : 1, run: () => {
-      setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
-      if (owner === 'player') setGreenCells(new Set([cellIndex])); else setOrangeCells(new Set([cellIndex]))
-      const points = cellIndex === turn.aidedCell ? 0 : 1
-      showEffect({ kind: 'letter', label: `+${points}`, owner, cellIndex })
-      playEffect('score')
-      haptic(10)
-      setStatus(owner === 'player' ? `Lettre correcte · +${points}` : `${opponentNameRef.current} marque +${points}`)
-    }}))
-    turn.wordBonuses.forEach(bonus => steps.push({ points: bonus.points, run: () => {
-      setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({})
-      setWordHighlight({ cells: new Set(bonus.cells), owner, direction: bonus.direction })
-      const cellIndex = bonus.direction === 'across' ? bonus.cells[bonus.cells.length - 1] : bonus.cells[Math.floor(bonus.cells.length / 2)]
-      showEffect({ kind: 'word', label: `+${bonus.points}`, owner, cellIndex })
-      playEffect('word')
-      haptic([14, 28, 14])
-      setStatus(`Mot terminé · +${bonus.points}`)
-    }}))
-    if (turn.rackBonus) steps.push({ points: turn.rackBonus, run: () => {
-      setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
-      showRackBonusEffect(turn.rackBonus, owner)
-      playEffect('word')
-      setStatus(`Chevalet complet · +${turn.rackBonus}`)
-    }})
-    const revealRemaining = revealEndsAt === null ? steps.length * REWARD_STEP_MS + 350 : revealEndsAt - serverNow()
+    // La séquence et son minutage se décident dans `game/turnChoreography.ts`,
+    // sans React ni minuteur — donc sous test. Ne reste ici que la peinture :
+    // un `switch` qui traduit chaque étape décrite en effets d'écran.
+    const steps = planTurnSteps(turn)
+    const peint = (step: TurnStep) => {
+      if (step.kind === 'wrong') {
+        setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
+        setWrongCells(new Set([step.cellIndex]))
+        setRevealedWrong({ [step.cellIndex]: step.letter })
+        setStatus(owner === 'player' ? `${step.letter} n’est pas ici` : `${opponentNameRef.current} essaie ${step.letter}`)
+        haptic([35, 45, 35])
+        playEffect('error')
+      } else if (step.kind === 'correct') {
+        setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
+        if (owner === 'player') setGreenCells(new Set([step.cellIndex])); else setOrangeCells(new Set([step.cellIndex]))
+        showEffect({ kind: 'letter', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
+        playEffect('score')
+        haptic(10)
+        setStatus(owner === 'player' ? `Lettre correcte · +${step.points}` : `${opponentNameRef.current} marque +${step.points}`)
+      } else if (step.kind === 'word') {
+        setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({})
+        setWordHighlight({ cells: new Set(step.cells), owner, direction: step.direction })
+        showEffect({ kind: 'word', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
+        playEffect('word')
+        haptic([14, 28, 14])
+        setStatus(`Mot terminé · +${step.points}`)
+      } else {
+        setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
+        showRackBonusEffect(step.points, owner)
+        playEffect('word')
+        setStatus(`Chevalet complet · +${step.points}`)
+      }
+    }
+    const revealRemaining = revealRemainingMs(steps.length, revealEndsAt, serverNow())
     const finishAnimation = () => {
       setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setWordHighlight(null)
       setRevealedWrong({}); provisionalRef.current = {}; setProvisional({})
@@ -235,16 +236,14 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     }
     // If this result reached a phone late (background tab or weak network), do
     // not replay an old reveal over the already-running 45-second turn.
-    if (steps.length && revealEndsAt !== null && revealRemaining <= 180) {
+    if (revelationDepassee(steps.length, revealEndsAt, revealRemaining)) {
       finishAnimation()
       return
     }
     resolvingRef.current = steps.length > 0
     setResolving(steps.length > 0)
-    setDisplayedScores(steps.length ? { ...finalScores, [turn.playerId]: Math.max(0, (finalScores[turn.playerId] ?? 0) - turn.scoreGained) } : finalScores)
-    const stepDelay = steps.length
-      ? Math.min(REWARD_STEP_MS, Math.max(180, Math.floor((Math.max(220, revealRemaining) - 120) / steps.length)))
-      : 0
+    setDisplayedScores(openingScores(finalScores, turn, steps.length))
+    const stepDelay = turnStepDelayMs(steps.length, revealRemaining)
     const play = (index: number) => {
       const step = steps[index]
       if (!step) {
@@ -254,7 +253,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
         } else finishAnimation()
         return
       }
-      step.run()
+      peint(step)
       if (step.points) setDisplayedScores(current => ({ ...current, [turn.playerId]: (current[turn.playerId] ?? 0) + step.points }))
       animationTimer.current = window.setTimeout(() => play(index + 1), stepDelay)
     }
