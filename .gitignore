@@ -26,6 +26,16 @@ supabase/.temp/
 android/gradle/gradle-daemon-jvm.properties
 .fuse_hidden*
 
+# Brouillons de fabrication, jamais lus par l'application ni par le build.
+#   tmp/pglast   — une dependance Python recopiee dans le depot, binaire
+#                  Windows compris (.pyd), qu'aucun script n'importe.
+#   tmp/imagegen — les etapes intermediaires des emblemes de rang ; les
+#                  versions finies vivent dans `public/assets/ranks/`.
+# 489 fichiers et 38 Mo qui alourdissaient chaque copie de travail. Ils restent
+# sur le disque, et l'historique les garde : `git show <commit>:<chemin>` les
+# rend si besoin.
+tmp/
+
 # Sauvegardes de la base (scripts/export_supabase_backup.ps1).
 # Elles contiennent des DONNÉES PERSONNELLES : adresses e-mail, pseudos,
 # signalements rédigés par les joueurs. Elles ne doivent jamais entrer dans le
