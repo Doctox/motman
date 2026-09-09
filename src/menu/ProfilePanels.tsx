@@ -8,12 +8,24 @@ import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '.
 import { rankImage, rankedDivision } from '../ranked'
 import { loadRankedLeaderboard, type RankedLeaderboard } from '../rankedMatchmaking'
 import { useDialogFocus } from '../useDialogFocus'
+import { DailyLeaderboardPanel } from './DailyChallenge'
 import { RankProgress, SocialPortrait } from './MenuChrome'
 import type { MenuPage } from './types'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
 export function RankingPage({ identity, progress, cosmetics }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics }) {
+  // DEUX ÉPREUVES, deux classements, et il faut choisir laquelle on regarde.
+  //
+  // Le classé demande une rencontre : deux humains au même instant. Le défi du
+  // jour, non — tout le monde joue la même grille, chacun quand il veut. Ce
+  // sont deux compétitions de nature différente, et les mélanger dans une même
+  // liste n'aurait aucun sens. D'où ce premier sélecteur, au-dessus du
+  // Général/Amis qui existait déjà et qui ne concerne que le classé.
+  //
+  // La progression de rang ne s'affiche qu'avec le classé : elle n'a rien à
+  // voir avec le défi du jour.
+  const [epreuve, setEpreuve] = useState<'ranked' | 'daily'>('ranked')
   const [tab, setTab] = useState<'general' | 'friends'>('general')
   const [leaderboard, setLeaderboard] = useState<RankedLeaderboard>({ general: [], friends: [] })
   const [loading, setLoading] = useState(true)
@@ -28,6 +40,11 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
   }, [progress.rankedMatches, progress.rankedPoints])
   const entries = leaderboard[tab]
   return <div className="mm-page mm-ranking-page">
+    <div className="mm-segmented mm-ranking-epreuve" role="group" aria-label="Épreuve">
+      <button type="button" className={epreuve === 'ranked' ? 'active' : ''} aria-pressed={epreuve === 'ranked'} onClick={() => setEpreuve('ranked')}>Classé</button>
+      <button type="button" className={epreuve === 'daily' ? 'active' : ''} aria-pressed={epreuve === 'daily'} onClick={() => setEpreuve('daily')}>Défi du jour</button>
+    </div>
+    {epreuve === 'daily' ? <DailyLeaderboardPanel /> : <>
     <RankProgress progress={progress} compact />
     <div className="mm-segmented" role="group" aria-label="Type de classement"><button type="button" className={tab === 'general' ? 'active' : ''} aria-pressed={tab === 'general'} onClick={() => setTab('general')}>Général</button><button type="button" className={tab === 'friends' ? 'active' : ''} aria-pressed={tab === 'friends'} onClick={() => setTab('friends')}>Amis</button></div>
     <section className="mm-leaderboard">
@@ -46,6 +63,7 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
       })}
       {!entries.length ? <div className="mm-empty-ranking"><Trophy /><strong>{loading ? 'Chargement du classement…' : tab === 'general' ? progress.rankedMatches < 5 ? 'Placements en cours' : 'Aucun joueur classé' : 'Aucun ami classé'}</strong><span>{loading ? 'Les meilleurs joueurs arrivent.' : tab === 'general' ? progress.rankedMatches < 5 ? `Encore ${5 - progress.rankedMatches} partie${5 - progress.rankedMatches > 1 ? 's' : ''} de placement.` : 'Soyez le premier à terminer vos cinq placements.' : 'Vos amis apparaîtront ici après leurs placements.'}</span></div> : null}
     </section>
+    </>}
   </div>
 }
 

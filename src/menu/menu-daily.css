@@ -145,3 +145,13 @@
 @media (prefers-reduced-motion: reduce) {
   .mm-daily-rank-vide svg { animation: none; }
 }
+
+/* Dans la page Classement, le panneau n'a plus besoin de son propre cadre :
+   il EST le contenu de la page, pas un encart posé sur l'accueil. Une carte
+   dans une carte, c'est deux bordures pour rien. */
+.mm-ranking-page .mm-daily-rank {
+  margin-top: 4px; padding: 0; border: 0; background: transparent;
+}
+.mm-ranking-page .mm-daily-rank-head h3 { font-size: 1.0625rem; }
+/* Le sélecteur d'épreuve prime sur celui de portée : un peu d'air le dit. */
+.mm-ranking-epreuve { margin-bottom: 10px; }
