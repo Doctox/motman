@@ -214,6 +214,9 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
     setRankedBusy(true)
     setRankedError(null)
     setRankedTimedOut(false)
+    // Un nouveau départ rouvre le droit d'expirer : c'est le seul endroit qui
+    // relâche le garde-fou (voir l'effet d'expiration plus bas).
+    expirationEnCoursRef.current = false
     try { setRanked(await startRankedSearch()) }
     catch (reason) { setRankedError(reason instanceof Error ? reason.message : 'Recherche classée impossible.') }
     finally { setRankedBusy(false) }
@@ -237,19 +240,31 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
   //
   // L'annulation part quand même si elle échoue : le drapeau est posé dans tous
   // les cas, et la purge serveur ramassera la ligne au bout de cinq minutes.
+  //
+  // ⚠️ LE GARDE-FOU EST UN `ref`, ET SURTOUT PAS UN NETTOYAGE D'EFFET. La
+  // première version tenait un `let vivant = true` remis à `false` par le
+  // `return` de nettoyage. Or `setRankedBusy(true)` fait changer une dépendance
+  // de cet effet même : React rejouait donc le nettoyage AVANT que l'annulation
+  // ne réponde, `vivant` passait à `false`, et le `finally` renonçait à poser le
+  // drapeau. Résultat observé en production le 09/09/2026 : la recherche
+  // s'arrêtait bel et bien, mais SANS un mot — précisément le défaut que ce
+  // message existe pour éviter. L'effet annulait sa propre suite.
+  //
+  // Le `ref` survit aux réexécutions. Il n'est remis à `false` que par un
+  // nouveau départ (`beginRankedSearch`) : si l'annulation échoue, on ne
+  // rejoue pas en boucle à chaque rendu.
+  const expirationEnCoursRef = useRef(false)
   useEffect(() => {
-    if (rankedBusy || !rankedSearchExpired(ranked, Date.now())) return
-    let vivant = true
+    if (expirationEnCoursRef.current || rankedBusy || !rankedSearchExpired(ranked, Date.now())) return
+    expirationEnCoursRef.current = true
     setRankedBusy(true)
     void cancelRankedSearch()
-      .then(next => { if (vivant) setRanked(next) })
+      .then(setRanked)
       .catch(() => { /* La purge serveur s'en chargera. */ })
       .finally(() => {
-        if (!vivant) return
         setRankedBusy(false)
         setRankedTimedOut(true)
       })
-    return () => { vivant = false }
   }, [ranked, rankedBusy])
 
   const answerRankedReady = useCallback(async (decision: 'accept' | 'decline') => {
