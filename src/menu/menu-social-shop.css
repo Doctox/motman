@@ -169,9 +169,6 @@
 .cosmetic-frame--cadre-ivoire{border-color:#c7a258!important;box-shadow:0 0 0 3px var(--mm-surface),0 4px 13px var(--mm-shadow)}
 [data-theme="dark"] .cosmetic-frame--cadre-ivoire{box-shadow:0 0 0 3px var(--mm-surface),0 4px 13px #0005}
 
-.mm-grocery-entry{width:100%;min-height:82px;margin:13px 0;padding:10px 12px;display:grid;grid-template-columns:53px 1fr auto 17px;gap:11px;align-items:center;border:1px solid #bfc0ad;border-radius:14px;background:linear-gradient(135deg,color-mix(in srgb,var(--mm-sage) 68%,var(--mm-surface)),var(--mm-surface));text-align:left;box-shadow:var(--mm-shadow-raised);cursor:pointer}
-.mm-grocery-basket{width:49px;height:49px;border-radius:50%;display:grid;place-items:center;background:var(--mm-ink);color:var(--mm-gold);box-shadow:0 0 0 4px color-mix(in srgb,var(--mm-gold) 14%,transparent)}
-.mm-grocery-basket svg{width:24px}.mm-grocery-entry>span:nth-child(2){display:flex;flex-direction:column}.mm-grocery-entry small{color:var(--mm-coral);font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em}.mm-grocery-entry strong{font:600 1.3125rem 'Playfair Display',serif}.mm-grocery-entry>b{display:flex;align-items:center;gap:4px;color:var(--mm-ink);font-size:0.8125rem}.mm-grocery-entry>b svg{width:15px;color:var(--mm-gold)}.mm-grocery-entry>svg{width:17px}
 
 .mm-shop-page{padding-top:8px;padding-bottom:34px}.mm-shop-toolbar{min-height:49px;display:flex;align-items:center;justify-content:space-between}.mm-shop-toolbar>button{width:39px;height:39px;border:1px solid var(--mm-line);border-radius:50%;background:var(--mm-surface);display:grid;place-items:center;box-shadow:0 4px 12px var(--mm-shadow)}.mm-shop-toolbar>button svg{width:19px}.mm-shop-toolbar>b{min-width:62px;height:32px;padding:0 10px;border:1px solid #d8c594;border-radius:18px;background:#f7ebc9;color:#695020;display:flex;align-items:center;justify-content:center;gap:5px;font-size:0.75rem}.mm-shop-toolbar>b svg{width:15px}
 .mm-shop-tabs{position:sticky;top:0;z-index:8;margin:5px 0 20px;padding:4px;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--mm-line);border-radius:13px;background:color-mix(in srgb,var(--mm-paper) 93%,transparent);backdrop-filter:blur(10px)}.mm-shop-tabs button{height:48px;border:0;border-radius:9px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--mm-muted);font-size:0.5rem;font-weight:700}.mm-shop-tabs button svg{width:15px;height:15px}.mm-shop-tabs button.active{background:var(--mm-ink);color:var(--mm-paper);box-shadow:0 5px 12px #073f3628}
@@ -262,3 +259,26 @@
   margin: 10px 0 0; font-size: 0.8125rem; color: #17613f;
 }
 .duel-friend-done svg { width: 15px; height: 15px; }
+
+/* La bourse sur le profil. L'entrée de l'Épicerie a disparu d'ici — la
+   boutique a son propre onglet — mais le solde reste : ce n'est pas une
+   navigation, c'est ce que le joueur possède, et il ne se lit nulle part
+   ailleurs hors de la boutique elle-même. */
+.mm-purse {
+  width: 100%; margin: 13px 0; padding: 11px 13px;
+  display: grid; grid-template-columns: 44px 1fr; gap: 11px; align-items: center;
+  border: 1px solid #bfc0ad; border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mm-sage) 68%, var(--mm-surface)), var(--mm-surface));
+}
+.mm-purse-icon {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--mm-ink); color: var(--mm-gold);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--mm-gold) 14%, transparent);
+}
+.mm-purse-icon svg { width: 20px; }
+.mm-purse-copy { display: flex; flex-direction: column; }
+.mm-purse-copy small {
+  color: var(--mm-coral); font-size: 0.5rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em;
+}
+.mm-purse-copy strong { font: 600 1.3125rem 'Playfair Display', serif; }

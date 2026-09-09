@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, Feather, Gamepad2, Home, Pencil, ShoppingBasket, Trophy, User, X } from 'lucide-react'
+import { BarChart3, ChevronRight, Feather, Gamepad2, Home, Pencil, Trophy, User, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { getAnimation, getAvatar, getFrame, type PlayerCosmetics } from '../cosmetics'
 import { PLAYER_NAME_MAX_LENGTH, validatePlayerName } from '../playerNamePolicy'
@@ -130,7 +130,7 @@ function PlayerStatsPanel() {
   </section>
 }
 
-export function ProfilePage({ identity, progress, cosmetics, edit, openShop, openAccount }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openShop: () => void; openAccount: () => void }) {
+export function ProfilePage({ identity, progress, cosmetics, edit, openAccount }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openAccount: () => void }) {
   const xpGoal = experienceGoalForLevel(progress.level)
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
   const equippedTitle = progress.titles.find(title => title.id === progress.equippedTitleId)
@@ -138,11 +138,17 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openShop, ope
     <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Votre avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{progress.level >= MAX_PLAYER_LEVEL ? 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{progress.level >= MAX_PLAYER_LEVEL ? <strong>Niveau maximum atteint</strong> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
     <PlayerStatsPanel />
-    <button type="button" className="mm-grocery-entry" onClick={openShop}>
-      <span className="mm-grocery-basket"><ShoppingBasket /></span>
-      <span><small>Collection & trouvailles</small><strong>L’Épicerie</strong></span>
-      <b><Feather />{frenchNumber.format(cosmetics.plumes)}</b><ChevronRight />
-    </button>
+    {/* La bourse, et plus l'entrée de l'Épicerie : celle-ci a son onglet depuis
+        qu'elle est dans la barre du bas. Le solde reste ici parce qu'il n'a rien
+        d'une navigation — c'est ce que le joueur possède, à sa place sur son
+        profil, et il ne se lit nulle part ailleurs hors de la boutique. */}
+    <section className="mm-purse" aria-label={`Votre bourse : ${cosmetics.plumes} plumes`}>
+      <span className="mm-purse-icon" aria-hidden="true"><Feather /></span>
+      <span className="mm-purse-copy">
+        <small>Votre bourse</small>
+        <strong>{frenchNumber.format(cosmetics.plumes)} plume{cosmetics.plumes > 1 ? 's' : ''}</strong>
+      </span>
+    </section>
     <button type="button" className="mm-account" onClick={openAccount}><User /><span><strong>{identity.accountType === 'account' ? 'Compte synchronisé' : 'Compte invité'}</strong><small>Code ami {identity.friendCode ?? shortPlayerId(identity.playerId)}</small></span><b>{identity.accountType === 'account' ? 'Gérer' : 'Créer un compte'}</b><ChevronRight /></button>
   </div>
 }
