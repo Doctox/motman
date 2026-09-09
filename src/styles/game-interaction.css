@@ -367,8 +367,22 @@
 .clue-image{width:min(78%,35px);height:min(78%,35px)}
 .double-clue .clue-image{width:min(70%,23px);height:min(70%,23px)}
 
+/* Le plateau ne suit pas la taille de police racine : ses cases sont
+   dimensionnees par la largeur du conteneur, et leur texte est en `clamp(...vw...)`
+   pour tenir dedans. Son agrandissement se regle donc ici, a la main.
+
+   LES LETTRES POSEES N'AVAIENT AUCUNE VARIANTE — c'est pourtant le texte qu'on
+   lit le plus dans un mots fleches, et le reglage semblait sans effet dans la
+   grille alors qu'il agissait deja partout ailleurs.
+
+   +25 % seulement, la ou les definitions montent de 63 % : celles-ci partent de
+   6 a 8,5 px et ont de la marge dans leur case, tandis qu'une lettre remplit
+   deja la sienne. A 6,9vw sur un telephone de 390 px, on obtient 27 px dans une
+   case d'environ 55 : confortable, sans toucher les bordures. Meme facteur que
+   l'interface, donc la grille et le menu grandissent du meme pas.            */
 [data-text-size="large"] .clue{font-size:clamp(7.8px,2.85vw,11.3px);line-height:1.05}
 [data-text-size="large"] .clue.double-clue{font-size:clamp(6.4px,2.25vw,9px)}
+[data-text-size="large"] .letter-only{font-size:clamp(21px,6.9vw,31px)}
 
 /* Reuse the real MotMan O: the full logo is cropped through background positioning. */
 .corner-block,.clue.corner-clue{
