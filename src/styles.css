@@ -4,3 +4,35 @@
 @import './styles/game-results.css';
 @import './styles/game-cosmetics.css';
 @import './styles/game-actions.css';
+
+/* ── Paysage : on demande de retourner l'appareil ─────────────────────────────
+   La grille, ses définitions, le chevalet et les commandes n'ont jamais eu de
+   mise en page paysage — signalé par les testeurs (M-04, rapport 6766) : la
+   grille disparaît purement et simplement, seules des lettres orphelines
+   restent à l'écran.
+
+   Les applications Android et iOS sont désormais verrouillées en portrait
+   (`android:screenOrientation`, `UISupportedInterfaceOrientations`), ce qui
+   règle le cas pour elles. Le WEB n'a pas de verrou équivalent : un joueur qui
+   tourne son téléphone sur doctox.fr retrouverait l'écran cassé. On le lui dit
+   plutôt que de le laisser devant une grille absente.
+
+   DEUX GARDES, pour ne jamais gêner un vrai écran large :
+     • `orientation:landscape` ;
+     • `max-height:520px`, qu'aucun ordinateur de bureau n'atteint.
+   Seul l'écran de partie est concerné ; le menu, lui, s'adapte déjà.        */
+@media (orientation: landscape) and (max-height: 520px) {
+  .multiplayer-shell > *:not(.mm-rotate-hint) { display: none !important; }
+  .multiplayer-shell::after {
+    content: "Tournez votre appareil à la verticale pour jouer.";
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    padding: 24px;
+    background: var(--mm-paper, #fffaf0);
+    color: var(--mm-ink, #073f36);
+    font: 700 16px/1.5 "DM Sans", system-ui, sans-serif;
+    text-align: center;
+  }
+}

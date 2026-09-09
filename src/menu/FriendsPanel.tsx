@@ -24,6 +24,13 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
   notify: (message: string) => void
 }) {
   const [friendCode, setFriendCode] = useState('')
+  // Vrai dès qu'un caractère impossible a été frappé. Un code ami est
+  // HEXADÉCIMAL — chiffres et lettres A à F, huit caractères — parce qu'il est
+  // dérivé ainsi côté serveur. Le champ écartait donc silencieusement les
+  // lettres au-delà de F, et le bouton restait grisé sans dire pourquoi : un
+  // testeur y a vu une troncature à six caractères (rapport 6766, M-03). Le
+  // champ était juste, c'est son mutisme qui ne l'était pas.
+  const [codeRefuse, setCodeRefuse] = useState(false)
   const [friendSearch, setFriendSearch] = useState('')
   const [searchResults, setSearchResults] = useState<SocialSearchResult[]>([])
   const [searchPerformed, setSearchPerformed] = useState(false)
@@ -139,7 +146,19 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
           </section>
           <form className="mm-add-friend" onSubmit={submitFriendCode}>
             <label htmlFor="friend-code">Code de votre ami</label>
-            <div><input id="friend-code" value={friendCode} onChange={event => setFriendCode(event.target.value.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 8))} placeholder="CODE AMI" inputMode="text" autoComplete="off" /><button type="submit" disabled={friendCode.length !== 8 || busy !== null}><UserPlus />Ajouter</button></div>
+            <div><input id="friend-code" value={friendCode} onChange={event => {
+              const saisi = event.target.value.toUpperCase()
+              // Espaces et tirets sont tolérés sans rien signaler : ils viennent
+              // d'un copier-coller, pas d'une erreur du joueur.
+              setCodeRefuse(/[^A-F0-9\s-]/.test(saisi))
+              setFriendCode(saisi.replace(/[^A-F0-9]/g, '').slice(0, 8))
+            }} placeholder="8 caractères, ex. 3F7A1C0B" inputMode="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={16} aria-describedby="friend-code-aide" /><button type="submit" disabled={friendCode.length !== 8 || busy !== null}><UserPlus />Ajouter</button></div>
+            <p className="mm-friend-code-aide" id="friend-code-aide" role="status">{
+              codeRefuse ? 'Un code ami ne contient que des chiffres et les lettres A à F.'
+              : friendCode.length === 0 ? 'Huit caractères, comme le code affiché au-dessus.'
+              : friendCode.length < 8 ? `Encore ${8 - friendCode.length} caractère${friendCode.length === 7 ? '' : 's'}.`
+              : 'Code complet — vous pouvez l’ajouter.'
+            }</p>
           </form>
         </details>
 
