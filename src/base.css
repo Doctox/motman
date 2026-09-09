@@ -31,9 +31,17 @@
    conversion fut une identité visuelle : 16px = 1rem, 11px = 0.6875rem, rien
    n'a bougé à l'échelle par défaut.
 
-   112,5 % n'est pas un chiffre choisi au hasard : l'ancien réglage faisait
-   passer `.mm-mode-row strong` de 17 à 19 px, soit +12 %. C'est l'intention
-   d'origine, appliquée partout au lieu de quinze endroits.
+   L'ÉCHELLE A D'ABORD ÉTÉ RÉGLÉE À 112,5 %, calquée sur ce que faisait l'ancien
+   réglage (`.mm-mode-row strong` passait de 17 à 19 px). C'était une erreur de
+   raisonnement : l'ancien réglage était précisément ce qu'on jugeait cassé, et
+   le reproduire fidèlement reproduisait son défaut. Sur un libellé de 9 px,
+   +12 % fait UN pixel — invisible, et le réglage semblait toujours en panne.
+
+   125 % est mesuré, pas devine : en balayant la page a 100, 112,5, 125, 137,5
+   et 150 %, aucun élément ne se met à déborder. La colonne de l'application
+   fait `min(100%, 430px)`, donc cette mesure vaut telle quelle sur téléphone —
+   seules les marges vides changent avec la fenêtre. Il reste donc de la marge
+   au-delà si un jour on veut un cran « très grand ».
 
    ⚠️ LE PLATEAU NE SUIT PAS, ET C'EST VOULU. Ses cases sont dimensionnées par
    la largeur du conteneur, et son texte est en `clamp(…vw…)` pour tenir dedans.
@@ -42,7 +50,7 @@
    `styles/game-interaction.css` — les deux seules règles `data-text-size` qui
    subsistent avec celle de `line-height`.                                    */
 :root{font-size:100%}
-:root[data-text-size="large"]{font-size:112.5%}
+:root[data-text-size="large"]{font-size:125%}
 
 :root{font-family:'DM Sans',sans-serif;font-synthesis:none;background:#e7e3d8;color:#123e37}
 html,body,#root{min-height:100%}
