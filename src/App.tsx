@@ -12,12 +12,13 @@ import {
   cancelRankedSearch,
   EMPTY_RANKED_MATCHMAKING,
   loadRankedMatchmaking,
-  rankedSearchExpired,
   respondToRankedReady,
   signalRankedSearchExit,
   startRankedSearch,
   type RankedMatchmakingState,
 } from './rankedMatchmaking'
+import { useRankedSearchExpiry } from './rankedSearchExpiry'
+import { useSacrificedMatch } from './sacrificedMatch'
 
 const MenuApp = lazy(() => import('./Menu').then(module => ({ default: module.MenuApp })))
 const MultiplayerGameScreen = lazy(() => import('./MultiplayerGame').then(module => ({ default: module.MultiplayerGameScreen })))
@@ -43,51 +44,20 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
   const rankedRef = useRef(ranked)
   const rankedPollingRef = useRef<ReturnType<typeof startAdaptivePolling> | null>(null)
   rankedRef.current = ranked
-  const matchIdRef = useRef(matchId)
-  matchIdRef.current = matchId
 
   // Rythme de la partie ouverte à l'écran, remonté par l'écran de jeu — `App` ne
   // connaît sinon que son identifiant.
   const [openMatchPace, setOpenMatchPace] = useState<MatchPace | null>(null)
-  const openMatchPaceRef = useRef(openMatchPace)
-  openMatchPaceRef.current = openMatchPace
 
-  // Partie qui sera PERDUE si le joueur rejoint le match classé proposé.
-  //
-  // Le serveur ne met en pause que les parties normales en temps limité entre
-  // deux humains (`pause_realtime_normal_for_ranked`, filtre en dur
-  // `mode='normal' AND pace='realtime' AND bot IS NULL`). Le solo, le défi du
-  // jour, le 24 h et les parties entre amis ne sont donc PAS protégés — et
-  // c'est un choix assumé de JM : élargir la pause ouvrirait le repérage
-  // (lancer une recherche classée, aller étudier la grille du jour pendant
-  // l'attente, puis partir au classé sans rien payer).
-  //
-  // ⚠️ SEULEMENT LE TEMPS LIMITÉ. Ce solde a d'abord été écrit sans regarder le
-  // rythme, et il DÉTRUISAIT des parties qui se portaient très bien. Le
-  // raisonnement d'origine — « sans ça elle meurt par expiration trois tours
-  // plus tard, et le joueur voit une défaite surgir sans comprendre » — ne vaut
-  // qu'en temps limité : 45 s par tour, elle est perdue avant même le retour du
-  // joueur, autant l'acter proprement. En 24 h, trois tours font trois jours, et
-  // un match classé dure quelques minutes : la partie attend simplement le
-  // retour de son joueur. La solder était une perte sèche, causée par le
-  // correctif censé l'éviter.
-  //
-  // On mémorise la partie au moment où l'écran de confirmation apparaît, avant
-  // que `matchId` ne bascule sur le match classé.
-  const sacrificeRef = useRef<string | null>(null)
-  const readyId = ranked.ready?.id ?? null
-  const readyPausedMatchId = ranked.ready?.pausedMatchId ?? null
-  useEffect(() => {
-    if (!readyId) {
-      sacrificeRef.current = null
-      return
-    }
-    const current = matchIdRef.current
-    const perdue = Boolean(current)
-      && current !== readyPausedMatchId
-      && openMatchPaceRef.current === 'realtime'
-    sacrificeRef.current = perdue ? current : null
-  }, [readyId, readyPausedMatchId])
+  // Partie qui sera PERDUE si le joueur rejoint le match classé proposé. Le
+  // détail — et surtout pourquoi seul le TEMPS LIMITÉ est concerné — vit dans
+  // `sacrificedMatch.ts`, avec le banc qui l'y tient (`.test.ts`).
+  const { reclamer: reclamerSacrifice } = useSacrificedMatch({
+    readyId: ranked.ready?.id ?? null,
+    readyPausedMatchId: ranked.ready?.pausedMatchId ?? null,
+    currentMatchId: matchId,
+    pace: openMatchPace,
+  })
 
   useEffect(() => {
     const requireUpdate = (event: Event) => {
@@ -129,14 +99,13 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
   // ne renvoie aucune donnée dont on ait besoin, et son échec n'est de toute
   // façon que journalisé. Cette fonction n'a donc plus rien d'asynchrone.
   const enterRankedMatch = useCallback((nextMatchId: string) => {
-    const sacrifice = sacrificeRef.current
-    sacrificeRef.current = null
-    if (sacrifice && sacrifice !== nextMatchId) {
+    const sacrifice = reclamerSacrifice(nextMatchId)
+    if (sacrifice) {
       void forfeitMatch(playerId, sacrifice)
         .catch(reason => console.error('Clôture de la partie interrompue impossible', reason))
     }
     openMatch(nextMatchId)
-  }, [openMatch, playerId])
+  }, [openMatch, playerId, reclamerSacrifice])
 
   useEffect(() => {
     const syncIdentity = (event: Event) => {
@@ -209,18 +178,29 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
     if (status === 'connected') rankedPollingRef.current?.wake()
   }), [playerId])
 
+  // Recherche restée sans adversaire : on la solde et on garde de quoi le dire.
+  // Le détail — et surtout POURQUOI le garde-fou est un `ref` — vit dans
+  // `rankedSearchExpiry.ts`, avec le banc qui l'y tient (`.test.ts`).
+  const { autoriserANouveau: rouvrirExpiration } = useRankedSearchExpiry({
+    ranked,
+    busy: rankedBusy,
+    setBusy: setRankedBusy,
+    onCancelled: setRanked,
+    onTimedOut: () => setRankedTimedOut(true),
+  })
+
   const beginRankedSearch = useCallback(async () => {
     if (rankedBusy) return
     setRankedBusy(true)
     setRankedError(null)
     setRankedTimedOut(false)
     // Un nouveau départ rouvre le droit d'expirer : c'est le seul endroit qui
-    // relâche le garde-fou (voir l'effet d'expiration plus bas).
-    expirationEnCoursRef.current = false
+    // relâche le garde-fou (voir `rankedSearchExpiry.ts`).
+    rouvrirExpiration()
     try { setRanked(await startRankedSearch()) }
     catch (reason) { setRankedError(reason instanceof Error ? reason.message : 'Recherche classée impossible.') }
     finally { setRankedBusy(false) }
-  }, [rankedBusy])
+  }, [rankedBusy, rouvrirExpiration])
 
   const stopRankedSearch = useCallback(async () => {
     if (rankedBusy) return
@@ -231,41 +211,6 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
     catch (reason) { setRankedError(reason instanceof Error ? reason.message : 'Annulation impossible.') }
     finally { setRankedBusy(false) }
   }, [rankedBusy])
-
-  // Recherche restée sans adversaire : on la solde et on garde de quoi le dire.
-  //
-  // Aucune minuterie : le sondage classé passe déjà toutes les 8 s, donc ce test
-  // se refait à chaque état reçu. Au pire on s'arrête huit secondes trop tard,
-  // ce que personne ne remarque — et c'est un `setTimeout` de moins à annuler.
-  //
-  // L'annulation part quand même si elle échoue : le drapeau est posé dans tous
-  // les cas, et la purge serveur ramassera la ligne au bout de cinq minutes.
-  //
-  // ⚠️ LE GARDE-FOU EST UN `ref`, ET SURTOUT PAS UN NETTOYAGE D'EFFET. La
-  // première version tenait un `let vivant = true` remis à `false` par le
-  // `return` de nettoyage. Or `setRankedBusy(true)` fait changer une dépendance
-  // de cet effet même : React rejouait donc le nettoyage AVANT que l'annulation
-  // ne réponde, `vivant` passait à `false`, et le `finally` renonçait à poser le
-  // drapeau. Résultat observé en production le 09/09/2026 : la recherche
-  // s'arrêtait bel et bien, mais SANS un mot — précisément le défaut que ce
-  // message existe pour éviter. L'effet annulait sa propre suite.
-  //
-  // Le `ref` survit aux réexécutions. Il n'est remis à `false` que par un
-  // nouveau départ (`beginRankedSearch`) : si l'annulation échoue, on ne
-  // rejoue pas en boucle à chaque rendu.
-  const expirationEnCoursRef = useRef(false)
-  useEffect(() => {
-    if (expirationEnCoursRef.current || rankedBusy || !rankedSearchExpired(ranked, Date.now())) return
-    expirationEnCoursRef.current = true
-    setRankedBusy(true)
-    void cancelRankedSearch()
-      .then(setRanked)
-      .catch(() => { /* La purge serveur s'en chargera. */ })
-      .finally(() => {
-        setRankedBusy(false)
-        setRankedTimedOut(true)
-      })
-  }, [ranked, rankedBusy])
 
   const answerRankedReady = useCallback(async (decision: 'accept' | 'decline') => {
     const ready = rankedRef.current.ready
