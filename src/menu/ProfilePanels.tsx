@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, Feather, Gamepad2, Home, Pencil, Shield, ShoppingBasket, Trophy, User, X } from 'lucide-react'
+import { BarChart3, ChevronRight, Feather, Gamepad2, Home, Pencil, ShoppingBasket, Trophy, User, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { getAnimation, getAvatar, getFrame, type PlayerCosmetics } from '../cosmetics'
 import { PLAYER_NAME_MAX_LENGTH, validatePlayerName } from '../playerNamePolicy'
@@ -85,6 +85,14 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
 // que des sommes, pas le meilleur d'une partie. Mieux vaut une mention discrète
 // qu'un chiffre qu'on croit être un record de toujours.
 // ─────────────────────────────────────────────────────────────────────────────
+// ⚠️ IL EXISTAIT UN AUTRE BLOC « Victoires / Défaites » sur cette page, nourri
+// par `player_progress.wins/losses`. Il a été retiré, et il ne doit pas
+// revenir : ce compteur RANGE LES ABANDONS AVEC LES DÉFAITES. Vérifié en
+// production sur les cinq joueurs concernés — son total de défaites égale
+// exactement `défaites + abandons` de l'historique. Afficher les deux blocs
+// montrerait donc deux nombres de défaites différents sur le même écran.
+//
+// On garde celui-ci, qui distingue les deux et le dit.
 function PlayerStatsPanel() {
   const [stats, setStats] = useState<PlayerStats>(EMPTY_PLAYER_STATS)
   const [chargement, setChargement] = useState(true)
@@ -135,7 +143,6 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openShop, ope
       <span><small>Collection & trouvailles</small><strong>L’Épicerie</strong></span>
       <b><Feather />{frenchNumber.format(cosmetics.plumes)}</b><ChevronRight />
     </button>
-    <section className="mm-stats"><div><Trophy /><strong>{progress.wins}</strong><span>Victoires</span></div><i /><div><Shield /><strong>{progress.losses}</strong><span>Défaites</span></div></section>
     <button type="button" className="mm-account" onClick={openAccount}><User /><span><strong>{identity.accountType === 'account' ? 'Compte synchronisé' : 'Compte invité'}</strong><small>Code ami {identity.friendCode ?? shortPlayerId(identity.playerId)}</small></span><b>{identity.accountType === 'account' ? 'Gérer' : 'Créer un compte'}</b><ChevronRight /></button>
   </div>
 }
