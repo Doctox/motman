@@ -371,18 +371,25 @@
    dimensionnees par la largeur du conteneur, et leur texte est en `clamp(...vw...)`
    pour tenir dedans. Son agrandissement se regle donc ici, a la main.
 
-   LES LETTRES POSEES N'AVAIENT AUCUNE VARIANTE — c'est pourtant le texte qu'on
-   lit le plus dans un mots fleches, et le reglage semblait sans effet dans la
-   grille alors qu'il agissait deja partout ailleurs.
+   LES LETTRES POSEES NE BOUGENT PAS, C'EST VOULU. Elles remplissent deja leur
+   case ; les grossir les collerait aux bordures sans rien apporter, la lecture
+   d'une lettre isolee n'etant jamais le probleme. Seules les DEFINITIONS
+   grandissent — c'est la que la taille gene vraiment.
 
-   +25 % seulement, la ou les definitions montent de 63 % : celles-ci partent de
-   6 a 8,5 px et ont de la marge dans leur case, tandis qu'une lettre remplit
-   deja la sienne. A 6,9vw sur un telephone de 390 px, on obtient 27 px dans une
-   case d'environ 55 : confortable, sans toucher les bordures. Meme facteur que
-   l'interface, donc la grille et le menu grandissent du meme pas.            */
-[data-text-size="large"] .clue{font-size:clamp(7.8px,2.85vw,11.3px);line-height:1.05}
-[data-text-size="large"] .clue.double-clue{font-size:clamp(6.4px,2.25vw,9px)}
-[data-text-size="large"] .letter-only{font-size:clamp(21px,6.9vw,31px)}
+   12,6 px EST UN PLAFOND GEOMETRIQUE, pas un choix d'humeur. Une definition vit
+   dans un carre d'environ 53 px sur un telephone de 390, et doit pouvoir y
+   loger ses quatre lignes (`-webkit-line-clamp:4`) : 53 / (4 x 1,05) = 12,6.
+   Au-dela, une definition longue se fait rogner. On passe ainsi de 6,8 px a
+   12,7 — pratiquement le double — et il n'y a plus de marge sans reduire le
+   nombre de lignes ou elargir les cases.
+
+   LES DEFINITIONS EN IMAGE suivent aussi : elles representent 19 % des
+   definitions du catalogue (mediane de 25 % par grille), et les laisser figees
+   pendant que le texte double faisait une grille a deux vitesses.            */
+[data-text-size="large"] .clue{font-size:clamp(8.5px,3.25vw,12.6px);line-height:1.05}
+[data-text-size="large"] .clue.double-clue{font-size:clamp(7.2px,2.6vw,10.2px)}
+[data-text-size="large"] .clue-image{width:min(92%,42px);height:min(92%,42px)}
+[data-text-size="large"] .double-clue .clue-image{width:min(84%,28px);height:min(84%,28px)}
 
 /* Reuse the real MotMan O: the full logo is cropped through background positioning. */
 .corner-block,.clue.corner-clue{
