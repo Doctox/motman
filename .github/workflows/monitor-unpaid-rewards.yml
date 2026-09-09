@@ -1,0 +1,146 @@
+name: Monitor unpaid rewards
+
+# L'argent dû et non versé n'était signalé nulle part. La clôture d'un match ne
+# relance jamais : un versement qui échoue est journalisé — au mieux — et la
+# partie se ferme quand même. C'est le bon choix, mais personne ne relisait ces
+# journaux, et le versement des paliers de série n'a tout bonnement pas existé
+# pendant des semaines sans que rien ne le signale.
+#
+# Ce workflow réutilise le canal d'alerte déjà en place (issue GitHub) et le même
+# secret que les deux autres surveillances. Aucun service tiers.
+#
+# Une fois par jour, et non toutes les heures comme les signalements : un joueur
+# qui attend une plume n'est pas un joueur qui attend d'être protégé, et le
+# contrôle parcourt l'historique de série de chaque joueur.
+
+on:
+  schedule:
+    - cron: '43 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: monitor-unpaid-rewards
+  cancel-in-progress: true
+
+jobs:
+  rewards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout monitoring code
+        uses: actions/checkout@v4
+
+      - name: Audit rewards that are owed but unpaid
+        id: rewards
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: node scripts/check_unpaid_rewards.mjs
+
+      - name: Open or update the monitoring failure
+        if: steps.rewards.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const title = '[MotMan] Surveillance des versements indisponible'
+            const label = 'monitoring:rewards'
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: label })
+            } catch (error) {
+              if (error.status !== 404) throw error
+              await github.rest.issues.createLabel({ owner, repo, name: label, color: 'B60205', description: 'Récompenses dues et non versées' })
+            }
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: label, per_page: 100 })
+            const existing = issues.find(issue => issue.title === title)
+            const body = [
+              'Le contrôle des versements n’a pas pu interroger la base.',
+              '',
+              `Exécution : ${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`,
+              '',
+              'Causes probables : secret absent ou expiré, ou API Supabase indisponible.',
+              '',
+              '⚠️ Tant que cette alerte est ouverte, **une plume due et non versée passerait inaperçue**.',
+            ].join('\n')
+            if (existing) {
+              await github.rest.issues.update({ owner, repo, issue_number: existing.number, body })
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: [label] })
+            }
+
+      - name: Open or update the unpaid rewards alert
+        if: steps.rewards.outcome == 'success' && steps.rewards.outputs.has_pending == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const report = JSON.parse(fs.readFileSync('output/monitoring/unpaid-rewards.json', 'utf8'))
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const title = '[MotMan] Récompenses dues et non versées'
+            const label = 'monitoring:rewards'
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: label })
+            } catch (error) {
+              if (error.status !== 404) throw error
+              await github.rest.issues.createLabel({ owner, repo, name: label, color: 'B60205', description: 'Récompenses dues et non versées' })
+            }
+            const paliers = Object.entries(report.paliersDetail)
+              .sort((a, b) => Number(a[0]) - Number(b[0]))
+              .map(([seuil, n]) => `| Palier ${seuil} jours | ${n} |`)
+            const body = [
+              `<!-- rewards-signature:${report.signature} -->`,
+              `**${report.total} écart(s)** entre ce que les données impliquent et ce qui a été versé.`,
+              '',
+              '| Écart | Nombre |',
+              '| --- | --- |',
+              ...paliers,
+              `| Matchs terminés sans récompense | ${report.matchsNonRecompenses} |`,
+              `| Victoires quotidiennes sans bonus | ${report.victoiresSansBonus} |`,
+              `| Bonus sans victoire enregistrée (jour de série perdu) | ${report.bonusSansVictoire} |`,
+              '',
+              report.paliersDus > 0
+                ? `⚠️ **${report.paliersDus} palier(s) de série dû(s)** à ${report.joueursConcernesParPalier} joueur(s). C’est le plus cher : jusqu’à 4 500 plumes pièce, et le joueur a déjà vu « palier atteint » à l’écran.`
+                : 'Aucun palier de série en attente.',
+              '',
+              '### Pour les traiter',
+              '',
+              'Les identifiants de joueurs ne sont **volontairement pas repris ici** : ils restent en base.',
+              'Le détail se relit avec les requêtes de `scripts/check_unpaid_rewards.mjs` (les CTE',
+              '`paliers_dus`, `matchs_non_recompenses`, `victoires_sans_bonus`, `bonus_sans_victoire`).',
+              '',
+              'Un palier dû se règle en appelant `server_award_feathers` avec la clé',
+              '`daily-milestone:<user>:<palier>` et le montant du barème (`src/dailyMilestones.ts`).',
+              'L’appel est idempotent : le relancer sur un palier déjà réglé ne verse rien.',
+              '',
+              'Cette alerte se fermera d’elle-même une fois les écarts résorbés.',
+              '',
+              `_Relevé du ${report.generatedAt}._`,
+            ].join('\n')
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: label, per_page: 100 })
+            const existing = issues.find(issue => issue.title === title)
+            if (existing) {
+              await github.rest.issues.update({ owner, repo, issue_number: existing.number, body })
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: [label] })
+            }
+
+      - name: Close the alert once everything owed has been paid
+        if: steps.rewards.outcome == 'success' && steps.rewards.outputs.has_pending != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const label = 'monitoring:rewards'
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: label, per_page: 100 })
+            for (const issue of issues) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: 'Tout ce qui était dû a été versé. Fermeture automatique.' })
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed' })
+            }

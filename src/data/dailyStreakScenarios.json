@@ -1,0 +1,259 @@
+[
+  {
+    "nom": "run simple de cinq jours",
+    "pourquoi": "Le cas nominal : rien de spécial ne doit se déclencher.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05"
+    ],
+    "aujourdhui": "2026-03-05",
+    "apresDerniereVictoire": {
+      "serie": 5,
+      "meilleure": 5,
+      "gels": 0
+    },
+    "serieAujourdhui": 5
+  },
+  {
+    "nom": "palier 7 : un gel est gagné",
+    "pourquoi": "Premier palier. Le gel est crédité une fois.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07"
+    ],
+    "aujourdhui": "2026-03-07",
+    "apresDerniereVictoire": {
+      "serie": 7,
+      "meilleure": 7,
+      "gels": 1
+    },
+    "serieAujourdhui": 7
+  },
+  {
+    "nom": "un gel couvre UN jour manqué",
+    "pourquoi": "Trou de un jour, gel disponible : la série continue et le gel est consommé.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+      "2026-03-09"
+    ],
+    "aujourdhui": "2026-03-09",
+    "apresDerniereVictoire": {
+      "serie": 8,
+      "meilleure": 8,
+      "gels": 0
+    },
+    "serieAujourdhui": 8
+  },
+  {
+    "nom": "deux jours manqués cassent la série malgré un gel",
+    "pourquoi": "Un gel couvre EXACTEMENT un jour, pas davantage.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+      "2026-03-10"
+    ],
+    "aujourdhui": "2026-03-10",
+    "apresDerniereVictoire": {
+      "serie": 1,
+      "meilleure": 7,
+      "gels": 1
+    },
+    "serieAujourdhui": 1
+  },
+  {
+    "nom": "fenêtre de récupération : le pont restaure la série",
+    "pourquoi": "Regagner le LENDEMAIN du jour de rupture rend previousStreak + 2. Absent du SQL d origine.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+      "2026-03-10",
+      "2026-03-11"
+    ],
+    "aujourdhui": "2026-03-11",
+    "apresDerniereVictoire": {
+      "serie": 9,
+      "meilleure": 9,
+      "gels": 1
+    },
+    "serieAujourdhui": 9
+  },
+  {
+    "nom": "le pont fait SAUTER le palier 7",
+    "pourquoi": "La série passe de 1 à 8 sans jamais valoir 7. Un test d égalité sur 7 rate le gel.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-09",
+      "2026-03-10"
+    ],
+    "aujourdhui": "2026-03-10",
+    "apresDerniereVictoire": {
+      "serie": 8,
+      "meilleure": 8,
+      "gels": 1
+    },
+    "serieAujourdhui": 8
+  },
+  {
+    "nom": "plafond de deux gels aux paliers 7 et 30",
+    "pourquoi": "Les deux paliers à gel sont franchis ; le plafond tient.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+      "2026-03-08",
+      "2026-03-09",
+      "2026-03-10",
+      "2026-03-11",
+      "2026-03-12",
+      "2026-03-13",
+      "2026-03-14",
+      "2026-03-15",
+      "2026-03-16",
+      "2026-03-17",
+      "2026-03-18",
+      "2026-03-19",
+      "2026-03-20",
+      "2026-03-21",
+      "2026-03-22",
+      "2026-03-23",
+      "2026-03-24",
+      "2026-03-25",
+      "2026-03-26",
+      "2026-03-27",
+      "2026-03-28",
+      "2026-03-29",
+      "2026-03-30"
+    ],
+    "aujourdhui": "2026-03-30",
+    "apresDerniereVictoire": {
+      "serie": 30,
+      "meilleure": 30,
+      "gels": 2
+    },
+    "serieAujourdhui": 30
+  },
+  {
+    "nom": "un gel ne se regagne pas en repassant par 7",
+    "pourquoi": "Le gel du palier 7 est acquis UNE fois par compte, pas à chaque passage.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+      "2026-03-11",
+      "2026-03-13",
+      "2026-03-14",
+      "2026-03-15",
+      "2026-03-16",
+      "2026-03-17",
+      "2026-03-18"
+    ],
+    "aujourdhui": "2026-03-18",
+    "apresDerniereVictoire": {
+      "serie": 7,
+      "meilleure": 7,
+      "gels": 0
+    },
+    "serieAujourdhui": 7
+  },
+  {
+    "nom": "série morte aujourd hui",
+    "pourquoi": "Quatre jours sans victoire et aucun gel : la série vaut zéro AUJOURD HUI.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05"
+    ],
+    "aujourdhui": "2026-03-10",
+    "apresDerniereVictoire": {
+      "serie": 5,
+      "meilleure": 5,
+      "gels": 0
+    },
+    "serieAujourdhui": 0
+  },
+  {
+    "nom": "série encore vivante grâce à un gel en réserve",
+    "pourquoi": "Un jour manqué et un gel disponible : la série tient encore.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07"
+    ],
+    "aujourdhui": "2026-03-09",
+    "apresDerniereVictoire": {
+      "serie": 7,
+      "meilleure": 7,
+      "gels": 1
+    },
+    "serieAujourdhui": 7
+  },
+  {
+    "nom": "aucune victoire",
+    "pourquoi": "Compte neuf. Tout à zéro, pas de dernière victoire.",
+    "jours": [],
+    "aujourdhui": "2026-03-01",
+    "apresDerniereVictoire": {
+      "serie": 0,
+      "meilleure": 0,
+      "gels": 0
+    },
+    "serieAujourdhui": 0
+  },
+  {
+    "nom": "une seule victoire",
+    "pourquoi": "Le tout premier jour ne doit pas être traité comme un trou.",
+    "jours": [
+      "2026-03-01"
+    ],
+    "aujourdhui": "2026-03-01",
+    "apresDerniereVictoire": {
+      "serie": 1,
+      "meilleure": 1,
+      "gels": 0
+    },
+    "serieAujourdhui": 1
+  }
+]

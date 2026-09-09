@@ -14,6 +14,7 @@ import { matchStateFromConflict } from './matchConflict'
 import {
   forfeitMatch, loadMatch, playMatchTurn, requestMatchHint, rerollMatchRack,
   type MatchState, type MatchTurn,
+  type MatchPace,
 } from './matches'
 import { subscribeToMatchUpdates } from './matchRealtime'
 import { matchPollDelay } from './matchSyncPolicy'
@@ -44,13 +45,31 @@ type HintFlight = { letter: string; cellIndex: number; fromX: number; fromY: num
 const TURN_READY_DURATION_MS = 1_800
 let multiplayerEffectSequence = 0
 
-export function MultiplayerGameScreen({ matchId, onExit, onHome }: { matchId: string; onExit: () => void; onHome: () => void }) {
+export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }: {
+  matchId: string
+  onExit: () => void
+  onHome: () => void
+  /**
+   * Rythme de la partie ouverte, remonté à l'application.
+   *
+   * `App` ne connaît que l'identifiant du match, et il a besoin du rythme pour
+   * décider s'il faut solder cette partie quand un match classé démarre : une
+   * partie en temps limité est perdue de toute façon, une partie en 24 h attend
+   * tranquillement le retour du joueur. Voir `sacrificeRef` dans App.tsx.
+   */
+  onPaceChange?: (pace: MatchPace | null) => void
+}) {
   const identity = useRef(loadPlayerIdentity())
   const playerId = identity.current.playerId
   const playerCosmetics = useRef(loadPlayerCosmetics(playerId))
   const myLevel = useMemo(() => loadPlayerProgress(playerId).level, [playerId])
   const [match, setMatch] = useState<MatchState | null>(null)
   const [grid, setGrid] = useState<GeneratedGrid | null>(null)
+  const pace = match?.pace ?? null
+  useEffect(() => {
+    onPaceChange?.(pace)
+    return () => onPaceChange?.(null)
+  }, [onPaceChange, pace])
   const fitBoardRef = useClueAutoFit()
   const [provisional, setProvisional] = useState<Record<number, Tile>>({})
   const [selected, setSelected] = useState<Tile | null>(null)

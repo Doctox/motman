@@ -168,13 +168,19 @@ export async function createSoloMatch(difficulty: 'easy' | 'normal' | 'hard', pa
   return (await supabaseMatch<{ match: MatchState }>('solo', { difficulty, pace })).match
 }
 
-// Défi du jour. Le client n'envoie RIEN d'autre que le rythme : le SERVEUR dérive
-// la dateKey (horloge serveur), choisit la grille (calendrier du jour) ET le niveau
-// du bot (d'après player_progress.level). Un dateKey client serait ignoré → piège,
-// donc on ne l'envoie pas (Correction 2, relecture Principal). Active une fois
-// l'action 'daily' déployée côté edge function (voir travail serveur).
-export async function createDailyMatch(pace: MatchPace = 'realtime'): Promise<MatchState> {
-  return (await supabaseMatch<{ match: MatchState }>('daily', { pace })).match
+// Défi du jour. Le client n'envoie RIEN : le SERVEUR dérive la dateKey (horloge
+// serveur), choisit la grille (calendrier du jour), le niveau du bot (d'après
+// player_progress.level) ET le rythme. Un dateKey client serait ignoré → piège,
+// donc on ne l'envoie pas (Correction 2, relecture Principal).
+//
+// Le paramètre `pace` a été RETIRÉ. Il valait toujours 'realtime' — c'était sa
+// valeur par défaut et celle de son unique appelant — mais il donnait à croire
+// que le rythme du défi se choisissait, et le serveur le lisait effectivement
+// dans le corps de la requête. Le défi du jour est en temps limité, point ; le
+// serveur l'impose désormais, et laisser ici un réglage sans effet n'aurait fait
+// qu'inviter quelqu'un à le remettre en service.
+export async function createDailyMatch(): Promise<MatchState> {
+  return (await supabaseMatch<{ match: MatchState }>('daily', {})).match
 }
 
 export async function loadMatch(playerId: string, matchId: string, knownUpdatedAt?: string): Promise<MatchState | null> {

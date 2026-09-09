@@ -9,6 +9,7 @@ import {
   emptyDailyChallengeState,
   isDailyWon,
   MAX_FREEZES,
+  reconcileServerDailyStreak,
   recordDailyResult,
   type DailyChallengeState,
 } from './dailyChallenge'
@@ -182,5 +183,74 @@ describe('série du défi, bout en bout depuis un match serveur', () => {
     expect(outcome.effects.changed).toBe(false)
     expect(outcome.status).toBe('lost')
     expect(storage.read()?.currentStreak).toBe(0)
+  })
+})
+
+// Réconciliation avec la série tenue par le serveur (table `daily_wins`).
+// L'enjeu : une série ne doit JAMAIS raccourcir à cause d'une synchronisation.
+describe('reconcileServerDailyStreak', () => {
+  it('restaure la série sur un appareil neuf', () => {
+    const local = emptyDailyChallengeState()
+    const merged = reconcileServerDailyStreak(local, { streak: 12, best: 30, freezes: 1, lastWin: '2026-08-30' })
+    expect(merged.currentStreak).toBe(12)
+    expect(merged.longestStreak).toBe(30)
+    expect(merged.freezes).toBe(1)
+    expect(merged.lastWonDay).toBe('2026-08-30')
+    // Le palier des 7 jours a déjà été franchi : l'app ne doit pas re-féliciter.
+    expect(merged.awardedMilestones).toContain(7)
+  })
+
+  it('ne raccourcit jamais une série locale plus avancée', () => {
+    const local: DailyChallengeState = {
+      ...emptyDailyChallengeState(), currentStreak: 9, longestStreak: 9, freezes: 2, lastWonDay: '2026-08-31',
+    }
+    // Le serveur n'a pas encore vu la victoire du jour : il est en retard d'un cran.
+    const merged = reconcileServerDailyStreak(local, { streak: 8, best: 8, freezes: 0, lastWin: '2026-08-30' })
+    expect(merged.currentStreak).toBe(9)
+    expect(merged.longestStreak).toBe(9)
+    expect(merged.freezes).toBe(2)
+    expect(merged.lastWonDay).toBe('2026-08-31')
+  })
+
+  it('ne touche à rien quand les deux côtés sont d’accord', () => {
+    const local: DailyChallengeState = {
+      ...emptyDailyChallengeState(), currentStreak: 4, longestStreak: 6, lastWonDay: '2026-08-31',
+    }
+    const merged = reconcileServerDailyStreak(local, { streak: 4, best: 6, freezes: 0, lastWin: '2026-08-31' })
+    expect(merged).toBe(local)
+  })
+
+  it('corrige une série locale périmée quand le serveur en sait autant', () => {
+    // Le joueur a décroché : sa dernière victoire remonte à trois jours et le
+    // client, qui ne recalcule rien tant qu'aucune partie n'est gagnée, affiche
+    // toujours 9. Le serveur a vu exactement la même dernière victoire et sait,
+    // lui, que la série est morte.
+    const local: DailyChallengeState = {
+      ...emptyDailyChallengeState(), currentStreak: 9, longestStreak: 9, freezes: 1, lastWonDay: '2026-08-28',
+    }
+    const merged = reconcileServerDailyStreak(local, { streak: 0, best: 9, freezes: 1, lastWin: '2026-08-28' })
+    expect(merged.currentStreak).toBe(0)
+    // Le record, lui, ne redescend pas : les paliers franchis restent acquis.
+    expect(merged.longestStreak).toBe(9)
+    expect(merged.awardedMilestones).toContain(7)
+  })
+
+  it('garde la série locale quand le serveur n’a rien à dire', () => {
+    // account-api renvoie des zéros quand le RPC de série a échoué. Ce silence
+    // ne doit jamais être pris pour un verdict.
+    const local: DailyChallengeState = {
+      ...emptyDailyChallengeState(), currentStreak: 9, longestStreak: 9, freezes: 1, lastWonDay: '2026-08-31',
+    }
+    const merged = reconcileServerDailyStreak(local, { streak: 0, best: 0, freezes: 0, lastWin: null })
+    expect(merged.currentStreak).toBe(9)
+    expect(merged.freezes).toBe(1)
+  })
+
+  it('plafonne les gels repris du serveur', () => {
+    const merged = reconcileServerDailyStreak(
+      emptyDailyChallengeState(),
+      { streak: 3, best: 3, freezes: 99, lastWin: '2026-08-31' },
+    )
+    expect(merged.freezes).toBe(MAX_FREEZES)
   })
 })

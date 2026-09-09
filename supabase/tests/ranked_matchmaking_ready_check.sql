@@ -55,6 +55,20 @@ begin
     (casual_match_id, player_a, casual_opponent),
     (casual_match_id, casual_opponent, player_a);
 
+  -- ISOLATION DE LA FILE CLASSÉE.
+  --
+  -- Ce test suppose que player_a est le PREMIER en file : il attend `waiting`, et
+  -- toute personne déjà en attente le ferait apparier immédiatement. La supposition
+  -- était implicite et tenait tant que personne ne lançait le test ; le jour où on
+  -- l'a branché (08/09/2026), la file de production contenait un joueur en
+  -- `searching` depuis huit jours, et le test échouait sans que rien ne soit cassé.
+  --
+  -- La suppression est INTERNE À LA TRANSACTION, donc annulée avec le reste : la
+  -- vraie file n'est pas touchée. Elle pose un verrou sur ces lignes le temps du
+  -- test — quelques secondes — ce qui, sur une file quasi toujours vide, est un
+  -- prix acceptable pour un test qui dit la vérité.
+  delete from public.server_ranked_searches;
+
   result := public.server_ranked_matchmake_atomic(
     player_a, null, null, null, null
   );

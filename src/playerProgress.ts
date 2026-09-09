@@ -1,6 +1,14 @@
 import { LEVEL_TITLE_REWARDS, type FeatherRewardBreakdown } from './progressionRewards'
 
-export const MAX_PLAYER_LEVEL = 50
+// La courbe vit dans `experienceCurve.ts`, sans dépendance, pour que l'edge
+// function `account-api` puisse l'importer sans embarquer ce module-ci — qui
+// tire `progressionRewards` et lit le `localStorage`. Réexporté ici pour ne rien
+// casser des appelants existants.
+export { MAX_PLAYER_LEVEL, experienceGoalForLevel } from './experienceCurve'
+// `export … from` ne crée AUCUNE liaison locale : sans cet import, les usages
+// plus bas dans CE fichier ne sont pas dans la portée du module et `tsc -b`
+// échoue — alors que `vite dev` et `vitest`, tous deux sur esbuild, passent.
+import { MAX_PLAYER_LEVEL, experienceGoalForLevel } from './experienceCurve'
 
 export type ExperienceMode = 'solo' | 'multiplayer'
 export type ExperienceOutcome = 'win' | 'draw' | 'loss' | 'abandon' | 'opponent-abandoned'
@@ -67,11 +75,6 @@ export type PlayerProgress = {
 }
 
 const STORAGE_KEY = 'motman-progress-v1'
-
-export function experienceGoalForLevel(level: number): number {
-  if (level >= MAX_PLAYER_LEVEL) return 0
-  return 100 + Math.max(0, level - 1) * 15
-}
 
 function lifetimeXpAtLevel(level: number): number {
   let total = 0

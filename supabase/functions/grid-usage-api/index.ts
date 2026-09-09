@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
+import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.ts'
 import {
   buildGridUsageSnapshot,
   type PopularityRow,
@@ -22,10 +22,7 @@ Deno.serve(async request => {
   const url = Deno.env.get('SUPABASE_URL')!
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const authClient = createClient(url, anonKey, {
-    global: { headers: { Authorization: authorization } },
-    auth: { persistSession: false },
-  })
+  const authClient = createAuthClient(url, anonKey, authorization)
   const { data: { user }, error: authError } = await authClient.auth.getUser(token)
   if (authError || !user) return json(401, { error: 'Session invalide.' })
 
@@ -38,9 +35,7 @@ Deno.serve(async request => {
   const action = typeof body.action === 'string' ? body.action : 'snapshot'
   if (action !== 'snapshot') return json(404, { error: 'Action inconnue.' })
 
-  const admin = createClient(url, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  const admin = createAdminClient(url, serviceKey)
   const appUpdate = await requiredAndroidUpdate(request, admin)
   if (appUpdate) {
     return json(426, {

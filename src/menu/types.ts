@@ -10,6 +10,8 @@ export type MenuAppProps = {
   onStartMatch: (matchId: string) => void
   ranked: RankedMatchmakingState
   rankedBusy: boolean
+  /** Vrai après une recherche restée sans adversaire (voir rankedSearchExpired). */
+  rankedTimedOut: boolean
   rankedError: string | null
   startRanked: () => Promise<void>
   cancelRanked: () => Promise<void>

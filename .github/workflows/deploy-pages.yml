@@ -61,8 +61,72 @@ jobs:
             exit 1
           fi
 
+      # `tsc -b` (dans `npm run build`) ne couvre QUE le client et `server/**` :
+      # `tsconfig.server.json` n'inclut pas `supabase/functions/`. Tout le code
+      # serveur — celui qui verse les plumes, applique le classé et clôt les
+      # parties — partait donc en production sans qu'aucun compilateur ne l'ait
+      # lu. Au premier passage, `deno check` a sorti 184 erreurs.
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check edge functions
+        run: npm run check:functions
+
+      # `awardFinished` décide qui est payé, combien, et sous quelle clé
+      # d'idempotence. Elle n'avait aucun test : elle vivait sous le `Deno.serve`
+      # d'`index.ts`, donc impossible à importer sans démarrer un serveur. Sortie
+      # dans `match-api/awards.ts` — sans une ligne réécrite — pour être couverte.
+      - name: Unit-test edge functions
+        run: npm run test:functions
+
       - name: Unit tests
         run: npm run test:unit
+
+      # Trois règles du jeu sont écrites DEUX FOIS, faute de pouvoir importer du
+      # TypeScript dans plpgsql : la série du défi du jour, la courbe d'XP et les
+      # paliers de classe. Les tests unitaires ci-dessus ne couvrent que la
+      # moitié TypeScript de chacune.
+      #
+      # Cette étape pose les mêmes questions à PostgreSQL, à partir des mêmes
+      # fichiers de cas (src/data/). Elle existe parce que la première version
+      # SQL de la série prétendait recopier `advanceStreak` et avait omis la
+      # fenêtre de récupération entière : un joueur remonté à 30 jours par le pont
+      # voyait « palier atteint » sans jamais être payé. Une relecture attentive
+      # n'avait pas suffi.
+      #
+      # `--migration` charge d'abord les migrations DU DÉPÔT que la base n'a pas
+      # encore enregistrées, puis annule tout : une divergence est attrapée AVANT
+      # la livraison, et la base n'en garde aucune trace.
+      #
+      # L'étape se saute d'elle-même sans le secret (fork, dépôt cloné) plutôt
+      # que d'échouer sur une absence de configuration.
+      - name: Cross-language game rules agree
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: npm run test:rules -- --migration
+
+      # Trois suites SQL — matchmaking atomique, confirmation classée, archivage
+      # de l'historique — dormaient dans `supabase/tests/` depuis leur écriture :
+      # 519 lignes que RIEN n'exécutait. Elles couvrent les RPC dont tout
+      # l'intérêt est le comportement sous concurrence, celui qu'une relecture ne
+      # permet pas de vérifier.
+      #
+      # Chaque fichier ouvre sa transaction et l'annule ; le script refuse
+      # d'envoyer un fichier dont ce n'est pas le cas.
+      #
+      # `--migration` comme pour l'étape précédente : ce qu'on valide est l'état
+      # DU DÉPÔT, migrations non encore livrées comprises. Sans ce drapeau, une
+      # suite qui teste un correctif de RPC échouerait jusqu'au déploiement.
+      - name: SQL suites
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: npm run test:sql -- --migration
 
       - name: Validate the 7x8 catalog
         run: npm run test:dimensions

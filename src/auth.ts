@@ -1,4 +1,7 @@
 import { savePlayerCosmetics, type CosmeticKind, type CosmeticReward, type PlayerCosmetics } from './cosmetics'
+import {
+  loadDailyChallengeState, reconcileServerDailyStreak, saveDailyChallengeState, type ServerDailyStreak,
+} from './dailyChallenge'
 import { loadPlayerIdentity, savePlayerIdentity, type GuestIdentity } from './playerIdentity'
 import { savePlayerProgress, type PlayerProgress } from './playerProgress'
 import { supabase, supabaseConfigured } from './supabaseClient'
@@ -24,12 +27,23 @@ export type AuthResponse = {
   identity: GuestIdentity
   progress?: PlayerProgress
   cosmetics?: PlayerCosmetics
+  /** Série du défi du jour recalculée par le serveur depuis `daily_wins`. */
+  daily?: ServerDailyStreak
   emailConfirmationRequired?: boolean
 }
 
 function store(payload: AuthResponse): AuthResponse {
   if (payload.progress) savePlayerProgress(payload.progress)
   if (payload.cosmetics) savePlayerCosmetics(payload.cosmetics)
+  // La série du défi du jour n'est PAS écrasée comme le portefeuille : on garde
+  // la plus longue des deux. Le client est normalement en avance d'une victoire
+  // (il vient de gagner, le compte n'a pas encore été rechargé), et écraser
+  // ferait clignoter la série à chaque partie. Voir reconcileServerDailyStreak.
+  if (payload.daily) {
+    const local = loadDailyChallengeState()
+    const merged = reconcileServerDailyStreak(local, payload.daily)
+    if (merged !== local) saveDailyChallengeState(merged)
+  }
   savePlayerIdentity(payload.identity)
   return payload
 }
@@ -39,6 +53,12 @@ function clearPlayerDataFromDevice(): void {
   localStorage.removeItem('motman-progress-v1')
   localStorage.removeItem('motman-cosmetics-v1')
   localStorage.removeItem('motman-recent-solo-grids-v4')
+  // La série du défi du jour DOIT partir avec le compte. Elle ne le faisait pas,
+  // et c'était sans conséquence tant qu'elle était décorative. Depuis qu'elle
+  // vaut jusqu'à 4 500 plumes de paliers, la laisser en place ferait hériter le
+  // joueur suivant de la série du précédent sur un appareil partagé — et
+  // `reconcileServerDailyStreak` ne prenant que le maximum, il la garderait.
+  localStorage.removeItem('motman-daily-v1')
   localStorage.removeItem('entrelignes-feedback')
 }
 

@@ -10,12 +10,18 @@ function secondsUntil(expiresAt: string, now: number): number {
 
 export function RankedReadyOverlay({
   state,
+  currentMatchId = null,
+  currentMatchPace = null,
   busy,
   error,
   accept,
   decline,
 }: {
   state: RankedMatchmakingState
+  /** Partie ouverte au moment où l'écran de confirmation apparaît, s'il y en a une. */
+  currentMatchId?: string | null
+  /** Son rythme : seule une partie en temps limité sera réellement perdue. */
+  currentMatchPace?: 'realtime' | 'async' | null
   busy: boolean
   error: string | null
   accept: () => void
@@ -50,6 +56,17 @@ export function RankedReadyOverlay({
       <h2 id="ranked-ready-title">Adversaire trouvé !</h2>
       <p><strong>{ready.opponent?.displayName ?? 'Votre adversaire'}</strong> est prêt à rejoindre l’arène.</p>
       {ready.pausedMatchId ? <p className="ranked-ready-pause-note">Votre partie normale est mise en pause. Elle reprendra intacte si le match classé ne démarre pas.</p> : null}
+      {/* Le serveur ne met en pause que les parties normales en temps limité
+          entre humains. Pour le solo, le défi du jour et les parties entre amis
+          en temps limité, rejoindre l'arène signifie perdre la partie en cours.
+          Ne rien dire, c'était laisser le joueur le découvrir après coup.
+          
+          Une partie en 24 h, elle, n'est PAS perdue : un match classé dure
+          quelques minutes, et elle attend tranquillement le retour du joueur.
+          L'avertir serait lui mentir — et l'inquiéter pour rien. */}
+      {!ready.pausedMatchId && currentMatchId && currentMatchPace === 'realtime' ? <p className="ranked-ready-loss-note" role="alert">
+        Attention : votre partie en cours sera perdue si vous rejoignez. Elle compte comme un abandon — aucune plume, aucune expérience.
+      </p> : null}
       <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`} aria-live="polite"><Clock3 /><b>{seconds}</b><span>secondes</span></div>
       {state.status === 'accepted' ? <div className="ranked-ready-waiting"><Check />Accepté · En attente de l’autre joueur</div> : <div className="ranked-ready-actions">
         <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Quitter</button>

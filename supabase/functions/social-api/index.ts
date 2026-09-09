@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
@@ -10,6 +9,7 @@ import {
   SOCIAL_SEARCH_RESULT_LIMIT,
 } from '../../../src/socialSearchPolicy.ts'
 import { socialActionRoute } from '../../../src/socialActionPolicy.ts'
+import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.ts'
 
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
 
@@ -21,10 +21,10 @@ Deno.serve(async request => {
   if (request.method !== 'POST') return json(405, { error: 'Méthode non autorisée.' })
   const authorization = request.headers.get('Authorization') ?? ''
   const url = Deno.env.get('SUPABASE_URL')!
-  const authClient = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } })
+  const authClient = createAuthClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, authorization)
   const { data: { user } } = await authClient.auth.getUser(authorization.replace(/^Bearer\s+/i, ''))
   if (!user) return json(401, { error: 'Session invalide.' })
-  const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } })
+  const admin = createAdminClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const { data: accessProfile } = await admin.from('profiles').select('status,role').eq('id', user.id).single()
   if (accessProfile?.status === 'banned') return json(403, { error: 'Ce compte a été banni.' })
   if (accessProfile?.status === 'suspended') return json(403, { error: 'Ce compte est temporairement suspendu.' })

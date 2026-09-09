@@ -59,6 +59,7 @@ export function MenuApp({
   onStartMatch,
   ranked,
   rankedBusy,
+  rankedTimedOut,
   rankedError,
   startRanked,
   cancelRanked,
@@ -246,12 +247,11 @@ export function MenuApp({
   }
 
   // Défi du jour : le SERVEUR dérive la dateKey (horloge serveur), choisit la grille
-  // (calendrier du jour) et le niveau du bot (player_progress.level). Le client
-  // n'envoie que le rythme. S'active une fois l'action 'daily' déployée côté edge
-  // function (travail serveur préparé, non déployé).
+  // (calendrier du jour), le niveau du bot (player_progress.level) et le rythme —
+  // temps limité, toujours. Le client n'envoie rien.
   const playDailyChallenge = async () => {
     try {
-      const match = await createDailyMatch('realtime')
+      const match = await createDailyMatch()
       onStartMatch(match.id)
     } catch (reason) {
       // Tant que l'action 'daily' n'est pas déployée, l'edge function répond
@@ -364,7 +364,7 @@ export function MenuApp({
   return <main className="mm-shell">
     <AppHeader onMenu={() => setQuickMenu(true)} onSettings={() => setSettings(true)} />
     {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} resumeMatch={onStartMatch} /> : null}
-    {page === 'play' ? <PlayPage identity={identity} onStartSolo={onStartSolo} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
+    {page === 'play' ? <PlayPage identity={identity} onStartSolo={onStartSolo} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openShop={() => navigate('shop')} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de L’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}

@@ -1,9 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
 import { validatePlayerName } from '../../../src/playerNamePolicy.ts'
+import { experienceGoalForLevel } from '../../../src/experienceCurve.ts'
 import { basketRarityProbabilities, type RewardRarity } from '../../../src/progressionRewards.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
+import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
+import { createAdminClient, createAuthClient, type AdminClient } from '../_shared/supabaseClients.ts'
 
 const starterItems = {
   avatar: 'plume-motman',
@@ -50,10 +52,6 @@ function publicAccountBusinessError(error: unknown): string | null {
   return null
 }
 
-function experienceGoal(level: number): number {
-  return level >= 50 ? 0 : 100 + Math.max(0, level - 1) * 15
-}
-
 function awardBreakdown(award: Record<string, unknown>) {
   const mode = award.mode === 'solo' ? 'solo' : 'multiplayer'
   const outcome = String(award.outcome)
@@ -65,11 +63,12 @@ function awardBreakdown(award: Record<string, unknown>) {
   return { productiveTurns, productiveXp, completionXp, resultXp: Math.max(0, total - productiveXp - completionXp), total }
 }
 
-async function accountState(admin: ReturnType<typeof createClient>, userId: string) {
+async function accountState(admin: AdminClient, userId: string) {
   const [
     { data: profile }, { data: progress }, { data: wallet }, { data: inventory }, { data: awardRows },
     { data: dailyBonusRows },
     { data: titleCatalog }, { data: ownedTitles }, { data: cosmeticCatalog },
+    { data: dailyStreak },
   ] = await Promise.all([
     admin.from('profiles').select('*').eq('id', userId).single(),
     admin.from('player_progress').select('*').eq('user_id', userId).single(),
@@ -86,6 +85,20 @@ async function accountState(admin: ReturnType<typeof createClient>, userId: stri
     admin.from('server_title_catalog').select('id,name,description,unlock_type,required_value,sort_order').eq('active', true).order('sort_order'),
     admin.from('player_titles').select('title_id,source,unlocked_at').eq('user_id', userId),
     admin.from('server_cosmetic_catalog').select('kind,item_id,rarity').eq('active', true).eq('availability', 'epicerie'),
+    // Série du défi du jour, recalculée depuis `daily_wins`. Le client la compare
+    // à sa série locale et adopte la plus longue : c'est ce qui permet à une série
+    // de survivre à une réinstallation ou à un changement de téléphone. Un échec
+    // ici ne doit pas empêcher le compte de se charger — le client garde alors sa
+    // valeur locale, exactement comme avant.
+    //
+    // DANS le Promise.all et surtout pas après : `accountState` est l'appel le
+    // plus fréquent du jeu (menu, sondage, fin de partie). Une lecture ajoutée en
+    // séquence après les neuf autres coûterait un aller-retour ENTIER de plus à
+    // chaque rafraîchissement ; en parallèle elle est gratuite, la latence du
+    // groupe étant celle de la requête la plus lente. Le `.rpc()` de supabase-js
+    // ne rejette pas sur erreur SQL — il résout avec `{ data: null, error }` —
+    // donc l'ajouter ici ne peut pas faire tomber le chargement du compte.
+    admin.rpc('server_daily_streak', { p_user_id: userId, p_today: parisDateKey() }),
   ])
   if (!profile || !progress || !wallet) throw new Error('Profil serveur incomplet.')
   const items = inventory ?? []
@@ -121,7 +134,17 @@ async function accountState(admin: ReturnType<typeof createClient>, userId: stri
     const key = typeof idempotencyKey === 'string' ? idempotencyKey : ''
     return key.startsWith('match:') ? dailyBonusByMatch.get(key.slice('match:'.length)) ?? 0 : 0
   }
+  const daily = dailyStreak && typeof dailyStreak === 'object'
+    ? dailyStreak as { streak?: number; best?: number; freezes?: number; lastWin?: string | null }
+    : null
+
   return {
+    daily: {
+      streak: Math.max(0, Number(daily?.streak) || 0),
+      best: Math.max(0, Number(daily?.best) || 0),
+      freezes: Math.max(0, Number(daily?.freezes) || 0),
+      lastWin: typeof daily?.lastWin === 'string' ? daily.lastWin : null,
+    },
     identity: {
       version: 2,
       playerId: userId,
@@ -149,7 +172,7 @@ async function accountState(admin: ReturnType<typeof createClient>, userId: stri
         levelBefore: award.level_before,
         levelAfter: award.level_after,
         xpAfter: progress.xp,
-        xpGoalAfter: experienceGoal(progress.level),
+        xpGoalAfter: experienceGoalForLevel(progress.level),
         plumesEarned: award.feather_amount,
         featherBreakdown: award.feather_breakdown ?? {},
         dailyBonusPlumes: dailyBonusForAward(award.idempotency_key),
@@ -180,10 +203,10 @@ Deno.serve(async request => {
   const url = Deno.env.get('SUPABASE_URL')!
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const authClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } })
+  const authClient = createAuthClient(url, anonKey, authorization)
   const { data: { user }, error: authError } = await authClient.auth.getUser(token)
   if (authError || !user) return json(401, { error: 'Session invalide.' })
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  const admin = createAdminClient(url, serviceKey)
   const { data: accessProfile } = await admin.from('profiles').select('status').eq('id', user.id).single()
   if (accessProfile?.status === 'banned') return json(403, { error: 'Ce compte a été banni.' })
   if (accessProfile?.status === 'suspended') return json(403, { error: 'Ce compte est temporairement suspendu.' })

@@ -1,0 +1,111 @@
+{
+  "xp": {
+    "pourquoi": "Palier d XP par niveau. Ecrit en TypeScript (src/experienceCurve.ts) ET en dur dans server_award_progress (plpgsql). Les deux doivent rendre le meme palier.",
+    "maxNiveau": 50,
+    "cas": [
+      {
+        "niveau": 1,
+        "palier": 100
+      },
+      {
+        "niveau": 2,
+        "palier": 115
+      },
+      {
+        "niveau": 3,
+        "palier": 130
+      },
+      {
+        "niveau": 10,
+        "palier": 235
+      },
+      {
+        "niveau": 25,
+        "palier": 460
+      },
+      {
+        "niveau": 49,
+        "palier": 820
+      },
+      {
+        "niveau": 50,
+        "palier": 0
+      }
+    ]
+  },
+  "rangs": {
+    "pourquoi": "Palier de classe. Ecrit en TypeScript (RANKED_DIVISIONS, src/ranked.ts) ET en plpgsql (private.ranked_tier_index). Les bornes doivent coincider exactement.",
+    "cas": [
+      {
+        "points": 0,
+        "rang": 0,
+        "id": "bronze"
+      },
+      {
+        "points": 1099,
+        "rang": 0,
+        "id": "bronze"
+      },
+      {
+        "points": 1100,
+        "rang": 1,
+        "id": "silver"
+      },
+      {
+        "points": 1299,
+        "rang": 1,
+        "id": "silver"
+      },
+      {
+        "points": 1300,
+        "rang": 2,
+        "id": "gold"
+      },
+      {
+        "points": 1499,
+        "rang": 2,
+        "id": "gold"
+      },
+      {
+        "points": 1500,
+        "rang": 3,
+        "id": "platinum"
+      },
+      {
+        "points": 1699,
+        "rang": 3,
+        "id": "platinum"
+      },
+      {
+        "points": 1700,
+        "rang": 4,
+        "id": "diamond"
+      },
+      {
+        "points": 1899,
+        "rang": 4,
+        "id": "diamond"
+      },
+      {
+        "points": 1900,
+        "rang": 5,
+        "id": "master"
+      },
+      {
+        "points": 2099,
+        "rang": 5,
+        "id": "master"
+      },
+      {
+        "points": 2100,
+        "rang": 6,
+        "id": "legend"
+      },
+      {
+        "points": 5000,
+        "rang": 6,
+        "id": "legend"
+      }
+    ]
+  }
+}

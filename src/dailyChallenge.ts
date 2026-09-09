@@ -33,18 +33,16 @@ export const HISTORY_LIMIT = 90
 // remonté par account-api (ExperienceAward.dailyBonusPlumes) : aucune constante
 // locale ne doit pouvoir le contredire.
 
-export type DailyMilestone = { streak: number; plumes: number; freeze: number }
-
-/**
- * Barème JM. `freeze` = gel crédité LOCALEMENT ici. `plumes` = versé PAR LE
- * SERVEUR (valeur reproduite pour l'UI et pour déclencher le paiement idempotent).
- */
-export const DAILY_MILESTONES: readonly DailyMilestone[] = [
-  { streak: 7, plumes: 200, freeze: 1 },
-  { streak: 30, plumes: 700, freeze: 1 },
-  { streak: 100, plumes: 1800, freeze: 0 },
-  { streak: 365, plumes: 4500, freeze: 0 },
-]
+// Le barème vit désormais dans `dailyMilestones.ts`, sans dépendance, pour que
+// l'edge function `match-api` puisse l'importer sans embarquer ce module-ci —
+// qui lit le localStorage et n'a rien à faire dans un worker Deno. Réexporté
+// ici pour ne rien casser des appelants existants.
+export { DAILY_MILESTONES, type DailyMilestone } from './dailyMilestones'
+// `export … from` ne crée AUCUNE liaison locale : sans cet import, le type
+// `DailyMilestone` utilisé plus bas n'est pas dans la portée du module et
+// `tsc -b` échoue — alors que `vite dev` et `vitest` passent, tous deux sur
+// esbuild, qui ne vérifie pas les types.
+import { DAILY_MILESTONES, type DailyMilestone } from './dailyMilestones'
 
 export type DailyResult = 'win' | 'loss'
 export type DailyStatus = 'todo' | 'lost' | 'won'
@@ -212,6 +210,83 @@ export function loadDailyChallengeState(storage: ReadableStorage = localStorage)
     }
   } catch {
     return emptyDailyChallengeState()
+  }
+}
+
+/** Série telle que le SERVEUR la recalcule depuis `daily_wins` (account-api). */
+export type ServerDailyStreak = {
+  streak: number
+  best: number
+  freezes: number
+  lastWin: string | null
+}
+
+/**
+ * Réconcilie la série locale avec celle du serveur.
+ *
+ * POURQUOI. La série ne vivait que dans le `localStorage` : une réinstallation,
+ * un vidage des données ou un changement de téléphone la remettaient à zéro.
+ * Pour une fonctionnalité dont toute la valeur EST la série, c'était une perte
+ * sèche. Le serveur en tient désormais sa propre trace, et le compte la
+ * rapporte à chaque chargement.
+ *
+ * RÈGLE : on ne raccourcit une série QUE si le serveur en sait au moins autant
+ * que nous — c'est-à-dire si sa dernière victoire connue n'est pas antérieure à
+ * la nôtre. Dans ce cas seulement son verdict est mieux informé que le nôtre, et
+ * on l'adopte tel quel. Sinon on garde le maximum des deux.
+ *
+ * Le décalage normal est que le client soit en avance d'une victoire — il vient
+ * de gagner et le compte n'a pas encore été rechargé. Écraser avec la valeur
+ * serveur ferait alors clignoter la série à chaque partie. La condition
+ * ci-dessus couvre aussi le cas où le serveur ne répond rien d'exploitable
+ * (`lastWin` nul) : on garde le local, comme avant.
+ *
+ * POURQUOI CE N'EST PLUS « JAMAIS RACCOURCIR ». Ça l'était, et le prix en était
+ * qu'une série morte ne se corrigeait jamais : le client garde `currentStreak`
+ * tel quel jusqu'à la victoire suivante, si bien qu'un joueur ayant décroché
+ * depuis trois jours continuait d'afficher 9 indéfiniment. Le refus de
+ * raccourcir tenait surtout à ce que le moteur serveur était alors INCOMPLET —
+ * il ignorait la fenêtre de récupération et rendait donc des séries trop
+ * courtes. Depuis la migration `daily_streak_recovery_window`, les deux moteurs
+ * rendent le même résultat sur le banc d'essai commun
+ * (`src/data/dailyStreakScenarios.json`), et se fier au serveur mieux informé
+ * n'est plus un risque.
+ *
+ * L'historique, les tentatives du jour et la fenêtre de récupération restent
+ * locaux : ils n'existent pas côté serveur et n'ont aucune valeur monétaire.
+ */
+export function reconcileServerDailyStreak(
+  local: DailyChallengeState,
+  server: ServerDailyStreak,
+): DailyChallengeState {
+  const serverStreak = Math.max(0, Math.floor(server.streak) || 0)
+  const serverBest = Math.max(0, Math.floor(server.best) || 0)
+  const serverFreezes = Math.max(0, Math.min(MAX_FREEZES, Math.floor(server.freezes) || 0))
+  // Le serveur a-t-il vu tout ce que nous avons vu ?
+  const serveurAJour = local.lastWonDay === null
+    || (server.lastWin !== null && server.lastWin >= local.lastWonDay)
+  const currentStreak = serveurAJour ? serverStreak : Math.max(local.currentStreak, serverStreak)
+  // Le RECORD, lui, ne redescend jamais : c'est un maximum historique, et il
+  // commande l'affichage des paliers déjà franchis.
+  const longestStreak = Math.max(local.longestStreak, serverBest, currentStreak)
+  const freezes = serveurAJour ? serverFreezes : local.freezes
+  if (currentStreak === local.currentStreak && longestStreak === local.longestStreak && freezes === local.freezes) return local
+  return {
+    ...local,
+    currentStreak,
+    longestStreak,
+    // Les gels se déduisent de l'historique complet des victoires : celui du
+    // serveur fait autorité dès qu'il est à jour.
+    freezes,
+    lastWonDay: local.lastWonDay && server.lastWin
+      ? (local.lastWonDay > server.lastWin ? local.lastWonDay : server.lastWin)
+      : local.lastWonDay ?? server.lastWin,
+    // Un palier déjà franchi ne doit plus être annoncé : sinon l'écran de fin
+    // félicite à nouveau le joueur pour ses sept jours, sur un appareil neuf.
+    awardedMilestones: [...new Set([
+      ...local.awardedMilestones,
+      ...DAILY_MILESTONES.filter(milestone => longestStreak >= milestone.streak).map(milestone => milestone.streak),
+    ])].sort((a, b) => a - b),
   }
 }
 

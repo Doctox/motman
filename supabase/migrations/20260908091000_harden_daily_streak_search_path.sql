@@ -1,0 +1,27 @@
+-- Défi du jour — `search_path` figé sur le moteur de série.
+--
+-- CORRECTIF D'UN OUBLI DE LA MIGRATION PRÉCÉDENTE. En extrayant le calcul dans
+-- `private.daily_streak_from_days`, j'ai reporté `set search_path = ''` sur
+-- l'enveloppe `public.server_daily_streak` mais pas sur la fonction extraite.
+-- Le linter Supabase l'a signalé aussitôt (`function_search_path_mutable`), et
+-- il a raison : toutes les autres fonctions du projet le posent, c'est la
+-- convention de la maison et elle n'a pas à souffrir d'exception.
+--
+-- LE RISQUE ÉTAIT MODESTE, pas nul. La fonction n'est pas `security definer` —
+-- elle s'exécute donc avec les droits de l'appelant, et non ceux du
+-- propriétaire — mais un `search_path` laissé libre reste une porte : un rôle
+-- qui peut créer des objets dans un schéma consulté avant `pg_catalog` peut
+-- masquer une fonction utilisée dans le corps.
+--
+-- SANS DANGER POUR LE CORPS : il n'appelle que des primitives de `pg_catalog`
+-- (`unnest`, `array_agg`, `coalesce`, `least`, `greatest`, `jsonb_build_object`,
+-- l'arithmétique de dates), et `pg_catalog` reste implicitement consulté même
+-- avec un chemin vide. Vérifié avant écriture en rejouant les scénarios les plus
+-- retors du banc d'essai — le pont qui saute le palier 7, le plafond de deux
+-- gels, le gel non regagné, le compte neuf — dans une transaction annulée :
+-- résultats identiques au bit près.
+--
+-- `alter function` plutôt qu'un `create or replace` recopié : le corps ne change
+-- pas, et le redupliquer ici en ferait une deuxième version à maintenir.
+
+alter function private.daily_streak_from_days(date[], date) set search_path = '';

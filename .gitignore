@@ -25,3 +25,16 @@ android/.idea/
 supabase/.temp/
 android/gradle/gradle-daemon-jvm.properties
 .fuse_hidden*
+
+# Sauvegardes de la base (scripts/export_supabase_backup.ps1).
+# Elles contiennent des DONNÉES PERSONNELLES : adresses e-mail, pseudos,
+# signalements rédigés par les joueurs. Elles ne doivent jamais entrer dans le
+# dépôt — un dépôt public ou un artefact GitHub les sortirait de France, en
+# contradiction avec la politique de confidentialité de MotMan.
+# Le script écrit par défaut HORS du dépôt ; ces lignes ne sont qu'un filet de
+# sécurité si quelqu'un redirige l'export ici par erreur.
+/roles.sql
+/schema.sql
+/data.sql
+motman-sauvegardes/
+sauvegardes/

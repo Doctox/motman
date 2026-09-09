@@ -1,4 +1,5 @@
-import { hasSupabaseSession } from './supabaseClient'
+import { functionClientHeaders } from './clientVersion'
+import { hasSupabaseSession, signalSupabaseFunction } from './supabaseClient'
 import { invokeSupabaseFunction } from './supabaseFunctions'
 import type { SocialUser } from './social'
 
@@ -68,6 +69,57 @@ export function startRankedSearch(): Promise<RankedMatchmakingState> {
 
 export function cancelRankedSearch(): Promise<RankedMatchmakingState> {
   return rankedAction('ranked-cancel')
+}
+
+/**
+ * Au-delà de ce délai sans adversaire, la recherche s'arrête d'elle-même et le
+ * joueur est prévenu.
+ *
+ * Dix minutes et non trente : la file est presque toujours vide, et laisser
+ * tourner une animation de recherche pendant une demi-heure pour finir par ne
+ * rien dire, c'est mentir par omission. Relancer ne coûte qu'un appui.
+ */
+export const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
+
+/**
+ * La recherche a-t-elle assez duré pour qu'on l'arrête et qu'on le dise ?
+ *
+ * PURE, donc vérifiable : voir `rankedMatchmaking.test.ts`.
+ *
+ * Uniquement en `searching`. Une confirmation déjà engagée — `ready`,
+ * `accepted` — a son propre compte à rebours de 30 s côté serveur, et
+ * l'interrompre au milieu ferait perdre au joueur un adversaire réellement
+ * trouvé.
+ *
+ * POURQUOI CÔTÉ CLIENT. Le serveur n'a rien à faire de cet état : il sait déjà
+ * ignorer une recherche muette depuis deux minutes et l'effacer à cinq. Ce délai
+ * n'est qu'un confort d'affichage pour quelqu'un qui, lui, est toujours là et
+ * regarde tourner l'animation. Le porter en base aurait voulu dire un statut de
+ * plus, son acquittement, et une reprise du RPC de matchmaking — beaucoup de
+ * mécanique pour une phrase à l'écran.
+ */
+export function rankedSearchExpired(state: RankedMatchmakingState, now: number): boolean {
+  if (state.status !== 'searching' || !state.queuedAt) return false
+  const depuis = Date.parse(state.queuedAt)
+  return Number.isFinite(depuis) && now - depuis >= RANKED_SEARCH_TIMEOUT_MS
+}
+
+/**
+ * Sortie de file au moment où le joueur quitte la page.
+ *
+ * POURQUOI CE N'EST PAS `cancelRankedSearch`. Celle-ci passe par un `fetch`
+ * ordinaire, que le navigateur annule dès le déchargement du document : sur
+ * `pagehide`, elle ne part pas. `signalSupabaseFunction` demande `keepalive`.
+ *
+ * ⚠️ CE N'EST PAS UNE GARANTIE, et il ne faut surtout pas s'y fier. Rien ne part
+ * si l'application Android est balayée vers le haut — le cas le plus fréquent —,
+ * si elle est tuée par le système, si elle plante, ou si le réseau est absent.
+ * Le vrai filet est côté serveur : `server_ranked_matchmake_atomic` ignore une
+ * recherche muette depuis deux minutes, et la purge l'efface à cinq. Ce signal
+ * ne fait que rendre le cas « onglet fermé » instantané.
+ */
+export function signalRankedSearchExit(): void {
+  void signalSupabaseFunction('match-api', { action: 'ranked-cancel' }, functionClientHeaders())
 }
 
 export function respondToRankedReady(

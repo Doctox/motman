@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
 import { botThinkingDelayMs, createBotPersona, planBotMove, type BotSkill } from '../../../src/botOpponents.ts'
 import {
   canUseHint, canUseReroll, drawRackFromBag, evaluateTurn, hintCandidates, keepRackLettersAfterTurn, prepareFinalSprintRacks, REWARD_STEP_MS,
   shouldForfeitAfterInactivity, type GameRuleGrid, type GameRuleWord,
 } from '../../../src/gameRules.ts'
+import { DAILY_MILESTONES } from '../../../src/dailyMilestones.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
 import { MATCH_STATE_CONFLICT_CODE } from '../../../src/matchConflict.ts'
@@ -13,39 +13,16 @@ import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { loadPublicProfile, loadPublicProfiles, type PublicPlayerProfile } from '../_shared/publicProfiles.ts'
 import { queuePush, sendPushToUser } from '../_shared/pushNotifications.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
+import { createAdminClient, createAuthClient, type AdminClient } from '../_shared/supabaseClients.ts'
 
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
 
-type Pace = 'realtime' | 'async'
-type Mode = 'solo' | 'friend' | 'normal' | 'ranked'
-type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: unknown; direction: 'across' | 'down'; arrow?: string; clueCell: number[]; cells: number[][] }
-type CatalogGrid = { id: string; columns: number; rows: number; clueCells: number[][]; words: CatalogWord[] }
-type Bot = { playerId: string; displayName: string; level: number; skill: BotSkill; avatarId: string; frameId: string }
-type Turn = {
-  id: string; kind: 'played' | 'timeout'; playerId: string; turnNumber: number; correct: number[]; wrong: number[];
-  wrongPlacements: Array<{ cellIndex: number; letter: string }>; aidedCell: number | null; letterPoints: number;
-  wordBonuses: Array<{ cells: number[]; points: number; direction: 'across' | 'down' }>;
-  rackBonus: number; scoreGained: number; inactivityCount: number; createdAt: string
-}
-type State = {
-  invitationId: string | null; difficulty: 'easy' | 'normal' | 'hard'; playerIds: [string, string]; bot: Bot | null;
-  board: Record<string, { letter: string; playerId: string }>; racks: Record<string, string[]>; letterBag?: string[]; scores: Record<string, number>;
-  productiveTurns: Record<string, number>; inactivity: Record<string, number>;
-  rackCompletions: Record<string, number>;
-  hint: { playerId: string; cellIndex: number; letter: string; turnNumber: number } | null;
-  hintUsed: Record<string, boolean | number>; rerollUsed: Record<string, boolean | number>; lastTurn: Turn | null;
-  // Défi du jour — posés PAR LE SERVEUR à la création (action 'daily'), jamais
-  // par le client. `dailyDate` est la clé de jour Europe/Paris de l'horloge
-  // serveur : elle sert de clé d'idempotence au bonus de 250 plumes et de jour
-  // de référence à la série côté client.
-  isDaily?: boolean; dailyDate?: string;
-}
-type MatchRow = {
-  id: string; mode: Mode; pace: Pace; grid_id: string; state: State; status: 'pending' | 'active' | 'finished'; current_player_id: string;
-  turn_number: number; turn_started_at: string; turn_ends_at: string; winner_id: string | null; finish_reason: 'completed' | 'timeout' | 'forfeit' | 'ranked_transfer' | 'ready_declined' | 'ready_expired' | null;
-  paused_at: string | null; pause_reason: 'ranked_ready' | null; paused_remaining_ms: number | null; ranked_ready_session_id: string | null;
-  created_at: string; updated_at: string
-}
+// La forme d'un match et le versement des récompenses vivent désormais à côté :
+// `matchModel.ts` pour les types, `awards.ts` pour la clôture — sortie d'ici pour
+// devenir testable (voir `awards.test.ts`).
+import { awardFinished, playerOutcome, recordMatchHistory } from './awards.ts'
+import { ASYNC_TURN_MS, nowIso, REALTIME_TURN_MS, type Bot, type CatalogGrid, type CatalogWord, type MatchRow, type Mode, type Pace, type State, type Turn } from './matchModel.ts'
+
 type ActiveMatchGrid = { id: string; gridId: string; createdAt: string }
 type AtomicMatchResult = {
   status: 'candidate' | 'waiting' | 'retry' | 'matched' | 'ready' | 'accepted' | 'started' | 'already-playing' | 'pending' | 'cancelled' | 'declined' | 'expired' | 'unavailable' | 'forbidden' | 'invalid'
@@ -65,8 +42,6 @@ class MatchStateConflictError extends Error {
   }
 }
 
-const REALTIME_TURN_MS = 45_000
-const ASYNC_TURN_MS = 24 * 60 * 60 * 1000
 const READY_MS = 1_800
 const MANUAL_SUBMIT_GRACE_MS = 2_000
 const AUTOMATIC_SUBMIT_GRACE_MS = 8_000
@@ -74,101 +49,14 @@ const BOT_SEARCH_MS = 30_000
 // Bonus du défi du jour, versé une seule fois par joueur et par jour. Valeur
 // AUTORITAIRE et unique : le client ne la duplique plus, il lit le montant
 // réellement crédité (account-api → ExperienceAward.dailyBonusPlumes).
-const DAILY_COMPLETION_FEATHERS = 250
-const nowIso = () => new Date().toISOString()
 
-function hash(text: string): number {
-  let value = 2166136261
-  for (const character of text) value = Math.imul(value ^ character.charCodeAt(0), 16777619)
-  return value >>> 0
-}
+// Les dérivations de grille et la mécanique de tour vivent à côté :
+// `matchGrid.ts` et `matchTurns.ts`. Sorties d'ici pour devenir testables —
+// ce fichier démarre un serveur à l'import.
+import { ensureFinalSprintRacks, ensureSharedLetterBag, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
+import { applyTurn, botPlacements, finish, revealDuration, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
 
-function dimensions(grid: CatalogGrid) {
-  const columns = grid.columns
-  const rows = grid.rows
-  if (!Number.isInteger(columns) || !Number.isInteger(rows) || columns <= 0 || rows <= 0) throw new Error(`Dimensions invalides pour ${grid.id}`)
-  return { columns, rows }
-}
-
-function ruleGrid(grid: CatalogGrid): GameRuleGrid {
-  const { columns, rows } = dimensions(grid)
-  const cells: Array<{ kind: string; solution?: string }> = Array.from({ length: columns * rows }, () => ({ kind: 'clue' }))
-  for (const word of grid.words) word.cells.forEach(([row, col], offset) => { cells[row * columns + col] = { kind: 'letter', solution: word.answer[offset] } })
-  const words: GameRuleWord[] = grid.words.map((word, index) => ({ id: word.wordId ?? `${grid.id}:word:${index}`, answer: word.answer, direction: word.direction, cells: word.cells }))
-  return { columns, rows, cells, words }
-}
-
-function publicGrid(grid: CatalogGrid) {
-  const { columns, rows } = dimensions(grid)
-  const cells: Array<Record<string, unknown>> = Array.from({ length: columns * rows }, () => ({ kind: 'clue', entries: [] }))
-  const clueIndexes = new Set(grid.clueCells.map(([row, col]) => row * columns + col))
-  for (let index = 0; index < cells.length; index += 1) if (!clueIndexes.has(index)) cells[index] = { kind: 'letter', solution: '', wordIds: [] }
-  const words = grid.words.map((word, index) => {
-    const id = word.wordId ?? `${grid.id}:word:${index}`
-    const clueIndex = word.clueCell[0] * columns + word.clueCell[1]
-    const clue = cells[clueIndex]
-    const entries = Array.isArray(clue.entries) ? clue.entries as unknown[] : []
-    entries.push({ text: word.clue ?? '', image: word.image, direction: word.direction, arrow: word.arrow ?? (word.direction === 'across' ? 'right' : 'down'), wordId: id })
-    clue.entries = entries
-    for (const [row, col] of word.cells) {
-      const cell = cells[row * columns + col]
-      const wordIds = Array.isArray(cell.wordIds) ? cell.wordIds as string[] : []
-      wordIds.push(id); cell.wordIds = wordIds
-    }
-    const [row, col] = word.cells[0]
-    return { id, answer: '•'.repeat(word.answer.length), clue: word.clue ?? '', image: word.image, difficulty: 1, theme: 'catalogue', row, col, direction: word.direction, length: word.answer.length }
-  })
-  return { id: grid.id, columns, rows, difficulty: 'normal', cells, words, seed: hash(grid.id), version: 'supabase-v1', validation: { valid: true, errors: [], score: 100 } }
-}
-
-function neededLetters(grid: GameRuleGrid, board: State['board']): string[] {
-  return grid.cells.flatMap((cell, index) => cell.kind === 'letter' && !board[String(index)] && cell.solution ? [cell.solution] : [])
-}
-
-function ensureSharedLetterBag(grid: GameRuleGrid, state: State): boolean {
-  if (Array.isArray(state.letterBag)) return false
-  const available = neededLetters(grid, state.board)
-  const normalizedRacks: Record<string, string[]> = { ...state.racks }
-
-  for (const playerId of state.playerIds) {
-    normalizedRacks[playerId] = (state.racks[playerId] ?? []).filter(letter => {
-      const index = available.indexOf(letter)
-      if (index < 0) return false
-      available.splice(index, 1)
-      return true
-    })
-  }
-
-  state.racks = normalizedRacks
-  state.letterBag = available
-  for (const playerId of state.playerIds) state.racks[playerId] = refill(grid, state, playerId, state.racks[playerId] ?? [])
-  return true
-}
-
-function refill(grid: GameRuleGrid, state: State, playerId: string, current: string[], avoid: Iterable<string> = []): string[] {
-  ensureSharedLetterBag(grid, state)
-  const drawn = drawRackFromBag({
-    letterBag: state.letterBag ?? [], currentLetters: current, avoidLetters: avoid,
-    chooseIndex: (pool, position) => hash(`${playerId}:${Object.keys(state.board).length}:${position}:${pool.join('')}`) % pool.length,
-  })
-  state.letterBag = drawn.letterBag
-  return drawn.rack
-}
-
-function ensureFinalSprintRacks(grid: GameRuleGrid, state: State): boolean {
-  const finale = prepareFinalSprintRacks({
-    remainingLetters: neededLetters(grid, state.board),
-    playerIds: state.playerIds,
-    racks: state.racks,
-  })
-  if (!finale.active) return false
-  const bagChanged = (state.letterBag?.length ?? 0) > 0
-  state.racks = finale.racks
-  state.letterBag = []
-  return finale.changed || bagChanged
-}
-
-async function profile(admin: ReturnType<typeof createClient>, id: string) {
+async function profile(admin: AdminClient, id: string) {
   return loadPublicProfile(admin, id)
 }
 
@@ -176,7 +64,7 @@ function botUser(bot: Bot) {
   return { playerId: bot.playerId, displayName: bot.displayName, code: `BOT${String(bot.level).padStart(2, '0')}`, online: true, activity: 'playing', avatarId: bot.avatarId, frameId: bot.frameId }
 }
 
-function notifyCurrentTurn(admin: ReturnType<typeof createClient>, row: MatchRow): void {
+function notifyCurrentTurn(admin: AdminClient, row: MatchRow): void {
   if (row.status !== 'active' || row.pace !== 'async' || row.state.bot?.playerId === row.current_player_id) return
   queuePush(sendPushToUser(admin, row.current_player_id, {
     title: 'C’est à vous',
@@ -187,7 +75,7 @@ function notifyCurrentTurn(admin: ReturnType<typeof createClient>, row: MatchRow
 }
 
 function notifyFriendInvitation(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   guestId: string,
   invitationId: string,
   inviterName: string,
@@ -202,7 +90,7 @@ function notifyFriendInvitation(
 }
 
 function notifyInvitationAccepted(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   hostId: string,
   matchId: string,
   guestName: string,
@@ -216,7 +104,7 @@ function notifyInvitationAccepted(
 }
 
 function notifyRankedReady(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   playerId: string,
   readySessionId: string,
   opponentName: string,
@@ -230,7 +118,7 @@ function notifyRankedReady(
 }
 
 async function view(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   row: MatchRow,
   viewerId: string,
   grid?: CatalogGrid,
@@ -279,7 +167,7 @@ async function view(
   }
 }
 
-async function getGrid(admin: ReturnType<typeof createClient>, gridId: string): Promise<CatalogGrid> {
+async function getGrid(admin: AdminClient, gridId: string): Promise<CatalogGrid> {
   // `active` controls the pool used to create new matches. An already-created
   // match must remain resolvable after a catalogue rotation, otherwise one old
   // match can make the whole lobby fail and hide pending invitations.
@@ -289,7 +177,7 @@ async function getGrid(admin: ReturnType<typeof createClient>, gridId: string): 
 }
 
 async function activeMatchesForPlayers(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   playerIds: string[],
   excludedMatchId?: string,
 ): Promise<ActiveMatchGrid[]> {
@@ -315,7 +203,7 @@ async function activeMatchesForPlayers(
 }
 
 async function chooseGrid(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   seed: string,
   playerIds: string[],
   excludedMatchId?: string,
@@ -354,7 +242,7 @@ function botSkillForLevel(level: number): BotSkill {
 }
 
 /** Niveau du joueur lu en base, borné 1-50. Jamais sur déclaration du client. */
-async function playerLevel(admin: ReturnType<typeof createClient>, userId: string): Promise<number> {
+async function playerLevel(admin: AdminClient, userId: string): Promise<number> {
   const { data } = await admin.from('player_progress').select('level').eq('user_id', userId).maybeSingle()
   return Math.min(50, Math.max(1, Number(data?.level ?? 1)))
 }
@@ -367,7 +255,7 @@ function createBot(seed: string, preferredSkill?: BotSkill): Bot {
   return { playerId: crypto.randomUUID(), ...persona }
 }
 
-async function playersBlocked(admin: ReturnType<typeof createClient>, firstId: string, secondId: string): Promise<boolean> {
+async function playersBlocked(admin: AdminClient, firstId: string, secondId: string): Promise<boolean> {
   const { data } = await admin.from('blocks').select('owner_id').or(`and(owner_id.eq.${firstId},blocked_id.eq.${secondId}),and(owner_id.eq.${secondId},blocked_id.eq.${firstId})`).limit(1)
   return Boolean(data?.length)
 }
@@ -391,7 +279,7 @@ function initialMatchState(grid: CatalogGrid, hostId: string, guestId: string, i
  * Sinon `null` : l'appelant retombe silencieusement sur la sélection normale,
  * conformément au contrat 3 — le joueur a toujours une grille.
  */
-async function activeGridById(admin: ReturnType<typeof createClient>, gridId: string): Promise<CatalogGrid | null> {
+async function activeGridById(admin: AdminClient, gridId: string): Promise<CatalogGrid | null> {
   const { data, error } = await admin.from('server_grid_catalog')
     .select('payload').eq('id', gridId).eq('active', true).maybeSingle()
   if (error || !data) return null
@@ -408,7 +296,7 @@ type CreateMatchOptions = {
 }
 
 async function createMatch(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   hostId: string,
   guestId: string,
   mode: Mode,
@@ -475,7 +363,7 @@ async function createMatch(
 }
 
 async function prepareAtomicMatch(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   hostId: string,
   guestId: string,
   pace: Pace,
@@ -492,7 +380,7 @@ async function prepareAtomicMatch(
 }
 
 async function resolveAtomicGridCollision(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   initialRow: MatchRow,
   initialGrid: CatalogGrid,
   hostId: string,
@@ -540,100 +428,7 @@ async function atomicResult(
   return data as AtomicMatchResult
 }
 
-function revealDuration(turn: Turn): number {
-  return Math.max(700, (turn.wrongPlacements.length + turn.correct.length + turn.wordBonuses.length + (turn.rackBonus ? 1 : 0)) * REWARD_STEP_MS)
-}
-
-function finish(state: State, row: MatchRow, winnerId: string | null, reason: MatchRow['finish_reason']) {
-  row.status = 'finished'; row.winner_id = winnerId; row.finish_reason = reason; row.current_player_id = ''
-  row.turn_started_at = nowIso(); row.turn_ends_at = row.turn_started_at; state.hint = null
-}
-
-function sanitizePlacements(row: MatchRow, grid: CatalogGrid, playerId: string, placements: Array<{ cellIndex: number; letter: string }>) {
-  const state = row.state
-  const rules = ruleGrid(grid)
-  const rack = [...(state.racks[playerId] ?? [])]
-  const sanitized: Array<{ cellIndex: number; letter: string }> = []
-  const used = new Set<number>()
-  for (const placement of placements.slice(0, 5)) {
-    const cellIndex = Math.floor(Number(placement.cellIndex))
-    const letter = typeof placement.letter === 'string' ? placement.letter.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 1) : ''
-    const rackIndex = rack.indexOf(letter)
-    if (!letter || rackIndex < 0 || used.has(cellIndex) || state.board[String(cellIndex)] || rules.cells[cellIndex]?.kind !== 'letter') continue
-    rack.splice(rackIndex, 1); used.add(cellIndex); sanitized.push({ cellIndex, letter })
-  }
-  return { rack, sanitized }
-}
-
-function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, placements: Array<{ cellIndex: number; letter: string }>): Turn {
-  const state = row.state
-  const rules = ruleGrid(grid)
-  const { sanitized } = sanitizePlacements(row, grid, playerId, placements)
-  const aidedCell = state.hint?.playerId === playerId && state.hint.turnNumber === row.turn_number ? state.hint.cellIndex : null
-  const evaluated = evaluateTurn({ grid: rules, occupiedBefore: Object.keys(state.board).map(Number), placements: sanitized, aidedCell })
-  for (const placement of evaluated.correctPlacements) state.board[String(placement.cellIndex)] = { letter: placement.letter, playerId }
-  const correctLetters = new Set(evaluated.correctPlacements.map(item => item.letter))
-  const current = keepRackLettersAfterTurn(state.racks[playerId] ?? [], evaluated.correctPlacements)
-  state.racks[playerId] = refill(rules, state, playerId, current, correctLetters)
-  ensureFinalSprintRacks(rules, state)
-  state.scores[playerId] = (state.scores[playerId] ?? 0) + evaluated.scoreGained
-  if (evaluated.productive) state.productiveTurns[playerId] = (state.productiveTurns[playerId] ?? 0) + 1
-  if (evaluated.rackBonus) {
-    state.rackCompletions ??= {}
-    state.rackCompletions[playerId] = (state.rackCompletions[playerId] ?? 0) + 1
-  }
-  state.inactivity[playerId] = 0
-  const turn: Turn = {
-    id: crypto.randomUUID(), kind: 'played', playerId, turnNumber: row.turn_number,
-    correct: evaluated.correctCells, wrong: evaluated.wrongCells, wrongPlacements: evaluated.wrongPlacements,
-    aidedCell, letterPoints: evaluated.letterPoints,
-    wordBonuses: evaluated.wordBonuses.map(word => ({ cells: word.cells, points: word.points, direction: word.direction })),
-    rackBonus: evaluated.rackBonus, scoreGained: evaluated.scoreGained, inactivityCount: 0, createdAt: nowIso(),
-  }
-  state.lastTurn = turn; state.hint = null
-  if (evaluated.completesGrid) {
-    const [left, right] = state.playerIds
-    const winner = state.scores[left] === state.scores[right] ? null : state.scores[left] > state.scores[right] ? left : right
-    finish(state, row, winner, 'completed')
-  } else {
-    const opponent = state.playerIds.find(id => id !== playerId)!
-    const nextStart = new Date(Date.now() + revealDuration(turn))
-    row.current_player_id = opponent; row.turn_number += 1; row.turn_started_at = nextStart.toISOString()
-    row.turn_ends_at = new Date(nextStart.getTime() + (row.pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS)).toISOString()
-  }
-  return turn
-}
-
-function timeoutTurn(row: MatchRow) {
-  const state = row.state
-  const playerId = row.current_player_id
-  const inactivity = (state.inactivity[playerId] ?? 0) + 1
-  state.inactivity[playerId] = inactivity
-  const turn: Turn = { id: crypto.randomUUID(), kind: 'timeout', playerId, turnNumber: row.turn_number, correct: [], wrong: [], wrongPlacements: [], aidedCell: null, letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0, inactivityCount: inactivity, createdAt: nowIso() }
-  state.lastTurn = turn; state.hint = null
-  if (shouldForfeitAfterInactivity(inactivity)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
-  else {
-    const next = state.playerIds.find(id => id !== playerId)!
-    const start = new Date(Date.now() + revealDuration(turn)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()
-    row.turn_ends_at = new Date(start.getTime() + (row.pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS)).toISOString()
-  }
-}
-
-function botPlacements(row: MatchRow, grid: CatalogGrid) {
-  const state = row.state; const bot = state.bot!; const rules = ruleGrid(grid); const rack = state.racks[bot.playerId] ?? []
-  const botScore = state.scores[bot.playerId] ?? 0
-  const bestOpponentScore = Math.max(...state.playerIds.filter(id => id !== bot.playerId).map(id => state.scores[id] ?? 0), 0)
-  return planBotMove({
-    grid: rules,
-    occupiedCells: Object.keys(state.board).map(Number),
-    rackLetters: rack,
-    persona: bot,
-    seed: `${row.id}:${row.turn_number}:${rack.join('')}`,
-    scoreGap: bestOpponentScore - botScore,
-  }).attempts.map(attempt => ({ cellIndex: attempt.cellIndex, letter: attempt.letter }))
-}
-
-async function persist(admin: ReturnType<typeof createClient>, row: MatchRow) {
+async function persist(admin: AdminClient, row: MatchRow) {
   const updatedAt = nowIso()
   const { data, error } = await admin.from('server_matches').update({
     state: row.state, status: row.status, current_player_id: row.current_player_id || null, turn_number: row.turn_number,
@@ -651,7 +446,7 @@ async function persist(admin: ReturnType<typeof createClient>, row: MatchRow) {
 }
 
 async function matchConflictResponse(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   row: MatchRow,
   playerId: string,
   grid: CatalogGrid | undefined,
@@ -665,109 +460,8 @@ async function matchConflictResponse(
   })
 }
 
-function playerOutcome(row: MatchRow, playerId: string) {
-  const won = row.winner_id === playerId
-  const interrupted = row.finish_reason === 'forfeit' || row.finish_reason === 'timeout'
-  return interrupted ? won ? 'opponent-abandoned' : 'abandon' : row.winner_id === null ? 'draw' : won ? 'win' : 'loss'
-}
-
-async function recordMatchHistory(
-  admin: ReturnType<typeof createClient>,
-  row: MatchRow,
-  playerId: string,
-  loadedProfiles?: ReadonlyMap<string, PublicPlayerProfile>,
-) {
-  if (row.status !== 'finished' || playerId === row.state.bot?.playerId) return
-  const opponentId = row.state.playerIds.find(id => id !== playerId) ?? ''
-  const opponentName = row.state.bot?.playerId === opponentId
-    ? row.state.bot.displayName
-    : (loadedProfiles?.get(opponentId) ?? await profile(admin, opponentId))?.displayName ?? null
-  const { error } = await admin.from('grid_player_history').upsert({
-    user_id: playerId,
-    play_key: `match:${row.id}`,
-    match_id: row.id,
-    grid_id: row.grid_id,
-    mode: row.mode === 'solo' ? 'solo' : 'multiplayer',
-    pace: row.pace,
-    outcome: playerOutcome(row, playerId),
-    completed: row.finish_reason === 'completed',
-    score: Math.max(0, row.state.scores[playerId] ?? 0),
-    opponent_score: Math.max(0, row.state.scores[opponentId] ?? 0),
-    opponent_name: opponentName,
-    finish_reason: row.finish_reason,
-    duration_seconds: Math.max(0, Math.round((new Date(row.updated_at).getTime() - new Date(row.created_at).getTime()) / 1000)),
-    completed_at: row.updated_at,
-    updated_at: nowIso(),
-  }, { onConflict: 'user_id,play_key' })
-  if (error) throw error
-  await admin.from('match_participants').update({
-    score: Math.max(0, row.state.scores[playerId] ?? 0),
-    inactivity_count: Math.max(0, row.state.inactivity[playerId] ?? 0),
-  }).eq('match_id', row.id).eq('user_id', playerId)
-}
-
-async function awardFinished(admin: ReturnType<typeof createClient>, row: MatchRow) {
-  if (row.status !== 'finished') return
-  const humanPlayerIds = row.state.playerIds.filter(playerId => playerId !== row.state.bot?.playerId)
-  const profiles = await loadPublicProfiles(admin, humanPlayerIds)
-  for (const playerId of row.state.playerIds) {
-    if (playerId === row.state.bot?.playerId) continue
-    await recordMatchHistory(admin, row, playerId, profiles)
-    // A casual duel interrupted only after both ranked players accepted is
-    // visible as an administrative draw, but it is intentionally reward-free
-    // so the ready-check flow cannot be farmed.
-    if (row.finish_reason === 'ranked_transfer') continue
-    const outcome = playerOutcome(row, playerId)
-    const solo = row.mode === 'solo'
-    const productiveTurns = row.state.productiveTurns[playerId] ?? 0
-    const totalProductiveTurns = Object.entries(row.state.productiveTurns)
-      .filter(([id]) => id !== row.state.bot?.playerId)
-      .reduce((total, [, turns]) => total + Math.max(0, turns), 0)
-    const feathers = calculateFeatherReward({
-      mode: solo ? 'solo' : 'multiplayer', outcome, totalProductiveTurns,
-      hintUsed: Boolean(row.state.hintUsed[playerId]),
-      rerollUsed: Boolean(row.state.rerollUsed[playerId]),
-      rackCompletions: row.state.rackCompletions?.[playerId] ?? 0,
-    })
-    await admin.rpc('server_award_progress', {
-      p_user_id: playerId,
-      p_idempotency_key: `match:${row.id}`,
-      p_mode: solo ? 'solo' : 'multiplayer',
-      p_outcome: outcome,
-      p_productive_turns: productiveTurns,
-      p_feather_amount: feathers.total,
-      p_feather_breakdown: feathers,
-    })
-    // Bonus du défi du jour : 250 plumes à la PREMIÈRE victoire de la journée.
-    // Versé par un RPC PUREMENT MONÉTAIRE — surtout pas server_award_progress,
-    // qui ajouterait de l'XP et une victoire fantôme au palmarès. Idempotent sur
-    // `daily:<user>:<date>` : rejouer et regagner le même jour ne verse rien de
-    // plus. La récompense ordinaire du match ci-dessus reste due à chaque partie.
-    if (row.state.isDaily && row.state.dailyDate && outcome === 'win') {
-      const { error: dailyError } = await admin.rpc('server_award_feathers', {
-        p_user_id: playerId,
-        p_idempotency_key: `daily:${playerId}:${row.state.dailyDate}`,
-        p_amount: DAILY_COMPLETION_FEATHERS,
-        p_kind: 'daily-completion',
-        // `matchId` rattache le versement au match qui l'a déclenché : c'est ce
-        // qui permet à account-api d'annoncer le bonus sur l'écran de fin de
-        // CETTE partie, et uniquement sur celle-là (un rejeu gagnant du même
-        // jour ne crée aucune transaction, donc n'annonce rien).
-        p_metadata: { dateKey: row.state.dailyDate, gridId: row.grid_id, matchId: row.id },
-      })
-      // Un bonus manqué ne doit pas faire échouer la clôture du match : le
-      // résultat, l'historique et la récompense ordinaire sont déjà écrits.
-      if (dailyError) logServerError('match-api', dailyError, { action: 'daily-award', userId: playerId })
-    }
-  }
-  if (row.mode === 'ranked') {
-    const { error } = await admin.rpc('server_apply_ranked_result_atomic', { p_match_id: row.id })
-    if (error) throw error
-  }
-}
-
 async function rankedSnapshot(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
   expireReady = true,
 ): Promise<Record<string, unknown>> {
@@ -871,7 +565,7 @@ async function rankedSnapshot(
 }
 
 async function rankedLeaderboard(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
 ) {
   const { data: progressRows, error: progressError } = await admin.from('player_progress')
@@ -919,7 +613,7 @@ async function rankedLeaderboard(
 }
 
 async function advanceRankedSearch(
-  admin: ReturnType<typeof createClient>,
+  admin: AdminClient,
   userId: string,
 ): Promise<AtomicMatchResult> {
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -979,10 +673,10 @@ Deno.serve(async request => {
   if (request.method !== 'POST') return json(405, { error: 'Méthode non autorisée.' })
   const authorization = request.headers.get('Authorization') ?? ''
   const url = Deno.env.get('SUPABASE_URL')!
-  const authClient = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } })
+  const authClient = createAuthClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, authorization)
   const { data: { user } } = await authClient.auth.getUser(authorization.replace(/^Bearer\s+/i, ''))
   if (!user) return json(401, { error: 'Session invalide.' })
-  const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } })
+  const admin = createAdminClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const { data: accessProfile } = await admin.from('profiles').select('status').eq('id', user.id).single()
   if (accessProfile?.status === 'banned') return json(403, { error: 'Ce compte a été banni.' })
   if (accessProfile?.status === 'suspended') return json(403, { error: 'Ce compte est temporairement suspendu.' })
@@ -1209,16 +903,30 @@ Deno.serve(async request => {
     }
 
     // ── Défi du jour ─────────────────────────────────────────────────────────
-    // Le client n'envoie QUE le rythme : ni gridId, ni dateKey, ni difficulté.
+    // Le client n'envoie RIEN : ni gridId, ni dateKey, ni difficulté, ni rythme.
     // Le serveur décide de tout, sinon le défi n'a plus rien de « du jour » :
     //  - la clé de jour vient de l'horloge SERVEUR (Europe/Paris) ;
     //  - la grille vient du calendrier gravé, donc partagée par tous ;
-    //  - la force du bot vient de player_progress.level, lu en base.
+    //  - la force du bot vient de player_progress.level, lu en base ;
+    //  - le rythme est le TEMPS LIMITÉ, toujours (voir ci-dessous).
     // Le défi est rejouable jusqu'à minuit : chaque appel crée bien une nouvelle
     // tentative. Le bonus de 250 plumes, lui, reste versé une seule fois par jour
     // (idempotence `daily:<user>:<date>` dans awardFinished).
     if (action === 'daily') {
-      const pace: Pace = body.pace === 'async' ? 'async' : 'realtime'
+      // TEMPS LIMITÉ IMPOSÉ. Cette ligne lisait `body.pace` et acceptait donc
+      // `async` sur simple demande du client. Aucun appelant ne l'a jamais
+      // demandé — `createDailyMatch` passe `'realtime'` et c'est son unique point
+      // d'appel — mais l'edge function est un point HTTP public : une requête
+      // forgée à la main obtenait un défi du jour à 24 h par tour au lieu de 45 s.
+      //
+      // Ce n'était pas qu'une entorse à la règle du jeu. Un tour de 24 h qui
+      // repart à chaque coup permet de garder un défi ouvert plusieurs jours,
+      // puis de le terminer bien plus tard : le serveur écrivait alors une
+      // victoire DATÉE DU JOUR DE CRÉATION, rebouchant après coup un trou de
+      // série — jusqu'à réparer une série cassée ou débloquer un palier.
+      // `recordDailyWinAndMilestones` refuse désormais une victoire trop
+      // ancienne, mais c'est ici que la porte se ferme vraiment.
+      const pace: Pace = 'realtime'
       const dateKey = parisDateKey(new Date())
       const skill = botSkillForLevel(await playerLevel(admin, user.id))
       const bot = createBot(`${user.id}:daily:${dateKey}:${Date.now()}`, skill)

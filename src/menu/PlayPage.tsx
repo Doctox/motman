@@ -74,7 +74,7 @@ function RecentMatchHistory({ matches, visible }: { matches: MatchHistoryEntry[]
   </div>
 }
 
-export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedError, startRanked, cancelRanked }: {
+export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked }: {
   identity: GuestIdentity
   onStartSolo: (difficulty: GridDifficulty, pace: MatchPace) => Promise<void>
   social: SocialState
@@ -87,6 +87,8 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
   openFriends: () => void
   ranked: RankedMatchmakingState
   rankedBusy: boolean
+  /** Vrai après une recherche restée sans adversaire (voir rankedSearchExpired). */
+  rankedTimedOut: boolean
   rankedError: string | null
   startRanked: () => Promise<void>
   cancelRanked: () => Promise<void>
@@ -189,6 +191,9 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
           </button>
           {rankedSearching ? <button type="button" className="mm-search-cancel" disabled={rankedBusy || ranked.status === 'accepted'} onClick={() => void cancelRanked()}>Annuler</button> : null}
         </div>
+        {rankedTimedOut && !rankedSearching ? <p className="mm-ranked-timeout" role="status">
+          Personne n’a été trouvé en dix minutes — la recherche s’est arrêtée. Vous pouvez la relancer.
+        </p> : null}
         <p className="mm-ranked-explainer">La recherche continue en arrière-plan. Une partie normale limitée sera seulement mise en pause pendant la confirmation.</p>
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </div>
