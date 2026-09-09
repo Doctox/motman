@@ -243,3 +243,51 @@ if (Deno.args.includes('--bruit')) {
     }
   }
 }
+
+// ── CALIBRAGE ROBUSTE DE α ─────────────────────────────────────────────────
+//
+// L'exposant retenu conditionne toute l'equite du classement : il merite mieux
+// qu'une seule partie par grille. On moyenne sur plusieurs graines pour que le
+// hasard du bot ne deplace pas la valeur — c'est justement ce qui faisait
+// osciller α entre 0,26 et 0,37 d'un echantillon a l'autre.
+if (Deno.args.includes('--calibrer')) {
+  const graines = Number(Deno.args[Deno.args.indexOf('--calibrer') + 1] ?? 8)
+  const moyennes: Record<string, { score: number[]; tours: number[] }> = {}
+  for (const force of forces) moyennes[force] = { score: [], tours: [] }
+
+  for (const [i, grid] of echantillon.entries()) {
+    for (const force of forces) {
+      const s: number[] = [], t: number[] = []
+      for (let k = 0; k < graines; k += 1) {
+        const r = partie(grid, force, `cal-${i}-${k}`)
+        s.push(r.scoreJoueur); t.push(r.tours)
+      }
+      moyennes[force].score.push(moy(s))
+      moyennes[force].tours.push(moy(t))
+    }
+  }
+
+  const noteMoy = (f: string, alpha: number) =>
+    moy(moyennes[f].score.map((s, i) => s / Math.pow(moyennes[f].tours[i], alpha)))
+  const disp = (alpha: number) => {
+    const v = forces.map(f => noteMoy(f, alpha))
+    return (Math.max(...v) / Math.min(...v) - 1) * 100
+  }
+  let best = 0, min = Infinity
+  for (let a = 0; a <= 1; a += 0.001) { const d = disp(a); if (d < min) { min = d; best = a } }
+
+  console.log(`\n\nCALIBRAGE sur ${echantillon.length} grilles x ${graines} graines`)
+  console.log('force        score moyen   tours moyens')
+  for (const f of forces) {
+    console.log(`${f.padEnd(12)} ${moy(moyennes[f].score).toFixed(1).padStart(8)} ${moy(moyennes[f].tours).toFixed(2).padStart(14)}`)
+  }
+  console.log(`\nα optimal = ${best.toFixed(3)}   ecart residuel entre forces : ${min.toFixed(2)} %`)
+  console.log('\nSensibilite autour de l\'optimum (un plateau large = valeur sure) :')
+  for (const a of [best - 0.1, best - 0.05, best, best + 0.05, best + 0.1]) {
+    if (a >= 0) console.log(`  α = ${a.toFixed(3)}   ecart ${disp(a).toFixed(2)} %`)
+  }
+  // Une valeur ronde vaut mieux qu'une decimale fausse-precise si elle tient.
+  for (const rond of [0.25, 0.3, 1 / 3, 0.35, 0.4, 0.5]) {
+    console.log(`  valeur ronde ${rond.toFixed(3)} -> ecart ${disp(rond).toFixed(2)} %`)
+  }
+}

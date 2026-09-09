@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Flame, RotateCcw, Snowflake } from 'lucide-react'
+import { Check, ChevronRight, Flame, LoaderCircle, Medal, RotateCcw, Snowflake, Users } from 'lucide-react'
 import { currentDailyDateKey, dailyDateKey } from '../dailyDate'
+import { EMPTY_DAILY_LEADERBOARD, loadDailyLeaderboard, type DailyLeaderboard } from '../dailyLeaderboard'
+import type { DailyRankingEntry } from '../dailyScore'
 import {
   dailyAttempts,
   dailyStatus,
@@ -207,6 +209,94 @@ export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects })
       {effects.usedFreeze ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />Gel de série utilisé — série préservée</p> : null}
       {effects.recovered ? <p className="mm-daily-reward-note"><Flame aria-hidden="true" />Série restaurée</p> : null}
       {milestone ? <p className="mm-daily-reward-milestone">Palier {milestone.streak} jours atteint{milestone.plumes > 0 ? ` · +${milestone.plumes} plumes` : ''}{milestone.freeze > 0 ? ` · +${milestone.freeze} gel` : ''}</p> : null}
+    </section>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LE CLASSEMENT DU JOUR.
+//
+// La seule compétition de MotMan qui ne demande pas deux joueurs au même
+// instant : tout le monde joue la même grille, chacun quand il veut. Le classé,
+// lui, exige une rencontre — et la file a déjà gardé un joueur huit jours sans
+// l'apparier.
+//
+// LA NOTE VIENT DU SERVEUR, et rien n'est recalculé ici. Elle vaut
+// `score / ∛tours` : le défi oppose le joueur à un bot dont la force suit son
+// niveau, un bot fort prend plus de cases mais termine plus vite, et cet
+// exposant compense l'un par l'autre. Le détail et son calibrage sont dans
+// `src/dailyScore.ts`.
+//
+// On affiche le score ET les tours à côté de la note : une note seule, dont la
+// formule est invisible, donne le sentiment d'un classement arbitraire.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function DailyRankRow({ entry }: { entry: DailyRankingEntry }) {
+  return (
+    <li className={`mm-daily-rank-row${entry.isMe ? ' is-me' : ''}`}>
+      <span className="mm-daily-rank-place">{entry.position}</span>
+      <span className="mm-daily-rank-name">{entry.displayName}</span>
+      <span className="mm-daily-rank-detail">{entry.score} pts · {entry.turns} tours</span>
+      <strong className="mm-daily-rank-note">{entry.note}</strong>
+    </li>
+  )
+}
+
+export function DailyLeaderboardPanel() {
+  const [onglet, setOnglet] = useState<'general' | 'friends'>('general')
+  const [classement, setClassement] = useState<DailyLeaderboard>(EMPTY_DAILY_LEADERBOARD)
+  const [chargement, setChargement] = useState(true)
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  useEffect(() => {
+    let vivant = true
+    loadDailyLeaderboard()
+      .then(resultat => { if (vivant) setClassement(resultat) })
+      .catch(raison => { if (vivant) setErreur(raison instanceof Error ? raison.message : 'Classement indisponible.') })
+      .finally(() => { if (vivant) setChargement(false) })
+    return () => { vivant = false }
+  }, [])
+
+  const lignes = onglet === 'general' ? classement.general : classement.friends
+  // Le lecteur voit toujours SA ligne, même au-delà de la cinquantième place —
+  // un classement où l'on ne se trouve pas ne donne aucune envie de revenir.
+  const moiHorsListe = classement.me && !lignes.some(entry => entry.isMe) ? classement.me : null
+
+  return (
+    <section className="mm-daily-rank" aria-label="Classement du défi du jour">
+      <header className="mm-daily-rank-head">
+        <h3><Medal aria-hidden="true" />Classement du jour</h3>
+        <div className="mm-daily-rank-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={onglet === 'general'}
+            className={onglet === 'general' ? 'is-active' : ''} onClick={() => setOnglet('general')}>
+            Tous
+          </button>
+          <button type="button" role="tab" aria-selected={onglet === 'friends'}
+            className={onglet === 'friends' ? 'is-active' : ''} onClick={() => setOnglet('friends')}>
+            <Users aria-hidden="true" />Amis
+          </button>
+        </div>
+      </header>
+
+      {chargement ? <p className="mm-daily-rank-vide" role="status"><LoaderCircle aria-hidden="true" />Chargement…</p>
+        : erreur ? <p className="mm-daily-rank-vide" role="alert">{erreur}</p>
+        : lignes.length === 0 ? <p className="mm-daily-rank-vide">
+            {onglet === 'friends'
+              ? 'Aucun de vos amis n’a encore joué la grille du jour.'
+              : 'Personne n’a encore terminé la grille du jour. À vous l’honneur.'}
+          </p>
+        : <>
+          <ol className="mm-daily-rank-list">
+            {lignes.map(entry => <DailyRankRow key={entry.playerId} entry={entry} />)}
+          </ol>
+          {moiHorsListe ? <ol className="mm-daily-rank-list is-detached">
+            <DailyRankRow entry={moiHorsListe} />
+          </ol> : null}
+          <p className="mm-daily-rank-total">
+            {classement.total} joueur{classement.total > 1 ? 's' : ''} classé{classement.total > 1 ? 's' : ''} aujourd’hui
+            <span className="mm-daily-rank-formule"> · note = score ÷ ∛tours</span>
+          </p>
+        </>}
     </section>
   )
 }

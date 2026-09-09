@@ -8,7 +8,7 @@ import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '.
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
-import { DailyChallengeHero } from './DailyChallenge'
+import { DailyChallengeHero, DailyLeaderboardPanel } from './DailyChallenge'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -74,6 +74,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
     </section>
     <section className="mm-attention">
       <DailyChallengeHero onPlay={playDaily} />
+      <DailyLeaderboardPanel />
       <header className="mm-attention-heading">
         <h2>{currentMatches.length > 1 ? 'Parties en cours' : 'Partie en cours'}</h2>
         {currentMatches.length ? <span aria-label={`${currentMatches.length} parties en cours`}>{currentMatches.length}</span> : null}

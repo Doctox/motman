@@ -30,6 +30,7 @@ import { applyTurn, botPlacements, finish, sanitizePlacements, timeoutTurn } fro
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, matchConflictResponse, profile, view } from './matchView.ts'
 import { atomicResult, botSkillForLevel, createBot, createMatch, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
+import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
 
 Deno.serve(async request => {
@@ -308,6 +309,21 @@ Deno.serve(async request => {
     // Le défi est rejouable jusqu'à minuit : chaque appel crée bien une nouvelle
     // tentative. Le bonus de 250 plumes, lui, reste versé une seule fois par jour
     // (idempotence `daily:<user>:<date>` dans awardFinished).
+    // Classement du défi du jour. Lecture seule, et volontairement placée AVANT
+    // l'action `daily` : un joueur doit pouvoir consulter le tableau sans avoir
+    // encore joué, ni déclencher la création d'une partie.
+    //
+    // Le jour par défaut est celui du serveur — l'horloge du client n'a pas
+    // voix au chapitre, sans quoi il suffirait d'avancer sa montre pour lire un
+    // classement qui n'existe pas encore.
+    if (action === 'daily-leaderboard') {
+      const demande = typeof body.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.day) ? body.day : null
+      const aujourdhui = parisDateKey(new Date())
+      // Jamais dans le futur, et pas au-delà de l'horizon de l'historique.
+      const jour = demande && demande <= aujourdhui ? demande : aujourdhui
+      return json(200, await loadDailyLeaderboard(admin, user.id, jour))
+    }
+
     if (action === 'daily') {
       // TEMPS LIMITÉ IMPOSÉ. Cette ligne lisait `body.pace` et acceptait donc
       // `async` sur simple demande du client. Aucun appelant ne l'a jamais

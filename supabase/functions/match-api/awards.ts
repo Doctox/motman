@@ -15,6 +15,7 @@
 
 import { DAILY_MILESTONES } from '../../../src/dailyMilestones.ts'
 import { encodeBoardSnapshot } from '../../../src/matchBoardSnapshot.ts'
+import { dailyNote } from '../../../src/dailyScore.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
 import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import { logServerError } from '../_shared/http.ts'
@@ -68,6 +69,20 @@ export async function recordMatchHistory(
     // rester en rotation. La propriété est enregistrée du point de vue de
     // `playerId` — cette ligne lui appartient.
     final_board: encodeBoardSnapshot(row.state.board, playerId),
+    // Défi du jour : de quoi classer la partie. `daily_date` distingue le défi
+    // d'une partie solo tombée par hasard sur la même grille, et `turns` sert
+    // la note — contrairement à `duration_seconds`, il ne dépend pas du temps
+    // de réflexion du joueur.
+    //
+    // La note est CALCULÉE ICI ET STOCKÉE, jamais recalculée en SQL :
+    // `src/dailyScore.ts` en est la seule source. Une seconde écriture de la
+    // règle en plpgsql a déjà divergé en silence sur cette base, au prix de
+    // paliers de série jamais payés.
+    ...(row.state.isDaily && row.state.dailyDate ? {
+      daily_date: row.state.dailyDate,
+      turns: Math.max(0, row.turn_number),
+      daily_note: dailyNote(Math.max(0, row.state.scores[playerId] ?? 0), row.turn_number),
+    } : {}),
     updated_at: nowIso(),
   }, { onConflict: 'user_id,play_key' })
   if (error) throw error

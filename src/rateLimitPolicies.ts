@@ -74,6 +74,12 @@ export function actionRateLimits(
   if (api === 'match' && action === 'history-grid') {
     return [{ bucket: 'match:history-grid', maxRequests: 40, windowSeconds: 300 }]
   }
+  // Classement du jour : lecture seule, mais le client peut le rafraîchir en
+  // consultant. Sans entrée ici, l'action tomberait dans le `return []` final
+  // et n'aurait AUCUNE limite.
+  if (api === 'match' && action === 'daily-leaderboard') {
+    return [{ bucket: 'match:daily-leaderboard', maxRequests: isAnonymous ? 20 : 60, windowSeconds: 300 }]
+  }
   if (api === 'match' && action === 'feedback') {
     return [{ bucket: 'match:feedback', maxRequests: 20, windowSeconds: 3600 }]
   }
