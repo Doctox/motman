@@ -1,8 +1,9 @@
-import { ChevronRight, Feather, Gamepad2, UserPlus } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronRight, Copy, Feather, Gamepad2, UserPlus } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import type { PlayerCosmetics } from '../cosmetics'
 import type { MatchLobbyState, MatchState } from '../matches'
-import { playerInitials, type GuestIdentity } from '../playerIdentity'
+import { playerInitials, type GuestIdentity, shortPlayerId } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import type { SocialState } from '../social'
@@ -30,6 +31,21 @@ function activeMatchLabel(match: MatchState): string {
 
 export function HomePage({ identity, progress, cosmetics, social, lobby, play, playDaily, openFriends, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playDaily: () => void; openFriends: () => void; resumeMatch: (matchId: string) => void }) {
   const firstRequest = social.incoming[0]
+  const codeAmi = shortPlayerId(identity.playerId)
+  // Partage natif quand l'appareil le propose, presse-papiers sinon. Les deux
+  // peuvent echouer (permission refusee, contexte non securise) : on retombe
+  // alors sur l'affichage du code, qui reste utilisable a la main.
+  const [codePartage, setCodePartage] = useState<string | null>(null)
+  const partagerCode = async () => {
+    const texte = `Rejoins-moi sur MotMan ! Mon code ami : ${codeAmi}`
+    try {
+      if (navigator.share) { await navigator.share({ text: texte }); return }
+      await navigator.clipboard.writeText(codeAmi)
+      setCodePartage('Code ami copié')
+    } catch {
+      setCodePartage(`Votre code : ${codeAmi}`)
+    }
+  }
   const presenceWeight = { offline: 0, online: 1, playing: 2 }
   const visibleFriends = [...social.friends].sort((left, right) => presenceWeight[right.activity] - presenceWeight[left.activity]).slice(0, 3)
   const xpGoal = experienceGoalForLevel(progress.level)
@@ -92,7 +108,17 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       {visibleFriends.length ? <div className="mm-home-friend-list">{visibleFriends.map(friend => <div className="mm-home-friend" key={friend.playerId}>
         <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
         <span><strong>{friend.displayName}</strong><small>{presenceLabel(friend.activity)}</small></span>
-      </div>)}</div> : <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter votre premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>}
+      </div>)}</div> : <>
+        <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter votre premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>
+        {/* Un joueur sans aucun ami doit pouvoir DONNER son code, pas seulement
+            en saisir un : jusqu'ici il fallait ouvrir les paramètres pour le
+            trouver (suggestion S-04, rapport 6766). C'est le seul moment où ce
+            raccourci a du sens, d'où sa place dans l'état vide. */}
+        <button type="button" className="mm-home-share-code" onClick={partagerCode}>
+          <Copy /><span>Partager mon code : <b>{codeAmi}</b></span>
+        </button>
+        {codePartage ? <p className="mm-home-share-note" role="status">{codePartage}</p> : null}
+      </>}
     </section>
   </div>
 }

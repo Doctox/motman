@@ -163,9 +163,17 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
 
     {tab === 'baskets' ? <section className="mm-basket-shelf" aria-label="Paniers">
       <p>Un seul panier pour toute la collection. Chaque ouverture sans trouvaille rare améliore doucement la suivante.</p>
-      {BASKETS.map(basket => <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState}`} key={basket.id}>
+      {BASKETS.map(basket => {
+        // Le prix se voyait, le solde aussi, mais rien ne disait que l'un ne
+        // couvrait pas l'autre : on tapait, et le serveur refusait. On le dit
+        // AVANT (suggestion S-01, rapport 6766). Pendant l'ouverture et la
+        // révélation, le bouton sert à autre chose : la règle ne s'applique
+        // qu'au repos.
+        const manque = Math.max(0, basket.pricePlumes - cosmetics.plumes)
+        const inabordable = basketState === 'idle' && manque > 0
+        return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState}`} key={basket.id}>
         <header><small>Panier unique · sans doublon</small><strong>{basket.name}</strong><p>{basket.description}</p></header>
-        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening'} onClick={() => void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : `Ouvrir ${basket.name}`}>
+        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />
           <span className="mm-feather-cloud" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <Feather key={index} />)}</span>
           <BasketArtwork state={basketState} />
@@ -176,13 +184,15 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
                 : <><PackageOpen />Ouvrir <Price value={basket.pricePlumes} /></>}
           </span>
         </button>
+        {inabordable ? <p className="mm-basket-manque" role="status">Il vous manque {manque} plume{manque > 1 ? 's' : ''} pour ouvrir ce panier.</p> : null}
         <em>{cosmetics.basketPity > 0 ? `Chance rare renforcée · palier ${cosmetics.basketPity}` : 'Chance rare initiale'}</em>
         <details className="mm-basket-odds">
           <summary>Probabilités de ce panier</summary>
           <div>{ODDS_RARITIES.map(rarity => <span key={rarity}><i className={`rarity-${rarity}`} />{RARITY_LABELS[rarity]}<b>{formatProbability(cosmetics.basketOdds[rarity])}</b></span>)}</div>
           <small>Les chances sont recalculées selon votre collection et le palier actuel.</small>
         </details>
-      </article>)}
+      </article>
+      })}
       <small className="mm-shop-note"><Sparkles />Les paniers ne contiennent ni titre ni avantage de jeu.</small>
     </section> : null}
   </div>

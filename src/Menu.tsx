@@ -347,7 +347,9 @@ export function MenuApp({
   }
 
   const outgoingInvitation = matchLobby.outgoing[0]
-  const realtimeSearch = matchLobby.searches.some(search => search.pace === 'realtime')
+  // `find` et non `some` : le panneau affiche desormais le temps ecoule, donc il
+  // lui faut la recherche elle-meme et pas seulement son existence.
+  const realtimeSearch = matchLobby.searches.find(search => search.pace === 'realtime')
   const pendingResult = matchLobby.pendingResults?.[0]
 
   const acknowledgePendingResult = async (resultId: string) => {
@@ -378,7 +380,7 @@ export function MenuApp({
     {matchLobby.incoming[0] ? <MatchInvitationPanel invitation={matchLobby.incoming[0]} busy={matchBusy} accept={() => void answerInvitation(matchLobby.incoming[0].id, 'accept')} decline={() => void answerInvitation(matchLobby.incoming[0].id, 'decline')} /> : null}
     {outgoingInvitation || realtimeSearch ? <div className="mm-live-activities">
       {outgoingInvitation ? <MatchWaitingPanel invitation={outgoingInvitation} busy={matchBusy} cancel={() => void cancelInvitation(outgoingInvitation.id)} /> : null}
-      {realtimeSearch ? <NormalSearchPanel busy={matchBusy} cancel={() => void stopNormalSearch('realtime')} /> : null}
+      {realtimeSearch ? <NormalSearchPanel busy={matchBusy} since={realtimeSearch.createdAt} cancel={() => void stopNormalSearch('realtime')} /> : null}
     </div> : null}
     {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
       ? <FirstRunTutorial skip={() => closeTutorial()} finish={() => closeTutorial(true)} />
