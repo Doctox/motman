@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Feather, Heart, HeartCrack, House } from 'lucide-react'
+import { Check, Feather, Heart, HeartCrack, House, UserPlus } from 'lucide-react'
 import { refreshPlayerAccount } from '../auth'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
@@ -15,6 +15,7 @@ import {
 import type { ExperienceAward } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import { haptic, playEffect } from '../sensoryPreferences'
+import { sendFriendRequestToPlayer } from '../social'
 
 // Défi du jour : la série est enregistrée UNE SEULE FOIS par match terminé.
 // L'écran de résultat peut être remonté (retour arrière, reprise, StrictMode) et
@@ -135,12 +136,75 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
       {!feedbackSent ? <div className="feedback-actions"><button type="button" disabled={feedbackSending} onClick={() => void sendFeedback('yes')}><Heart />Oui</button><button type="button" disabled={feedbackSending} onClick={() => void sendFeedback('no')}><HeartCrack />Non</button></div> : null}
       {feedbackError ? <p className="result-feedback-error" role="alert">{feedbackError}</p> : null}
     </div>
+    <AddOpponentAsFriend playerId={playerId} opponentId={opponentId} opponentName={opponentName} isBot={Boolean(match.bot)} />
     <div className="end-game-actions">
       <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Feather />Nouvelle partie</button>
       <button type="button" className="end-game-home" disabled={leaving} onClick={() => void leaveResult(onHome)}><House />Retour à l’accueil</button>
     </div>
     {leavingError ? <p className="result-feedback-error" role="alert">{leavingError}</p> : null}
   </GameResultScreen>
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GARDER L'ADVERSAIRE.
+//
+// Jusqu'ici, une partie contre un inconnu trouvé par appariement se terminait
+// sans aucun moyen de le retrouver : l'ajout d'ami passait uniquement par un
+// code à huit caractères, qu'il aurait fallu s'échanger hors du jeu. Chaque
+// partie était donc une occasion perdue.
+//
+// Ce n'est pas du confort. La file classée a déjà gardé un joueur HUIT JOURS
+// sans l'apparier : un ami se défie directement, sans attendre personne. C'est
+// la seule boucle qui contourne l'appariement, et elle commence ici.
+//
+// PAS DE REVANCHE À CÔTÉ, et c'est un choix explicite du propriétaire : elle
+// transformerait une défaite en dette, et l'envie de « se refaire » est le
+// terreau de l'hostilité. On propose de garder quelqu'un, pas de le rattraper.
+//
+// Le serveur accepte déjà un `targetId` (`social-api`, route `request`) : il
+// n'y avait que le bouton à écrire.
+// ─────────────────────────────────────────────────────────────────────────────
+function AddOpponentAsFriend({ playerId, opponentId, opponentName, isBot }: {
+  playerId: string
+  opponentId: string
+  opponentName: string
+  isBot: boolean
+}) {
+  const [etat, setEtat] = useState<'repos' | 'envoi' | 'envoye' | 'deja'>('repos')
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  // Rien à proposer contre un bot, ni sans adversaire identifié.
+  if (isBot || !opponentId) return null
+
+  const demander = async () => {
+    setEtat('envoi')
+    setErreur(null)
+    try {
+      await sendFriendRequestToPlayer(playerId, opponentId)
+      setEtat('envoye')
+      haptic(10)
+    } catch (raison) {
+      const message = raison instanceof Error ? raison.message : 'Demande impossible.'
+      // Le serveur répond « déjà dans vos amis » : ce n'est pas une erreur à
+      // afficher en rouge, c'est une bonne nouvelle mal formulée.
+      if (/déjà dans vos amis/i.test(message)) setEtat('deja')
+      else { setEtat('repos'); setErreur(message) }
+    }
+  }
+
+  if (etat === 'envoye') {
+    return <p className="duel-friend-done" role="status"><Check aria-hidden="true" />Demande envoyée à {opponentName}</p>
+  }
+  if (etat === 'deja') {
+    return <p className="duel-friend-done" role="status"><Check aria-hidden="true" />{opponentName} est déjà dans vos amis</p>
+  }
+  return <div className="duel-friend">
+    <button type="button" className="duel-friend-add" disabled={etat === 'envoi'} onClick={() => void demander()}>
+      <UserPlus aria-hidden="true" />Ajouter {opponentName} en ami
+    </button>
+    {erreur ? <p className="result-feedback-error" role="alert">{erreur}</p> : null}
+  </div>
 }
 
 export function PendingResultPanel({

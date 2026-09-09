@@ -8,7 +8,7 @@ import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '.
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
-import { DailyChallengeHero } from './DailyChallenge'
+import { DailyChallengeHero, DailyRankTeaser } from './DailyChallenge'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -29,7 +29,7 @@ function activeMatchLabel(match: MatchState): string {
   return 'Match normal'
 }
 
-export function HomePage({ identity, progress, cosmetics, social, lobby, play, playDaily, openFriends, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playDaily: () => void; openFriends: () => void; resumeMatch: (matchId: string) => void }) {
+export function HomePage({ identity, progress, cosmetics, social, lobby, play, playDaily, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playDaily: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
   const firstRequest = social.incoming[0]
   const codeAmi = shortPlayerId(identity.playerId)
   // Partage natif quand l'appareil le propose, presse-papiers sinon. Les deux
@@ -74,6 +74,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
     </section>
     <section className="mm-attention">
       <DailyChallengeHero onPlay={playDaily} />
+      <DailyRankTeaser onOpenRanking={openRanking} />
       <header className="mm-attention-heading">
         <h2>{currentMatches.length > 1 ? 'Parties en cours' : 'Partie en cours'}</h2>
         {currentMatches.length ? <span aria-label={`${currentMatches.length} parties en cours`}>{currentMatches.length}</span> : null}

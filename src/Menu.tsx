@@ -365,7 +365,7 @@ export function MenuApp({
 
   return <main className="mm-shell">
     <AppHeader onMenu={() => setQuickMenu(true)} onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} resumeMatch={onStartMatch} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
     {page === 'play' ? <PlayPage identity={identity} onStartSolo={onStartSolo} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openShop={() => navigate('shop')} openAccount={() => setAccountOpen(true)} /> : null}

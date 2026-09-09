@@ -300,3 +300,33 @@ export function DailyLeaderboardPanel() {
     </section>
   )
 }
+
+/**
+ * Une ligne, sous le bloc du défi : votre place du jour.
+ *
+ * Le classement vit dans la page Classement, mais rien n'y menait — un tableau
+ * que personne ne sait exister n'a aucune valeur. Cette ligne le fait
+ * découvrir, et donne la raison de revenir demain.
+ *
+ * Elle ne s'affiche QUE si le joueur y figure : « aucun classement » sous un
+ * défi pas encore joué serait du bruit, et sous un défi joué, un reproche.
+ */
+export function DailyRankTeaser({ onOpenRanking }: { onOpenRanking?: () => void }) {
+  const [classement, setClassement] = useState<DailyLeaderboard | null>(null)
+  useEffect(() => {
+    let vivant = true
+    loadDailyLeaderboard()
+      .then(resultat => { if (vivant) setClassement(resultat) })
+      .catch(() => { if (vivant) setClassement(null) })
+    return () => { vivant = false }
+  }, [])
+
+  const moi = classement?.me
+  if (!moi || !classement) return null
+  const contenu = <><Medal aria-hidden="true" />
+    <span><b>{moi.position}<sup>{moi.position === 1 ? 'er' : 'e'}</sup></b> sur {classement.total} au défi du jour</span></>
+
+  return onOpenRanking
+    ? <button type="button" className="mm-daily-teaser" onClick={onOpenRanking}>{contenu}<ChevronRight aria-hidden="true" /></button>
+    : <p className="mm-daily-teaser">{contenu}</p>
+}

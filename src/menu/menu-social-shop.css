@@ -223,3 +223,42 @@
 .mm-name-help.valid{color:var(--mm-muted)}
 .mm-name-help.invalid{color:#a5412c}
 
+
+/* « Vos parties » — le profil ne parlait que de progression, jamais du fait de
+   jouer. Les quatre chiffres qui comptent en grand, le reste en une ligne. */
+.mm-player-stats {
+  margin-top: 12px; padding: 12px 14px;
+  border: 1px solid #ded6c7; border-radius: 16px; background: #fffdf7;
+}
+.mm-player-stats h2 {
+  margin: 0 0 10px; display: flex; align-items: center; gap: 6px;
+  font: 700 0.9375rem/1.2 'Playfair Display', serif; color: #123e37;
+}
+.mm-player-stats h2 svg { width: 16px; height: 16px; }
+.mm-player-stats dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; }
+.mm-player-stats dl div { text-align: center; }
+.mm-player-stats dt { font-size: 0.6875rem; color: #7d8d86; }
+.mm-player-stats dd {
+  margin: 2px 0 0; font: 700 1.125rem/1.1 'Playfair Display', serif;
+  color: #17613f; font-variant-numeric: tabular-nums;
+}
+.mm-player-stats-detail { margin: 10px 0 0; font-size: 0.6875rem; color: #8a9a93; text-align: center; }
+.mm-player-stats-detail small { opacity: .75; }
+.mm-player-stats.is-empty p { margin: 0; font-size: 0.8125rem; color: #7d8d86; }
+
+/* Ajouter l'adversaire en ami, à la fin d'une partie. Une partie contre un
+   inconnu était jusqu'ici une occasion perdue : l'ajout ne passait que par un
+   code à huit caractères, à s'échanger hors du jeu. */
+.duel-friend { margin-top: 10px; }
+.duel-friend-add {
+  display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+  padding: 10px 12px; border: 1px solid #b8c3bc; border-radius: 13px;
+  background: #fff; font-size: 0.8125rem; font-weight: 700; color: #17613f; cursor: pointer;
+}
+.duel-friend-add:disabled { opacity: .6; cursor: default; }
+.duel-friend-add svg { width: 16px; height: 16px; }
+.duel-friend-done {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin: 10px 0 0; font-size: 0.8125rem; color: #17613f;
+}
+.duel-friend-done svg { width: 15px; height: 15px; }

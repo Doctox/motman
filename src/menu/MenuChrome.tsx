@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { BarChart3, Gamepad2, Home, Settings, User } from 'lucide-react'
+import { BarChart3, Gamepad2, Home, Settings, ShoppingBasket, User } from 'lucide-react'
 import { assetUrl } from '../assetUrl'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { playerInitials } from '../playerIdentity'
@@ -35,13 +35,17 @@ export function AppHeader({ onSettings }: { onMenu?: () => void; onSettings: () 
 }
 
 export function BottomNav({ page, setPage }: { page: MenuPage; setPage: (page: MenuPage) => void }) {
-  const activePage = page === 'shop' ? 'profile' : page
+  // L'Épicerie A SON ONGLET. Elle était déjà une page à part entière, mais on
+  // n'y arrivait que depuis le profil — et la barre allumait alors « Profil »
+  // alors qu'on n'y était pas. Ce petit mensonge disparaît, et une destination
+  // qui existe cesse d'être cachée d'un niveau.
   const items: Array<[MenuPage, string, ReactNode]> = [
     ['home', 'Accueil', <Home />], ['play', 'Jouer', <Gamepad2 />],
-    ['ranking', 'Classement', <BarChart3 />], ['profile', 'Profil', <User />],
+    ['ranking', 'Classement', <BarChart3 />], ['shop', 'Épicerie', <ShoppingBasket />],
+    ['profile', 'Profil', <User />],
   ]
   return <nav className="mm-bottom-nav" aria-label="Navigation principale">
-    {items.map(([id, label, icon]) => <button key={id} type="button" className={activePage === id ? 'active' : ''} aria-current={activePage === id ? 'page' : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span></button>)}
+    {items.map(([id, label, icon]) => <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span></button>)}
   </nav>
 }
 

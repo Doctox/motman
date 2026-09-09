@@ -31,6 +31,7 @@ import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } f
 import { getGrid, matchConflictResponse, profile, view } from './matchView.ts'
 import { atomicResult, botSkillForLevel, createBot, createMatch, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
+import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
 
 Deno.serve(async request => {
@@ -316,6 +317,11 @@ Deno.serve(async request => {
     // Le jour par défaut est celui du serveur — l'horloge du client n'a pas
     // voix au chapitre, sans quoi il suffirait d'avancer sa montre pour lire un
     // classement qui n'existe pas encore.
+    // Statistiques de jeu du lecteur. Lecture seule, sur SES lignes uniquement.
+    if (action === 'player-stats') {
+      return json(200, await loadPlayerStats(admin, user.id))
+    }
+
     if (action === 'daily-leaderboard') {
       const demande = typeof body.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.day) ? body.day : null
       const aujourdhui = parisDateKey(new Date())

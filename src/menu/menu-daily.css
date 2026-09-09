@@ -155,3 +155,18 @@
 .mm-ranking-page .mm-daily-rank-head h3 { font-size: 1.0625rem; }
 /* Le sélecteur d'épreuve prime sur celui de portée : un peu d'air le dit. */
 .mm-ranking-epreuve { margin-bottom: 10px; }
+
+/* Rappel de classement sur l'accueil : une ligne, pas un tableau. Elle ne
+   s'affiche que si le joueur y figure — « aucun classement » sous un défi pas
+   encore joué serait du bruit, et sous un défi joué, un reproche. */
+.mm-daily-teaser {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 6px 0 0; padding: 8px 12px;
+  border: 1px solid #ded6c7; border-radius: 13px; background: #fffdf7;
+  font-size: 0.8125rem; color: #3c5850; text-align: left; cursor: pointer;
+}
+.mm-daily-teaser svg { width: 15px; height: 15px; flex: none; }
+.mm-daily-teaser span { flex: 1; }
+.mm-daily-teaser b { color: #17613f; font-size: 0.9375rem; }
+.mm-daily-teaser sup { font-size: 0.625rem; }
+p.mm-daily-teaser { cursor: default; }

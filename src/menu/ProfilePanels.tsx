@@ -6,6 +6,7 @@ import { PLAYER_NAME_MAX_LENGTH, validatePlayerName } from '../playerNamePolicy'
 import { shortPlayerId, type GuestIdentity } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
 import { rankImage, rankedDivision } from '../ranked'
+import { EMPTY_PLAYER_STATS, loadPlayerStats, type PlayerStats } from '../playerStats'
 import { loadRankedLeaderboard, type RankedLeaderboard } from '../rankedMatchmaking'
 import { useDialogFocus } from '../useDialogFocus'
 import { DailyLeaderboardPanel } from './DailyChallenge'
@@ -67,6 +68,60 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
   </div>
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// « VOS PARTIES ».
+//
+// Le profil ne parlait que de progression — niveau, XP, points de classé — et
+// jamais du fait de jouer. Tout était pourtant en base depuis le premier jour.
+//
+// Les abandons sont comptés A PART, ni en victoires ni en défaites : partir
+// n'est pas perdre, et les ranger avec les défaites serait un jugement que le
+// jeu n'a pas à porter. Ils restent dans le total, donc dans le dénominateur du
+// taux — sinon on pourrait gonfler son taux en quittant les parties mal
+// engagées.
+//
+// Le record ne vaut que sur 90 jours et le dit : au-delà, l'archivage ne garde
+// que des sommes, pas le meilleur d'une partie. Mieux vaut une mention discrète
+// qu'un chiffre qu'on croit être un record de toujours.
+// ─────────────────────────────────────────────────────────────────────────────
+function PlayerStatsPanel() {
+  const [stats, setStats] = useState<PlayerStats>(EMPTY_PLAYER_STATS)
+  const [chargement, setChargement] = useState(true)
+  useEffect(() => {
+    let vivant = true
+    loadPlayerStats()
+      .then(next => { if (vivant) setStats(next) })
+      .catch(() => { if (vivant) setStats(EMPTY_PLAYER_STATS) })
+      .finally(() => { if (vivant) setChargement(false) })
+    return () => { vivant = false }
+  }, [])
+
+  if (chargement) return null
+  if (stats.played === 0) {
+    return <section className="mm-player-stats is-empty">
+      <h2><Gamepad2 aria-hidden="true" />Vos parties</h2>
+      <p>Vos statistiques apparaîtront après votre première partie terminée.</p>
+    </section>
+  }
+
+  return <section className="mm-player-stats" aria-label="Vos statistiques de jeu">
+    <h2><Gamepad2 aria-hidden="true" />Vos parties</h2>
+    <dl>
+      <div><dt>Jouées</dt><dd>{frenchNumber.format(stats.played)}</dd></div>
+      <div><dt>Victoires</dt><dd>{frenchNumber.format(stats.wins)}</dd></div>
+      <div><dt>Taux</dt><dd>{stats.winRate ?? 0} %</dd></div>
+      <div><dt>Grilles finies</dt><dd>{frenchNumber.format(stats.completed)}</dd></div>
+    </dl>
+    <p className="mm-player-stats-detail">
+      {frenchNumber.format(stats.draws)} nul{stats.draws > 1 ? 's' : ''}
+      {' · '}{frenchNumber.format(stats.losses)} défaite{stats.losses > 1 ? 's' : ''}
+      {stats.abandons > 0 ? <> · {frenchNumber.format(stats.abandons)} abandon{stats.abandons > 1 ? 's' : ''}</> : null}
+      {stats.bestScore > 0 ? <> · meilleur score {stats.bestScore}<small> (90 j)</small></> : null}
+    </p>
+  </section>
+}
+
 export function ProfilePage({ identity, progress, cosmetics, edit, openShop, openAccount }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openShop: () => void; openAccount: () => void }) {
   const xpGoal = experienceGoalForLevel(progress.level)
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
@@ -74,6 +129,7 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openShop, ope
   return <div className="mm-page mm-profile-page">
     <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Votre avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{progress.level >= MAX_PLAYER_LEVEL ? 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{progress.level >= MAX_PLAYER_LEVEL ? <strong>Niveau maximum atteint</strong> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
+    <PlayerStatsPanel />
     <button type="button" className="mm-grocery-entry" onClick={openShop}>
       <span className="mm-grocery-basket"><ShoppingBasket /></span>
       <span><small>Collection & trouvailles</small><strong>L’Épicerie</strong></span>
