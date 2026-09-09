@@ -36,3 +36,31 @@
 .mm-match-waiting{padding-top:31px}.mm-waiting-avatar{position:relative;display:block;width:64px;margin:0 auto 17px}.mm-waiting-avatar .mm-avatar{width:64px;height:64px;font-size:21px}.mm-waiting-avatar>i{position:absolute;right:0;bottom:2px;width:14px;height:14px;border:3px solid var(--mm-paper);border-radius:50%;background:#21a46f}.mm-match-waiting h2{margin-bottom:8px}.mm-match-waiting>p{margin:0 auto;max-width:250px;color:var(--mm-muted);font-size:11px;line-height:1.45}.mm-waiting-dots{height:37px;display:flex;align-items:center;justify-content:center;gap:6px}.mm-waiting-dots i{width:7px;height:7px;border-radius:50%;background:var(--mm-coral);animation:mmWaitingDot 1.2s ease-in-out infinite}.mm-waiting-dots i:nth-child(2){animation-delay:.15s}.mm-waiting-dots i:nth-child(3){animation-delay:.3s}.mm-match-waiting>.secondary{width:100%}@keyframes mmWaitingDot{0%,70%,100%{translate:0 0;opacity:.35}35%{translate:0 -5px;opacity:1}}
 [data-theme="dark"] .mm-match-invite,[data-theme="dark"] .mm-match-friend-row,[data-theme="dark"] .mm-instant-heading,[data-theme="dark"] .mm-match-add-friend{background:#17241f}[data-theme="dark"] .mm-match-rule{background:#203029;border-color:#485b53}[data-theme="dark"] .mm-match-invite-actions .secondary,[data-theme="dark"] .mm-match-waiting>.secondary{color:#e8f3ec;border-color:#53665f}
 
+
+/* Relecture d'une partie terminée (MatchReplay). Styles autonomes : réutiliser
+   `.board` de styles.css aurait tiré toute la feuille de l'écran de partie dans
+   le paquet du menu. */
+.mm-replay-layer{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:#0009}
+.mm-replay-panel{width:min(100%,460px);max-height:92dvh;overflow-y:auto;padding:18px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 20px 60px #0006;scrollbar-width:none}
+.mm-replay-panel::-webkit-scrollbar{display:none}
+.mm-replay-panel>header{display:grid;grid-template-columns:1fr 38px;align-items:center;gap:10px;margin-bottom:14px}
+.mm-replay-panel h2{margin:0;font:600 21px 'Playfair Display',serif}
+.mm-replay-panel header small{color:var(--mm-muted);font-size:11px}
+.mm-replay-panel header button{width:38px;height:38px;border:1px solid var(--mm-line);border-radius:50%;background:var(--mm-surface);color:var(--mm-ink);display:grid;place-items:center}
+.mm-replay-panel header button svg{width:18px}
+.mm-replay-board{display:grid;gap:2px;padding:6px;border-radius:10px;background:var(--mm-line)}
+.mm-replay-cell{aspect-ratio:1;display:grid;place-items:center;border-radius:3px;background:var(--mm-surface);font-weight:700;font-size:clamp(8px,2.6vw,15px)}
+.mm-replay-cell.clue{padding:1px;background:color-mix(in srgb,var(--mm-sage) 60%,var(--mm-surface));color:var(--mm-muted);font-weight:600;font-size:clamp(4px,1.3vw,7px);line-height:1.05;text-align:center;overflow:hidden}
+.mm-replay-cell.clue span{display:block;overflow:hidden}
+/* Qui a posé quoi : c'est tout l'intérêt de la relecture. */
+.mm-replay-cell.mine{background:color-mix(in srgb,var(--mm-ink) 16%,var(--mm-surface));color:var(--mm-ink)}
+.mm-replay-cell.theirs{background:color-mix(in srgb,var(--mm-coral) 17%,var(--mm-surface));color:var(--mm-coral)}
+.mm-replay-cell.vide{background:color-mix(in srgb,var(--mm-line) 35%,var(--mm-surface))}
+.mm-replay-legende{margin:12px 0 0!important;color:var(--mm-muted);font-size:10px;line-height:1.5}
+.mm-replay-legende b{color:var(--mm-ink)}
+.mm-replay-vide{margin:0!important;padding:26px 0;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--mm-muted);font-size:11px}
+.mm-replay-vide svg{width:16px;animation:mm-replay-spin 1s linear infinite}
+@keyframes mm-replay-spin{to{transform:rotate(360deg)}}
+/* La ligne d'historique devient cliquable quand une relecture est disponible. */
+.mm-recent-match-row.is-replayable{cursor:pointer;width:100%;border:0;background:transparent;text-align:left;font:inherit;color:inherit}
+.mm-recent-match-row.is-replayable:hover{background:color-mix(in srgb,var(--mm-sage) 35%,transparent)}

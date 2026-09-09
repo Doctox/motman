@@ -68,6 +68,12 @@ export function actionRateLimits(
     }
     return policies
   }
+  // Relecture d'une partie terminée : lecture seule, mais elle va chercher une
+  // charpente de grille. Généreux — on relit volontiers plusieurs parties de
+  // suite — sans laisser aspirer le catalogue.
+  if (api === 'match' && action === 'history-grid') {
+    return [{ bucket: 'match:history-grid', maxRequests: 40, windowSeconds: 300 }]
+  }
   if (api === 'match' && action === 'feedback') {
     return [{ bucket: 'match:feedback', maxRequests: 20, windowSeconds: 3600 }]
   }

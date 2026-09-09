@@ -14,6 +14,7 @@
 // masqué derrière un alias local resté dans `index.ts`.
 
 import { DAILY_MILESTONES } from '../../../src/dailyMilestones.ts'
+import { encodeBoardSnapshot } from '../../../src/matchBoardSnapshot.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
 import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import { logServerError } from '../_shared/http.ts'
@@ -57,6 +58,16 @@ export async function recordMatchHistory(
     finish_reason: row.finish_reason,
     duration_seconds: Math.max(0, Math.round((new Date(row.updated_at).getTime() - new Date(row.created_at).getTime()) / 1000)),
     completed_at: row.updated_at,
+    // Plateau final, pour que le joueur puisse relire sa partie depuis
+    // l'historique. C'est un champ de plus dans un INSERT qui a déjà lieu :
+    // aucune requête, aucun fichier, aucun stockage à faire vivre à part — et
+    // il disparaîtra avec la ligne quand l'archivage l'emportera à 90 jours.
+    //
+    // Seules les cases RÉELLEMENT posées y figurent, jamais la solution : une
+    // partie perdue par expiration ne révèle donc rien, et la grille peut
+    // rester en rotation. La propriété est enregistrée du point de vue de
+    // `playerId` — cette ligne lui appartient.
+    final_board: encodeBoardSnapshot(row.state.board, playerId),
     updated_at: nowIso(),
   }, { onConflict: 'user_id,play_key' })
   if (error) throw error

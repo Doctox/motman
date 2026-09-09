@@ -3,6 +3,7 @@ import { BarChart3, ChevronRight, Clock3, History, Hourglass, Play, Swords, Trop
 import type { GridDifficulty } from '../generator'
 import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
 import type { MatchHistoryEntry, MatchLobbyState, MatchPace } from '../matches'
+import { MatchReplay } from './MatchReplay'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
@@ -56,6 +57,9 @@ const SOLO_LEVELS: Array<{ id: GridDifficulty; label: string; available: boolean
 ]
 
 function RecentMatchHistory({ matches, visible }: { matches: MatchHistoryEntry[]; visible: boolean }) {
+  // Partie ouverte en relecture. Seules celles dont le plateau a survecu sont
+  // cliquables : avant la colonne `final_board`, il n'existe plus nulle part.
+  const [relecture, setRelecture] = useState<MatchHistoryEntry | null>(null)
   return <div className={`mm-recent-history ${visible ? 'is-visible' : ''}`} aria-hidden={!visible} inert={!visible}>
     <section className="mm-recent-history-card" aria-label="Historique des cinq derniers matchs">
       <header><span><History /></span><div><h2>Derniers matchs</h2><small>Vos cinq résultats les plus récents</small></div></header>
@@ -63,14 +67,19 @@ function RecentMatchHistory({ matches, visible }: { matches: MatchHistoryEntry[]
         {matches.slice(0, 5).map(match => {
           const tone = matchHistoryTone(match.outcome)
           const opponentName = match.opponentName ?? (match.mode === 'solo' ? 'Adversaire solo' : 'Adversaire')
-          return <article className="mm-recent-match-row" key={match.id}>
+          const relisible = Boolean(match.board)
+          const contenu = <>
             <span className={`mm-recent-outcome ${tone}`}>{tone === 'won' ? 'V' : tone === 'drawn' ? 'N' : 'D'}</span>
             <span className="mm-recent-match-copy"><strong>{opponentName}</strong><small>{matchHistoryResultLabel(match.outcome)} · {match.mode === 'solo' ? 'Solo' : 'Multijoueur'} · {match.pace === 'async' ? 'Illimité' : 'Limité'}</small></span>
             <span className="mm-recent-match-score"><b>{match.score}<i>–</i>{match.opponentScore}</b><small>{matchHistoryDateLabel(match.completedAt)}</small></span>
-          </article>
+          </>
+          return relisible
+            ? <button type="button" className="mm-recent-match-row is-replayable" key={match.id} onClick={() => setRelecture(match)} aria-label={`Revoir la partie contre ${opponentName}`}>{contenu}</button>
+            : <article className="mm-recent-match-row" key={match.id}>{contenu}</article>
         })}
       </div> : <div className="mm-recent-history-empty"><History /><strong>Aucun match terminé</strong><small>Vos prochaines parties apparaîtront ici.</small></div>}
     </section>
+    {relecture ? <MatchReplay match={relecture} onClose={() => setRelecture(null)} /> : null}
   </div>
 }
 

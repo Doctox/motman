@@ -2,6 +2,7 @@ import type { SocialUser } from './social'
 import type { GeneratedGrid } from './generator'
 import { hasSupabaseSession } from './supabaseClient'
 import { invokeSupabaseFunction } from './supabaseFunctions'
+import type { BoardSnapshot } from './matchBoardSnapshot'
 import type { MatchHistoryOutcome } from './matchHistory'
 
 export type MatchPace = 'realtime' | 'async'
@@ -16,6 +17,12 @@ export type MatchHistoryEntry = {
   opponentScore: number
   opponentName: string | null
   completedAt: string
+  /**
+   * Plateau final, pour relire la partie. `null` pour toutes celles jouées
+   * avant la colonne `final_board` : leur plateau a été purgé avec le match et
+   * n'existe plus nulle part. L'écran d'historique doit donc supporter les deux.
+   */
+  board?: BoardSnapshot | null
 }
 export type PendingMatchResult = MatchHistoryEntry & {
   matchId: string
@@ -215,6 +222,20 @@ export async function forfeitMatch(playerId: string, matchId: string, knownUpdat
   if (localTestServer) return localMatch('forfeit', { playerId, matchId, knownUpdatedAt })
   void playerId
   return (await supabaseMatch<{ match: MatchState }>('forfeit', { matchId, knownUpdatedAt })).match
+}
+
+/**
+ * Charpente de la grille d'une partie terminée, pour la relecture.
+ *
+ * Demandée seulement à l'ouverture : elle est lourde, et la plupart des parties
+ * ne seront jamais relues. Le plateau, lui, voyage déjà avec l'historique — il
+ * ne pèse que quelques centaines d'octets.
+ *
+ * Le serveur ne renvoie JAMAIS les solutions : les réponses arrivent masquées,
+ * et les seules lettres visibles sont celles réellement posées pendant la partie.
+ */
+export async function loadHistoryGrid(historyId: string): Promise<GeneratedGrid> {
+  return (await supabaseMatch<{ grid: GeneratedGrid }>('history-grid', { historyId })).grid
 }
 
 export async function submitMatchGridFeedback(playerId: string, matchId: string, quality: 'yes' | 'no', reason?: string): Promise<void> {

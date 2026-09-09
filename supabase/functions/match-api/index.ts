@@ -805,7 +805,7 @@ Deno.serve(async request => {
         admin.from('server_match_invitations').select('*').eq('host_id', user.id).eq('status', 'pending').gt('expires_at', nowIso()),
         admin.from('server_match_searches').select('*').eq('user_id', user.id),
         admin.from('grid_player_history')
-          .select('id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at')
+          .select('id,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board')
           .eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5),
         admin.from('grid_player_history')
           .select('id,play_key,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,finish_reason,feedback')
@@ -836,10 +836,16 @@ Deno.serve(async request => {
         host: profiles.get(String(item.host_id)) ?? null,
         guest: profiles.get(String(item.guest_id)) ?? null,
       })
+      // `board` voyage AVEC l'historique : 224 octets par partie, cinq parties,
+      // soit moins d'un kilo-octet — bien moins cher qu'un aller-retour au
+      // moment où le joueur ouvre la relecture. La STRUCTURE de la grille, elle,
+      // se demande à l'ouverture (action `history-grid`) : elle est lourde, et
+      // la plupart des parties ne seront jamais relues.
       const recent = (recentRows ?? []).map(item => ({
         id: item.id, mode: item.mode, pace: item.pace, outcome: item.outcome,
         score: item.score, opponentScore: item.opponent_score,
         opponentName: item.opponent_name, completedAt: item.completed_at,
+        board: item.final_board ?? null,
       }))
       const pendingResults = (pendingRows ?? []).map(item => ({
         id: item.id,
@@ -900,6 +906,29 @@ Deno.serve(async request => {
       const bot = createBot(`${user.id}:solo:${Date.now()}`, skill)
       const created = await createMatch(admin, user.id, bot.playerId, 'solo', pace, null, bot)
       return json(200, { match: await view(admin, created.row, user.id, created.grid) })
+    }
+
+    // Structure de la grille d'une partie TERMINÉE, pour la relecture.
+    //
+    // Passe par `publicGrid`, donc SANS les solutions : le client reçoit la
+    // charpente et les définitions, et rien de plus. Les lettres affichées
+    // viennent du plateau enregistré à la clôture — uniquement ce qui a
+    // réellement été posé. Une partie perdue par expiration ne révèle donc
+    // aucune réponse manquante, et la grille peut rester en rotation.
+    //
+    // La ligne d'historique doit appartenir à l'appelant : sans ce filtre, on
+    // servirait la charpente de n'importe quelle grille à n'importe qui.
+    if (action === 'history-grid') {
+      const historyId = typeof body.historyId === 'string' ? body.historyId : ''
+      if (!historyId) return json(400, { error: 'Partie introuvable.' })
+      const { data: entry, error: entryError } = await admin.from('grid_player_history')
+        .select('grid_id').eq('id', historyId).eq('user_id', user.id).maybeSingle()
+      if (entryError) throw entryError
+      if (!entry) return json(404, { error: 'Partie introuvable.' })
+      // `getGrid` et non `activeGridById` : une grille retirée de la rotation
+      // doit rester relisible, sinon l'historique se troue au fil des rotations.
+      const grid = await getGrid(admin, String(entry.grid_id))
+      return json(200, { grid: publicGrid(grid) })
     }
 
     // ── Défi du jour ─────────────────────────────────────────────────────────
