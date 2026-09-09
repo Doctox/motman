@@ -2,6 +2,7 @@ import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
 import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.ts'
+import { buildRuntimeCatalogSnapshot, TAILLE_MAXIMALE_OCTETS } from './catalog.ts'
 import {
   buildGridUsageSnapshot,
   type PopularityRow,
@@ -33,7 +34,9 @@ Deno.serve(async request => {
     return json(400, { error: 'Requête invalide.' })
   }
   const action = typeof body.action === 'string' ? body.action : 'snapshot'
-  if (action !== 'snapshot') return json(404, { error: 'Action inconnue.' })
+  if (action !== 'snapshot' && action !== 'catalog') {
+    return json(404, { error: 'Action inconnue.' })
+  }
 
   const admin = createAdminClient(url, serviceKey)
   const appUpdate = await requiredAndroidUpdate(request, admin)
@@ -48,7 +51,7 @@ Deno.serve(async request => {
   try {
     const { data: accessProfile, error: profileError } = await admin
       .from('profiles')
-      .select('status')
+      .select('status,role')
       .eq('id', user.id)
       .single()
     if (profileError) throw profileError
@@ -57,7 +60,45 @@ Deno.serve(async request => {
       return json(403, { error: 'Ce compte est temporairement suspendu.' })
     }
 
-    await enforceRateLimits(admin, 'account', user.id, user.is_anonymous === true, 'grid-usage-snapshot')
+    await enforceRateLimits(
+      admin, 'account', user.id, user.is_anonymous === true,
+      // Quota distinct : l'atelier appelle une fois au démarrage, le jeu appelle
+      // son instantané bien plus souvent. Partager le quota punirait l'un pour
+      // l'autre.
+      action === 'catalog' ? 'grid-catalog-snapshot' : 'grid-usage-snapshot',
+    )
+
+    if (action === 'catalog') {
+      // ⚠️ RÉSERVÉ AUX ADMINISTRATEURS, et ce n'est pas négociable : ce document
+      // contient les SOLUTIONS en clair. C'est le seul endroit du serveur qui
+      // les laisse sortir — `publicGrid` les remplace partout ailleurs par des
+      // points. Ouvert à tout compte connecté, invités compris, il donnerait à
+      // n'importe quel joueur les réponses des grilles actives en une requête,
+      // et l'anti-triche du jeu entier n'aurait plus de sens.
+      //
+      // Grid Factory s'authentifie avec la session du propriétaire : ce filtre
+      // ne le gêne pas. Le rôle est celui que `social-api` utilise déjà pour la
+      // modération.
+      if (accessProfile?.role !== 'admin') {
+        return json(403, { error: 'Accès réservé.', code: 'ADMIN_ONLY' })
+      }
+      const { data: catalogRows, error: catalogError } = await admin
+        .from('server_grid_catalog')
+        .select('id,version,columns,rows,active,payload')
+        .eq('active', true)
+        .order('id')
+      if (catalogError) throw catalogError
+      const document = buildRuntimeCatalogSnapshot(catalogRows ?? [])
+      const corps = JSON.stringify(document)
+      if (corps.length > TAILLE_MAXIMALE_OCTETS) {
+        return json(507, {
+          error: 'Catalogue trop volumineux pour être servi d’un bloc.',
+          code: 'CATALOG_TOO_LARGE',
+          bytes: corps.length,
+        })
+      }
+      return json(200, document)
+    }
 
     const [
       { data: popularityRows, error: popularityError },

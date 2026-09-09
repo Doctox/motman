@@ -57,6 +57,18 @@ describe('rate-limit policies', () => {
     expect(actionRateLimits('match', 'daily', true)[0].maxRequests).toBe(20)
   })
 
+  it('limite le catalogue servi à l’atelier, et ne le laisse pas sans quota', () => {
+    // Un libellé absent de la liste retombe sur `return []`, donc AUCUNE limite.
+    // Ce test existe pour que le jour où quelqu'un renomme l'action, l'absence
+    // de politique se voie au lieu d'ouvrir la porte en grand.
+    expect(actionRateLimits('account', 'grid-catalog-snapshot', false)).toEqual([{
+      bucket: 'account:grid-catalog-snapshot',
+      maxRequests: 6,
+      windowSeconds: 3600,
+    }])
+    expect(actionRateLimits('account', 'action-inconnue', false)).toEqual([])
+  })
+
   it('limits authenticated Grid Studio usage snapshots', () => {
     expect(actionRateLimits('account', 'grid-usage-snapshot', false)).toEqual([{
       bucket: 'account:grid-usage-snapshot',

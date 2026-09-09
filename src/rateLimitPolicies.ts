@@ -77,6 +77,17 @@ export function actionRateLimits(
   if (api === 'match' && action === 'feedback') {
     return [{ bucket: 'match:feedback', maxRequests: 20, windowSeconds: 3600 }]
   }
+  // Catalogue complet servi à l'atelier de fabrication. Réservé aux comptes
+  // `admin`, appelé une fois au démarrage — d'où un quota serré. Sans cette
+  // entrée, l'action tomberait dans le `return []` final et n'aurait AUCUNE
+  // limite : la liste est la seule source, un libellé inconnu passe librement.
+  if (api === 'account' && action === 'grid-catalog-snapshot') {
+    return [{
+      bucket: 'account:grid-catalog-snapshot',
+      maxRequests: 6,
+      windowSeconds: 3600,
+    }]
+  }
   if (api === 'account' && action === 'grid-usage-snapshot') {
     return [{
       bucket: 'account:grid-usage-snapshot',
