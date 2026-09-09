@@ -3,6 +3,11 @@
 @import './styles/game-scoreboard.css';
 @import './styles/game-results.css';
 @import './styles/game-cosmetics.css';
+/* Source unique des cadres de portrait. L'ecran de jeu en avait sa propre
+   copie dans `game-cosmetics.css` ; elle a diverge, puis a annule une
+   correction faite dans l'autre. On depend maintenant du fichier lui-meme
+   plutot que du hasard du decoupage en paquets. */
+@import './cosmetic-portrait.css';
 @import './styles/game-actions.css';
 
 /* ── Paysage : on demande de retourner l'appareil ─────────────────────────────

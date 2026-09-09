@@ -154,7 +154,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         const owned = cosmetics.ownedAnimationIds.includes(animation.id)
         const equipped = cosmetics.equippedAnimationId === animation.id
         return <article className={`mm-shop-item mm-animation-shop-item rarity-${animation.rarity} ${equipped ? 'is-equipped' : ''}`} key={animation.id}>
-          <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={animation.id} alt={animation.name} previewAnimation />
+          <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={animation.id} alt={animation.name} />
           <small>{RARITY_LABELS[animation.rarity]}</small><strong>{animation.name}</strong><p>{animation.description}</p>
           <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => void selectCosmetic('animation', animation.id)}>{equipped ? <><Check />Équipée</> : owned ? 'Équiper' : <Price value={animation.pricePlumes} />}</button>
         </article>

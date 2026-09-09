@@ -1,6 +1,6 @@
 .cosmetic-frame{
   --frame-art-size:138%;--avatar-inset:9%;position:relative;isolation:isolate;
-  display:block;overflow:visible!important;border-style:solid;transition:filter .3s ease,transform .3s ease;
+  display:block;overflow:visible!important;border-style:solid;transition:filter .3s ease,transform .3s var(--motion);
 }
 .cosmetic-frame>.cosmetic-avatar-clip{position:absolute!important;z-index:0;inset:var(--avatar-inset);display:block!important;overflow:hidden!important;border-radius:50%!important;background:#f4ebd9}
 .cosmetic-frame>.cosmetic-avatar-clip>.cosmetic-avatar-image{width:100%!important;height:100%!important;display:block;object-fit:cover!important;border-radius:50%!important}
@@ -29,16 +29,16 @@
 .cosmetic-frame[data-frame="cadre-constellation"]{--frame-art-size:139%;--avatar-inset:16%}
 .cosmetic-frame[data-frame="cadre-dragon-dore"]{--frame-art-size:146%;--avatar-inset:17%}
 .cosmetic-frame[data-frame="cadre-jardin-des-songes"]{--frame-art-size:147%;--avatar-inset:18%}
-.cosmetic-frame[data-frame="cadre-rosee"]>.cosmetic-frame-art{animation:mmFrameRosee 7.5s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-coquelicot"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-porcelaine"]>.cosmetic-frame-art{animation:mmFrameSingular 8.2s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-herbier"]>.cosmetic-frame-art{animation:mmFrameHerbier 8.5s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-maree"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-bibliotheque"]>.cosmetic-frame-art{animation:mmFrameRare 7.2s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-braise"]>.cosmetic-frame-art{animation:mmFrameBraise 3.6s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-royal"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-encrier"]>.cosmetic-frame-art{animation:mmFramePrecious 5.2s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-clair-de-lune"]>.cosmetic-frame-art{animation:mmFrameMoon 5.6s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-givre"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-aurore"]>.cosmetic-frame-art{animation:mmFrameExceptional 5.8s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-constellation"]>.cosmetic-frame-art{animation:mmFrameStars 4.8s ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-dragon-dore"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-jardin-des-songes"]>.cosmetic-frame-art{animation:mmFrameLegendary 4.6s ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-rosee"]>.cosmetic-frame-art{--mm-cadre-duree:7.5s;animation:mmFrameRosee var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-coquelicot"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-porcelaine"]>.cosmetic-frame-art{--mm-cadre-duree:8.2s;animation:mmFrameSingular var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-herbier"]>.cosmetic-frame-art{--mm-cadre-duree:8.5s;animation:mmFrameHerbier var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-maree"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-bibliotheque"]>.cosmetic-frame-art{--mm-cadre-duree:7.2s;animation:mmFrameRare var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-braise"]>.cosmetic-frame-art{--mm-cadre-duree:3.6s;animation:mmFrameBraise var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-royal"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-encrier"]>.cosmetic-frame-art{--mm-cadre-duree:5.2s;animation:mmFramePrecious var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-clair-de-lune"]>.cosmetic-frame-art{--mm-cadre-duree:5.6s;animation:mmFrameMoon var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-givre"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-aurore"]>.cosmetic-frame-art{--mm-cadre-duree:5.8s;animation:mmFrameExceptional var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-constellation"]>.cosmetic-frame-art{--mm-cadre-duree:4.8s;animation:mmFrameStars var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-dragon-dore"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-jardin-des-songes"]>.cosmetic-frame-art{--mm-cadre-duree:4.6s;animation:mmFrameLegendary var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame:not(.is-cosmetic-visible)>.cosmetic-frame-art{animation-play-state:paused!important}
 @keyframes mmFrameSingular{0%,100%{transform:translate(-50%,-50%) rotate(-.3deg)}50%{transform:translate(-50%,-50%) rotate(.3deg);filter:drop-shadow(0 4px 6px #d8b0604d) brightness(1.025)}}
 @keyframes mmFrameRare{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.012);filter:drop-shadow(0 4px 7px #2f665b52) brightness(1.025)}}
@@ -50,4 +50,19 @@
 @keyframes mmFrameBraise{0%,100%{transform:translate(-50%,-50%) scale(1);filter:drop-shadow(0 3px 4px #8c341b52)}50%{transform:translate(-50%,-50%) scale(1.018);filter:drop-shadow(0 3px 7px #ef8a326e)}}
 @keyframes mmFrameMoon{0%,100%{transform:translate(-50%,-50%) rotate(-.35deg);filter:drop-shadow(0 3px 5px #173b4d4a)}50%{transform:translate(-50%,-50%) rotate(.35deg);filter:drop-shadow(0 4px 8px #ebd17870)}}
 @keyframes mmFrameStars{0%,100%{transform:translate(-50%,-50%) scale(1);filter:drop-shadow(0 3px 5px #092b3f66)}50%{transform:translate(-50%,-50%) scale(1.022);filter:drop-shadow(0 4px 9px #f2d36c88) brightness(1.055)}}
-@media(prefers-reduced-motion:reduce){.cosmetic-frame>.cosmetic-frame-art{animation:none!important}}
+/* Les cadres animes sont des ornements ACHETES : ils continuent de vivre sous
+   `prefers-reduced-motion`, au meme titre que l'animation d'avatar. La regle
+   generale de `styles/game-foundation.css` ecrase toutes les durees
+   d'animation ; on rend ici sa duree propre a chaque cadre.
+
+   PAS `revert` : sur une declaration auteur en !important, `revert` remonte a
+   l'origine navigateur, ou animation-duration vaut 0s. Ca aurait fige les
+   cadres au lieu de les liberer. D'ou la variable posee avec l'animation
+   elle-meme, quelques lignes plus haut : une seule source pour la duree.
+
+   L'animation d'avatar, elle, n'est pas une animation CSS mais un fichier
+   anime ; aucune regle de duree ne l'atteint. C'est `CosmeticPortrait.tsx` qui
+   la gouverne, en ne lui substituant plus d'affiche fixe. */
+@media(prefers-reduced-motion:reduce){
+  .cosmetic-frame>.cosmetic-frame-art{animation-duration:var(--mm-cadre-duree)!important}
+}
