@@ -108,17 +108,68 @@ Deno.test('la flèche suit la direction, y compris vers le bas', () => {
   verifie(buildRuntimeCatalogSnapshot([verticale]).grids[0].words[0].arrow === 'down', 'flèche incorrecte')
 })
 
-Deno.test('un mot dont le trajet ne colle pas à la réponse est écarté', () => {
-  // Le laisser passer ferait échouer TOUT l'import côté atelier.
+Deno.test('un mot dont le trajet ne colle pas à la réponse écarte la grille ENTIÈRE', () => {
+  // ⟵ LE TEST QUI MANQUAIT. La première version écartait le MOT et gardait la
+  // grille : une grille de deux mots en sortait avec un seul, d'apparence
+  // complète, et l'atelier aurait comparé ses candidates à une grille tronquée
+  // — donc certifié comme originale une grille en réalité proche d'une
+  // publiée. Une grille absente se remarque ; une grille amputée, non.
   const bancale = ligne()
-  ;(bancale.payload.words as Record<string, unknown>[])[0].cells = [[1, 1], [1, 2]]   // 2 cases pour 4 lettres
-  verifie(buildRuntimeCatalogSnapshot([bancale]).grids.length === 0, 'la grille bancale aurait dû être écartée')
+  const mots = bancale.payload.words as Record<string, unknown>[]
+  mots.push({
+    wordId: 'compact-7x8-essai:word:1',
+    answer: 'OURS',
+    direction: 'down',
+    clueCell: [0, 1],
+    cells: [[1, 1], [2, 1]],          // 2 cases pour 4 lettres : bancal
+  })
+  const document = buildRuntimeCatalogSnapshot([bancale])
+  verifie(document.grids.length === 0, `la grille entière aurait dû sauter, ${document.grids.length} servie(s)`)
+  verifie(document.skipped.length === 1, 'le rejet aurait dû être remonté')
+  verifie(document.skipped[0].reason === 'cells-length-mismatch', `motif inattendu : ${document.skipped[0].reason}`)
+  verifie(document.skipped[0].wordId === 'compact-7x8-essai:word:1', 'le mot fautif devrait être nommé')
+})
+
+Deno.test('les grilles écartées sont NOMMÉES, jamais tues', () => {
+  // Sans ce champ, `grids.length` passerait de 56 à 55 sans un mot, et
+  // l'atelier certifierait contre un catalogue incomplet en croyant le
+  // contraire.
+  const sansCases = ligne({ id: 'sans-ancres' }); (sansCases.payload as Record<string, unknown>).clueCells = []
+  const sansMots = ligne({ id: 'sans-mots' }); (sansMots.payload as Record<string, unknown>).words = []
+  const document = buildRuntimeCatalogSnapshot([ligne(), sansCases, sansMots])
+  verifie(document.grids.length === 1, 'la grille saine aurait dû passer')
+  verifie(document.skipped.length === 2, `attendu 2 rejets, obtenu ${document.skipped.length}`)
+  const motifs = Object.fromEntries(document.skipped.map(s => [s.gridId, s.reason]))
+  verifie(motifs['sans-ancres'] === 'no-anchors', `motif inattendu : ${motifs['sans-ancres']}`)
+  verifie(motifs['sans-mots'] === 'no-words', `motif inattendu : ${motifs['sans-mots']}`)
+})
+
+Deno.test('`skipped` est toujours présent, vide quand tout passe', () => {
+  const document = buildRuntimeCatalogSnapshot([ligne()])
+  verifie(Array.isArray(document.skipped), '`skipped` devrait toujours être un tableau')
+  verifie(document.skipped.length === 0, 'aucun rejet attendu')
+})
+
+Deno.test('les motifs de rejet ne contiennent aucun mot interdit', () => {
+  // L'atelier rejette tout document où `clue`, `definition` ou `image`
+  // apparaissent. Un motif nommé « clue-cell-invalide » ferait échouer l'import
+  // pour rien — d'où « anchor ».
+  const bancale = ligne()
+  ;(bancale.payload.words as Record<string, unknown>[])[0].clueCell = 'pas un couple'
+  const document = buildRuntimeCatalogSnapshot([bancale])
+  verifie(document.skipped[0].reason === 'anchor-invalid', `motif inattendu : ${document.skipped[0].reason}`)
+  const serialise = JSON.stringify(document)
+  for (const interdit of ['clue', 'definition', 'image']) {
+    verifie(!serialise.includes(interdit), `un motif de rejet contient « ${interdit} »`)
+  }
 })
 
 Deno.test('une direction inconnue écarte le mot', () => {
   const bancale = ligne()
   ;(bancale.payload.words as Record<string, unknown>[])[0].direction = 'diagonal'
-  verifie(buildRuntimeCatalogSnapshot([bancale]).grids.length === 0, 'direction invalide acceptée')
+  const document = buildRuntimeCatalogSnapshot([bancale])
+  verifie(document.grids.length === 0, 'direction invalide acceptée')
+  verifie(document.skipped[0].reason === 'direction-invalid', `motif inattendu : ${document.skipped[0].reason}`)
 })
 
 Deno.test('une grille sans case de définition ou sans mot est écartée', () => {
