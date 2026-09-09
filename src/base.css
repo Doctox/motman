@@ -16,12 +16,40 @@
 }
 
 *{box-sizing:border-box}
+/* ── Échelle du texte ─────────────────────────────────────────────────────────
+   « Texte plus grand » agit ICI, et nulle part ailleurs.
+
+   Il agissait auparavant par quinze règles `[data-text-size="large"]` écrites à
+   la main, chacune redonnant une taille en pixels à un sélecteur précis. Sur les
+   416 déclarations de taille que compte l'application, quinze suivaient donc le
+   réglage : 3,5 %. Le résultat n'était pas « un texte plus grand » mais une
+   interface incohérente, où trois libellés grossissaient au milieu de tout le
+   reste — et chaque nouvel écran repartait muet, puisque rien n'obligeait à
+   penser à ces règles.
+
+   Toutes les tailles sont désormais en `rem`, donc relatives à cette ligne. La
+   conversion fut une identité visuelle : 16px = 1rem, 11px = 0.6875rem, rien
+   n'a bougé à l'échelle par défaut.
+
+   112,5 % n'est pas un chiffre choisi au hasard : l'ancien réglage faisait
+   passer `.mm-mode-row strong` de 17 à 19 px, soit +12 %. C'est l'intention
+   d'origine, appliquée partout au lieu de quinze endroits.
+
+   ⚠️ LE PLATEAU NE SUIT PAS, ET C'EST VOULU. Ses cases sont dimensionnées par
+   la largeur du conteneur, et son texte est en `clamp(…vw…)` pour tenir dedans.
+   Le faire suivre la racine le ferait déborder de cases qui, elles, n'auraient
+   pas grandi. Son agrandissement reste donc réglé à la main dans
+   `styles/game-interaction.css` — les deux seules règles `data-text-size` qui
+   subsistent avec celle de `line-height`.                                    */
+:root{font-size:100%}
+:root[data-text-size="large"]{font-size:112.5%}
+
 :root{font-family:'DM Sans',sans-serif;font-synthesis:none;background:#e7e3d8;color:#123e37}
 html,body,#root{min-height:100%}
 body{min-width:320px;min-height:100vh;margin:0;background:#deddd6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .native-runtime,.native-runtime body,.native-runtime #root{height:100%;min-height:0;overflow:hidden}
 button,input,select{font:inherit;color:inherit}
-.app-loading{width:min(100%,430px);min-height:100dvh;margin:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;background:#fffaf0;color:#073f36;font:600 15px 'Playfair Display',serif}
+.app-loading{width:min(100%,430px);min-height:100dvh;margin:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;background:#fffaf0;color:#073f36;font:600 0.9375rem 'Playfair Display',serif}
 .app-loading svg{width:34px;height:34px;animation:appLoadingSpin 1.2s linear infinite}
 @keyframes appLoadingSpin{to{transform:rotate(360deg)}}
 [data-theme="dark"] .app-loading{background:#111b18;color:#edf5ef}
@@ -29,19 +57,17 @@ button,input,select{font:inherit;color:inherit}
 .app-loading-bar{width:min(210px,60vw);height:4px;overflow:hidden;border-radius:999px;background:#e6ddc7}
 .app-loading-bar i{display:block;width:40%;height:100%;border-radius:999px;background:#0b594c;animation:appLoadingSlide 1.4s ease-in-out infinite}
 @keyframes appLoadingSlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
-.app-loading small{max-width:280px;color:#725f55;text-align:center;font:500 13px/1.5 'DM Sans',sans-serif}
-.app-loading>button{min-width:150px;min-height:44px;border:1px solid #0b594c;border-radius:999px;background:transparent;color:#0b594c;font:700 14px 'DM Sans',sans-serif}
+.app-loading small{max-width:280px;color:#725f55;text-align:center;font:500 0.8125rem/1.5 'DM Sans',sans-serif}
+.app-loading>button{min-width:150px;min-height:44px;border:1px solid #0b594c;border-radius:999px;background:transparent;color:#0b594c;font:700 0.875rem 'DM Sans',sans-serif}
 [data-theme="dark"] .app-loading-bar{background:#26332e}[data-theme="dark"] .app-loading-bar i{background:#7fd6bd}
 [data-theme="dark"] .app-loading small{color:#b9c7c1}[data-theme="dark"] .app-loading>button{border-color:#7fd6bd;color:#7fd6bd}
 @media(prefers-reduced-motion:reduce){.app-loading-bar i{width:100%;animation:none}}
-.app-loading-error{padding:34px;text-align:center}.app-loading-error strong{font:600 25px 'Playfair Display',serif}.app-loading-error span{max-width:320px;color:#725f55;line-height:1.55}.app-loading-error button{min-width:170px;min-height:44px;margin-top:8px;border:1px solid #0b594c;border-radius:999px;background:#0b594c;color:#fffaf0;font-weight:700;box-shadow:0 8px 22px #073f3626}
-[data-text-size="large"] .app-loading{font-size:17px}
-[data-text-size="large"] .app-loading-error span{font-size:16px}
+.app-loading-error{padding:34px;text-align:center}.app-loading-error strong{font:600 1.5625rem 'Playfair Display',serif}.app-loading-error span{max-width:320px;color:#725f55;line-height:1.55}.app-loading-error button{min-width:170px;min-height:44px;margin-top:8px;border:1px solid #0b594c;border-radius:999px;background:#0b594c;color:#fffaf0;font-weight:700;box-shadow:0 8px 22px #073f3626}
 .app-update-required{width:min(100%,430px);min-height:100dvh;margin:auto;padding:max(24px,env(safe-area-inset-top)) 22px max(24px,env(safe-area-inset-bottom));display:grid;place-items:center;background:#fbf7ec;color:#073f36}
 .app-update-card{width:100%;padding:34px 25px;border:1px solid #d9ccb0;border-radius:28px;background:#fffdf7;text-align:center;box-shadow:0 20px 55px #073f3621}
 .app-update-icon{width:72px;height:72px;margin:0 auto 20px;display:grid;place-items:center;border-radius:50%;background:#e6f2ed;color:#087563}.app-update-icon svg{width:34px;height:34px}
-.app-update-kicker{margin:0 0 8px;color:#bc4a2c;font:800 12px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase}
-.app-update-card h1{margin:0;font:600 30px/1.12 'Playfair Display',serif}.app-update-card p{margin:17px auto 24px;max-width:320px;color:#6d6259;font:500 15px/1.55 'DM Sans',sans-serif}
-.app-update-card a{min-height:52px;padding:0 22px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:#087563;color:#fff;text-decoration:none;font:800 15px 'DM Sans',sans-serif;box-shadow:0 10px 25px #08756333}.app-update-card small{margin-top:15px;display:block;color:#85776c;font:600 12px 'DM Sans',sans-serif}
+.app-update-kicker{margin:0 0 8px;color:#bc4a2c;font:800 0.75rem 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.app-update-card h1{margin:0;font:600 1.875rem/1.12 'Playfair Display',serif}.app-update-card p{margin:17px auto 24px;max-width:320px;color:#6d6259;font:500 0.9375rem/1.55 'DM Sans',sans-serif}
+.app-update-card a{min-height:52px;padding:0 22px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:#087563;color:#fff;text-decoration:none;font:800 0.9375rem 'DM Sans',sans-serif;box-shadow:0 10px 25px #08756333}.app-update-card small{margin-top:15px;display:block;color:#85776c;font:600 0.75rem 'DM Sans',sans-serif}
 [data-theme="dark"] .app-update-required{background:#0e1815;color:#f5f0e6}[data-theme="dark"] .app-update-card{border-color:#31463f;background:#16231f}[data-theme="dark"] .app-update-card p,[data-theme="dark"] .app-update-card small{color:#b9c7c1}
 .turnstile-guard{position:fixed;z-index:10000;left:50%;bottom:max(24px,env(safe-area-inset-bottom));width:min(300px,calc(100vw - 32px));transform:translateX(-50%);filter:drop-shadow(0 12px 28px rgba(7,63,54,.18))}

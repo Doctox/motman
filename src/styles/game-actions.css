@@ -134,14 +134,14 @@
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .game-portrait,
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:40px;height:40px;flex-basis:40px}
   .native-runtime .multiplayer-shell:not(.is-finished) .turn{width:62px;height:62px;min-height:62px}
-  .native-runtime .multiplayer-shell:not(.is-finished) .turn-timer{font-size:28px}
-  .native-runtime .multiplayer-shell:not(.is-finished)>.instruction{margin-bottom:5px;font-size:11px}
+  .native-runtime .multiplayer-shell:not(.is-finished) .turn-timer{font-size:1.75rem}
+  .native-runtime .multiplayer-shell:not(.is-finished)>.instruction{margin-bottom:5px;font-size:0.6875rem}
   .native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap{margin-bottom:5px}
   .native-runtime .multiplayer-shell:not(.is-finished)>.rack-area{padding-top:4px}
   .native-runtime .multiplayer-shell:not(.is-finished) .rack-heading{margin-bottom:4px}
   .native-runtime .multiplayer-shell:not(.is-finished) .rack{height:51px}
   .native-runtime .multiplayer-shell:not(.is-finished) .rack-slot{height:41px}
-  .native-runtime .multiplayer-shell:not(.is-finished) .rack-letter{font-size:25px}
+  .native-runtime .multiplayer-shell:not(.is-finished) .rack-letter{font-size:1.5625rem}
   .native-runtime .multiplayer-shell:not(.is-finished)>.turn-actions{margin-top:6px}
   .native-runtime .multiplayer-shell:not(.is-finished) .hint-button,
   .native-runtime .multiplayer-shell:not(.is-finished) .validate{height:40px}

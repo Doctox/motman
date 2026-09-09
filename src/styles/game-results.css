@@ -85,7 +85,7 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .experience-pending{min-height:86px;display:grid;place-items:center;margin:0;color:#71817b!important}
 .end-game-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px}
 .end-game-actions .new-game,.end-game-home{width:100%;height:45px;margin:0;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:700;cursor:pointer}
-.end-game-actions .new-game{font:700 13px 'DM Sans',sans-serif}
+.end-game-actions .new-game{font:700 0.8125rem 'DM Sans',sans-serif}
 .end-game-actions button svg{width:17px;height:17px}
 .end-game-actions button:disabled{cursor:wait;opacity:.72}
 .end-game-home{border:1px solid #b8c6bf;background:#fffdf7;color:var(--green);box-shadow:0 3px 9px #29473f10;transition:transform .16s var(--motion),border-color .16s ease,background .16s ease}
@@ -96,4 +96,4 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 [data-theme="dark"] .end-game-home{background:#22322d;border-color:#50635a;color:#e8f3ec}
 [data-theme="dark"] .result-feedback{border-color:#4d5c55}
 @media(max-width:360px){.end-game-actions{grid-template-columns:1fr}.end-game-actions .new-game,.end-game-home{height:42px}}
-.ranked-result-summary{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:11px;width:100%;padding:9px 13px;border:1px solid #cfb873;border-radius:13px;background:#fff8e6;color:#073f37}.ranked-result-summary img{width:62px;height:62px;object-fit:contain}.ranked-result-summary span{display:flex;flex-direction:column}.ranked-result-summary small{font-size:10px;color:#6d756d;text-transform:uppercase;letter-spacing:.06em}.ranked-result-summary strong{font:700 20px "Playfair Display",serif}.ranked-result-summary b{font-size:18px}.ranked-result-summary b.positive{color:#08745f}.ranked-result-summary b.negative{color:#c4472d}
+.ranked-result-summary{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:11px;width:100%;padding:9px 13px;border:1px solid #cfb873;border-radius:13px;background:#fff8e6;color:#073f37}.ranked-result-summary img{width:62px;height:62px;object-fit:contain}.ranked-result-summary span{display:flex;flex-direction:column}.ranked-result-summary small{font-size:0.625rem;color:#6d756d;text-transform:uppercase;letter-spacing:.06em}.ranked-result-summary strong{font:700 1.25rem "Playfair Display",serif}.ranked-result-summary b{font-size:1.125rem}.ranked-result-summary b.positive{color:#08745f}.ranked-result-summary b.negative{color:#c4472d}

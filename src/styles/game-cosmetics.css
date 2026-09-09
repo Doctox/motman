@@ -57,7 +57,7 @@
   animation:resultContentRise .48s .2s var(--motion) both;
 }
 .game-result-hero p{
-  max-width:310px;margin:9px auto 0;color:#66726d;font-size:12px;line-height:1.45;
+  max-width:310px;margin:9px auto 0;color:#66726d;font-size:0.75rem;line-height:1.45;
   animation:resultContentRise .48s .27s var(--motion) both;
 }
 .result-feather{
@@ -75,20 +75,20 @@
 }
 .game-result-score>i{width:19px;height:1px;justify-self:center;background:#9ea49d}
 .game-result-score-side{min-width:0;display:flex;flex-direction:column;align-items:center}
-.game-result-score-side strong{font:600 43px/.96 'Playfair Display',serif;font-variant-numeric:tabular-nums;color:var(--result-accent)}
-.game-result-score-side small{max-width:105px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#556b63;font:600 12px 'Playfair Display',serif}
+.game-result-score-side strong{font:600 2.6875rem/.96 'Playfair Display',serif;font-variant-numeric:tabular-nums;color:var(--result-accent)}
+.game-result-score-side small{max-width:105px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#556b63;font:600 0.75rem 'Playfair Display',serif}
 .game-result-score-side.opponent-score strong{color:var(--result-contrast)}
 .game-result-screen .experience-reward{
   width:100%;margin:0;padding:17px 17px 14px;border-color:#d8c79d;border-radius:18px;
   background:linear-gradient(145deg,#fffaf0,#f7efdf);box-shadow:0 9px 24px #49391f10;
   animation:resultContentRise .52s .44s var(--motion) both;
 }
-.game-result-screen .experience-reward-heading>span{font-size:16px}
-.game-result-screen .experience-reward-heading>strong{font-size:24px}
-.game-result-screen .experience-plumes{margin-top:0;margin-bottom:10px;padding:5px 10px;font-size:11px}
+.game-result-screen .experience-reward-heading>span{font-size:1rem}
+.game-result-screen .experience-reward-heading>strong{font-size:1.5rem}
+.game-result-screen .experience-plumes{margin-top:0;margin-bottom:10px;padding:5px 10px;font-size:0.6875rem}
 .game-result-screen .experience-breakdown{gap:5px;margin:8px 0 12px;padding:9px 0}
-.game-result-screen .experience-breakdown span{font-size:11px}.game-result-screen .experience-breakdown b{font-size:12px}
-.game-result-screen .experience-level span{font-size:13px}.game-result-screen .experience-level small{font-size:10px}
+.game-result-screen .experience-breakdown span{font-size:0.6875rem}.game-result-screen .experience-breakdown b{font-size:0.75rem}
+.game-result-screen .experience-level span{font-size:0.8125rem}.game-result-screen .experience-level small{font-size:0.625rem}
 .game-result-screen .experience-progress{height:8px;margin-top:8px}
 .game-result-screen .experience-progress b{transform-origin:left center;animation:resultProgressGrow .9s .75s var(--motion) both}
 .game-result-screen .experience-pending{
@@ -98,24 +98,24 @@
 .game-result-screen .result-feedback{
   padding:2px 0 0;border:0;animation:resultContentRise .48s .55s var(--motion) both;
 }
-.game-result-screen .result-feedback>p,.game-result-screen .duel-feedback-label{margin:0;color:#52655f;font-size:12px}
+.game-result-screen .result-feedback>p,.game-result-screen .duel-feedback-label{margin:0;color:#52655f;font-size:0.75rem}
 .game-result-screen .feedback-actions{grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
 .game-result-screen .feedback-actions button{
-  height:47px;border-radius:13px;font:600 14px 'Playfair Display',serif;box-shadow:0 4px 11px #49391f0d;
+  height:47px;border-radius:13px;font:600 0.875rem 'Playfair Display',serif;box-shadow:0 4px 11px #49391f0d;
   transition:transform .18s var(--motion),box-shadow .18s ease,filter .18s ease;
 }
 .game-result-screen .feedback-actions button:first-child{border-color:#c5d3c6;background:linear-gradient(180deg,#f4f8ee,#ebf3e7);color:#164f42}
 .game-result-screen .feedback-actions button:last-child{border-color:#efb8a6;background:linear-gradient(180deg,#fff5ef,#fde9e1);color:#c34d2b}
 .game-result-screen .feedback-actions button svg{width:21px;height:21px;stroke-width:1.8}
 .game-result-screen .feedback-actions button:active{transform:translateY(1px) scale(.985)}
-.game-result-screen .result-feedback-error{margin:8px 0 0;color:#a44132;font-size:11px}
+.game-result-screen .result-feedback-error{margin:8px 0 0;color:#a44132;font-size:0.6875rem}
 .game-result-screen .reasons{margin-top:10px}
 .game-result-screen .end-game-actions{
   margin-top:auto;padding-top:2px;display:grid;grid-template-columns:1fr;gap:9px;
   animation:resultContentRise .48s .64s var(--motion) both;
 }
 .game-result-screen .end-game-actions .new-game,.game-result-screen .end-game-actions .end-game-home{
-  width:100%;margin:0;font:600 15px 'Playfair Display',serif;
+  width:100%;margin:0;font:600 0.9375rem 'Playfair Display',serif;
 }
 .game-result-screen .end-game-actions .new-game{
   height:51px;border-color:#06483b;border-radius:26px;background:linear-gradient(180deg,#0d6553,#075043);color:#fffaf0;
@@ -144,13 +144,13 @@
 @media(max-width:360px){
   .game-result-screen{gap:14px}.game-result-hero{min-height:191px}.game-result-emblem{width:72px;height:72px;margin-bottom:12px}
   .game-result-art{height:124px}
-  .game-result-hero h2{font-size:38px}.game-result-score{min-height:72px}.game-result-score-side strong{font-size:37px}
+  .game-result-hero h2{font-size:2.375rem}.game-result-score{min-height:72px}.game-result-score-side strong{font-size:2.3125rem}
   .game-result-screen .experience-reward{padding:14px}.game-result-screen .experience-breakdown{margin-block:6px;padding-block:7px}
 }
 @media(max-height:700px){
   .game-result-hero{min-height:175px}.game-result-emblem{width:66px;height:66px;margin-bottom:10px}.game-result-emblem svg{width:29px;height:29px}
   .game-result-art{height:112px}
-  .game-result-hero h2{font-size:36px}.game-result-hero p{margin-top:6px}.game-result-screen{gap:12px}
+  .game-result-hero h2{font-size:2.25rem}.game-result-hero p{margin-top:6px}.game-result-screen{gap:12px}
 }
 @media(prefers-reduced-motion:reduce){
   .game-result-screen,.game-result-art,.game-result-emblem,.game-result-hero h2,.game-result-hero p,.game-result-score,

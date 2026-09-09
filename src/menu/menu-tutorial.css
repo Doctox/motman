@@ -31,7 +31,7 @@
   align-items:center;
   gap:7px;
   color:var(--mm-muted);
-  font-size:11px;
+  font-size:0.6875rem;
   font-weight:800;
   letter-spacing:.08em;
   text-transform:uppercase;
@@ -70,7 +70,7 @@
   display:block;
   margin-bottom:5px;
   color:var(--mm-coral);
-  font-size:11px;
+  font-size:0.6875rem;
   font-weight:900;
   letter-spacing:.09em;
   text-transform:uppercase;
@@ -83,7 +83,7 @@
 .mm-tutorial-copy p{
   margin:11px 0 0;
   color:var(--mm-muted);
-  font-size:14px;
+  font-size:0.875rem;
   line-height:1.55;
 }
 .mm-tutorial-note{
@@ -95,7 +95,7 @@
   border-radius:12px;
   background:color-mix(in srgb,var(--mm-gold) 13%,var(--mm-surface));
   color:var(--mm-ink);
-  font-size:12px;
+  font-size:0.75rem;
   line-height:1.4;
 }
 .mm-tutorial-note svg{width:18px;height:18px;flex:0 0 auto;color:var(--mm-gold)}
@@ -163,12 +163,12 @@
   border-right:1px solid color-mix(in srgb,var(--mm-ink) 35%,transparent);
   border-bottom:1px solid color-mix(in srgb,var(--mm-ink) 35%,transparent);
   background:var(--mm-surface);
-  font:600 22px 'Playfair Display',serif;
+  font:600 1.375rem 'Playfair Display',serif;
 }
 .mm-tutorial-board>span.clue{
   padding:4px;
   background:var(--mm-sage);
-  font:800 9px/1.05 'DM Sans',sans-serif;
+  font:800 0.5625rem/1.05 'DM Sans',sans-serif;
   text-align:center;
 }
 .mm-tutorial-board>span.letter:nth-child(6),.mm-tutorial-board>span.letter:nth-child(7){color:var(--mm-ink);background:#eaf5ee}
@@ -176,7 +176,7 @@
 .mm-tutorial-board>i{
   position:absolute;
   bottom:-25px;
-  font:800 9px 'DM Sans',sans-serif;
+  font:800 0.5625rem 'DM Sans',sans-serif;
   font-style:normal;
 }
 .mm-tutorial-board>i.player-one{left:10px;color:var(--mm-ink)}
@@ -205,8 +205,8 @@
   text-align:center;
 }
 .mm-tutorial-clue-visual .clue-card svg{width:22px;height:22px}
-.mm-tutorial-clue-visual .clue-card strong{font:600 16px/1.05 'Playfair Display',serif}
-.mm-tutorial-clue-visual .clue-card b{position:absolute;right:8px;bottom:4px;font-size:23px}
+.mm-tutorial-clue-visual .clue-card strong{font:600 1rem/1.05 'Playfair Display',serif}
+.mm-tutorial-clue-visual .clue-card b{position:absolute;right:8px;bottom:4px;font-size:1.4375rem}
 .mm-tutorial-clue-visual .answer-cells{display:grid;grid-template-columns:repeat(4,42px)}
 .mm-tutorial-clue-visual .answer-cells i{
   aspect-ratio:1;
@@ -214,10 +214,10 @@
   place-items:center;
   border:1px solid color-mix(in srgb,var(--mm-ink) 46%,transparent);
   background:var(--mm-surface);
-  font:600 21px 'Playfair Display',serif;
+  font:600 1.3125rem 'Playfair Display',serif;
   font-style:normal;
 }
-.mm-tutorial-clue-visual .tap-cue{display:flex;align-items:center;gap:6px;color:var(--mm-muted);font-size:10px;font-weight:800}
+.mm-tutorial-clue-visual .tap-cue{display:flex;align-items:center;gap:6px;color:var(--mm-muted);font-size:0.625rem;font-weight:800}
 .mm-tutorial-clue-visual .tap-cue svg{width:16px;height:16px}
 .mm-tutorial-rack-visual{display:flex;flex-direction:column;align-items:center}
 .mm-tutorial-rack-visual .target-row,.mm-tutorial-rack-visual .mini-rack{display:grid;grid-template-columns:repeat(4,48px);gap:5px}
@@ -228,11 +228,11 @@
   border:1px solid var(--mm-line);
   border-radius:9px;
   background:var(--mm-surface);
-  font:600 22px 'Playfair Display',serif;
+  font:600 1.375rem 'Playfair Display',serif;
 }
 .mm-tutorial-rack-visual .target-row .target{border:2px dashed var(--mm-coral);color:transparent;background:color-mix(in srgb,var(--mm-coral) 8%,var(--mm-surface))}
 .mm-tutorial-rack-visual .mini-rack .selected{border:2px solid var(--mm-coral);color:var(--mm-coral);box-shadow:0 5px 14px #0002;transform:translateY(-3px)}
-.mm-tutorial-rack-visual .move-arrow{height:30px;color:var(--mm-coral);font-size:24px;font-weight:900}
+.mm-tutorial-rack-visual .move-arrow{height:30px;color:var(--mm-coral);font-size:1.5rem;font-weight:900}
 .mm-tutorial-rack-visual .mini-validate{
   margin-top:13px;
   padding:8px 16px;
@@ -242,7 +242,7 @@
   border-radius:999px;
   background:var(--mm-coral);
   color:#fff;
-  font-size:11px;
+  font-size:0.6875rem;
   font-weight:900;
 }
 .mm-tutorial-rack-visual .mini-validate svg{width:16px;height:16px}
@@ -263,9 +263,9 @@
 }
 .mm-tutorial-rack-visual .mini-rack-bonus>svg{width:22px;height:22px;padding:4px;border-radius:50%;background:var(--mm-green);color:#fff6d8}
 .mm-tutorial-rack-visual .mini-rack-bonus>span{display:flex;min-width:0;flex-direction:column}
-.mm-tutorial-rack-visual .mini-rack-bonus strong{font:700 10px/1.1 'Playfair Display',serif}
-.mm-tutorial-rack-visual .mini-rack-bonus small{margin-top:2px;color:var(--mm-muted);font-size:7px;line-height:1.1}
-.mm-tutorial-rack-visual .mini-rack-bonus>b{color:var(--mm-coral);font-size:17px}
+.mm-tutorial-rack-visual .mini-rack-bonus strong{font:700 0.625rem/1.1 'Playfair Display',serif}
+.mm-tutorial-rack-visual .mini-rack-bonus small{margin-top:2px;color:var(--mm-muted);font-size:0.4375rem;line-height:1.1}
+.mm-tutorial-rack-visual .mini-rack-bonus>b{color:var(--mm-coral);font-size:1.0625rem}
 .mm-tutorial-modes{
   width:min(340px,92%);
   display:grid;
@@ -286,7 +286,7 @@
   text-align:center;
 }
 .mm-tutorial-modes svg{width:22px;height:22px;color:var(--mm-coral)}
-.mm-tutorial-modes strong{font-size:11px}.mm-tutorial-modes small{color:var(--mm-muted);font-size:8px;line-height:1.35}
+.mm-tutorial-modes strong{font-size:0.6875rem}.mm-tutorial-modes small{color:var(--mm-muted);font-size:0.5rem;line-height:1.35}
 .mm-tutorial-paces{
   width:min(350px,92%);
   display:grid;
@@ -307,8 +307,8 @@
 }
 .mm-tutorial-paces>span:last-child{background:color-mix(in srgb,var(--mm-gold) 10%,var(--mm-surface))}
 .mm-tutorial-paces svg{width:27px;height:27px;color:var(--mm-coral)}
-.mm-tutorial-paces strong{font-size:12px}.mm-tutorial-paces b{font-size:10px;color:var(--mm-coral)}
-.mm-tutorial-paces small{color:var(--mm-muted);font-size:8px;line-height:1.42}
+.mm-tutorial-paces strong{font-size:0.75rem}.mm-tutorial-paces b{font-size:0.625rem;color:var(--mm-coral)}
+.mm-tutorial-paces small{color:var(--mm-muted);font-size:0.5rem;line-height:1.42}
 @keyframes mmTutorialIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
 @media(max-height:700px){
   .mm-tutorial-visual{min-height:170px;margin-bottom:14px}

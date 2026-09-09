@@ -18,7 +18,7 @@
   line-height: 1;
 }
 .mm-streak-chip svg { width: 17px; height: 17px; color: var(--mm-coral); }
-.mm-streak-chip b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mm-streak-chip b { font-size:0.9375rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mm-streak-chip.is-done { background: color-mix(in srgb, var(--mm-gold) 26%, transparent); }
 
 /* ── Carte héro « Défi du jour » (tête de mm-attention) ── */
@@ -60,14 +60,14 @@
 .mm-daily-hero.is-lost .mm-daily-hero-badge { background: color-mix(in srgb, var(--mm-coral) 14%, var(--mm-surface)); color: var(--mm-coral); }
 
 .mm-daily-hero-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
-.mm-daily-hero-copy small { font-size: 12px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mm-muted); }
-.mm-daily-hero-copy strong { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 700; }
+.mm-daily-hero-copy small { font-size:0.75rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mm-muted); }
+.mm-daily-hero-copy strong { font-family: 'Playfair Display', Georgia, serif; font-size:1.125rem; font-weight: 700; }
 .mm-daily-hero-meta {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size:0.8125rem;
   color: var(--mm-ink-soft);
 }
 .mm-daily-hero-meta svg { width: 15px; height: 15px; color: var(--mm-coral); }
@@ -87,10 +87,10 @@
 .mm-daily-reward-heading { display: flex; align-items: center; justify-content: space-between; }
 .mm-daily-reward-heading span { display: inline-flex; align-items: center; gap: 6px; color: var(--mm-ink-soft); }
 .mm-daily-reward-heading svg { width: 17px; height: 17px; color: var(--mm-coral); }
-.mm-daily-reward-heading strong { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-variant-numeric: tabular-nums; }
-.mm-daily-reward-note { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--mm-ink-soft); margin: 0; }
+.mm-daily-reward-heading strong { font-family: 'Playfair Display', Georgia, serif; font-size:1.125rem; font-variant-numeric: tabular-nums; }
+.mm-daily-reward-note { display: inline-flex; align-items: center; gap: 6px; font-size:0.8125rem; color: var(--mm-ink-soft); margin: 0; }
 .mm-daily-reward-note svg { width: 15px; height: 15px; }
-.mm-daily-reward-milestone { margin: 0; font-size: 13px; font-weight: 600; color: var(--mm-coral); }
+.mm-daily-reward-milestone { margin: 0; font-size:0.8125rem; font-weight: 600; color: var(--mm-coral); }
 
 @media (prefers-reduced-motion: reduce) {
   .mm-daily-hero { transition: none; }
