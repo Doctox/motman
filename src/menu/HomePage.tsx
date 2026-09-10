@@ -42,8 +42,14 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       if (navigator.share) { await navigator.share({ text: texte }); return }
       await navigator.clipboard.writeText(codeAmi)
       setCodePartage('Code ami copié')
-    } catch {
-      setCodePartage(`Votre code : ${codeAmi}`)
+    } catch (raison) {
+      // FERMER LA FEUILLE DE PARTAGE N'EST PAS UNE ERREUR. Sur Android,
+      // `navigator.share` rejette avec `AbortError` quand le joueur renonce —
+      // le cas de loin le plus fréquent ici. On ne dit donc rien.
+      if (raison instanceof Error && raison.name === 'AbortError') return
+      // Et en cas d'échec réel, inutile de réafficher le code : le bouton
+      // juste au-dessus le montre déjà. C'était une répétition pure.
+      setCodePartage('Copie impossible — le code est sur le bouton')
     }
   }
   const presenceWeight = { offline: 0, online: 1, playing: 2 }

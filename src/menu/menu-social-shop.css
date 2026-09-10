@@ -245,10 +245,22 @@
 }
 .mm-player-stats h2 svg { width: 16px; color: var(--mm-coral); }
 .mm-player-stats dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0; }
+/* DEUX RANGÉES EXPLICITES, et surtout pas un `column-reverse`.
+   La première version empilait à l'envers pour mettre le chiffre au-dessus de
+   son intitulé. Or en flux inversé, l'empilement par défaut part DU BAS :
+   l'intitulé se collait en bas de la case et le chiffre flottait au-dessus.
+   Dès qu'un intitulé passait sur deux lignes — « Grilles finies » le fait sous
+   340 px — son chiffre remontait de 9 px et sortait de l'alignement.
+
+   Ici le chiffre occupe toujours la rangée 1, l'intitulé la rangée 2 qui prend
+   le reste. Les quatre chiffres partagent donc la même ligne, quel que soit le
+   nombre de lignes des intitulés. */
 .mm-player-stats dl div {
-  display: flex; flex-direction: column-reverse; align-items: center; gap: 3px;
+  display: grid; grid-template-rows: auto 1fr; gap: 3px; justify-items: center;
   padding: 8px 3px; border-radius: 10px; background: var(--mm-sage-soft);
 }
+.mm-player-stats dl dd { grid-row: 1; }
+.mm-player-stats dl dt { grid-row: 2; }
 .mm-player-stats dt {
   font-size: 0.5rem; font-weight: 700; color: var(--mm-coral);
   text-transform: uppercase; letter-spacing: .09em; text-align: center;
