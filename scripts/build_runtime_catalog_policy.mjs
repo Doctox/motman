@@ -9,12 +9,11 @@ const source = JSON.parse(readFileSync(sourcePath, 'utf8'))
 const runtime = {
   version: source.version,
   quarantinedGridIds: source.quarantinedGridIds ?? [],
-  rejectedAnswers: source.rejectedAnswers ?? [],
   rejectedPairs: (source.rejectedPairs ?? []).map(({ answer, clue }) => `${answer}\u0000${clue}`),
 }
 
 writeFileSync(targetPath, `${JSON.stringify(runtime)}\n`, 'utf8')
-console.log(`Politique runtime : ${runtime.quarantinedGridIds.length} grilles, ${runtime.rejectedAnswers.length} réponses, ${runtime.rejectedPairs.length} couples.`)
+console.log(`Politique runtime : ${runtime.quarantinedGridIds.length} grilles, ${runtime.rejectedPairs.length} couples.`)
 
 const catalog = JSON.parse(readFileSync(catalogSourcePath, 'utf8'))
 const runtimeCatalog = {

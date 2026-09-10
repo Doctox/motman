@@ -53,7 +53,6 @@ const policy = readJson(POLICY, 'runtime.catalog-policy.json')
 if (!Array.isArray(calendar.days)) fail('Le calendrier doit contenir un tableau `days`.')
 
 const quarantined = new Set(policy.quarantinedGridIds ?? [])
-const rejectedAnswers = new Set(policy.rejectedAnswers ?? [])
 const rejectedPairs = new Set(policy.rejectedPairs ?? [])
 
 function isCatalogGridPlayable(grid) {
@@ -61,7 +60,6 @@ function isCatalogGridPlayable(grid) {
   if (quarantined.has(grid.id)) return false
   return grid.words.every(word =>
     !BLOCKED_ANSWERS.has(word.answer)
-    && !rejectedAnswers.has(word.answer)
     && !rejectedPairs.has(`${word.answer}${NUL}${word.clue ?? ''}`)
     && Boolean((word.clue && word.clue.trim()) || word.image))
 }
