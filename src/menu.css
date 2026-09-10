@@ -4,3 +4,5 @@
 @import './menu/menu-social-shop.css';
 @import './menu/menu-controls.css';
 @import './menu/menu-tutorial.css';
+/* En dernier : le mouvement affine ce que les feuilles precedentes ont pose. */
+@import './menu/menu-motion.css';

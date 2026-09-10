@@ -1,0 +1,56 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   RÉDUIRE LE MOUVEMENT DU JEU, PAS LE SUPPRIMER.
+
+   Même correctif que `menu/menu-motion.css`, appliqué à l'écran de partie.
+
+   `game-foundation.css` pose une règle générale sous `prefers-reduced-motion` :
+
+       *,*:before,*:after{animation-duration:.01ms!important;
+                          transition-duration:.01ms!important}
+
+   Elle est juste dans son intention — le jeu secoue les cases fausses, fait
+   pulser les cases justes, fait voler les lettres d'indice, et tout cela doit
+   cesser. Mais elle emporte AUSSI les boutons : `game-actions.css` ajoute même
+   `transition:none!important` sur « Valider », « Indice » et « Rejouer ».
+
+   Résultat sur une machine où la préférence est active : plus un seul bouton du
+   jeu ne réagit progressivement. L'interface devient muette, et une interface
+   muette paraît cassée plutôt que sobre.
+
+   La préférence vise les mouvements qui peuvent donner le vertige — grands
+   déplacements, secousses, pulsations, boucles. Pas l'accusé de réception d'un
+   appui. On restaure donc uniquement celui-ci, sur les commandes que le joueur
+   touche.
+
+   ⚠️ CE QUI RESTE ÉTEINT, et doit le rester : `wrongShake`, `correctPulse`,
+   `cellReward`, `hint-flight`, `turn-ready-flash`, `your-turn-pulse` et les
+   entrées de l'écran de fin. Aucune n'est touchée ici — ce fichier ne parle que
+   de `transition`, jamais d'`animation`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell button:not(:disabled),
+  .hint-button,
+  .validate,
+  .new-game,
+  .end-game-home,
+  .reroll-button,
+  .feedback-actions button,
+  .reasons button {
+    transition:
+      transform var(--mm-t-quick, 180ms) var(--mm-ease-out, ease),
+      background-color var(--mm-t-quick, 180ms) ease,
+      border-color var(--mm-t-quick, 180ms) ease,
+      color var(--mm-t-quick, 180ms) ease,
+      opacity var(--mm-t-quick, 180ms) ease !important;
+  }
+
+  /* L'enfoncement suit le doigt ; le relâchement prend son temps. */
+  .app-shell button:not(:disabled):active,
+  .hint-button:not(:disabled):active,
+  .validate:not(:disabled):active,
+  .new-game:not(:disabled):active,
+  .reroll-button:not(:disabled):active {
+    transition-duration: var(--mm-t-tap, 70ms) !important;
+  }
+}

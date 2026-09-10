@@ -8,6 +8,8 @@
    correction faite dans l'autre. On depend maintenant du fichier lui-meme
    plutot que du hasard du decoupage en paquets. */
 @import './cosmetic-portrait.css';
+/* En dernier : le mouvement affine ce que les feuilles precedentes ont pose. */
+@import './styles/game-motion.css';
 @import './styles/game-actions.css';
 
 /* ── Paysage : on demande de retourner l'appareil ─────────────────────────────

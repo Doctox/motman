@@ -86,6 +86,33 @@
   --mm-shadow-raised: 0 10px 28px var(--c-shadow-green), 0 2px 6px var(--c-shadow-warm);
   --mm-ease:          cubic-bezier(.22, 1, .36, 1);
 
+  /* ── ÉCHELLE DE MOUVEMENT ────────────────────────────────────
+     Les durées étaient dispersées — .18, .2, .22, .24, .25, .3 s —
+     sans logique commune. C'est ce qui donne l'impression de
+     « mécanique » : l'œil voit que les éléments ne bougent pas en
+     famille, même sans savoir nommer pourquoi.
+
+     Trois durées suffisent, et une règle simple : plus le
+     déplacement est grand, plus il dure.
+
+     --mm-t-tap      l'appui, qui doit SUIVRE LE DOIGT. C'est le
+                     point clé : un bouton qui met 180 ms à
+                     s'enfoncer paraît en retard sur la main. Il
+                     s'enfonce vite et se relève doucement — cette
+                     asymétrie est ce qui rend un bouton vivant.
+     --mm-t-quick    survol, couleurs, petits ajustements.
+     --mm-t-move     entrées d'écran, panneaux, tout ce qui parcourt
+                     une vraie distance.
+
+     --mm-ease-out   pour ce qui arrive (départ franc, arrivée douce).
+     --mm-ease-in    pour ce qui part.
+     ──────────────────────────────────────────────────────────── */
+  --mm-t-tap:         70ms;
+  --mm-t-quick:       180ms;
+  --mm-t-move:        260ms;
+  --mm-ease-out:      cubic-bezier(.22, 1, .36, 1);
+  --mm-ease-in:       cubic-bezier(.55, 0, 1, .45);
+
   /* ============================================================
      3. TOKENS DE JEU — système --green/--paper/... (grille).
         (identique à ton styles/game-foundation.css actuel)

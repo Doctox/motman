@@ -1,0 +1,123 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LE MOUVEMENT DE L'APPLICATION.
+
+   Constat de départ : l'application « faisait mécanique ». Deux causes
+   mesurables, et aucune n'était une affaire de goût.
+
+   1. LES ÉCRANS NE FAISAIENT AUCUNE TRANSITION. `Menu.tsx` rend
+      `{page === 'home' ? <HomePage/> : null}` : l'ancien écran disparaît et le
+      nouveau apparaît DANS LA MÊME IMAGE. Rien ne relie les deux, donc rien ne
+      dit au joueur qu'il s'est déplacé. C'est la cause dominante.
+
+   2. L'APPUI ÉTAIT SYMÉTRIQUE. Le bouton mettait 180 ms à s'enfoncer, autant à
+      se relever. Or le doigt, lui, est déjà arrivé : un enfoncement lent paraît
+      en retard sur la main. Un bouton vivant s'enfonce VITE (70 ms) et se
+      relève DOUCEMENT (180 ms) — c'est cette asymétrie qui fait la différence,
+      pas l'ampleur du mouvement.
+
+   Ce fichier ne fait que ça. Les durées viennent de l'échelle définie dans
+   `tokens.css` : trois valeurs, et une règle — plus le déplacement est grand,
+   plus il dure.
+
+   ⚠️ TRANSFORM ET OPACITY UNIQUEMENT. L'application tourne aussi en WebView
+   Android via Capacitor : toute animation touchant la mise en page (hauteur,
+   marge, position) y coûte un recalcul par image et produit exactement la
+   saccade qu'on cherche à supprimer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── L'ENTRÉE D'UN ÉCRAN ──────────────────────────────────────────────────
+   Les pages sont montées et démontées à chaque changement d'onglet : une
+   animation CSS posée sur `.mm-page` se rejoue donc naturellement à chaque
+   arrivée, sans une ligne de JavaScript ni bibliothèque de routage.
+
+   Volontairement DISCRÈTE — 8 pixels et une opacité. Une entrée spectaculaire
+   est amusante deux fois puis devient une attente : ces écrans se traversent
+   des dizaines de fois par session. Ce qu'on veut, c'est que l'œil comprenne
+   qu'il a changé d'endroit, pas qu'il assiste à un spectacle. */
+@keyframes mmPageEnter {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+.mm-page {
+  animation: mmPageEnter var(--mm-t-move) var(--mm-ease-out) both;
+}
+
+/* ── L'APPUI ──────────────────────────────────────────────────────────────
+   Le relâchement garde la durée normale, héritée de `menu-layout.css`. Seul
+   l'enfoncement est accéléré : la déclaration ne porte que sur `:active`, donc
+   elle ne s'applique qu'à la descente.
+
+   `transition-duration` seul — sans réécrire la liste des propriétés, qui
+   reste celle de `menu-layout.css`. Les redéclarer ici en ferait une seconde
+   source de vérité à tenir à jour. */
+.mm-shell button:not(:disabled):active {
+  transition-duration: var(--mm-t-tap);
+}
+
+/* ── LES PANNEAUX QUI S'OUVRENT PAR-DESSUS ────────────────────────────────
+   Amis, réglages, compte, relecture : ils apparaissaient d'un bloc. Un voile
+   qui se pose et un panneau qui monte disent d'où vient la chose et où elle
+   retournera. */
+@keyframes mmLayerEnter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mmSheetEnter {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.mm-replay-layer { animation: mmLayerEnter var(--mm-t-quick) var(--mm-ease-out) both; }
+.mm-replay-panel { animation: mmSheetEnter var(--mm-t-move) var(--mm-ease-out) both; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RÉDUIRE LE MOUVEMENT, PAS LE SUPPRIMER.
+
+   L'application traitait `prefers-reduced-motion` au marteau : `transition:
+   none !important` sur TOUS les boutons du menu, et dans l'écran de jeu une
+   règle générale qui écrase `*` à 0,01 ms. Sur une machine où la préférence est
+   active — c'est le réglage Windows « Effets d'animation », souvent activé sans
+   le savoir — l'application perdait donc la totalité de ses transitions. Plus
+   un dégradé de couleur, plus un enfoncement de bouton, plus rien. Mesuré :
+   `transition-property: none`, `transition-duration: 0s`.
+
+   C'est ce qui donnait l'impression de « mécanique ». Pas une animation ratée :
+   l'absence totale d'animation.
+
+   CE QUE LA PRÉFÉRENCE VISE RÉELLEMENT, ce sont les mouvements susceptibles de
+   provoquer un malaise vestibulaire : grands déplacements, parallaxe, rotations,
+   zooms, boucles qui tournent sans fin. Elle ne demande pas qu'un bouton cesse
+   de répondre au doigt. Un enfoncement d'un pixel en 70 ms ne fait tourner la
+   tête de personne — mais son absence rend l'interface muette, et une interface
+   muette paraît cassée.
+
+   On garde donc :
+     • l'accusé de réception de l'appui — c'est du retour tactile, pas de l'ornement ;
+     • les fondus de couleur et d'opacité — aucun déplacement, aucun risque.
+
+   On supprime :
+     • les entrées d'écran et de panneau, qui parcourent une distance ;
+     • tout ce qui boucle ou pulse (déjà traité dans les autres feuilles).
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  /* Ce qui se déplace s'arrête. */
+  .mm-page,
+  .mm-replay-layer,
+  .mm-replay-panel {
+    animation: none !important;
+  }
+
+  /* Ce qui répond au doigt continue de répondre. Cette déclaration ANNULE le
+     `transition:none!important` posé par `menu-layout.css` et
+     `menu-controls.css` — d'où le `!important`, et d'où la position de ce
+     fichier en dernier dans `menu.css`. */
+  .mm-shell button {
+    transition:
+      transform var(--mm-t-quick) var(--mm-ease-out),
+      background-color var(--mm-t-quick) ease,
+      border-color var(--mm-t-quick) ease,
+      color var(--mm-t-quick) ease,
+      opacity var(--mm-t-quick) ease !important;
+  }
+  .mm-shell button:not(:disabled):active {
+    transition-duration: var(--mm-t-tap) !important;
+  }
+}
