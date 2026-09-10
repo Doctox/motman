@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Flame, LoaderCircle, Medal, RotateCcw, Snowflake, Users } from 'lucide-react'
+import { Check, ChevronRight, Flame, LoaderCircle, Medal, RotateCcw, Snowflake } from 'lucide-react'
 import { currentDailyDateKey, dailyDateKey } from '../dailyDate'
 import { EMPTY_DAILY_LEADERBOARD, loadDailyLeaderboard, type DailyLeaderboard } from '../dailyLeaderboard'
 import type { DailyRankingEntry } from '../dailyScore'
@@ -264,19 +264,21 @@ export function DailyLeaderboardPanel() {
 
   return (
     <section className="mm-daily-rank" aria-label="Classement du défi du jour">
-      <header className="mm-daily-rank-head">
-        <h3><Medal aria-hidden="true" />Classement du jour</h3>
-        <div className="mm-daily-rank-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={onglet === 'general'}
-            className={onglet === 'general' ? 'is-active' : ''} onClick={() => setOnglet('general')}>
-            Tous
-          </button>
-          <button type="button" role="tab" aria-selected={onglet === 'friends'}
-            className={onglet === 'friends' ? 'is-active' : ''} onClick={() => setOnglet('friends')}>
-            <Users aria-hidden="true" />Amis
-          </button>
-        </div>
-      </header>
+      {/* MÊME sélecteur que celui du classé, juste au-dessus : même composant,
+          mêmes libellés, mêmes attributs. Il y en avait deux différents — l'un
+          en `mm-segmented`, l'autre maison — parce que ce panneau a d'abord été
+          écrit pour l'accueil avant d'être déplacé ici. Deux commandes qui font
+          la même chose ne doivent pas avoir deux apparences.
+
+          Et plus de titre « Classement du jour » : on est déjà dans la page
+          Classement, avec « Défi du jour » sélectionné juste au-dessus. Le
+          répéter une troisième fois ne renseigne personne. */}
+      <div className="mm-segmented" role="group" aria-label="Type de classement">
+        <button type="button" className={onglet === 'general' ? 'active' : ''}
+          aria-pressed={onglet === 'general'} onClick={() => setOnglet('general')}>Général</button>
+        <button type="button" className={onglet === 'friends' ? 'active' : ''}
+          aria-pressed={onglet === 'friends'} onClick={() => setOnglet('friends')}>Amis</button>
+      </div>
 
       {chargement ? <p className="mm-daily-rank-vide" role="status"><LoaderCircle aria-hidden="true" />Chargement…</p>
         : erreur ? <p className="mm-daily-rank-vide" role="alert">{erreur}</p>
@@ -292,10 +294,6 @@ export function DailyLeaderboardPanel() {
           {moiHorsListe ? <ol className="mm-daily-rank-list is-detached">
             <DailyRankRow entry={moiHorsListe} />
           </ol> : null}
-          <p className="mm-daily-rank-total">
-            {classement.total} joueur{classement.total > 1 ? 's' : ''} classé{classement.total > 1 ? 's' : ''} aujourd’hui
-            <span className="mm-daily-rank-formule"> · note = score ÷ ∛tours</span>
-          </p>
         </>}
     </section>
   )

@@ -30,6 +30,7 @@ import { useDragGhost } from './useDragGhost'
 import { DuelPlayer, LeaveMatchPanel, ResultPanel } from './game/DuelPresentation'
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
 import { useClueAutoFit } from './game/clueAutoFit'
+import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
@@ -409,30 +410,67 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     setStatus('Lettre reprise')
   }
 
+  // ── LA VISÉE ────────────────────────────────────────────────────────────
+  // Le calcul lui-même vit dans `game/dropTargeting.ts`, sous test. Ici il ne
+  // reste que le relevé des cases et le branchement des événements.
+  //
+  // Les positions sont relevées au DÉBUT du geste, pas à chaque déplacement :
+  // mesurer cinquante-six cases à chaque `pointermove` coûterait un
+  // recalcul de mise en page par image sur un téléphone modeste, et c'est
+  // exactement la saccade qu'on cherche à éviter. Le relevé est refait si la
+  // page défile, seul cas où il devient faux en cours de geste.
+  const cellBoxesRef = useRef<CellBox[]>([])
+  const refreshCellBoxes = () => { cellBoxesRef.current = measureCells() }
+
+  const targetAt = (event: React.PointerEvent) => {
+    const point = aimPoint(event.clientX, event.clientY, event.pointerType)
+    const cell = cellAtPoint(cellBoxesRef.current, point.x, point.y)
+    if (cell !== null) return cell
+    // Le chevalet ne bénéficie pas de la tolérance : il est large, on ne le
+    // manque pas, et un rattrapage y renverrait des lettres par erreur.
+    const sous = document.elementFromPoint(point.x, point.y)
+    return sous?.closest<HTMLElement>('[data-rack]') ? -1 : null
+  }
+
   const pointerDown = (event: React.PointerEvent, tile: Tile, origin: 'rack' | number) => {
     if (!canAct || resolving) return
     event.currentTarget.setPointerCapture(event.pointerId)
+    refreshCellBoxes()
     setDrag({ tile, origin, x: event.clientX, y: event.clientY })
-    moveGhost(event.clientX, event.clientY)
+    const point = aimPoint(event.clientX, event.clientY, event.pointerType)
+    moveGhost(point.x, point.y)
   }
   const pointerMove = (event: React.PointerEvent) => {
     if (!drag) return
-    moveGhost(event.clientX, event.clientY)
-    const cell = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-cell]')
-    const rackTarget = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-rack]')
-    const nextTarget = cell?.dataset.cell ? Number(cell.dataset.cell) : rackTarget ? -1 : null
+    // Le fantôme suit LE POINT VISÉ, pas le doigt : ce qu'on voit est ce qui
+    // sera posé. Le dessiner sous la main reviendrait à poser à l'aveugle.
+    const point = aimPoint(event.clientX, event.clientY, event.pointerType)
+    moveGhost(point.x, point.y)
+    const nextTarget = targetAt(event)
     setDropTarget(current => current === nextTarget ? current : nextTarget)
   }
   const pointerUp = (event: React.PointerEvent) => {
     if (drag) {
-      const cell = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-cell]')
-      const rackTarget = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-rack]')
-      if (cell?.dataset.cell) placeTile(drag.tile, Number(cell.dataset.cell), drag.origin)
-      else if (rackTarget && typeof drag.origin === 'number') returnTile(drag.origin)
+      const cible = targetAt(event)
+      if (cible !== null && cible >= 0) placeTile(drag.tile, cible, drag.origin)
+      else if (cible === -1 && typeof drag.origin === 'number') returnTile(drag.origin)
     }
     stopGhost(); setDrag(null); setDropTarget(null)
   }
   const pointerCancel = () => { stopGhost(); setDrag(null); setDropTarget(null) }
+
+  // Un défilement en cours de geste déplace les cases sous le doigt : sans ce
+  // rafraîchissement, la visée continuerait de croire à l'ancienne position.
+  useEffect(() => {
+    if (!drag) return
+    const relever = () => { cellBoxesRef.current = measureCells() }
+    window.addEventListener('scroll', relever, { passive: true, capture: true })
+    window.addEventListener('resize', relever, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', relever, { capture: true } as EventListenerOptions)
+      window.removeEventListener('resize', relever)
+    }
+  }, [drag])
 
   const validate = async (automatic = false) => {
     const currentMatch = matchRef.current

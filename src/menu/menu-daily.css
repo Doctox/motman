@@ -108,20 +108,13 @@
   margin-top: 12px; padding: 12px 14px 10px;
   border: 1px solid #ded6c7; border-radius: 16px; background: #fffdf7;
 }
-.mm-daily-rank-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.mm-daily-rank-head h3 {
-  margin: 0; display: flex; align-items: center; gap: 6px;
-  font: 700 0.9375rem/1.2 'Playfair Display', serif; color: #123e37;
-}
-.mm-daily-rank-head svg { width: 16px; height: 16px; }
-.mm-daily-rank-tabs { display: flex; gap: 4px; }
-.mm-daily-rank-tabs button {
-  display: flex; align-items: center; gap: 4px;
-  border: 1px solid #d5c9b8; border-radius: 14px; background: transparent;
-  padding: 4px 10px; font-size: 0.75rem; font-weight: 700; color: #566b64; cursor: pointer;
-}
-.mm-daily-rank-tabs button svg { width: 13px; height: 13px; }
-.mm-daily-rank-tabs button.is-active { background: #e1f0e4; border-color: #9dc4ac; color: #17613f; }
+
+
+
+
+
+
+
 .mm-daily-rank-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 3px; }
 .mm-daily-rank-list.is-detached { margin-top: 8px; border-top: 1px dashed #ded6c7; padding-top: 8px; }
 .mm-daily-rank-row {
@@ -139,8 +132,8 @@
   color: #7d8d86; font-size: 0.8125rem; text-align: center;
 }
 .mm-daily-rank-vide svg { width: 15px; height: 15px; animation: mmDailyRankSpin 1s linear infinite; }
-.mm-daily-rank-total { margin: 9px 0 0; color: #8a9a93; font-size: 0.6875rem; text-align: center; }
-.mm-daily-rank-formule { opacity: .8; }
+
+
 @keyframes mmDailyRankSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .mm-daily-rank-vide svg { animation: none; }
@@ -152,7 +145,6 @@
 .mm-ranking-page .mm-daily-rank {
   margin-top: 4px; padding: 0; border: 0; background: transparent;
 }
-.mm-ranking-page .mm-daily-rank-head h3 { font-size: 1.0625rem; }
 /* Le sélecteur d'épreuve prime sur celui de portée : un peu d'air le dit. */
 .mm-ranking-epreuve { margin-bottom: 10px; }
 

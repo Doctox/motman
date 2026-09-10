@@ -144,8 +144,9 @@ test('l’API locale supprime le profil et révoque sa session', async () => {
 test('L’Épicerie ne monte que les animations visibles', async ({ page }, testInfo) => {
   await page.goto('/')
   await expect(page.locator('.mm-bottom-nav')).toBeVisible()
-  await page.getByRole('button', { name: 'Profil' }).click()
-  await page.getByRole('button', { name: /L’Épicerie/ }).click()
+  // L'Épicerie a son propre onglet depuis qu'elle est dans la barre du bas ;
+  // elle ne s'atteint plus depuis le profil.
+  await page.getByRole('button', { name: 'Épicerie' }).click()
   await expect(page.locator('.mm-shop-tabs')).toBeVisible()
 
   expect(await page.locator('.mm-animation-shop').count()).toBe(0)
