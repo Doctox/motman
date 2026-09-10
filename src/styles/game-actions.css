@@ -142,6 +142,9 @@
   .native-runtime .multiplayer-shell:not(.is-finished) .rack{height:51px}
   .native-runtime .multiplayer-shell:not(.is-finished) .rack-slot{height:41px}
   .native-runtime .multiplayer-shell:not(.is-finished) .rack-letter{font-size:1.5625rem}
+  /* Même correction qu'en `game-interaction.css` : 1,25 rem x 125 % = 25 px,
+     soit exactement la taille d'origine. Voir la note là-bas. */
+  [data-text-size="large"] .native-runtime .multiplayer-shell:not(.is-finished) .rack-letter{font-size:1.25rem}
   .native-runtime .multiplayer-shell:not(.is-finished)>.turn-actions{margin-top:6px}
   .native-runtime .multiplayer-shell:not(.is-finished) .hint-button,
   .native-runtime .multiplayer-shell:not(.is-finished) .validate{height:40px}

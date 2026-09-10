@@ -391,6 +391,26 @@
 [data-text-size="large"] .clue-image{width:min(92%,42px);height:min(92%,42px)}
 [data-text-size="large"] .double-clue .clue-image{width:min(84%,28px);height:min(84%,28px)}
 
+/* ── LE CHEVALET NE GROSSIT PAS ────────────────────────────────────────────
+   « Texte plus grand » porte la racine à 125 %. Les définitions, elles, en ont
+   besoin — ce sont de petits caractères qu'on peine à lire. Les LETTRES, non :
+   elles font déjà 30 px, et leurs cases ont une hauteur fixe (54 px, 51 px en
+   natif). Les agrandir de 25 % les faisait déborder de leur case.
+
+   C'est la même règle que pour les lettres posées sur la grille, décidée à
+   l'époque : « les lettres posées ne doivent pas bouger, juste les
+   définitions ». Celles du chevalet avaient simplement été oubliées — la
+   grille est en `clamp(...vw...)`, donc naturellement immunisée, alors que le
+   chevalet est en `rem` et suivait la racine.
+
+   Les valeurs rendent exactement la taille d'origine : 1,5 rem × 125 % = 30 px,
+   comme 1,875 rem × 100 %. Rien ne change hors du mode agrandi. */
+[data-text-size="large"] .rack-letter{font-size:1.5rem}
+[data-text-size="large"] .drag-ghost{font-size:1.8rem}
+@media(max-height:780px){
+  [data-text-size="large"] .rack-letter{font-size:1.3rem}
+}
+
 /* Reuse the real MotMan O: the full logo is cropped through background positioning. */
 .corner-block,.clue.corner-clue{
   position:relative;

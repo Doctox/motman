@@ -221,27 +221,45 @@
 .mm-name-help.invalid{color:#a5412c}
 
 
-/* « Vos parties » — le profil ne parlait que de progression, jamais du fait de
-   jouer. Les quatre chiffres qui comptent en grand, le reste en une ligne. */
+/* ── « VOS PARTIES » ─────────────────────────────────────────────────────────
+   Réécrit : la première version employait des couleurs EN DUR (#ded6c7,
+   #fffdf7, #17613f…). Deux conséquences, et la seconde est un vrai défaut :
+   elles n'appartenaient pas à la palette, donc le bloc jurait au milieu du
+   profil ; et le thème sombre ne redéfinit QUE les jetons `--mm-*`, donc en
+   sombre ces couleurs restaient claires — un rectangle blanc sur une page
+   sombre.
+
+   Tout passe désormais par les jetons, et la typographie reprend celle des
+   autres blocs du profil : chiffres en Playfair, intitulés en petites
+   capitales corail — le couple qu'emploient déjà la bourse et l'entrée de
+   compte. L'intitulé passe SOUS le chiffre : c'est le chiffre qu'on vient
+   lire, il doit arriver en premier dans l'œil. */
 .mm-player-stats {
-  margin-top: 12px; padding: 12px 14px;
-  border: 1px solid #ded6c7; border-radius: 16px; background: #fffdf7;
+  margin: 13px 0; padding: 12px 13px;
+  border: 1px solid var(--mm-line); border-radius: 14px;
+  background: var(--mm-paper);
 }
 .mm-player-stats h2 {
-  margin: 0 0 10px; display: flex; align-items: center; gap: 6px;
-  font: 700 0.9375rem/1.2 'Playfair Display', serif; color: #123e37;
+  margin: 0 0 11px; display: flex; align-items: center; gap: 6px;
+  font: 600 1.0625rem 'Playfair Display', serif; color: var(--mm-ink);
 }
-.mm-player-stats h2 svg { width: 16px; height: 16px; }
-.mm-player-stats dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; }
-.mm-player-stats dl div { text-align: center; }
-.mm-player-stats dt { font-size: 0.6875rem; color: #7d8d86; }
+.mm-player-stats h2 svg { width: 16px; color: var(--mm-coral); }
+.mm-player-stats dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0; }
+.mm-player-stats dl div {
+  display: flex; flex-direction: column-reverse; align-items: center; gap: 3px;
+  padding: 8px 3px; border-radius: 10px; background: var(--mm-sage-soft);
+}
+.mm-player-stats dt {
+  font-size: 0.5rem; font-weight: 700; color: var(--mm-coral);
+  text-transform: uppercase; letter-spacing: .09em; text-align: center;
+}
 .mm-player-stats dd {
-  margin: 2px 0 0; font: 700 1.125rem/1.1 'Playfair Display', serif;
-  color: #17613f; font-variant-numeric: tabular-nums;
+  margin: 0; font: 600 1.375rem/1 'Playfair Display', serif;
+  color: var(--mm-ink); font-variant-numeric: tabular-nums;
 }
-.mm-player-stats-detail { margin: 10px 0 0; font-size: 0.6875rem; color: #8a9a93; text-align: center; }
+.mm-player-stats-detail { margin: 10px 0 0; font-size: 0.6875rem; color: var(--mm-muted); text-align: center; }
 .mm-player-stats-detail small { opacity: .75; }
-.mm-player-stats.is-empty p { margin: 0; font-size: 0.8125rem; color: #7d8d86; }
+.mm-player-stats.is-empty p { margin: 0; font-size: 0.8125rem; color: var(--mm-muted); }
 
 /* Ajouter l'adversaire en ami, à la fin d'une partie. Une partie contre un
    inconnu était jusqu'ici une occasion perdue : l'ajout ne passait que par un
@@ -249,14 +267,14 @@
 .duel-friend { margin-top: 10px; }
 .duel-friend-add {
   display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
-  padding: 10px 12px; border: 1px solid #b8c3bc; border-radius: 13px;
-  background: #fff; font-size: 0.8125rem; font-weight: 700; color: #17613f; cursor: pointer;
+  padding: 10px 12px; border: 1px solid var(--mm-line-strong); border-radius: 13px;
+  background: var(--mm-paper); font-size: 0.8125rem; font-weight: 700; color: var(--mm-ink); cursor: pointer;
 }
 .duel-friend-add:disabled { opacity: .6; cursor: default; }
 .duel-friend-add svg { width: 16px; height: 16px; }
 .duel-friend-done {
   display: flex; align-items: center; justify-content: center; gap: 7px;
-  margin: 10px 0 0; font-size: 0.8125rem; color: #17613f;
+  margin: 10px 0 0; font-size: 0.8125rem; color: var(--mm-coral);
 }
 .duel-friend-done svg { width: 15px; height: 15px; }
 
@@ -267,7 +285,7 @@
 .mm-purse {
   width: 100%; margin: 13px 0; padding: 11px 13px;
   display: grid; grid-template-columns: 44px 1fr; gap: 11px; align-items: center;
-  border: 1px solid #bfc0ad; border-radius: 14px;
+  border: 1px solid var(--mm-line-strong); border-radius: 14px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--mm-sage) 68%, var(--mm-surface)), var(--mm-surface));
 }
 .mm-purse-icon {

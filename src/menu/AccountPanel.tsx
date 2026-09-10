@@ -51,7 +51,7 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
       }
       if (mode === 'login') {
         const response = await loginPlayerAccount(email, password)
-        apply(response); notify('Compte synchronisé'); close(); return
+        apply(response); notify('Compte connecté'); close(); return
       }
       const response = await createPlayerAccount(email)
       apply(response)

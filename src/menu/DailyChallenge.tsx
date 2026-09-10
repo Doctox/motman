@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Flame, LoaderCircle, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { Check, ChevronRight, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
 import { currentDailyDateKey, dailyDateKey } from '../dailyDate'
 import { EMPTY_DAILY_LEADERBOARD, loadDailyLeaderboard, type DailyLeaderboard } from '../dailyLeaderboard'
+import { SocialPortrait } from './MenuChrome'
 import type { DailyRankingEntry } from '../dailyScore'
 import {
   dailyAttempts,
@@ -231,15 +232,25 @@ export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects })
 // formule est invisible, donne le sentiment d'un classement arbitraire.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * EXACTEMENT la ligne du classement classé — `mm-ranking-row`, ses places de
+ * podium, son portrait, sa typographie.
+ *
+ * Elle avait d'abord sa propre mise en forme, écrite pour l'accueil avant que le
+ * panneau ne rejoigne la page Classement. Résultat : deux listes de classement
+ * côte à côte, dans la même page, qui ne se ressemblaient pas. Une seule
+ * apparence pour une seule notion.
+ */
 function DailyRankRow({ entry }: { entry: DailyRankingEntry }) {
-  return (
-    <li className={`mm-daily-rank-row${entry.isMe ? ' is-me' : ''}`}>
-      <span className="mm-daily-rank-place">{entry.position}</span>
-      <span className="mm-daily-rank-name">{entry.displayName}</span>
-      <span className="mm-daily-rank-detail">{entry.score} pts · {entry.turns} tours</span>
-      <strong className="mm-daily-rank-note">{entry.note}</strong>
-    </li>
-  )
+  return <div className={`mm-ranking-row ${entry.isMe ? 'you' : ''}`}>
+    <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
+    <SocialPortrait user={{ displayName: entry.displayName, avatarId: entry.avatarId ?? undefined, frameId: entry.frameId ?? undefined }} small />
+    <strong>
+      {entry.displayName}
+      <small>{entry.isMe ? 'Vous' : `${entry.score} pts · ${entry.turns} tours`}</small>
+    </strong>
+    <b>{entry.note} <small>pts</small></b>
+  </div>
 }
 
 export function DailyLeaderboardPanel() {
@@ -280,20 +291,22 @@ export function DailyLeaderboardPanel() {
           aria-pressed={onglet === 'friends'} onClick={() => setOnglet('friends')}>Amis</button>
       </div>
 
-      {chargement ? <p className="mm-daily-rank-vide" role="status"><LoaderCircle aria-hidden="true" />Chargement…</p>
-        : erreur ? <p className="mm-daily-rank-vide" role="alert">{erreur}</p>
-        : lignes.length === 0 ? <p className="mm-daily-rank-vide">
-            {onglet === 'friends'
-              ? 'Aucun de vos amis n’a encore joué la grille du jour.'
-              : 'Personne n’a encore terminé la grille du jour. À vous l’honneur.'}
-          </p>
+      {chargement || erreur || lignes.length === 0
+        ? <div className="mm-empty-ranking" role={erreur ? 'alert' : 'status'}>
+            <Medal aria-hidden="true" />
+            <strong>{chargement ? 'Chargement du classement…' : erreur ? 'Classement indisponible' : onglet === 'friends' ? 'Aucun ami classé' : 'Personne n’a encore joué'}</strong>
+            <span>{chargement ? 'Les joueurs du jour arrivent.' : erreur ? erreur : onglet === 'friends' ? 'Vos amis apparaîtront ici dès qu’ils auront joué la grille du jour.' : 'À vous l’honneur : terminez la grille du jour.'}</span>
+          </div>
         : <>
-          <ol className="mm-daily-rank-list">
+          <section className="mm-leaderboard">
             {lignes.map(entry => <DailyRankRow key={entry.playerId} entry={entry} />)}
-          </ol>
-          {moiHorsListe ? <ol className="mm-daily-rank-list is-detached">
-            <DailyRankRow entry={moiHorsListe} />
-          </ol> : null}
+            {/* Le lecteur voit toujours SA ligne, même au-delà du cinquantième :
+                un classement où l'on ne se trouve pas ne donne aucune envie de
+                revenir. Détachée pour que l'écart de rang se voie. */}
+            {moiHorsListe ? <div className="mm-daily-rank-detache">
+              <DailyRankRow entry={moiHorsListe} />
+            </div> : null}
+          </section>
         </>}
     </section>
   )

@@ -98,55 +98,22 @@
 }
 
 /* ── Classement du défi du jour ──────────────────────────────────────────────
-   Tout le monde joue la même grille : c'est la seule compétition de MotMan qui
-   ne demande pas deux joueurs au même instant.
+   Il n'a PLUS de mise en forme propre : il emprunte `.mm-leaderboard` et
+   `.mm-ranking-row` au classement classé, dont il partage la page. Deux listes
+   de classement côte à côte qui ne se ressemblent pas, c'était le défaut.
 
-   La note (score ÷ ∛tours) est mise en avant, mais le score et les tours
-   restent lisibles à côté : une note seule, dont la formule est invisible,
-   donne le sentiment d'un classement arbitraire. */
-.mm-daily-rank {
-  margin-top: 12px; padding: 12px 14px 10px;
-  border: 1px solid #ded6c7; border-radius: 16px; background: #fffdf7;
+   Ne restent ici que les deux choses qui lui sont particulières. */
+
+/* Ma ligne, quand je suis au-delà des cinquante premiers. Le trait dit qu'il y a
+   un saut de rang, sinon on croirait à la suite immédiate de la liste. */
+.mm-daily-rank-detache {
+  margin-top: 6px; padding-top: 6px;
+  border-top: 1px dashed var(--mm-line);
 }
+.mm-daily-rank-detache .mm-ranking-row { border-bottom: 0; }
 
-
-
-
-
-
-
-.mm-daily-rank-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 3px; }
-.mm-daily-rank-list.is-detached { margin-top: 8px; border-top: 1px dashed #ded6c7; padding-top: 8px; }
-.mm-daily-rank-row {
-  display: grid; grid-template-columns: 26px 1fr auto auto; align-items: baseline; gap: 8px;
-  padding: 5px 7px; border-radius: 9px; font-size: 0.8125rem;
-}
-/* Le lecteur doit se retrouver d'un coup d'œil dans une liste de cinquante. */
-.mm-daily-rank-row.is-me { background: #e1f0e4; font-weight: 700; }
-.mm-daily-rank-place { color: #8a9a93; font-variant-numeric: tabular-nums; text-align: right; }
-.mm-daily-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mm-daily-rank-detail { color: #7d8d86; font-size: 0.6875rem; white-space: nowrap; }
-.mm-daily-rank-note { color: #17613f; font-variant-numeric: tabular-nums; }
-.mm-daily-rank-vide {
-  margin: 12px 0 4px; display: flex; align-items: center; justify-content: center; gap: 7px;
-  color: #7d8d86; font-size: 0.8125rem; text-align: center;
-}
-.mm-daily-rank-vide svg { width: 15px; height: 15px; animation: mmDailyRankSpin 1s linear infinite; }
-
-
-@keyframes mmDailyRankSpin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .mm-daily-rank-vide svg { animation: none; }
-}
-
-/* Dans la page Classement, le panneau n'a plus besoin de son propre cadre :
-   il EST le contenu de la page, pas un encart posé sur l'accueil. Une carte
-   dans une carte, c'est deux bordures pour rien. */
-.mm-ranking-page .mm-daily-rank {
-  margin-top: 4px; padding: 0; border: 0; background: transparent;
-}
-/* Le sélecteur d'épreuve prime sur celui de portée : un peu d'air le dit. */
-.mm-ranking-epreuve { margin-bottom: 10px; }
+/* Le panneau ne pose aucun cadre : il EST le contenu de la page. */
+.mm-ranking-page .mm-daily-rank { margin-top: 4px; }
 
 /* Rappel de classement sur l'accueil : une ligne, pas un tableau. Elle ne
    s'affiche que si le joueur y figure — « aucun classement » sous un défi pas
@@ -154,11 +121,11 @@
 .mm-daily-teaser {
   display: flex; align-items: center; gap: 8px; width: 100%;
   margin: 6px 0 0; padding: 8px 12px;
-  border: 1px solid #ded6c7; border-radius: 13px; background: #fffdf7;
-  font-size: 0.8125rem; color: #3c5850; text-align: left; cursor: pointer;
+  border: 1px solid var(--mm-line); border-radius: 13px; background: var(--mm-paper);
+  font-size: 0.8125rem; color: var(--mm-ink); text-align: left; cursor: pointer;
 }
 .mm-daily-teaser svg { width: 15px; height: 15px; flex: none; }
 .mm-daily-teaser span { flex: 1; }
-.mm-daily-teaser b { color: #17613f; font-size: 0.9375rem; }
+.mm-daily-teaser b { color: var(--mm-coral); font-size: 0.9375rem; }
 .mm-daily-teaser sup { font-size: 0.625rem; }
 p.mm-daily-teaser { cursor: default; }

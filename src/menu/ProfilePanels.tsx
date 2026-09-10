@@ -149,7 +149,7 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openAccount }
         <strong>{frenchNumber.format(cosmetics.plumes)} plume{cosmetics.plumes > 1 ? 's' : ''}</strong>
       </span>
     </section>
-    <button type="button" className="mm-account" onClick={openAccount}><User /><span><strong>{identity.accountType === 'account' ? 'Compte synchronisé' : 'Compte invité'}</strong><small>Code ami {identity.friendCode ?? shortPlayerId(identity.playerId)}</small></span><b>{identity.accountType === 'account' ? 'Gérer' : 'Créer un compte'}</b><ChevronRight /></button>
+    <button type="button" className="mm-account" onClick={openAccount}><User /><span><strong>{identity.accountType === 'account' ? 'Compte connecté' : 'Compte invité'}</strong><small>Code ami {identity.friendCode ?? shortPlayerId(identity.playerId)}</small></span><b>{identity.accountType === 'account' ? 'Gérer' : 'Créer un compte'}</b><ChevronRight /></button>
   </div>
 }
 
