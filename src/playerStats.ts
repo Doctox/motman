@@ -15,15 +15,10 @@ export type PlayerStats = {
   abandons: number
   completed: number
   winRate: number | null
-  /** Meilleur score d'une partie — 90 derniers jours seulement. */
-  bestScore: number
-  /** Vrai si des parties plus anciennes ne sont connues que par agrégat. */
-  hasArchived: boolean
 }
 
 export const EMPTY_PLAYER_STATS: PlayerStats = {
-  played: 0, wins: 0, draws: 0, losses: 0, abandons: 0,
-  completed: 0, winRate: null, bestScore: 0, hasArchived: false,
+  played: 0, wins: 0, draws: 0, losses: 0, abandons: 0, completed: 0, winRate: null,
 }
 
 export async function loadPlayerStats(): Promise<PlayerStats> {

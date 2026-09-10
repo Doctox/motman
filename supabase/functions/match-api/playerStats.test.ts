@@ -25,7 +25,7 @@ function verifie(condition: boolean, quoi: string): void {
   if (!condition) throw new Error(quoi)
 }
 
-const partie = (outcome: string, score = 50, completed = true) => ({ outcome, completed, score })
+const partie = (outcome: string, completed = true) => ({ outcome, completed })
 
 Deno.test('un compte neuf n’a pas de taux, et pas zéro', () => {
   // Zéro pour cent laisserait croire à un joueur qui perd tout ; l'absence de
@@ -61,25 +61,15 @@ Deno.test('les parties archivées s’ajoutent au détail', () => {
   verifie(stats.wins === 26, `attendu 26 victoires, obtenu ${stats.wins}`)
   verifie(stats.losses === 11, `attendu 11 défaites, obtenu ${stats.losses}`)
   verifie(stats.completed === 32, `attendu 32 grilles finies, obtenu ${stats.completed}`)
-  verifie(stats.hasArchived, 'la présence d’archives devrait être signalée')
 })
 
-Deno.test('un repli vide ne fait pas croire à des archives', () => {
+Deno.test('un repli vide n’ajoute rien', () => {
   const stats = buildPlayerStats([partie('win')], [{ plays: 0, completions: 0, wins: 0, draws: 0, losses: 0, abandons: 0 }])
-  verifie(!stats.hasArchived, 'aucune archive ne devrait être signalée')
   verifie(stats.played === 1, 'total incorrect')
 })
 
-Deno.test('le meilleur score ne vient que du détail', () => {
-  // Les replis ne retiennent que des SOMMES : `score_total`, pas le meilleur
-  // d'une partie. Le record ne vaut donc que sur 90 jours, et l'interface le
-  // dit plutôt que de laisser croire à un record de toujours.
-  const stats = buildPlayerStats([partie('win', 71), partie('loss', 44)], [{ plays: 100, completions: 90, wins: 60, draws: 5, losses: 35, abandons: 0 }])
-  verifie(stats.bestScore === 71, `meilleur score incorrect : ${stats.bestScore}`)
-})
-
 Deno.test('une grille non terminée compte comme partie mais pas comme grille finie', () => {
-  const stats = buildPlayerStats([partie('loss', 12, false)], [])
+  const stats = buildPlayerStats([partie('loss', false)], [])
   verifie(stats.played === 1, 'la partie doit compter')
   verifie(stats.completed === 0, 'la grille ne doit pas compter comme finie')
 })

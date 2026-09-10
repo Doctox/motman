@@ -121,12 +121,6 @@ function PlayerStatsPanel() {
       <div><dt>Taux</dt><dd>{stats.winRate ?? 0} %</dd></div>
       <div><dt>Grilles finies</dt><dd>{frenchNumber.format(stats.completed)}</dd></div>
     </dl>
-    <p className="mm-player-stats-detail">
-      {frenchNumber.format(stats.draws)} nul{stats.draws > 1 ? 's' : ''}
-      {' · '}{frenchNumber.format(stats.losses)} défaite{stats.losses > 1 ? 's' : ''}
-      {stats.abandons > 0 ? <> · {frenchNumber.format(stats.abandons)} abandon{stats.abandons > 1 ? 's' : ''}</> : null}
-      {stats.bestScore > 0 ? <> · meilleur score {stats.bestScore}<small> (90 j)</small></> : null}
-    </p>
   </section>
 }
 

@@ -257,8 +257,8 @@
   margin: 0; font: 600 1.375rem/1 'Playfair Display', serif;
   color: var(--mm-ink); font-variant-numeric: tabular-nums;
 }
-.mm-player-stats-detail { margin: 10px 0 0; font-size: 0.6875rem; color: var(--mm-muted); text-align: center; }
-.mm-player-stats-detail small { opacity: .75; }
+
+
 .mm-player-stats.is-empty p { margin: 0; font-size: 0.8125rem; color: var(--mm-muted); }
 
 /* Ajouter l'adversaire en ami, à la fin d'une partie. Une partie contre un
