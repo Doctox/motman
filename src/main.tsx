@@ -3,9 +3,13 @@ import ReactDOM from 'react-dom/client'
 import './tokens.css'
 import './base.css'
 import { isNativeRuntime } from './nativeRuntime'
+import { installPressFeedback } from './pressFeedback'
 import { initializeSensoryPreferences } from './sensoryPreferences'
 
 initializeSensoryPreferences()
+// Retour d'appui immediat : sur Android, `:active` arrive apres l'heuristique
+// de defilement de Chrome, et le flash natif est desactive. Voir pressFeedback.ts.
+installPressFeedback()
 
 const nativeRuntime = isNativeRuntime()
 document.documentElement.classList.toggle('native-runtime', nativeRuntime)

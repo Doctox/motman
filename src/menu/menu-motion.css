@@ -25,22 +25,37 @@
    saccade qu'on cherche à supprimer.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── L'ENTRÉE D'UN ÉCRAN ──────────────────────────────────────────────────
-   Les pages sont montées et démontées à chaque changement d'onglet : une
-   animation CSS posée sur `.mm-page` se rejoue donc naturellement à chaque
-   arrivée, sans une ligne de JavaScript ni bibliothèque de routage.
+/* ── L'ENTRÉE D'UN ÉCRAN : ELLE EXISTAIT DÉJÀ ─────────────────────────────
+   Corrigé après coup, et la correction vaut d'être notée : j'avais diagnostiqué
+   « les écrans ne font aucune transition » et ajouté une animation. C'était
+   FAUX — `menu-layout.css` posait déjà `animation:mmPageIn .34s` sur
+   `.mm-page`. J'en avais donc écrit un doublon, qui écrasait l'original en
+   étant chargé plus tard.
 
-   Volontairement DISCRÈTE — 8 pixels et une opacité. Une entrée spectaculaire
-   est amusante deux fois puis devient une attente : ces écrans se traversent
-   des dizaines de fois par session. Ce qu'on veut, c'est que l'œil comprenne
-   qu'il a changé d'endroit, pas qu'il assiste à un spectacle. */
-@keyframes mmPageEnter {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to   { opacity: 1; transform: none; }
-}
+   Ce qui l'éteignait n'était pas son absence mais la réduction d'animations,
+   traitée au marteau (voir plus bas). Le doublon est retiré ; `mmPageIn` reste
+   la seule entrée d'écran. */
 
-.mm-page {
-  animation: mmPageEnter var(--mm-t-move) var(--mm-ease-out) both;
+/* ── LE RETOUR D'APPUI IMMÉDIAT ───────────────────────────────────────────
+   `is-pressed` est posée dès `pointerdown` par `src/pressFeedback.ts`, sans
+   attendre `:active` — que Chrome retarde sur Android le temps de distinguer
+   un appui d'un début de défilement. Le flash natif étant supprimé
+   (`-webkit-tap-highlight-color:transparent`), c'était le seul retour
+   instantané qui manquait.
+
+   Même apparence que `:active`, pour qu'aucune différence ne se voie selon que
+   le geste vient du doigt ou de la souris.
+
+   `touch-action:manipulation` complète : il dit au navigateur que ces éléments
+   ne servent ni au double-tap-zoom ni au panoramique, ce qui lui permet de
+   décider plus tôt. */
+.mm-shell button,
+.mm-shell [role="button"] { touch-action: manipulation; }
+
+.mm-shell button:not(:disabled).is-pressed,
+.mm-shell [role="button"]:not([aria-disabled="true"]).is-pressed {
+  transform: translateY(1px) scale(.985);
+  transition-duration: var(--mm-t-tap);
 }
 
 /* ── L'APPUI ──────────────────────────────────────────────────────────────
@@ -117,7 +132,12 @@
       color var(--mm-t-quick) ease,
       opacity var(--mm-t-quick) ease !important;
   }
-  .mm-shell button:not(:disabled):active {
+  .mm-shell button:not(:disabled):active,
+  .mm-shell button:not(:disabled).is-pressed {
     transition-duration: var(--mm-t-tap) !important;
+  }
+  /* L'apparence de l'appui aussi : sans elle, le bouton ne dirait plus rien. */
+  .mm-shell button:not(:disabled).is-pressed {
+    transform: translateY(1px) scale(.985) !important;
   }
 }
