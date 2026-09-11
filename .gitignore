@@ -48,3 +48,9 @@ tmp/
 /data.sql
 motman-sauvegardes/
 sauvegardes/
+
+# Boîte de dépôt de l'Éditeur : lots de grilles approuvés, AVEC LEURS SOLUTIONS
+# (`review.html` les affiche en clair). Le dépôt est public : ces fichiers
+# publieraient les réponses des défis à venir. Un lot n'entre dans le dépôt
+# qu'une fois intégré au catalogue, par le clavardage MotMan.
+MotMan Grilles prêtes/
