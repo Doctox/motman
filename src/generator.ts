@@ -1,3 +1,4 @@
+import { normalRotationGrids } from './dailyThemes'
 import { isCatalogGridPlayable } from './gridCatalogPolicy'
 import { gridCellIndex, resolveGridDimensions, type GridDimensionsSource } from './gridDimensions'
 
@@ -9,13 +10,15 @@ export type PlacedWord = { answer: string; clue: string; image?: ClueImage; diff
 export type ClueEntry = { text: string; image?: ClueImage; direction: Direction; arrow: ArrowDirection; wordId: string }
 export type GeneratedCell =
   | { kind: 'block' }
+  /** Case noire DÉCLARÉE par la grille (`blockedCells`) : ni lettre ni définition. */
+  | { kind: 'blocked' }
   | { kind: 'clue'; entries: ClueEntry[] }
   | { kind: 'letter'; solution: string; wordIds: string[] }
 export type GridValidation = { valid: boolean; errors: string[]; score: number }
 export type GeneratedGrid = { id: string; size?: number; columns: number; rows: number; difficulty: GridDifficulty; cells: GeneratedCell[]; words: PlacedWord[]; seed: number; version: string; validation: GridValidation }
 
 type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: ClueImage; direction: Direction; arrow?: ArrowDirection; clueCell: number[]; cells: number[][] }
-type CatalogGrid = GridDimensionsSource & { id: string; difficulty?: GridDifficulty; clueCells: number[][]; words: CatalogWord[] }
+type CatalogGrid = GridDimensionsSource & { id: string; difficulty?: GridDifficulty; clueCells: number[][]; blockedCells?: number[][]; words: CatalogWord[]; theme?: string | null; dailyOnly?: boolean }
 type GridCatalog = { version: number; grids: CatalogGrid[] }
 type LoadedCatalog = { version: string; playable: CatalogGrid[] }
 
@@ -42,6 +45,12 @@ function materialize(source: CatalogGrid, difficulty: GridDifficulty, version: s
   source.clueCells.forEach(([row, col]) => {
     cells[gridCellIndex(dimensions, row, col)] = { kind: 'clue', entries: [] }
   })
+  // Les cases noires des grilles à thème. DÉCLARÉES, elles ont une fonction ;
+  // une case restée `block` (sans fonction ni déclaration) reste une erreur de
+  // fabrication, refusée par `validateGrid`.
+  source.blockedCells?.forEach(([row, col]) => {
+    cells[gridCellIndex(dimensions, row, col)] = { kind: 'blocked' }
+  })
   const words: PlacedWord[] = source.words.map((item, wordIndex) => {
     const id = item.wordId ?? `${source.id}:word:${wordIndex}`
     const [row, col] = item.cells[0]
@@ -61,7 +70,7 @@ function materialize(source: CatalogGrid, difficulty: GridDifficulty, version: s
         if (existing.solution !== solution) throw new Error(`${source.id}: croisement incohérent`)
         existing.wordIds.push(id)
       } else if (existing.kind === 'block') cells[index] = { kind: 'letter', solution, wordIds: [id] }
-      else throw new Error(`${source.id}: une définition coupe un mot`)
+      else throw new Error(`${source.id}: une ${existing.kind === 'blocked' ? 'case noire' : 'définition'} coupe un mot`)
     })
     return placed
   })
@@ -91,9 +100,13 @@ export function validateGrid(grid: Pick<GeneratedGrid, 'size' | 'columns' | 'row
 export async function generateGrid(seed = Date.now(), difficulty: GridDifficulty = 'normal', excludedGridIds: Iterable<string> = []): Promise<GeneratedGrid> {
   const { playable: playableCatalog, version } = await preloadGridCatalog()
   if (!playableCatalog.length) throw new Error('Le catalogue actif est vide')
+  // Les grilles à thème sont réservées au défi du jour : `generateGridById` les
+  // trouve, le tirage générique ne les voit jamais — pas même en repli.
+  const normal = normalRotationGrids(playableCatalog)
+  if (!normal.length) throw new Error('Le catalogue actif est vide')
   const excluded = new Set(excludedGridIds)
-  const available = playableCatalog.filter(grid => !excluded.has(grid.id))
-  const pool = available.length ? available : playableCatalog
+  const available = normal.filter(grid => !excluded.has(grid.id))
+  const pool = available.length ? available : normal
   const source = pool[Math.abs(seed) % pool.length]
   return materialize(source, difficulty, version)
 }

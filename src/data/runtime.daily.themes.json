@@ -1,0 +1,6 @@
+{
+  "schema": "motman-daily-themes",
+  "version": 1,
+  "_comment": "Thèmes du défi du jour par date, SANS identifiant de grille : la seule partie du calendrier que le navigateur a le droit de lire. Écrit par scripts/build_daily_calendar.mjs à partir du calendrier ; check_daily_calendar.mjs vérifie que les deux concordent.",
+  "themes": {}
+}

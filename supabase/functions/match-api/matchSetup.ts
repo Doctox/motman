@@ -17,6 +17,7 @@
 // refuse plutôt que d'écraser le tour joué entre-temps par l'adversaire.
 
 import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
+import { normalRotationGrids } from '../../../src/dailyThemes.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { neededLetters, refill, ruleGrid } from './matchGrid.ts'
@@ -87,7 +88,12 @@ export async function chooseGrid(
     activeMatchesForPlayers(admin, playerIds, excludedMatchId),
   ])
   if (!catalogRows?.length) throw new Error('Le catalogue serveur est vide.')
-  const grids = catalogRows.map(item => item.payload as CatalogGrid)
+  // Les grilles à thème sont RÉSERVÉES au défi du jour, qui les charge par son
+  // identifiant (`activeGridById`). Elles restent `active` — sans quoi le défi
+  // ne pourrait pas les servir — et c'est donc ICI qu'elles sortent du tirage :
+  // sinon un joueur tomberait dessus en partie normale, et arriverait au défi
+  // en connaissant déjà les réponses.
+  const grids = normalRotationGrids(catalogRows.map(item => item.payload as CatalogGrid))
   return selectGridForPlayers({
     grids,
     recentGridIdsByPlayer: histories,

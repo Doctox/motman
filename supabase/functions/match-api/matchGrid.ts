@@ -65,7 +65,13 @@ export function publicGrid(grid: CatalogGrid) {
   const { columns, rows } = dimensions(grid)
   const cells: Array<Record<string, unknown>> = Array.from({ length: columns * rows }, () => ({ kind: 'clue', entries: [] }))
   const clueIndexes = new Set(grid.clueCells.map(([row, col]) => row * columns + col))
-  for (let index = 0; index < cells.length; index += 1) if (!clueIndexes.has(index)) cells[index] = { kind: 'letter', solution: '', wordIds: [] }
+  // Les cases noires des grilles à thème : sans cette ligne, elles devenaient
+  // des cases à remplir rattachées à aucun mot, et la grille ne se finissait pas.
+  const blockedIndexes = new Set((grid.blockedCells ?? []).map(([row, col]) => row * columns + col))
+  for (let index = 0; index < cells.length; index += 1) {
+    if (blockedIndexes.has(index)) cells[index] = { kind: 'blocked' }
+    else if (!clueIndexes.has(index)) cells[index] = { kind: 'letter', solution: '', wordIds: [] }
+  }
   const words = grid.words.map((word, index) => {
     const id = word.wordId ?? `${grid.id}:word:${index}`
     const clueIndex = word.clueCell[0] * columns + word.clueCell[1]

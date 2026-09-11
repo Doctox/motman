@@ -59,7 +59,7 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
             {grid.cells.map((cell, index) => {
               if (cell.kind !== 'letter') {
                 const definitions = 'entries' in cell && Array.isArray(cell.entries) ? cell.entries : []
-                return <div className="mm-replay-cell clue" key={index}>
+                return <div className={`mm-replay-cell ${cell.kind === 'blocked' ? 'blocked' : 'clue'}`} key={index}>
                   {definitions.map((entry, rang) => <span key={rang}>{String((entry as { text?: string }).text ?? '')}</span>)}
                 </div>
               }

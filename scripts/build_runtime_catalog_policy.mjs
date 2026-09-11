@@ -16,6 +16,9 @@ writeFileSync(targetPath, `${JSON.stringify(runtime)}\n`, 'utf8')
 console.log(`Politique runtime : ${runtime.quarantinedGridIds.length} grilles, ${runtime.rejectedPairs.length} couples.`)
 
 const catalog = JSON.parse(readFileSync(catalogSourcePath, 'utf8'))
+// Le thème arrive de l'Éditeur sous forme d'objet (`{ id, label, … }`) ; le jeu
+// n'en garde que le nom affiché au joueur.
+const themeLabel = theme => (typeof theme === 'string' ? theme : theme?.label) || null
 const runtimeCatalog = {
   version: catalog.version,
   grids: catalog.grids.map(grid => ({
@@ -24,6 +27,14 @@ const runtimeCatalog = {
     ...(grid.columns ? { columns: grid.columns } : {}),
     ...(grid.rows ? { rows: grid.rows } : {}),
     clueCells: grid.clueCells,
+    // Cases noires, thème et réserve du défi : cette projection ne recopiait
+    // qu'une liste fixe de champs. Une grille à thème y perdait ses cases
+    // noires (devenues des lettres à remplir) et sa réserve (elle serait
+    // entrée dans le tirage des parties normales). Absents des grilles
+    // ordinaires : leur projection reste identique à l'octet près.
+    ...(grid.blockedCells?.length ? { blockedCells: grid.blockedCells } : {}),
+    ...(themeLabel(grid.theme) ? { theme: themeLabel(grid.theme) } : {}),
+    ...(grid.dailyOnly === true ? { dailyOnly: true } : {}),
     words: grid.words.map(word => ({
       wordId: word.wordId,
       answer: word.answer,

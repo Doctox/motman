@@ -64,3 +64,6 @@
 /* La ligne d'historique devient cliquable quand une relecture est disponible. */
 .mm-recent-match-row.is-replayable{cursor:pointer;width:100%;border:0;background:transparent;text-align:left;font:inherit;color:inherit}
 .mm-recent-match-row.is-replayable:hover{background:color-mix(in srgb,var(--mm-sage) 35%,transparent)}
+
+/* Relecture : la case noire d'une grille à thème. */
+.mm-replay-cell.blocked{background:var(--mm-ink)}

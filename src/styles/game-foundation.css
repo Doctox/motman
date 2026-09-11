@@ -359,3 +359,9 @@ body{overscroll-behavior-y:none}
 .scoreboard .turn{position:relative!important}
 .scoreboard .turn>.turn-timer{position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:0!important;inset:0!important;display:grid!important;place-items:center!important;height:auto!important;min-height:0!important;max-height:none!important;line-height:1!important;margin:0!important;padding:0!important;transform:none!important;translate:none!important;text-align:center!important}
 .scoreboard .turn.async-turn>.turn-timer{translate:none!important;text-indent:0!important}
+
+/* Case noire des grilles à thème : ni lettre ni définition. Le vert profond de
+   la marque en clair ; en sombre, plus sombre que le plateau pour rester lisible
+   comme un vide. */
+.board .cell.blocked{background:var(--green);cursor:default}
+[data-theme="dark"] .board .cell.blocked{background:#0f1c18}

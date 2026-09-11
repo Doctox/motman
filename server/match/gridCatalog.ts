@@ -67,8 +67,12 @@ export function publicGrid(grid: CatalogGrid) {
   )
   const clueIndexes = new Set((grid.clueCells ?? grid.words.map(word => word.clueCell))
     .map(([row, column]) => gridCellIndex({ columns, rows }, row, column)))
+  // Même règle que `publicGrid` de match-api : une case noire reste noire.
+  const blockedIndexes = new Set((grid.blockedCells ?? [])
+    .map(([row, column]) => gridCellIndex({ columns, rows }, row, column)))
   for (let index = 0; index < cells.length; index += 1) {
-    if (!clueIndexes.has(index)) cells[index] = { kind: 'letter', solution: '', wordIds: [] }
+    if (blockedIndexes.has(index)) cells[index] = { kind: 'blocked' }
+    else if (!clueIndexes.has(index)) cells[index] = { kind: 'letter', solution: '', wordIds: [] }
   }
   const words = grid.words.map((word, index) => {
     const id = word.wordId ?? `${grid.id}:word:${index}`

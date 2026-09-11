@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
 import { dailyDateKey } from '../dailyDate'
+import { dailyThemeFor } from '../dailyThemeSchedule'
+import { dailyChallengeLabel } from '../dailyThemes'
 import { useDailyDateKey, useDailyLeaderboard } from './useDailyDay'
 import { SocialPortrait } from './MenuChrome'
 import type { DailyRankingEntry } from '../dailyScore'
@@ -18,11 +20,10 @@ import './menu-daily.css'
 // 100 % présentation, pilotés par l'état LOCAL réel (motman-daily-v1). Le défi
 // est rejouable : trois états (à faire / perdu / gagné). Aucun changement de nav.
 //
-// ⚠️ AUCUN LIBELLÉ DE THÈME N'EST AFFICHÉ. Les 56 grilles publiées sont
-// génériques : annoncer « Sport » ou « Animaux » serait mentir au joueur. Le champ
-// `theme` reste au format du calendrier (contrat 3) et continue d'alimenter
-// l'historique local, mais il ne sera réintroduit ici que le jour où de vraies
-// grilles à thème seront publiées.
+// LE THÈME DU JOUR s'affiche dès que le calendrier en annonce un (« Défi du jour
+// · Animaux »). Il n'en annonce que pour une grille qui le porte réellement :
+// `check_daily_calendar` le vérifie au build. L'ancien calendrier annonçait
+// « Sport » sur des grilles génériques — c'est ce qui ne peut plus arriver.
 
 export function useDailyChallenge() {
   // Le jour NE DOIT PAS être figé au montage : le menu reste souvent ouvert, et
@@ -43,6 +44,9 @@ export function useDailyChallenge() {
     state,
     streak: state.currentStreak,
     freezes: state.freezes,
+    // Thème du jour : null un jour sans thème. Lu dans la table des thèmes, PAS
+    // dans le calendrier, qui porte les identifiants de grille.
+    theme: dailyThemeFor(day),
     status: dailyStatus(state, day) as DailyStatus,
     attempts: dailyAttempts(state, day),
   }
@@ -126,15 +130,17 @@ export function DailyStreakChip() {
  * Trois états rejouables : à faire / perdu (invitation, jamais sanction) / gagné.
  */
 export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
-  const { status, streak, freezes, attempts } = useDailyChallenge()
+  const { status, streak, freezes, attempts, theme } = useDailyChallenge()
+  const libelle = dailyChallengeLabel(theme)
+  const pourLecteur = theme ? `, thème ${theme}` : ''
   const countdown = useDailyCountdown()
 
   if (status === 'won') {
     return (
-      <section className="mm-daily-hero is-done" aria-label={`Défi du jour réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
+      <section className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
         <span className="mm-daily-hero-badge" aria-hidden="true"><Check /></span>
         <div className="mm-daily-hero-copy">
-          <small>Défi du jour</small>
+          <small>{libelle}</small>
           <strong>Défi réussi</strong>
           <span className="mm-daily-hero-meta">
             <Flame aria-hidden="true" />{streakLabel(streak)}
@@ -147,10 +153,10 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
 
   if (status === 'lost') {
     return (
-      <button type="button" className="mm-daily-hero is-lost" onClick={onPlay} aria-label={`Réessayer le défi du jour, tentative ${attempts + 1}. Vous avez jusqu'à minuit.`}>
+      <button type="button" className="mm-daily-hero is-lost" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}. Vous avez jusqu'à minuit.`}>
         <span className="mm-daily-hero-badge" aria-hidden="true"><RotateCcw /></span>
         <div className="mm-daily-hero-copy">
-          <small>Défi du jour · tentative {attempts}</small>
+          <small>{libelle} · tentative {attempts}</small>
           <strong>Pas cette fois — on retente ?</strong>
           <span className="mm-daily-hero-meta">Tu as jusqu'à minuit pour le battre</span>
         </div>
@@ -160,10 +166,10 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
   }
 
   return (
-    <button type="button" className="mm-daily-hero" onClick={onPlay} aria-label={`Jouer le défi du jour. ${streakLabel(streak)}.`}>
+    <button type="button" className="mm-daily-hero" onClick={onPlay} aria-label={`Jouer le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
       <span className="mm-daily-hero-badge" aria-hidden="true"><Flame /></span>
       <div className="mm-daily-hero-copy">
-        <small>Défi du jour</small>
+        <small>{libelle}</small>
         <strong>Jouer la grille du jour</strong>
         <span className="mm-daily-hero-meta">
           <Flame aria-hidden="true" />{streakLabel(streak)}

@@ -20,7 +20,8 @@ export const ASYNC_TURN_MS = 24 * 60 * 60 * 1000
 export type Pace = 'realtime' | 'async'
 export type Mode = 'solo' | 'friend' | 'normal' | 'ranked'
 export type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: unknown; direction: 'across' | 'down'; arrow?: string; clueCell: number[]; cells: number[][] }
-export type CatalogGrid = { id: string; columns: number; rows: number; clueCells: number[][]; words: CatalogWord[] }
+/** `theme` + `dailyOnly` : grille à thème, RÉSERVÉE au défi du jour (src/dailyThemes.ts). */
+export type CatalogGrid = { id: string; columns: number; rows: number; clueCells: number[][]; blockedCells?: number[][]; words: CatalogWord[]; theme?: string | null; dailyOnly?: boolean }
 export type Bot = { playerId: string; displayName: string; level: number; skill: BotSkill; avatarId: string; frameId: string }
 export type Turn = {
   id: string; kind: 'played' | 'timeout'; playerId: string; turnNumber: number; correct: number[]; wrong: number[];

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, Feather, Heart, HeartCrack, House, UserPlus } from 'lucide-react'
 import { refreshPlayerAccount } from '../auth'
 import { CosmeticPortrait } from '../CosmeticPortrait'
+import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
 import { GameResultScreen } from '../GameResultScreen'
 import { DailyStreakReward } from '../menu/DailyChallenge'
@@ -105,9 +106,8 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
         // pas une victoire (cf. dailyResultForMatch).
         result: dailyResultForMatch({ winnerId: match.winnerId, finishReason: match.finishReason }, playerId),
         gridId: match.gridId,
-        // Aucun thème n'est enregistré tant que les grilles publiées sont
-        // génériques : le calendrier annonce `theme: null` partout.
-        theme: null,
+        // Le thème annoncé ce jour-là par le calendrier (null un jour générique).
+        theme: dailyThemeFor(match.dailyDate),
       })
       setDailyEffects(effects)
     } catch {

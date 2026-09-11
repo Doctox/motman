@@ -623,6 +623,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {error ? <p className="duel-error" role="alert">{error}</p> : null}
     {showGame ? <section className="board-wrap" aria-label="Grille multijoueur" data-bot-level={match.bot ? match.difficulty : undefined}><div ref={fitBoardRef} className={`board ${focusedWordCells.size ? 'has-clue-focus' : ''}`} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows, '--board-aspect': `${grid.columns} / ${grid.rows}` } as CSSProperties}>
       {grid.cells.map((cell, index) => {
+        // Case noire (grilles à thème) : rien à y poser, rien à y lire.
+        if (cell.kind === 'blocked') return <div className="cell blocked" key={index} aria-hidden="true" />
         if (cell.kind === 'block') return <div className="cell block corner-block" key={index} aria-label="Case centrale des définitions" />
         if (cell.kind === 'clue') {
           const entries = [...cell.entries].sort((left, right) => Number(left.direction === 'down') - Number(right.direction === 'down'))

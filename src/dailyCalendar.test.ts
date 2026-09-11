@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import calendarData from './data/runtime.daily.calendar.json'
+import catalogData from './data/runtime.grid.catalog.json'
 import { calendarEntryFor, seedFromDate, type DailyCalendarDay } from './dailyCalendar'
+import themesData from './data/runtime.daily.themes.json'
+import { calendarThemeErrors, themesFilePayload } from './dailyThemes'
 
 // Le calendrier réel est un livrable : il doit rester lisible ET honnête.
 // Ces contrôles protègent trois régressions déjà rencontrées :
@@ -15,8 +18,17 @@ function dayNumber(key: string): number {
 }
 
 describe('calendrier du défi du jour (fichier réel)', () => {
-  it('n’annonce aucun thème tant que les grilles publiées sont génériques', () => {
-    expect(days.filter(day => day.theme !== null)).toEqual([])
+  it('n’annonce un thème que sur une grille qui le porte', () => {
+    // L'ancien calendrier annonçait « Sport » et « Animaux » sur des grilles
+    // génériques. Un thème vient désormais de la grille elle-même.
+    const grilles = (catalogData as { grids: Array<{ id: string; theme?: string | null; dailyOnly?: boolean }> }).grids
+    expect(calendarThemeErrors(days, new Map(grilles.map(grille => [grille.id, grille])))).toEqual([])
+  })
+
+  it('livre au navigateur une table des thèmes qui dit exactement ce que dit le calendrier', () => {
+    // La table est RE-DÉRIVÉE ici du calendrier, pas recopiée : si l'un bouge
+    // sans l'autre, la carte du défi annoncerait un thème que le jour n'a pas.
+    expect(themesData).toEqual(themesFilePayload(days))
   })
 
   it('couvre des jours consécutifs, sans trou ni doublon', () => {

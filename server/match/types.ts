@@ -15,6 +15,8 @@ export type CatalogWord = {
 export type CatalogGrid = GridDimensionsSource & {
   id: string
   clueCells?: number[][]
+  /** Cases noires des grilles à thème. */
+  blockedCells?: number[][]
   words: CatalogWord[]
 }
 

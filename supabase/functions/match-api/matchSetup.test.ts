@@ -1,5 +1,6 @@
 import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
-import { botSkillForLevel, initialMatchState } from './matchSetup.ts'
+import { botSkillForLevel, chooseGrid, initialMatchState } from './matchSetup.ts'
+import type { AdminClient } from '../_shared/supabaseClients.ts'
 import type { CatalogGrid } from './matchModel.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,4 +115,45 @@ Deno.test('la difficulté affichée suit la force du bot, et vaut « normal » s
       `un bot « ${skill} » doit donner la difficulté « ${attendu} », obtenu « ${etat.difficulty} »`,
     )
   }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LES GRILLES À THÈME NE SORTENT JAMAIS EN PARTIE NORMALE.
+//
+// Elles restent `active` en base — le défi du jour ne sert qu'une grille active
+// — et entreraient donc dans le tirage de toutes les parties sans le filtre de
+// `chooseGrid`. Le joueur arriverait au défi en connaissant les réponses.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Une base réduite à ce que `chooseGrid` lit : le catalogue, et rien d'autre. */
+function baseCatalogue(grilles: CatalogGrid[]): AdminClient {
+  const resultat = (data: unknown) => {
+    const chainable: Record<string, unknown> = {}
+    for (const methode of ['select', 'eq', 'in', 'neq', 'is', 'not', 'or', 'order', 'limit', 'gte', 'lte']) {
+      chainable[methode] = () => chainable
+    }
+    chainable.then = (resoudre: (v: unknown) => unknown) => resoudre({ data, error: null })
+    return chainable
+  }
+  return {
+    from: (table: string) => resultat(table === 'server_grid_catalog' ? grilles.map(payload => ({ payload })) : []),
+  } as unknown as AdminClient
+}
+
+function grilleNommee(id: string, reponse: string, theme?: string): CatalogGrid {
+  return { ...GRILLE, id, words: [{ ...GRILLE.words[0], answer: reponse }], ...(theme ? { theme, dailyOnly: true } : {}) }
+}
+
+Deno.test('une grille à thème ne sort jamais en partie normale', async () => {
+  const admin = baseCatalogue([
+    grilleNommee('ordinaire-a', 'MOTIFS'),
+    grilleNommee('ordinaire-b', 'TAPIRS'),
+    ...['CASTOR', 'MOUTON', 'LAPINS', 'RENARD', 'CHEVAL'].map((reponse, k) => grilleNommee(`animaux-${k + 1}`, reponse, 'Animaux')),
+  ])
+  const servies = new Set<string>()
+  for (let graine = 0; graine < 200; graine += 1) {
+    servies.add((await chooseGrid(admin, `graine-${graine}`, [HOTE])).id)
+  }
+  verifie(![...servies].some(id => id.startsWith('animaux-')), `grille à thème servie en partie normale : ${[...servies].join(', ')}`)
+  verifie(servies.size === 2, `les deux grilles ordinaires devraient tourner, servies : ${[...servies].join(', ')}`)
 })

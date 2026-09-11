@@ -12,6 +12,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { importTs } from './lib/importTs.mjs'
 
 const DATA_DIR = path.resolve(process.cwd(), 'src', 'data')
 const CALENDAR = path.join(DATA_DIR, 'runtime.daily.calendar.json')
@@ -79,6 +80,22 @@ for (const [index, entry] of calendar.days.entries()) {
   const grid = byId.get(entry.gridId)
   if (!grid) errors.push(`${where} : gridId « ${entry.gridId} » absent de runtime.grid.catalog.json`)
   else if (!isCatalogGridPlayable(grid)) errors.push(`${where} : gridId « ${entry.gridId} » présent mais NON jouable (isCatalogGridPlayable=false)`)
+}
+
+// ── Thèmes ───────────────────────────────────────────────────────────────────
+// Une grille à thème ne sort qu'avec son thème, un thème n'est annoncé que sur
+// une grille qui le porte, et jamais deux jours de suite. Règle chargée depuis
+// `src/dailyThemes.ts` — la même que lisent le serveur et le client.
+const themes = await importTs(path.resolve(process.cwd(), 'src', 'dailyThemes.ts'))
+errors.push(...themes.catalogThemeErrors(catalog.grids), ...themes.calendarThemeErrors(calendar.days, byId))
+
+// La table des thèmes livrée au navigateur doit dire exactement ce que dit le
+// calendrier — sans en porter les identifiants de grille (dailyThemeSchedule.ts).
+const THEMES_FILE = path.join(DATA_DIR, 'runtime.daily.themes.json')
+const tableAttendue = JSON.stringify(themes.themesFilePayload(calendar.days))
+const tableLivree = fs.existsSync(THEMES_FILE) ? JSON.stringify(JSON.parse(fs.readFileSync(THEMES_FILE, 'utf8'))) : null
+if (tableLivree !== tableAttendue) {
+  errors.push('runtime.daily.themes.json ne correspond pas au calendrier : régénérez-le avec `node scripts/build_daily_calendar.mjs`.')
 }
 
 if (errors.length) {
