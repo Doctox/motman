@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- navigator.vibrate() : sans cette permission, la WebView Android ignore
+         toute demande de vibration SANS la moindre erreur. Les retours tactiles
+         du jeu marchaient sur le site et jamais dans l'application. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="false"

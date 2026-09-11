@@ -147,7 +147,12 @@ export function advanceStreak(
       streak = state.currentStreak + 1
       recovery = null
     } else {
-      recovery = { previousStreak: state.currentStreak, brokenDay: day }
+      // Le pont ne s'ouvre que sur UN jour manqué (écart de 2, sans gel pour le
+      // couvrir). Après une vraie absence, la série repart sans mémoire : sinon
+      // neuf jours d'absence se rattrapaient en deux victoires, et une série de
+      // 29 jours touchait son palier payé après trois semaines d'arrêt.
+      // Jumeau SQL : `private.daily_streak_from_days`.
+      recovery = gap === 2 ? { previousStreak: state.currentStreak, brokenDay: day } : null
       streak = 1
     }
   }

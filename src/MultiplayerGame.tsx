@@ -24,7 +24,7 @@ import { loadPlayerProgress } from './playerProgress'
 import { presenceHeartbeatDelay } from './presencePolicy'
 import { RankedMatchPausedOverlay } from './RankedReadyOverlay'
 import { createMatchRackTiles, reconcileRackPlacements, type RackTile } from './rackTiles'
-import { haptic, playEffect } from './sensoryPreferences'
+import { haptic, ladderFor, playEffect } from './sensoryPreferences'
 import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
 import { DuelPlayer, LeaveMatchPanel, ResultPanel } from './game/DuelPresentation'
@@ -196,7 +196,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     // sans React ni minuteur — donc sous test. Ne reste ici que la peinture :
     // un `switch` qui traduit chaque étape décrite en effets d'écran.
     const steps = planTurnSteps(turn)
-    const peint = (step: TurnStep) => {
+    const hauteurs = ladderFor(steps.map(step => step.kind))
+    const peint = (step: TurnStep, hauteur: number) => {
       if (step.kind === 'wrong') {
         setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
         setWrongCells(new Set([step.cellIndex]))
@@ -208,20 +209,20 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
         setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
         if (owner === 'player') setGreenCells(new Set([step.cellIndex])); else setOrangeCells(new Set([step.cellIndex]))
         showEffect({ kind: 'letter', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
-        playEffect('score')
+        playEffect('score', { transpose: hauteur })
         haptic(10)
         setStatus(owner === 'player' ? `Lettre correcte · +${step.points}` : `${opponentNameRef.current} marque +${step.points}`)
       } else if (step.kind === 'word') {
         setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({})
         setWordHighlight({ cells: new Set(step.cells), owner, direction: step.direction })
         showEffect({ kind: 'word', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
-        playEffect('word')
+        playEffect('word', { transpose: hauteur })
         haptic([14, 28, 14])
         setStatus(`Mot terminé · +${step.points}`)
       } else {
         setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
         showRackBonusEffect(step.points, owner)
-        playEffect('word')
+        playEffect('word', { transpose: hauteur })
         setStatus(`Chevalet complet · +${step.points}`)
       }
     }
@@ -254,7 +255,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
         } else finishAnimation()
         return
       }
-      peint(step)
+      peint(step, hauteurs[index] ?? 0)
       if (step.points) setDisplayedScores(current => ({ ...current, [turn.playerId]: (current[turn.playerId] ?? 0) + step.points }))
       animationTimer.current = window.setTimeout(() => play(index + 1), stepDelay)
     }
@@ -437,6 +438,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     event.currentTarget.setPointerCapture(event.pointerId)
     refreshCellBoxes()
     setDrag({ tile, origin, x: event.clientX, y: event.clientY })
+    // Un retour dès la PRISE, pas seulement à la pose : le doigt sait que la
+    // lettre est attrapée avant même d'avoir bougé.
+    haptic(8); playEffect('pick')
     const point = aimPoint(event.clientX, event.clientY, event.pointerType)
     moveGhost(point.x, point.y)
   }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { TurnStep } from './game/turnChoreography'
 
 export type SensoryPreferences = {
   effects: boolean
@@ -6,7 +7,7 @@ export type SensoryPreferences = {
   largeText: boolean
 }
 
-export type GameEffect = 'place' | 'score' | 'word' | 'error' | 'turn' | 'reroll'
+export type GameEffect = 'pick' | 'place' | 'score' | 'word' | 'error' | 'turn' | 'reroll'
 
 const STORAGE_KEY = 'motman-sensory-preferences-v1'
 const CHANGE_EVENT = 'motman:sensory-preferences'
@@ -65,6 +66,9 @@ export function haptic(pattern: number | number[]): void {
 }
 
 const EFFECT_NOTES: Record<GameEffect, ReadonlyArray<readonly [frequency: number, delay: number, duration: number, volume: number]>> = {
+  // La prise : plus aiguë, plus brève et plus douce que la pose. On attrape une
+  // lettre bien plus souvent qu'on ne marque — ce son doit rester un effleurement.
+  pick: [[587, 0, .035, .007]],
   place: [[330, 0, .055, .012]],
   score: [[440, 0, .08, .016]],
   word: [[392, 0, .1, .017], [523, .085, .16, .019]],
@@ -73,8 +77,41 @@ const EFFECT_NOTES: Record<GameEffect, ReadonlyArray<readonly [frequency: number
   reroll: [[330, 0, .07, .012], [392, .075, .13, .014]],
 }
 
-export function playEffect(effect: GameEffect): void {
+// ─────────────────────────────────────────────────────────────────────────────
+// LA MONTÉE.
+//
+// Chaque bonne lettre d'un tour jouait la même note : cinq lettres justes, cinq
+// bips identiques — c'est ce qui donnait au jeu son côté mécanique. Ici chaque
+// bonne lettre monte d'un cran sur une gamme pentatonique (aucun enchaînement
+// n'y sonne faux), si bien qu'un bon tour s'ENTEND grimper. Le mot terminé
+// sonne en haut de la montée qui l'a construit.
+//
+// Une erreur remet la montée au pied : la suite de bonnes lettres est rompue,
+// et l'oreille doit l'entendre autant que l'œil le voit.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Demi-tons au-dessus de la note de base, cran par cran. Plafonnée à l'octave. */
+export const SCORE_LADDER: readonly number[] = [0, 2, 4, 7, 9, 12]
+
+/** Transposition, en demi-tons, du son de chaque étape d'un tour. */
+export function ladderFor(kinds: readonly TurnStep['kind'][]): number[] {
+  const sommet = SCORE_LADDER.length - 1
+  let crans = 0
+  return kinds.map(kind => {
+    if (kind === 'wrong') { crans = 0; return 0 }
+    if (kind === 'correct') {
+      const hauteur = SCORE_LADDER[Math.min(crans, sommet)]
+      crans += 1
+      return hauteur
+    }
+    // Mot ou chevalet : en haut de ce qui vient d'être gravi, sans monter d'un cran.
+    return SCORE_LADDER[Math.min(Math.max(crans - 1, 0), sommet)]
+  })
+}
+
+export function playEffect(effect: GameEffect, options: { transpose?: number } = {}): void {
   if (!loadSensoryPreferences().effects) return
+  const rapport = 2 ** ((options.transpose ?? 0) / 12)
   const AudioContextConstructor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!AudioContextConstructor) return
 
@@ -87,7 +124,7 @@ export function playEffect(effect: GameEffect): void {
         const oscillator = context.createOscillator()
         const gain = context.createGain()
         oscillator.type = 'sine'
-        oscillator.frequency.setValueAtTime(frequency, start + delay)
+        oscillator.frequency.setValueAtTime(frequency * rapport, start + delay)
         gain.gain.setValueAtTime(.0001, start + delay)
         gain.gain.exponentialRampToValueAtTime(volume, start + delay + .018)
         gain.gain.exponentialRampToValueAtTime(.0001, start + delay + duration)

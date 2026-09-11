@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
-import { currentDailyDateKey, dailyDateKey } from '../dailyDate'
-import { EMPTY_DAILY_LEADERBOARD, loadDailyLeaderboard, type DailyLeaderboard } from '../dailyLeaderboard'
+import { dailyDateKey } from '../dailyDate'
+import { useDailyDateKey, useDailyLeaderboard } from './useDailyDay'
 import { SocialPortrait } from './MenuChrome'
 import type { DailyRankingEntry } from '../dailyScore'
 import {
@@ -27,9 +27,8 @@ import './menu-daily.css'
 export function useDailyChallenge() {
   // Le jour NE DOIT PAS être figé au montage : le menu reste souvent ouvert, et
   // un joueur qui passe minuit verrait sinon éternellement « Défi réussi » alors
-  // qu'une nouvelle grille l'attend. On réévalue donc la clé de jour
-  // périodiquement, et on ne déclenche un rendu que lorsqu'elle change vraiment.
-  const [day, setDay] = useState(() => currentDailyDateKey())
+  // qu'une nouvelle grille l'attend. Voir `useDailyDateKey`.
+  const day = useDailyDateKey()
   const [state, setState] = useState<DailyChallengeState>(() => loadDailyChallengeState())
   useEffect(() => {
     const sync = (event: Event) => {
@@ -38,23 +37,6 @@ export function useDailyChallenge() {
     }
     window.addEventListener('motman:daily', sync)
     return () => window.removeEventListener('motman:daily', sync)
-  }, [])
-  useEffect(() => {
-    const refreshDay = () => {
-      const current = currentDailyDateKey()
-      setDay(previous => (previous === current ? previous : current))
-    }
-    // 30 s suffisent : la bascule est visible presque immédiatement sans
-    // réveiller le rendu inutilement. `visibilitychange` couvre le cas le plus
-    // fréquent sur mobile — l'app mise en veille la veille, rouverte le lendemain.
-    const timer = window.setInterval(refreshDay, 30_000)
-    document.addEventListener('visibilitychange', refreshDay)
-    window.addEventListener('focus', refreshDay)
-    return () => {
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', refreshDay)
-      window.removeEventListener('focus', refreshDay)
-    }
   }, [])
   return {
     day,
@@ -255,18 +237,8 @@ function DailyRankRow({ entry }: { entry: DailyRankingEntry }) {
 
 export function DailyLeaderboardPanel() {
   const [onglet, setOnglet] = useState<'general' | 'friends'>('general')
-  const [classement, setClassement] = useState<DailyLeaderboard>(EMPTY_DAILY_LEADERBOARD)
-  const [chargement, setChargement] = useState(true)
-  const [erreur, setErreur] = useState<string | null>(null)
-
-  useEffect(() => {
-    let vivant = true
-    loadDailyLeaderboard()
-      .then(resultat => { if (vivant) setClassement(resultat) })
-      .catch(raison => { if (vivant) setErreur(raison instanceof Error ? raison.message : 'Classement indisponible.') })
-      .finally(() => { if (vivant) setChargement(false) })
-    return () => { vivant = false }
-  }, [])
+  // Rechargé au passage de minuit, écran ouvert : voir `useDailyLeaderboard`.
+  const { classement, chargement, erreur } = useDailyLeaderboard()
 
   const lignes = onglet === 'general' ? classement.general : classement.friends
   // Le lecteur voit toujours SA ligne, même au-delà de la cinquantième place —
@@ -323,17 +295,10 @@ export function DailyLeaderboardPanel() {
  * défi pas encore joué serait du bruit, et sous un défi joué, un reproche.
  */
 export function DailyRankTeaser({ onOpenRanking }: { onOpenRanking?: () => void }) {
-  const [classement, setClassement] = useState<DailyLeaderboard | null>(null)
-  useEffect(() => {
-    let vivant = true
-    loadDailyLeaderboard()
-      .then(resultat => { if (vivant) setClassement(resultat) })
-      .catch(() => { if (vivant) setClassement(null) })
-    return () => { vivant = false }
-  }, [])
+  const { classement } = useDailyLeaderboard()
 
-  const moi = classement?.me
-  if (!moi || !classement) return null
+  const moi = classement.me
+  if (!moi) return null
   const contenu = <><Medal aria-hidden="true" />
     <span><b>{moi.position}<sup>{moi.position === 1 ? 'er' : 'e'}</sup></b> sur {classement.total} au défi du jour</span></>
 

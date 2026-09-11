@@ -45,10 +45,16 @@ describe('advanceStreak (victoire)', () => {
     expect(advanceStreak(state, '2026-08-01').effects.changed).toBe(false)
   })
 
-  it('réinitialise après au moins deux jours ratés sans gel', () => {
+  it('réinitialise après un seul jour raté sans gel, en gardant de quoi rattraper', () => {
+    const state = ['2026-08-05', '2026-08-06', '2026-08-08'].reduce(play, emptyDailyChallengeState())
+    expect(state.currentStreak).toBe(1)
+    expect(state.recovery).toEqual({ previousStreak: 2, brokenDay: '2026-08-08' })
+  })
+
+  it('réinitialise sans rattrapage possible après deux jours ratés ou plus', () => {
     const state = ['2026-08-05', '2026-08-06', '2026-08-09'].reduce(play, emptyDailyChallengeState())
     expect(state.currentStreak).toBe(1)
-    expect(state.recovery).toEqual({ previousStreak: 2, brokenDay: '2026-08-09' })
+    expect(state.recovery).toBeNull()
   })
 
   it('consomme un gel (état local) sur un seul jour manqué', () => {
@@ -60,11 +66,18 @@ describe('advanceStreak (victoire)', () => {
   })
 
   it('restaure la série si l’on regagne le lendemain d’une rupture', () => {
-    const broken = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-09'].reduce(play, emptyDailyChallengeState())
+    const broken = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-07'].reduce(play, emptyDailyChallengeState())
     expect(broken.currentStreak).toBe(1)
-    const recovered = advanceStreak(broken, '2026-08-10')
+    const recovered = advanceStreak(broken, '2026-08-08')
     expect(recovered.effects.recovered).toBe(true)
     expect(recovered.state.currentStreak).toBe(7)
+  })
+
+  it('ne rattrape pas une longue absence', () => {
+    // Constaté en production le 2026-09-11 : neuf jours d'absence, puis deux
+    // victoires, et la série d'avant revenait comme si de rien n'était.
+    const state = ['2026-08-29', '2026-09-01', '2026-09-10', '2026-09-11'].reduce(play, emptyDailyChallengeState())
+    expect(state.currentStreak).toBe(2)
   })
 
   it('franchit le palier 7 une seule fois et crédite son gel local (plafond 2)', () => {

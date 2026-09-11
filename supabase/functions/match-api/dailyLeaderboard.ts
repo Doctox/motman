@@ -26,6 +26,16 @@ import { compareDailyRuns, type DailyRankingEntry } from '../../../src/dailyScor
 //     dire « a joué, n'a rien marqué ». C'est `null` qui veut dire « pas
 //     notable », et celui-là sort.
 //
+//   • UNE LIGNE PAR JOUEUR, celle de sa PREMIÈRE partie du jour. Le défi se
+//     rejoue, sur la même grille : au second passage on connaît les réponses.
+//     Retenir la meilleure partie classerait la mémoire, pas le jeu. Jusqu'ici
+//     chaque essai faisait une ligne de plus, et le même joueur apparaissait
+//     deux fois.
+//   • Les ABANDONS ne classent pas. Une partie quittée n'est pas une partie
+//     jouée ; elle ne prend donc pas non plus la place de « première ». Le prix
+//     est connu : on peut lire les définitions, abandonner, puis revenir. C'est
+//     un avantage bien moindre que de rejouer une grille qu'on a finie.
+//
 // L'ordre et ses départages vivent dans `compareDailyRuns`, à côté de la note :
 // on ne trie pas ici avec une règle et là avec une autre.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,6 +62,23 @@ export type DailyLeaderboard = {
   total: number
 }
 
+/**
+ * La partie qui compte pour chaque joueur : sa première du jour qui ne soit pas
+ * un abandon. Voir l'en-tête pour le pourquoi.
+ */
+export function premiereCourseParJoueur<T extends { user_id: string; outcome: string | null; completed_at: string }>(
+  courses: T[],
+): T[] {
+  const retenues = new Map<string, T>()
+  for (const course of courses) {
+    if (course.outcome === 'abandon') continue
+    const joueur = String(course.user_id)
+    const deja = retenues.get(joueur)
+    if (!deja || Date.parse(course.completed_at) < Date.parse(deja.completed_at)) retenues.set(joueur, course)
+  }
+  return [...retenues.values()]
+}
+
 export async function loadDailyLeaderboard(
   admin: AdminClient,
   userId: string,
@@ -64,7 +91,7 @@ export async function loadDailyLeaderboard(
     .not('daily_note', 'is', null)
   if (error) throw error
 
-  const courses = (lignes ?? []) as LigneClassement[]
+  const courses = premiereCourseParJoueur((lignes ?? []) as LigneClassement[])
   if (!courses.length) return { day, general: [], friends: [], me: null, total: 0 }
 
   const identifiants = [...new Set(courses.map(item => String(item.user_id)))]

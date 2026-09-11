@@ -15,6 +15,7 @@ import {
 import type { ExperienceAward } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import { haptic, playEffect } from '../sensoryPreferences'
+import { useCountUp } from './countUp'
 import { sendFriendRequestToPlayer } from '../social'
 
 // Défi du jour : la série est enregistrée UNE SEULE FOIS par match terminé.
@@ -24,7 +25,10 @@ import { sendFriendRequestToPlayer } from '../social'
 const recordedDailyMatches = new Set<string>()
 
 export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string }) {
-  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{score}</strong></span></div>
+  // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
+  // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
+  const affiche = useCountUp(score)
+  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong></span></div>
 }
 
 export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void }) {

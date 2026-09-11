@@ -81,25 +81,23 @@
   },
   {
     "nom": "fenêtre de récupération : le pont restaure la série",
-    "pourquoi": "Regagner le LENDEMAIN du jour de rupture rend previousStreak + 2. Absent du SQL d origine.",
+    "pourquoi": "Regagner le LENDEMAIN du jour de rupture rend previousStreak + 2 — si la rupture ne tient qu à UN jour manqué. Absent du SQL d origine.",
     "jours": [
       "2026-03-01",
       "2026-03-02",
       "2026-03-03",
       "2026-03-04",
       "2026-03-05",
-      "2026-03-06",
       "2026-03-07",
-      "2026-03-10",
-      "2026-03-11"
+      "2026-03-08"
     ],
-    "aujourdhui": "2026-03-11",
+    "aujourdhui": "2026-03-08",
     "apresDerniereVictoire": {
-      "serie": 9,
-      "meilleure": 9,
+      "serie": 7,
+      "meilleure": 7,
       "gels": 1
     },
-    "serieAujourdhui": 9
+    "serieAujourdhui": 7
   },
   {
     "nom": "le pont fait SAUTER le palier 7",
@@ -111,10 +109,10 @@
       "2026-03-04",
       "2026-03-05",
       "2026-03-06",
-      "2026-03-09",
-      "2026-03-10"
+      "2026-03-08",
+      "2026-03-09"
     ],
-    "aujourdhui": "2026-03-10",
+    "aujourdhui": "2026-03-09",
     "apresDerniereVictoire": {
       "serie": 8,
       "meilleure": 8,
@@ -255,5 +253,42 @@
       "gels": 0
     },
     "serieAujourdhui": 1
+  },
+  {
+    "nom": "deux jours manqués : plus de pont",
+    "pourquoi": "Le rattrapage ne franchit qu UN jour manqué. Au-delà, la série repart de 1 sans mémoire, même en regagnant le lendemain.",
+    "jours": [
+      "2026-03-01",
+      "2026-03-02",
+      "2026-03-03",
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-08",
+      "2026-03-09"
+    ],
+    "aujourdhui": "2026-03-09",
+    "apresDerniereVictoire": {
+      "serie": 2,
+      "meilleure": 5,
+      "gels": 0
+    },
+    "serieAujourdhui": 2
+  },
+  {
+    "nom": "une longue absence ne se rattrape pas",
+    "pourquoi": "Constaté en production le 2026-09-11 : neuf jours d absence puis deux victoires rendaient la série d avant + 2. Une série de 29 jours aurait touché son palier payé après trois semaines d arrêt.",
+    "jours": [
+      "2026-08-29",
+      "2026-09-01",
+      "2026-09-10",
+      "2026-09-11"
+    ],
+    "aujourdhui": "2026-09-11",
+    "apresDerniereVictoire": {
+      "serie": 2,
+      "meilleure": 2,
+      "gels": 0
+    },
+    "serieAujourdhui": 2
   }
 ]

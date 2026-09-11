@@ -158,4 +158,49 @@ Deno.test('le lecteur figure toujours dans son onglet « amis », même sans ami
   verifie(board.friends.length === 1 && board.friends[0].isMe, 'le lecteur devrait figurer seul')
 })
 
+Deno.test('un joueur n’occupe qu’une place : celle de sa première partie', async () => {
+  // Au second passage il connaît la grille. Retenir la meilleure partie
+  // classerait la mémoire — et chaque essai faisait jusqu'ici une ligne de plus.
+  const board = await loadDailyLeaderboard(baseSimulee({
+    courses: [
+      course(MOI, 480, 95, 12, '2026-09-10T17:00:00Z'),
+      course(MOI, 334, 86, 17, '2026-09-10T15:48:00Z'),
+      course(AMI, 400),
+    ],
+  }), MOI, '2026-09-10')
+  verifie(board.total === 2, `attendu 2 classés, obtenu ${board.total}`)
+  verifie(board.general.filter(e => e.isMe).length === 1, 'le lecteur apparaît plusieurs fois')
+  verifie(board.me!.note === 334, `c’est la première partie qui compte, obtenu ${board.me!.note}`)
+})
+
+Deno.test('un abandon ne classe pas, et ne passe pas pour la première partie', async () => {
+  const board = await loadDailyLeaderboard(baseSimulee({
+    courses: [
+      { ...course(MOI, 14, 2, 3, '2026-09-10T15:40:00Z'), outcome: 'abandon' },
+      course(MOI, 334, 86, 17, '2026-09-10T15:48:00Z'),
+    ],
+  }), MOI, '2026-09-10')
+  verifie(board.total === 1, `attendu 1 classé, obtenu ${board.total}`)
+  verifie(board.me!.note === 334, `l’abandon a pris la place de la partie jouée (${board.me!.note})`)
+})
+
+Deno.test('un joueur qui n’a fait qu’abandonner n’est pas classé', async () => {
+  const board = await loadDailyLeaderboard(baseSimulee({
+    courses: [{ ...course(MOI, 14, 2, 3), outcome: 'abandon' }],
+  }), MOI, '2026-09-10')
+  verifie(board.total === 0, `l’abandon est resté au classement (total ${board.total})`)
+  verifie(board.me === null, 'ligne du lecteur inattendue')
+})
+
+Deno.test('une défaite menée au bout reste la partie retenue, même rejouée ensuite', async () => {
+  const board = await loadDailyLeaderboard(baseSimulee({
+    courses: [
+      { ...course(MOI, 120, 40, 20, '2026-09-10T09:00:00Z'), outcome: 'loss' },
+      course(MOI, 500, 99, 10, '2026-09-10T10:00:00Z'),
+    ],
+  }), MOI, '2026-09-10')
+  verifie(board.me!.note === 120, `la seconde partie, grille connue, a été retenue (${board.me!.note})`)
+  verifie(board.me!.outcome === 'loss', 'issue altérée')
+})
+
 globalThis.fetch = originalFetch
