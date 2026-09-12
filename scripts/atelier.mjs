@@ -49,7 +49,30 @@ function afficher(fichiers) {
   console.log(`  ${String(fichiers.length).padStart(4)} fichier(s)  ${(total / 1e6).toFixed(1).padStart(6)} Mo  au total`)
 }
 
+/**
+ * L'atelier vit dans la copie PRINCIPALE, jamais dans une worktree.
+ *
+ * Une worktree est jetable, et elle ne contient pas les fichiers non suivis de
+ * l'atelier — la boîte de dépôt de l'Éditeur, les scripts en cours. Un atelier
+ * créé là suivrait une copie partielle, promise à la suppression. Pire, la
+ * bascule y indexerait 370 suppressions sur la branche : fusionnée, elle
+ * effacerait ces fichiers du disque principal.
+ *
+ * Le test : dans une worktree, `.git` est un FICHIER qui pointe vers le dépôt ;
+ * dans la copie principale, c'est un dossier.
+ */
+function exigerCopiePrincipale() {
+  const git = path.join(RACINE, '.git')
+  if (existsSync(git) && statSync(git).isDirectory()) return
+  throw new Error([
+    `L'atelier ne se crée que dans la copie principale du dépôt ; ici, c'est une worktree :`,
+    `  ${RACINE}`,
+    `Relancez la commande depuis la copie principale.`,
+  ].join('\n'))
+}
+
 function init() {
+  exigerCopiePrincipale()
   if (existsSync(GIT_ATELIER)) {
     console.log(`L'atelier existe déjà : ${GIT_ATELIER}`)
     return
@@ -63,6 +86,7 @@ function init() {
 }
 
 function suivre() {
+  exigerCopiePrincipale()
   if (!existsSync(GIT_ATELIER)) throw new Error('Pas d’atelier ici : `npm run atelier -- init` d’abord.')
   const fichiers = fichiersAtelier()
   // `-f` : le `.gitignore` de la racine, que l'atelier lit aussi, ignore
@@ -93,6 +117,7 @@ function rienDIndexeCotePublic() {
 // fusionnant une branche qui supprime ces fichiers : une fusion qui supprime
 // des fichiers suivis les EFFACE aussi du disque.
 function bascule(appliquer) {
+  if (appliquer) exigerCopiePrincipale()
   const suivis = fichiersAtelier({ suivisParLePublic: true })
   if (!suivis.length) {
     console.log('Rien à basculer : le dépôt public ne suit plus aucun fichier de l’atelier.')
