@@ -1,8 +1,13 @@
-import catalog from '../../src/data/runtime.grid.catalog.json'
+import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
 import { isCatalogGridPlayable } from '../../src/gridCatalogPolicy'
 import { gridCellIndex, resolveGridDimensions } from '../../src/gridDimensions'
 import { gameWordCellIndexes, type GameRuleGrid, type GameRuleWord } from '../../src/gameRules'
 import type { CatalogGrid, CatalogWord } from './types'
+
+// Lu sur le disque et non importé : ce module est chargé par `vite.config.ts`
+// lui-même, avant que le moindre plugin — celui du catalogue compris — existe.
+// Vrai catalogue ou fixture, selon la règle unique de scripts/lib/catalogue.mjs.
+const { catalogue: catalog } = lireCatalogueRuntime()
 
 export const grids = (catalog.grids as CatalogGrid[]).filter(isCatalogGridPlayable)
 export const gridIds = new Set(grids.map(grid => grid.id))

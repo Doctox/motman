@@ -2,6 +2,7 @@ import { expect, request as playwrightRequest, test, type APIRequestContext, typ
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
 
 type Identity = {
   version: 1
@@ -40,7 +41,10 @@ type MatchState = {
   updatedAt: string
 }
 
-const catalog = JSON.parse(readFileSync(resolve('src/data/runtime.grid.catalog.json'), 'utf8')) as { grids: CatalogGrid[] }
+// Le même catalogue que le serveur de dev (vrai ou fixture) : scripts/lib/catalogue.mjs.
+// En CI, c'est toujours la fixture — des grilles déjà publiques — pour que les
+// traces et captures d'un échec, publiées en artefact, ne montrent rien d'autre.
+const catalog = lireCatalogueRuntime().catalogue as { grids: CatalogGrid[] }
 let identitySequence = 0
 
 function newIdentity(label: string): Identity {

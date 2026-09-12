@@ -35,6 +35,14 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Les solutions ne vivent plus dans ce dépôt public : l'atelier privé les
+      # suit (scripts/atelier.mjs). Sans secret, ce contrôle échoue dès qu'un
+      # fichier suivi tombe sous un motif ignoré — la forme que prendrait une
+      # fuite. Sa seconde moitié, qui cherche les mots du vrai catalogue dans
+      # les fichiers suivis, tourne plus bas, une fois ce catalogue tiré.
+      - name: Solutions stay out of the public repository
+        run: npm run check:atelier
+
       - name: Audit production dependencies
         run: npm audit --omit=dev
 
@@ -143,6 +151,45 @@ jobs:
 
       - name: Audit the GitHub Pages artifact
         run: npm run audit:pages
+
+      # Tout ce qui précède tourne sur la FIXTURE (tests/fixtures/) : huit
+      # grilles déjà publiques dans l'historique. Le vrai catalogue, AVEC les
+      # solutions, est tiré de la base vers un dossier temporaire du runner :
+      #   - jamais dans le dépôt ni dans `dist` — le build est déjà fait ;
+      #   - jamais dans un artefact — Playwright, plus bas, tourne lui aussi sur
+      #     la fixture : ses traces d'échec ne montrent que des grilles brûlées ;
+      #   - jamais dans le journal, public ici : le script n'y écrit que des
+      #     comptes.
+      - name: Pull the production catalog
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: node scripts/pull_runtime_catalog.mjs --out "$RUNNER_TEMP/motman-catalogue/runtime.grid.catalog.json"
+
+      # Les contrôles qui n'ont de sens que sur les vraies grilles : le
+      # calendrier pointe des gridId absents de la fixture. Sur une PR sans
+      # secret (fork), ils se sautent. Sur main, ils ne le peuvent pas :
+      # MOTMAN_CATALOGUE_REQUIS fait échouer celui qui ne trouverait que la
+      # fixture, et un tirage manqué laisse MOTMAN_CATALOGUE_RUNTIME pointer
+      # vers un fichier absent, ce qui échoue aussi.
+      - name: Checks against the production catalog
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          MOTMAN_CATALOGUE_RUNTIME: ${{ runner.temp }}/motman-catalogue/runtime.grid.catalog.json
+          MOTMAN_CATALOGUE_REQUIS: '1'
+        if: (github.event_name != 'pull_request' && github.repository == 'Doctox/motman') || env.SUPABASE_ACCESS_TOKEN != ''
+        run: |
+          npm run check:daily
+          npm run test:dimensions
+          npx vitest run src/dailyCalendar.test.ts
+          npm run audit:security
+          npm run test:performance
+          npm run check:atelier
+
+      - name: Remove the production catalog
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/motman-catalogue"
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit

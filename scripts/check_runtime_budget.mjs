@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
+import { exigerCatalogueReel } from './lib/catalogue.mjs'
 
 const limits = {
   entryJavaScript: 20_000,
@@ -24,14 +25,17 @@ function directorySize(directory) {
   }, 0)
 }
 
-const runtimeCatalogPath = resolve('src/data/runtime.grid.catalog.json')
+// Mesurer la fixture n'apprendrait rien : sans le vrai catalogue, on saute.
+const catalogueReel = exigerCatalogueReel('Budget du catalogue runtime')
+if (catalogueReel) {
+  assertBudget('Catalogue runtime', statSync(catalogueReel.chemin).size, limits.runtimeCatalog)
+  assertBudget(
+    'Catalogue runtime compressé',
+    gzipSync(readFileSync(catalogueReel.chemin), { level: 9 }).length,
+    limits.runtimeCatalogGzip,
+  )
+}
 const runtimePolicyPath = resolve('src/data/runtime.catalog-policy.json')
-assertBudget('Catalogue runtime', statSync(runtimeCatalogPath).size, limits.runtimeCatalog)
-assertBudget(
-  'Catalogue runtime compressé',
-  gzipSync(readFileSync(runtimeCatalogPath), { level: 9 }).length,
-  limits.runtimeCatalogGzip,
-)
 assertBudget('Politique runtime', statSync(runtimePolicyPath).size, limits.runtimePolicy)
 
 const avatarCatalog = JSON.parse(readFileSync(resolve('src/data/avatar.catalog.json'), 'utf8'))

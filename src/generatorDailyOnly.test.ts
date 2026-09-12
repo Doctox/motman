@@ -38,7 +38,7 @@ const catalogue = vi.hoisted(() => {
   }
 })
 
-vi.mock('./data/runtime.grid.catalog.json', () => ({ default: catalogue }))
+vi.mock('virtual:motman/catalogue-grilles', () => ({ default: catalogue }))
 
 import { generateGrid, generateGridById } from './generator'
 

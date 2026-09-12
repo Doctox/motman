@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const sourcePath = resolve('src/data/editorial.blacklist.json')
@@ -15,6 +15,13 @@ const runtime = {
 writeFileSync(targetPath, `${JSON.stringify(runtime)}\n`, 'utf8')
 console.log(`Politique runtime : ${runtime.quarantinedGridIds.length} grilles, ${runtime.rejectedPairs.length} couples.`)
 
+// Le catalogue source porte les solutions : il vit dans l'atelier privé
+// (scripts/atelier.mjs), absent de la CI, des forks et des worktrees. Sans lui,
+// la projection n'est pas régénérée ; le code se rabat sur la fixture.
+if (!existsSync(catalogSourcePath)) {
+  console.log('Catalogue runtime : source absente (pas d’atelier ici), projection non régénérée.')
+  process.exit(0)
+}
 const catalog = JSON.parse(readFileSync(catalogSourcePath, 'utf8'))
 // Le thème arrive de l'Éditeur sous forme d'objet (`{ id, label, … }`) ; le jeu
 // n'en garde que le nom affiché au joueur.

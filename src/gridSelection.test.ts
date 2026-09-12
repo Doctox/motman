@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { selectGridForPlayers, shouldYieldActiveGridClaim, type SelectionGrid } from './gridSelection'
-import catalog from './data/runtime.grid.catalog.json'
+import catalog from 'virtual:motman/catalogue-grilles'
 
 const grid = (id: string, ...answers: string[]): SelectionGrid => ({
   id,

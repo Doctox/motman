@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { motmanSocialPlugin } from './server/motmanSocialPlugin'
 import { motmanMatchPlugin } from './server/motmanMatchPlugin'
 import { motmanAuthPlugin } from './server/motmanAuthPlugin'
+import { pluginCatalogue } from './scripts/lib/catalogue.mjs'
 
 const githubRepository = process.env.GITHUB_REPOSITORY
 const githubPagesBase = githubRepository ? `/${githubRepository.split('/')[1]}/` : '/'
@@ -28,7 +29,7 @@ export default defineConfig({
     'import.meta.env.VITE_MOTMAN_BUILD_SHA': JSON.stringify(resolveBuildSha()),
     'import.meta.env.VITE_MOTMAN_UPDATE_NUMBER': JSON.stringify(updateNumber),
   },
-  plugins: [react(), motmanAuthPlugin(), motmanSocialPlugin(), motmanMatchPlugin()],
+  plugins: [pluginCatalogue(), react(), motmanAuthPlugin(), motmanSocialPlugin(), motmanMatchPlugin()],
   build: {
     rollupOptions: {
       output: {

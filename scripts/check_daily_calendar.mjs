@@ -12,11 +12,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { exigerCatalogueReel } from './lib/catalogue.mjs'
 import { importTs } from './lib/importTs.mjs'
 
 const DATA_DIR = path.resolve(process.cwd(), 'src', 'data')
 const CALENDAR = path.join(DATA_DIR, 'runtime.daily.calendar.json')
-const CATALOG = path.join(DATA_DIR, 'runtime.grid.catalog.json')
 const POLICY = path.join(DATA_DIR, 'runtime.catalog-policy.json')
 
 // Doit rester synchronisé avec BLOCKED_ANSWERS de src/gridCatalogPolicy.ts.
@@ -48,7 +48,10 @@ if (!fs.existsSync(CALENDAR)) {
 }
 
 const calendar = readJson(CALENDAR, 'runtime.daily.calendar.json')
-const catalog = readJson(CATALOG, 'runtime.grid.catalog.json')
+// Le calendrier pointe les VRAIES grilles : sans le vrai catalogue (PR, fork,
+// worktree sans atelier), seuls les contrôles qui n'en dépendent pas tournent.
+// La CI de main le rejoue sur le catalogue tiré de la base.
+const catalog = exigerCatalogueReel('Calendrier ↔ catalogue (grilles jouables, thèmes portés)')?.catalogue ?? null
 const policy = readJson(POLICY, 'runtime.catalog-policy.json')
 
 if (!Array.isArray(calendar.days)) fail('Le calendrier doit contenir un tableau `days`.')
@@ -65,7 +68,7 @@ function isCatalogGridPlayable(grid) {
     && Boolean((word.clue && word.clue.trim()) || word.image))
 }
 
-const byId = new Map(catalog.grids.map(grid => [grid.id, grid]))
+const byId = new Map((catalog?.grids ?? []).map(grid => [grid.id, grid]))
 const errors = []
 const seenDates = new Set()
 const dateFormat = /^\d{4}-\d{2}-\d{2}$/
@@ -77,6 +80,7 @@ for (const [index, entry] of calendar.days.entries()) {
   if (seenDates.has(entry.date)) errors.push(`${where} : date en double`)
   seenDates.add(entry.date)
   if (typeof entry.gridId !== 'string' || !entry.gridId) { errors.push(`${where} : gridId manquant`); continue }
+  if (!catalog) continue
   const grid = byId.get(entry.gridId)
   if (!grid) errors.push(`${where} : gridId « ${entry.gridId} » absent de runtime.grid.catalog.json`)
   else if (!isCatalogGridPlayable(grid)) errors.push(`${where} : gridId « ${entry.gridId} » présent mais NON jouable (isCatalogGridPlayable=false)`)
@@ -87,7 +91,7 @@ for (const [index, entry] of calendar.days.entries()) {
 // une grille qui le porte, et jamais deux jours de suite. Règle chargée depuis
 // `src/dailyThemes.ts` — la même que lisent le serveur et le client.
 const themes = await importTs(path.resolve(process.cwd(), 'src', 'dailyThemes.ts'))
-errors.push(...themes.catalogThemeErrors(catalog.grids), ...themes.calendarThemeErrors(calendar.days, byId))
+if (catalog) errors.push(...themes.catalogThemeErrors(catalog.grids), ...themes.calendarThemeErrors(calendar.days, byId))
 
 // La table des thèmes livrée au navigateur doit dire exactement ce que dit le
 // calendrier — sans en porter les identifiants de grille (dailyThemeSchedule.ts).
@@ -130,4 +134,7 @@ if (remaining < COVERAGE_WARNING_DAYS) {
   console.warn(`⚠ Calendrier du défi du jour : plus que ${remaining} jour(s) programmé(s) à partir du ${today}. ${regenerate}`)
 }
 
-console.log(`✓ Calendrier du défi du jour valide : ${calendar.days.length} jour(s), tous les gridId existent et sont jouables (catalogue v${catalog.version}). Couverture : ${remaining} jour(s) à partir du ${today}.`)
+const verdictGrilles = catalog
+  ? `tous les gridId existent et sont jouables (catalogue v${catalog.version})`
+  : 'gridId NON vérifiés (vrai catalogue absent)'
+console.log(`✓ Calendrier du défi du jour valide : ${calendar.days.length} jour(s), ${verdictGrilles}. Couverture : ${remaining} jour(s) à partir du ${today}.`)

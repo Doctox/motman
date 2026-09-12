@@ -1,14 +1,18 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'vite'
+import { lireCatalogueRuntime, pluginCatalogue } from './lib/catalogue.mjs'
 
-const catalog = JSON.parse(await readFile(new URL('../src/data/grid.catalog.json', import.meta.url), 'utf8'))
+// La projection runtime (vraie ou fixture), celle que lit generator.ts : le
+// catalogue source vit dans l'atelier privé, absent de la CI.
+const { catalogue: catalog, reel } = lireCatalogueRuntime()
 const blacklist = JSON.parse(await readFile(new URL('../src/data/editorial.blacklist.json', import.meta.url), 'utf8'))
 
 const vite = await createServer({
   appType: 'custom',
   configFile: false,
   logLevel: 'silent',
+  plugins: [pluginCatalogue()],
   server: { middlewareMode: true },
 })
 
@@ -39,11 +43,14 @@ try {
   assert.equal(validation.valid, true, validation.errors.join('; '))
   assert.equal(validation.score, 100)
 
-  assert.equal(catalog.version, 23)
-  assert.equal(catalog.grids.length, 56)
+  // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
+  if (reel) {
+    assert.equal(catalog.version, 23)
+    assert.equal(catalog.grids.length, 56)
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 166)
+  }
   assert.ok(catalog.grids.every(grid => grid.columns === 7 && grid.rows === 8 && grid.size === undefined))
   assert.ok(catalog.grids.every(grid => grid.difficulty === undefined))
-  assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 166)
   assert.equal(new Set(catalog.grids.map(grid => grid.id)).size, catalog.grids.length)
   const playableSources = catalog.grids.filter(isCatalogGridPlayable)
   const storedQuarantines = catalog.grids.filter(grid => blacklist.quarantinedGridIds.includes(grid.id))

@@ -31,13 +31,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { catalogueRuntime, lireCatalogueRuntime } from './lib/catalogue.mjs'
 import { importTs } from './lib/importTs.mjs'
 
 const DATA_DIR = path.resolve(process.cwd(), 'src', 'data')
 const CALENDAR = path.join(DATA_DIR, 'runtime.daily.calendar.json')
 // Les thèmes seuls, SANS identifiant de grille : ce que le navigateur peut lire.
 const THEMES_FILE = path.join(DATA_DIR, 'runtime.daily.themes.json')
-const CATALOG = path.join(DATA_DIR, 'runtime.grid.catalog.json')
 const POLICY = path.join(DATA_DIR, 'runtime.catalog-policy.json')
 
 // La règle des thèmes : UNE seule écriture, chargée depuis src/ (voir importTs).
@@ -83,7 +83,13 @@ function seedFromDate(dateKey) {
   return hash >>> 0
 }
 
-const catalog = readJson(CATALOG)
+// Un calendrier tiré de la fixture pointerait huit grilles au lieu du catalogue
+// entier : ce script n'a de sens que sur le vrai, présent dans l'atelier.
+if (!catalogueRuntime().reel) {
+  console.error('✖ build_daily_calendar a besoin du vrai catalogue (atelier privé, ou MOTMAN_CATALOGUE_RUNTIME). Seule la fixture est là.')
+  process.exit(1)
+}
+const catalog = lireCatalogueRuntime().catalogue
 const policy = readJson(POLICY)
 const quarantined = new Set(policy.quarantinedGridIds ?? [])
 const rejectedAnswers = new Set(policy.rejectedAnswers ?? [])

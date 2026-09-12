@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import calendarData from './data/runtime.daily.calendar.json'
-import catalogData from './data/runtime.grid.catalog.json'
+import { exigerCatalogueReel } from '../scripts/lib/catalogue.mjs'
 import { calendarEntryFor, seedFromDate, type DailyCalendarDay } from './dailyCalendar'
 import themesData from './data/runtime.daily.themes.json'
 import { calendarThemeErrors, themesFilePayload } from './dailyThemes'
@@ -17,11 +17,17 @@ function dayNumber(key: string): number {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
 }
 
+// Le calendrier pointe les VRAIES grilles, absentes de la fixture qui sert hors
+// de l'atelier et sur les PR. Sans le vrai catalogue, ce contrôle se saute en
+// le disant ; la CI de main le rejoue sur le catalogue tiré de la base, avec
+// MOTMAN_CATALOGUE_REQUIS=1 pour qu'il ne puisse pas se sauter.
+const catalogueReel = exigerCatalogueReel('Test « thème porté par la grille »')
+
 describe('calendrier du défi du jour (fichier réel)', () => {
-  it('n’annonce un thème que sur une grille qui le porte', () => {
+  it.skipIf(!catalogueReel)('n’annonce un thème que sur une grille qui le porte', () => {
     // L'ancien calendrier annonçait « Sport » et « Animaux » sur des grilles
     // génériques. Un thème vient désormais de la grille elle-même.
-    const grilles = (catalogData as { grids: Array<{ id: string; theme?: string | null; dailyOnly?: boolean }> }).grids
+    const grilles = catalogueReel!.catalogue.grids
     expect(calendarThemeErrors(days, new Map(grilles.map(grille => [grille.id, grille])))).toEqual([])
   })
 

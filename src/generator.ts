@@ -25,7 +25,8 @@ type LoadedCatalog = { version: string; playable: CatalogGrid[] }
 let catalogPromise: Promise<LoadedCatalog> | null = null
 
 export function preloadGridCatalog(): Promise<LoadedCatalog> {
-  catalogPromise ??= import('./data/runtime.grid.catalog.json').then(module => {
+  // Vrai catalogue ou fixture, selon ce qui est présent : scripts/lib/catalogue.mjs.
+  catalogPromise ??= import('virtual:motman/catalogue-grilles').then(module => {
     const catalog = module.default as GridCatalog
     return {
       version: `offline-catalog-${catalog.version}`,

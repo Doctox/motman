@@ -49,8 +49,37 @@ tmp/
 motman-sauvegardes/
 sauvegardes/
 
-# Boîte de dépôt de l'Éditeur : lots de grilles approuvés, AVEC LEURS SOLUTIONS
-# (`review.html` les affiche en clair). Le dépôt est public : ces fichiers
-# publieraient les réponses des défis à venir. Un lot n'entre dans le dépôt
-# qu'une fois intégré au catalogue, par le clavardage MotMan.
-MotMan Grilles prêtes/
+# >>> atelier privé
+# Tout ce qui fabrique les grilles, et donc en porte les SOLUTIONS : les
+# scripts Python et leurs données, le catalogue source et sa projection, la
+# boîte de dépôt de l'Éditeur (ses lots approuvés, `review.html` compris). Le
+# dépôt est public : ces fichiers publieraient les réponses des défis à venir.
+#
+# Ils sont suivis par l'ATELIER, un dépôt git privé superposé à cette copie de
+# travail (`npm run atelier`), jamais par ce dépôt-ci. `scripts/atelier.mjs`
+# lit CE bloc pour savoir quoi suivre : c'est la seule liste. Et
+# `npm run check:atelier` échoue si un fichier suivi ici tombe sous un motif.
+/scripts/*.py
+/scripts/tests/*.py
+/src/data/grid.catalog.json
+/src/data/runtime.grid.catalog.json
+/src/data/grid-generation*/
+/src/data/pool/
+/src/data/.grid-generation.lock
+/src/data/bench-hard-*.json
+/src/data/candidate-*.json
+/src/data/easy-candidate-*.json
+/src/data/easy-v2-candidate-*.json
+/src/data/csp-*.json
+/src/data/csp2-*.json
+/src/data/smoke-*.json
+/src/data/generated.easy.json
+/src/data/crossword.*
+/src/data/jeuxdemots.*
+/src/data/lexique.*
+/src/data/fill.wordlist.large.*
+/MotMan Grilles prêtes/
+# <<< atelier privé
+
+# Le dossier git de l'atelier lui-même.
+/.atelier-git/
