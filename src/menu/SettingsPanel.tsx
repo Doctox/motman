@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { BookOpen, ChevronRight, FileText, LogIn, Moon, Settings, Sun, Type, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
-import { appVersionDisplay } from '../appVersion'
+import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
 import type { GuestIdentity } from '../playerIdentity'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
 import { useSensoryPreferences } from '../sensoryPreferences'
@@ -22,10 +22,12 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
     })
     return () => { mounted = false }
   }, [])
-  const revisionLabel = serverVersion ? `#${serverVersion.revision}` : appVersionDisplay.updateLabel
-  const versionAccessibleLabel = serverVersion
-    ? `Révision serveur ${serverVersion.revision}, ${appVersionDisplay.accessibleLabel}`
-    : appVersionDisplay.accessibleLabel
+  // Le numéro de la construction avant la révision serveur : voir
+  // `settingsRevisionLabel`.
+  const revisionLabel = settingsRevisionLabel(appVersion, serverVersion?.revision ?? null)
+  const versionAccessibleLabel = revisionLabel === appVersionDisplay.updateLabel
+    ? appVersionDisplay.accessibleLabel
+    : `Révision serveur ${serverVersion?.revision}, ${appVersionDisplay.accessibleLabel}`
   return <div className="mm-modal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
     <section ref={dialogRef} className="mm-settings" role="dialog" aria-modal="true" aria-label="Paramètres" tabIndex={-1}>
       <header><h2>Paramètres</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>

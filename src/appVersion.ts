@@ -27,3 +27,19 @@ export function formatAppVersion({ version, updateNumber, buildSha }: AppVersion
 }
 
 export const appVersionDisplay = formatAppVersion(appVersion)
+
+/**
+ * Le numéro affiché dans les paramètres.
+ *
+ * La construction GitHub en fournit un à CHAQUE envoi (`#N`, le numéro
+ * d'exécution) : c'est lui qui dit « cette version-ci ». Il était masqué par la
+ * révision serveur, un réglage saisi à la main, restée à #48 depuis juillet
+ * pendant que le site changeait à chaque envoi. Cette révision ne sert plus que
+ * de repli pour une construction locale — un APK construit sur la machine du
+ * propriétaire —, qui n'a pas de numéro.
+ */
+export function settingsRevisionLabel(build: AppVersion, serverRevision: number | null): string {
+  if (/^\d+$/.test(build.updateNumber)) return `#${build.updateNumber}`
+  if (serverRevision) return `#${serverRevision}`
+  return 'Local'
+}
