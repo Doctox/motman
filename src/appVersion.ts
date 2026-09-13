@@ -14,15 +14,18 @@ export const appVersion: AppVersion = {
   buildSha: normalized(import.meta.env.VITE_MOTMAN_BUILD_SHA, 'inconnu'),
 }
 
-export function formatAppVersion({ version, updateNumber, buildSha }: AppVersion) {
+export function formatAppVersion({ updateNumber, buildSha }: AppVersion) {
   const updateLabel = /^\d+$/.test(updateNumber)
     ? `#${updateNumber}`
     : 'Local'
 
   return {
     updateLabel,
-    buildLabel: `Version ${version} · ${buildSha}`,
-    accessibleLabel: `${updateLabel}, version ${version}, code ${buildSha}`,
+    // Pas de « Version 1.0.6 » : ce numéro ne bouge qu'à la publication d'un
+    // APK, et affiché à côté d'un site qui change à chaque envoi, il faisait
+    // croire que rien n'était mis à jour. Le code du commit, lui, change.
+    buildLabel: `Code ${buildSha}`,
+    accessibleLabel: `${updateLabel}, code ${buildSha}`,
   }
 }
 

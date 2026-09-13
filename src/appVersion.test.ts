@@ -9,8 +9,8 @@ describe('formatAppVersion', () => {
       buildSha: 'a1b2c3d',
     })).toEqual({
       updateLabel: '#287',
-      buildLabel: 'Version 1.4.0 · a1b2c3d',
-      accessibleLabel: '#287, version 1.4.0, code a1b2c3d',
+      buildLabel: 'Code a1b2c3d',
+      accessibleLabel: '#287, code a1b2c3d',
     })
   })
 
