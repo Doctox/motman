@@ -3,28 +3,77 @@ import { useCallback, useRef } from 'react'
 /* ---------------------------------------------------------------------------
    Auto-fit du texte des indices (mots-fleches) sur petits ecrans.
 
-   Probleme : dans une grille a 7 colonnes sur un telephone compact, une case
-   d'indice fait ~45 px de large. Un mot long comme « STATISTIQUE » n'y tient
-   pas sur une ligne et se coupe salement (« statistiq / ue »).
+   Probleme d'origine : dans une grille a 7 colonnes sur un telephone compact,
+   une case d'indice fait ~45 px de large. Un mot long comme « STATISTIQUE »
+   n'y tient pas sur une ligne et se coupe salement (« statistiq / ue »).
 
-   Solution : pour chaque case d'indice, on mesure le mot le plus long et on
-   reduit la police juste ce qu'il faut pour qu'il tienne sur une seule ligne.
-   Les indices en deux mots continuent de passer a la ligne entre les mots,
-   comme avant ; seuls les mots trop longs sont legerement retrecis.
+   Premiere version (jusqu'au 13/09/2026) : chaque indice etait reduit, SEUL,
+   juste assez pour que son mot le plus long tienne sur une ligne. Deux defauts,
+   apparus au grand jour avec les grilles a theme :
+     - DES TAILLES QUI SAUTENT d'une case a l'autre. « Sapin des montagnes »
+       tombait a 5 px a cause de « montagnes », « Arbre des allees » restait a
+       9,8 px : du simple au double sur un meme plateau.
+     - DU TEXTE COUPE. La hauteur n'etait jamais mesuree : « Nom du hetre en
+       region », fait de mots courts, gardait la grande taille, passait sur
+       quatre lignes et debordait de 10 px en haut et en bas.
+
+   Aujourd'hui :
+     1. chaque indice doit tenir en LARGEUR (mot le plus long sur une ligne)
+        ET en HAUTEUR (tout le texte dans la case) ;
+     2. UNE SEULE TAILLE par plateau — celle de l'indice le plus contraint —,
+        avec un plancher de lisibilite : un mot exceptionnellement long ne
+        rend pas tout le plateau minuscule, seul son indice descend plus bas ;
+     3. les cases a deux indices forment leur propre groupe : chacun n'y a que
+        la moitie de la hauteur, les aligner sur les cases simples ecraserait
+        ces dernieres.
 
    Surete : purement cosmetique et defensif.
      - Toute exception est avalee : jamais de grille cassee.
-     - On repart toujours de la taille CSS d'origine avant de mesurer, donc
-       aucun effet cumulatif d'un passage a l'autre.
+     - On repart toujours de la taille CSS avant de mesurer : aucun effet
+       cumulatif d'un passage a l'autre.
      - On ne fait que REDUIRE, jamais agrandir au-dela de la valeur CSS.
-     - Un plancher (MIN_FONT_PX) evite tout texte illisible ; si un mot ne
-       tient toujours pas a cette taille, on laisse le navigateur le couper
-       (degradation douce, comportement d'origine).
 --------------------------------------------------------------------------- */
 
-const MIN_FONT_PX = 5      // en dessous, illisible -> on laisse couper naturellement
-const MAX_FONT_PX = 12     // garde-fou haut (la CSS plafonne deja bien plus bas)
+/** Plancher absolu : en dessous, illisible. Reserve aux mots hors norme. */
+export const MIN_FONT_PX = 5
+/** Plancher de la taille COMMUNE : on n'y descend pas pour un seul indice. */
+export const MIN_UNIFORM_FONT_PX = 6
 const EPS = 0.75           // marge anti-debordement d'un cheveu (sous-pixel)
+const PRECISION_PX = 0.1   // arret de la recherche par dichotomie
+
+/**
+ * La plus grande taille, entre `floor` et `base`, pour laquelle `fits` est vrai.
+ * `fits` est supposee monotone : ce qui tient a une taille tient a toute taille
+ * plus petite. Si rien ne tient, rend `floor` — le navigateur coupera.
+ */
+export function largestFittingSize(base: number, floor: number, fits: (size: number) => boolean): number {
+  if (base <= floor) return base
+  if (fits(base)) return base
+  if (!fits(floor)) return floor
+  let tient = floor
+  let deborde = base
+  while (deborde - tient > PRECISION_PX) {
+    const milieu = (tient + deborde) / 2
+    if (fits(milieu)) tient = milieu
+    else deborde = milieu
+  }
+  return tient
+}
+
+export type ClueFit = { group: string; fit: number }
+
+/**
+ * Taille finale de chaque indice : la taille commune de son groupe (la plus
+ * petite taille qui tient, planchee), ou sa propre taille s'il ne tient pas
+ * a la taille commune.
+ */
+export function uniformClueSizes(fits: readonly ClueFit[], uniformFloor = MIN_UNIFORM_FONT_PX): number[] {
+  const communes = new Map<string, number>()
+  for (const { group, fit } of fits) {
+    communes.set(group, Math.min(communes.get(group) ?? Number.POSITIVE_INFINITY, fit))
+  }
+  return fits.map(({ group, fit }) => Math.min(fit, Math.max(uniformFloor, communes.get(group) ?? fit)))
+}
 
 let measureCanvas: HTMLCanvasElement | null = null
 
@@ -45,49 +94,55 @@ function directText(el: HTMLElement): string {
   return text.trim()
 }
 
-function fitOne(el: HTMLElement): void {
-  // Toujours repartir de la taille CSS : pas d'effet cumulatif.
-  el.style.fontSize = ''
-
+/** Taille maximale a laquelle l'indice tient en largeur ET en hauteur. */
+function measureFit(el: HTMLElement): { base: number; fit: number } | null {
   const text = directText(el)
-  if (!text) return
-
+  if (!text) return null
   const style = getComputedStyle(el)
-  const baseSize = parseFloat(style.fontSize) || MAX_FONT_PX
+  const base = parseFloat(style.fontSize)
+  if (!base) return null
   const weight = style.fontWeight || '700'
   const family = style.fontFamily || "'DM Sans', sans-serif"
+  const available = el.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - EPS
+  if (available <= 0) return null
 
-  const padLeft = parseFloat(style.paddingLeft) || 0
-  const padRight = parseFloat(style.paddingRight) || 0
-  const available = el.clientWidth - padLeft - padRight - EPS
-  if (available <= 0) return
-
-  // Unite insecable = un « mot » entre espaces (les espaces insecables sont
-  // couverts par \s) ou traits d'union (le navigateur peut couper apres un
-  // trait d'union).
+  // Unite insecable = un « mot » entre espaces ou traits d'union (le navigateur
+  // peut couper apres un trait d'union).
   const tokens = text.split(/[\s-]+/).filter(Boolean)
-  if (!tokens.length) return
-
-  const font = `${weight} ${baseSize}px ${family}`
-  let widest = 0
-  for (const token of tokens) {
-    const w = measureWord(token, font)
-    if (w > widest) widest = w
+  const fits = (size: number) => {
+    const font = `${weight} ${size}px ${family}`
+    if (tokens.some(token => measureWord(token, font) > available)) return false
+    el.style.fontSize = `${size}px`
+    return el.scrollHeight <= el.clientHeight + 0.5
   }
-  if (widest <= 0 || widest <= available) return // tient deja : on garde la taille CSS
-
-  let next = baseSize * (available / widest)
-  if (next > baseSize) next = baseSize
-  if (next < MIN_FONT_PX) next = MIN_FONT_PX
-  if (next < baseSize - 0.05) el.style.fontSize = `${next}px`
+  const fit = largestFittingSize(base, MIN_FONT_PX, fits)
+  el.style.fontSize = ''
+  return { base, fit }
 }
 
 /** Ajuste toutes les cases d'indices texte presentes dans `root`. */
 export function fitClueTexts(root: HTMLElement | null): void {
   if (!root) return
   try {
-    const nodes = root.querySelectorAll<HTMLElement>('.clue-entry:not(.image-entry)')
-    nodes.forEach(fitOne)
+    const nodes = [...root.querySelectorAll<HTMLElement>('.clue-entry:not(.image-entry)')]
+    // Rien n'a change depuis le dernier passage (meme largeur, memes indices) :
+    // on ne refait pas les mesures. Sans ce garde, poser une lettre — qui
+    // modifie le DOM du plateau — relancerait une centaine de mises en page.
+    const signature = `${root.clientWidth}|${nodes.map(directText).join('')}`
+    if (root.dataset.clueFit === signature) return
+
+    nodes.forEach(el => { el.style.fontSize = '' })
+    const mesures = nodes.map(el => ({ el, mesure: measureFit(el) }))
+    const retenues = mesures.filter((item): item is { el: HTMLElement; mesure: { base: number; fit: number } } => item.mesure !== null)
+    const tailles = uniformClueSizes(retenues.map(({ el, mesure }) => ({
+      group: el.closest('.double-clue') ? 'double' : 'simple',
+      fit: mesure.fit,
+    })))
+    retenues.forEach(({ el, mesure }, index) => {
+      const taille = tailles[index]
+      if (taille < mesure.base - 0.05) el.style.fontSize = `${taille}px`
+    })
+    root.dataset.clueFit = signature
   } catch {
     /* cosmetique : on n'interrompt jamais le jeu */
   }
@@ -116,6 +171,9 @@ export function useClueAutoFit(): (node: HTMLElement | null) => void {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => fitClueTexts(node))
     }
+    // La police web change les mesures : la signature (largeur + textes) ne le
+    // voit pas, on l'oublie donc pour forcer une nouvelle mesure.
+    const remeasure = () => { delete node.dataset.clueFit; fitClueTexts(node) }
 
     // Premier ajustement SYNCHRONE : s'applique avant le premier rendu et ne
     // depend pas de requestAnimationFrame (fiable meme si l'onglet est en
@@ -123,10 +181,9 @@ export function useClueAutoFit(): (node: HTMLElement | null) => void {
     // par run() (rAF, anti-rafale).
     fitClueTexts(node)
 
-    // La police web change les mesures une fois chargee (microtache, fiable).
     const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts
     if (fonts?.ready) {
-      fonts.ready.then(() => { if (!cancelled) fitClueTexts(node) }).catch(() => {})
+      fonts.ready.then(() => { if (!cancelled) remeasure() }).catch(() => {})
     }
 
     let resize: ResizeObserver | null = null
