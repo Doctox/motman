@@ -31,9 +31,44 @@ export async function invokeSupabaseFunction<T>(
     expiration = setTimeout(() => reject(timeoutFailure(name)), timeoutMs)
   })
   try {
-    return await Promise.race([callSupabaseFunction<T>(name, body), deadline])
+    return await Promise.race([callWithRetry<T>(name, body), deadline])
   } finally {
     if (expiration !== undefined) clearTimeout(expiration)
+  }
+}
+
+// Soirée du 13/09/2026 : la passerelle de Supabase a rendu un 502 en 21 ms,
+// sans réveiller la fonction et SANS en-tête CORS. Le navigateur n'a donc vu
+// qu'un fetch rejeté, et le joueur a lu « Failed to send a request to the Edge
+// Function » en plein duel. Ce raté est ponctuel : on retente une fois, après
+// une courte pause, avant d'afficher quoi que ce soit.
+//
+// Seulement pour les appels qu'on peut rejouer sans dommage. Un fetch rejeté ne
+// dit pas si le serveur a reçu la requête : un indice ou un mélange rejoué
+// serait payé deux fois. Le coup (`turn`) est rejouable : le serveur reconnaît
+// un tour déjà joué et renvoie le même résultat.
+export const RETRY_DELAY_MS = 600
+const REPLAYABLE: Record<string, ReadonlySet<string>> = {
+  'match-api': new Set(['state', 'match', 'turn', 'daily-leaderboard', 'player-stats', 'history-grid', 'ranked-state', 'ranked-leaderboard']),
+}
+
+export function isReplayable(name: string, body: Record<string, unknown>): boolean {
+  const action = typeof body.action === 'string' ? body.action : 'state'
+  return REPLAYABLE[name]?.has(action) ?? false
+}
+
+/** Le fetch n'a rien rendu de lisible : réseau coupé, ou réponse sans CORS. */
+function isUnreachable(error: unknown): boolean {
+  return (error as { payload?: { code?: string } } | null)?.payload?.code === 'FUNCTION_UNREACHABLE'
+}
+
+async function callWithRetry<T>(name: string, body: Record<string, unknown>): Promise<T> {
+  try {
+    return await callSupabaseFunction<T>(name, body)
+  } catch (error) {
+    if (!isUnreachable(error) || !isReplayable(name, body)) throw error
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
+    return callSupabaseFunction<T>(name, body)
   }
 }
 
@@ -43,6 +78,14 @@ async function callSupabaseFunction<T>(name: string, body: Record<string, unknow
     headers: functionClientHeaders(),
   })
   if (!error && !data?.error) return data as T
+
+  // supabase-js : FunctionsFetchError quand le fetch lui-même échoue.
+  if ((error as { name?: string } | null)?.name === 'FunctionsFetchError') {
+    throw Object.assign(
+      new Error('Connexion au serveur interrompue. Vérifiez votre connexion, puis réessayez.'),
+      { payload: { code: 'FUNCTION_UNREACHABLE' as const }, status: 0 },
+    ) as FunctionFailure
+  }
 
   let payload = data && typeof data === 'object' ? data as Record<string, unknown> : undefined
   let status: number | undefined

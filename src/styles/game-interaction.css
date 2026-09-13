@@ -466,3 +466,10 @@
 [data-theme="dark"] .board .clue-tone-1{background-color:#4b4226!important}
 [data-theme="dark"] .board .clue-tone-2{background-color:#2c3f35!important}
 [data-theme="dark"] .board .clue-tone-3{background-color:#284046!important}
+
+/* La flèche occupe le coin bas-droit de la case. Sans place réservée, la
+   dernière ligne d'une définition longue passait dessous (« Chemins du parc→ »).
+   On lui garde une bande en bas : `clueAutoFit` mesure la hauteur utile, il
+   réduit donc la taille du texte d'autant, au lieu de le laisser chevaucher. */
+.board .clue .clue-entry:not(.image-entry){padding:2px 3px 14px 2px}
+.board .clue.double-clue .clue-entry:not(.image-entry){padding:1px 3px 12px 1px}
