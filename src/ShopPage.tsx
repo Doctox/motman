@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowLeft, Check, Feather, PackageOpen, Palette, ShoppingBasket, Sparkles, User } from 'lucide-react'
 import { assetUrl } from './assetUrl'
 import {
@@ -7,9 +8,12 @@ import {
 } from './cosmetics'
 import { CosmeticPortrait } from './CosmeticPortrait'
 import { equipServerCosmetic, openServerBasket, purchaseServerCosmetic } from './auth'
+import { useDialogFocus } from './useDialogFocus'
 
 type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets'
 type BasketStageState = 'idle' | 'opening' | 'revealed'
+/** Ce que le joueur s'apprête à payer : un article, ou l'ouverture d'un panier. */
+type PendingPurchase = { kind: CosmeticKind | 'basket'; id: string; name: string; price: number }
 
 const RARITY_LABELS = {
   commun: 'Normal', singulier: 'Singulier', rare: 'Rare', precieux: 'Précieux',
@@ -48,6 +52,35 @@ function BasketReward({ reward, cosmetics }: { reward: CosmeticReward; cosmetics
   </span>
 }
 
+/**
+ * Un tap sur un prix dépensait les plumes aussitôt, sans retour possible : un
+ * doigt qui ripe en faisant défiler l'Épicerie suffisait. On demande donc
+ * confirmation, en montrant le solde qui restera.
+ */
+export function PurchaseConfirm({ purchase, balance, confirm, cancel }: {
+  purchase: PendingPurchase
+  balance: number
+  confirm: () => void
+  cancel: () => void
+}) {
+  const dialogRef = useDialogFocus<HTMLElement>(cancel)
+  const manque = Math.max(0, purchase.price - balance)
+  const verbe = purchase.kind === 'basket' ? 'Ouvrir' : 'Acheter'
+  // Rendue dans <body> : dans la page, l'en-tête et la barre du bas restaient
+  // au-dessus du voile.
+  return createPortal(<div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) cancel() }}>
+    <section ref={dialogRef} className="mm-pause mm-purchase-confirm" role="dialog" aria-modal="true" aria-label={`${verbe} ${purchase.name}`} tabIndex={-1}>
+      <Feather />
+      <h2>{verbe} « {purchase.name} » ?</h2>
+      {manque > 0
+        ? <p>Il vous manque {manque} plume{manque > 1 ? 's' : ''}.</p>
+        : <p><Price value={purchase.price} /> · il vous restera {(balance - purchase.price).toLocaleString('fr-FR')} plume{balance - purchase.price > 1 ? 's' : ''}.</p>}
+      <button type="button" disabled={manque > 0} onClick={confirm}>{verbe} pour {purchase.price} plumes</button>
+      <button type="button" className="secondary" data-dialog-autofocus onClick={cancel}>Annuler</button>
+    </section>
+  </div>, document.body)
+}
+
 export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
   cosmetics: PlayerCosmetics
   setCosmetics: (cosmetics: PlayerCosmetics) => void
@@ -58,6 +91,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
   const [reward, setReward] = useState<CosmeticReward | null>(null)
   const [basketState, setBasketState] = useState<BasketStageState>('idle')
   const [pendingItem, setPendingItem] = useState('')
+  const [purchase, setPurchase] = useState<PendingPurchase | null>(null)
   const basketTimerRef = useRef<number | null>(null)
   const purchasableAvatars = AVATARS.filter(avatar => avatar.availability === 'epicerie')
   const purchasableFrames = FRAMES.filter(frame => frame.availability === 'epicerie')
@@ -83,6 +117,19 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     } finally {
       setPendingItem('')
     }
+  }
+
+  /** Équiper un article possédé est gratuit et immédiat ; l'acheter se confirme. */
+  const chooseCosmetic = (kind: CosmeticKind, id: string, name: string, price: number, owned: boolean) => {
+    if (owned) void selectCosmetic(kind, id)
+    else setPurchase({ kind, id, name, price })
+  }
+
+  const confirmPurchase = () => {
+    if (!purchase) return
+    setPurchase(null)
+    if (purchase.kind === 'basket') void unwrapBasket(purchase.id)
+    else void selectCosmetic(purchase.kind, purchase.id)
   }
 
   const unwrapBasket = async (basketId: string) => {
@@ -130,7 +177,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
             return <article className={`mm-shop-item rarity-${avatarRarity(avatar)} ${equipped ? 'is-equipped' : ''}`} key={avatar.id}>
               <CosmeticPortrait avatarId={avatar.id} frameId="cadre-ivoire" alt={avatar.name} />
               <small>{family.itemLabel}</small><strong>{avatar.name}</strong>
-              <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => void selectCosmetic('avatar', avatar.id)}>{equipped ? <><Check />Équipé</> : owned ? 'Équiper' : <Price value={avatar.pricePlumes} />}</button>
+              <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, owned)}>{equipped ? <><Check />Équipé</> : owned ? 'Équiper' : <Price value={avatar.pricePlumes} />}</button>
             </article>
           })}
         </div>
@@ -144,7 +191,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         return <article className={`mm-shop-item rarity-${frame.rarity} ${equipped ? 'is-equipped' : ''}`} key={frame.id}>
           <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={frame.id} alt={frame.name} />
           <small>{RARITY_LABELS[frame.rarity]}</small><strong>{frame.name}</strong><p>{frame.description}</p>
-          <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => void selectCosmetic('frame', frame.id)}>{equipped ? <><Check />Équipé</> : owned ? 'Équiper' : <Price value={frame.pricePlumes} />}</button>
+          <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => chooseCosmetic('frame', frame.id, frame.name, frame.pricePlumes, owned)}>{equipped ? <><Check />Équipé</> : owned ? 'Équiper' : <Price value={frame.pricePlumes} />}</button>
         </article>
       })}
     </section> : null}
@@ -156,7 +203,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         return <article className={`mm-shop-item mm-animation-shop-item rarity-${animation.rarity} ${equipped ? 'is-equipped' : ''}`} key={animation.id}>
           <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={animation.id} alt={animation.name} />
           <small>{RARITY_LABELS[animation.rarity]}</small><strong>{animation.name}</strong><p>{animation.description}</p>
-          <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => void selectCosmetic('animation', animation.id)}>{equipped ? <><Check />Équipée</> : owned ? 'Équiper' : <Price value={animation.pricePlumes} />}</button>
+          <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, owned)}>{equipped ? <><Check />Équipée</> : owned ? 'Équiper' : <Price value={animation.pricePlumes} />}</button>
         </article>
       })}
     </section> : null}
@@ -173,7 +220,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         const inabordable = basketState === 'idle' && manque > 0
         return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState}`} key={basket.id}>
         <header><small>Panier unique · sans doublon</small><strong>{basket.name}</strong><p>{basket.description}</p></header>
-        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
+        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: basket.pricePlumes }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />
           <span className="mm-feather-cloud" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <Feather key={index} />)}</span>
           <BasketArtwork state={basketState} />
@@ -195,5 +242,6 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       })}
       <small className="mm-shop-note"><Sparkles />Les paniers ne contiennent ni titre ni avantage de jeu.</small>
     </section> : null}
+    {purchase ? <PurchaseConfirm purchase={purchase} balance={cosmetics.plumes} confirm={confirmPurchase} cancel={() => setPurchase(null)} /> : null}
   </div>
 }

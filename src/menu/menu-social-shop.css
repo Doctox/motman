@@ -312,3 +312,9 @@
   text-transform: uppercase; letter-spacing: .09em;
 }
 .mm-purse-copy strong { font: 600 1.3125rem 'Playfair Display', serif; }
+
+/* Confirmation d'achat (ShopPage.tsx) : reprend la fenêtre de pause. */
+.mm-purchase-confirm>svg{color:var(--mm-gold)}
+.mm-purchase-confirm h2{font-size:1.3rem;line-height:1.2}
+.mm-purchase-confirm p .mm-price{margin:0;padding:0;border:0}
+.mm-purchase-confirm button:disabled{opacity:.45;cursor:not-allowed}
