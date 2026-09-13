@@ -26,8 +26,18 @@
 // le script de la chaîne (`scripts/lib/importTs.mjs`), sans copie.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Seul endroit d'où une mise à jour peut être téléchargée. */
-export const LIVE_UPDATE_BASE_URL = 'https://doctox.fr/motman/app-update/'
+/**
+ * Seul endroit d'où une mise à jour peut être téléchargée.
+ *
+ * `www.` et non `doctox.fr` : GitHub Pages redirige le second vers le premier,
+ * et le navigateur intégré de l'APK — qui tourne sur une adresse locale — bloque
+ * une lecture entre origines dès qu'une redirection ne porte pas l'autorisation
+ * d'accès. Constaté le 13/09/2026 : l'APK 1.0.7 n'a jamais pu lire son manifeste
+ * pour cette seule raison, et il a fallu un APK de plus. `smoke_test_deployment`
+ * vérifie désormais, après chaque mise en ligne, que cette adresse répond sans
+ * redirection et avec l'autorisation.
+ */
+export const LIVE_UPDATE_BASE_URL = 'https://www.doctox.fr/motman/app-update/'
 export const LIVE_UPDATE_MANIFEST_URL = `${LIVE_UPDATE_BASE_URL}latest.json`
 
 /**

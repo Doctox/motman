@@ -153,6 +153,7 @@
 }
 .mm-settings-version strong{color:var(--mm-ink);font-weight:700}
 .mm-settings-version span{font-variant-numeric:tabular-nums}
+.mm-settings-version small{flex-basis:100%;font-size:0.5625rem;letter-spacing:0}
 .mm-toast{
   bottom:89px;padding:9px 16px;border:1px solid color-mix(in srgb,var(--mm-gold) 48%,transparent);
   background:var(--mm-ink);box-shadow:0 10px 28px #0004;animation:mmToast 2.1s var(--mm-ease) both;

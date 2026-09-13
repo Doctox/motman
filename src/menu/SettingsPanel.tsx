@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { BookOpen, ChevronRight, FileText, LogIn, Moon, Settings, Sun, Type, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
 import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
+import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
+import { isNativeRuntime } from '../nativeRuntime'
 import type { GuestIdentity } from '../playerIdentity'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
 import { useSensoryPreferences } from '../sensoryPreferences'
@@ -42,6 +44,11 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
       <footer className="mm-settings-version" aria-label={versionAccessibleLabel}>
         <strong>{revisionLabel}</strong>
         <span>{appVersionDisplay.buildLabel}</span>
+        {/* Où en est la mise à jour embarquée, sur l'APK seulement : sans cette
+            ligne, un blocage sur un téléphone ne se voyait nulle part. */}
+        {isNativeRuntime() && liveUpdateStatusLabel(readLiveUpdateStatus())
+          ? <small>{liveUpdateStatusLabel(readLiveUpdateStatus())}</small>
+          : null}
       </footer>
     </section>
   </div>

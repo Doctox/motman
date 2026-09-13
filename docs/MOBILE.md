@@ -74,7 +74,7 @@ copie du site construite pour l'APK, et l'application l'installe d'elle-même.
 
 **Le trajet.** La chaîne construit le site pour la racine (`dist-app`, car
 l'APK sert ses fichiers à `/` et le site public à `/motman/`), le passe à
-l'audit de sécurité, le zippe et publie dans `https://doctox.fr/motman/app-update/` :
+l'audit de sécurité, le zippe et publie dans `https://www.doctox.fr/motman/app-update/` (avec `www.` : sans lui, une redirection bloque la lecture depuis l'APK) :
 `bundle-<N>.zip` et `latest.json`, un manifeste signé. Au lancement,
 l'application (`src/liveUpdate.ts`) lit le manifeste, vérifie sa signature,
 télécharge le zip en arrière-plan et l'installe au lancement suivant. Le module

@@ -7,8 +7,8 @@ import { isNativeRuntime } from './nativeRuntime'
 // mise à jour obligatoire, sans issue côté client.
 // Le contrôle de build `scripts/check_client_version.mjs` (câblé sur `prebuild`)
 // fait échouer le build en cas d'écart.
-export const ANDROID_VERSION_CODE = 8
-export const ANDROID_VERSION_NAME = '1.0.7'
+export const ANDROID_VERSION_CODE = 9
+export const ANDROID_VERSION_NAME = '1.0.8'
 
 // Le numéro de l'APK INSTALLÉ, lu auprès d'Android au démarrage.
 //
