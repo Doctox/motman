@@ -1,14 +1,20 @@
 import { appVersion } from './appVersion'
 import { LIVE_UPDATE_PUBLIC_KEY } from './liveUpdateKey'
-import { decideLiveUpdate, LIVE_UPDATE_MANIFEST_URL, verifyLiveUpdateManifest } from './liveUpdateManifest'
+import {
+  decideLiveUpdate,
+  LIVE_UPDATE_MANIFEST_URL,
+  verifyLiveUpdateManifest,
+  type LiveUpdateManifest,
+} from './liveUpdateManifest'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Les mises à jour embarquées, côté application. La règle et la cryptographie
-// vivent dans liveUpdateManifest.ts ; ici, seulement l'enchaînement — et sa
-// TRACE.
+// vivent dans liveUpdateManifest.ts ; ici, l'enchaînement en trois temps —
+// trouver, télécharger, appliquer — et sa TRACE. L'écran qui les montre au
+// lancement est orchestré par main.tsx.
 //
 // Rien de ce qui suit ne doit jamais empêcher de jouer : toute erreur est
-// avalée. Au pire, le joueur garde la version qu'il a déjà.
+// consignée puis avalée. Au pire, le joueur garde la version qu'il a déjà.
 //
 // POURQUOI UNE TRACE. Le 13/09/2026, le premier APK à mises à jour (1.0.7) n'a
 // jamais pu lire son manifeste — une redirection bloquée, invisible sur le
@@ -77,47 +83,81 @@ function runningBuild(): number {
   return /^\d+$/.test(appVersion.updateNumber) ? Number(appVersion.updateNumber) : 0
 }
 
-const message = (reason: unknown) => reason instanceof Error ? reason.message : String(reason)
+const message = (reason: unknown) =>
+  reason instanceof DOMException && reason.name === 'AbortError' ? 'délai dépassé'
+    : reason instanceof Error ? reason.message : String(reason)
 
 /**
- * Cherche une version plus récente, la télécharge en arrière-plan et la
- * programme pour le prochain lancement. Ne coupe jamais la partie en cours.
+ * 1. TROUVER. Le manifeste, s'il annonce une version à installer ; sinon null.
+ * `limiteMs` borne l'attente : au lancement, une vérification facultative ne
+ * doit pas retenir le joueur sur un réseau lent.
  */
-export async function checkForLiveUpdate(): Promise<void> {
+export async function findLiveUpdate(limiteMs: number): Promise<LiveUpdateManifest | null> {
   let signe: unknown
+  const controleur = new AbortController()
+  const minuterie = setTimeout(() => controleur.abort(), limiteMs)
   try {
-    const reponse = await fetch(LIVE_UPDATE_MANIFEST_URL, { cache: 'no-store' })
-    if (!reponse.ok) { consigner({ etape: 'illisible', detail: `HTTP ${reponse.status}` }); return }
+    const reponse = await fetch(LIVE_UPDATE_MANIFEST_URL, { cache: 'no-store', signal: controleur.signal })
+    if (!reponse.ok) { consigner({ etape: 'illisible', detail: `HTTP ${reponse.status}` }); return null }
     signe = await reponse.json()
   } catch (reason) {
     consigner({ etape: 'illisible', detail: message(reason) })
-    return
+    return null
+  } finally {
+    clearTimeout(minuterie)
   }
 
   try {
     const manifeste = await verifyLiveUpdateManifest(signe, LIVE_UPDATE_PUBLIC_KEY, crypto.subtle)
-    if (!manifeste) { consigner({ etape: 'signature' }); return }
-
+    if (!manifeste) { consigner({ etape: 'signature' }); return null }
     const { App } = await import('@capacitor/app')
     const nativeVersionCode = Number((await App.getInfo()).build) || 0
     const decision = decideLiveUpdate(manifeste, { runningBuild: runningBuild(), nativeVersionCode })
-    if (decision === 'none') { consigner({ etape: 'a-jour', version: manifeste.version }); return }
-    if (decision === 'native-too-old') { consigner({ etape: 'apk-ancien', version: manifeste.version }); return }
-
-    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    const version = String(manifeste.version)
-    // Déjà téléchargée lors d'une ouverture précédente, mais pas encore lancée :
-    // on la reprogramme au lieu de la retélécharger.
-    const { bundles } = await CapacitorUpdater.list()
-    let bundle = bundles.find(item => item.version === version && item.status === 'success')
-    if (!bundle) {
-      consigner({ etape: 'telechargement', version: manifeste.version })
-      bundle = await CapacitorUpdater.download({ url: manifeste.url, version, checksum: manifeste.checksum })
-    }
-    await CapacitorUpdater.next({ id: bundle.id })
-    consigner({ etape: 'prete', version: manifeste.version })
+    if (decision === 'none') { consigner({ etape: 'a-jour', version: manifeste.version }); return null }
+    if (decision === 'native-too-old') { consigner({ etape: 'apk-ancien', version: manifeste.version }); return null }
+    return manifeste
   } catch (reason) {
     consigner({ etape: 'echec', detail: message(reason) })
-    console.warn('[MotMan] Mise à jour embarquée impossible', reason)
+    return null
   }
+}
+
+/**
+ * 2. TÉLÉCHARGER, en rapportant la progression (0 à 100). Rend l'identifiant de
+ * la version téléchargée. Une version déjà téléchargée lors d'une ouverture
+ * précédente n'est pas retéléchargée.
+ */
+export async function downloadLiveUpdate(manifeste: LiveUpdateManifest, onProgress: (percent: number) => void): Promise<string> {
+  const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+  const version = String(manifeste.version)
+  const { bundles } = await CapacitorUpdater.list()
+  const dejaLa = bundles.find(bundle => bundle.version === version && bundle.status === 'success')
+  if (dejaLa) { onProgress(100); return dejaLa.id }
+
+  consigner({ etape: 'telechargement', version: manifeste.version })
+  const ecoute = await CapacitorUpdater.addListener('download', event => onProgress(event.percent))
+  try {
+    const bundle = await CapacitorUpdater.download({ url: manifeste.url, version, checksum: manifeste.checksum })
+    onProgress(100)
+    return bundle.id
+  } catch (reason) {
+    consigner({ etape: 'echec', version: manifeste.version, detail: message(reason) })
+    throw reason
+  } finally {
+    await ecoute.remove()
+  }
+}
+
+/** 3a. APPLIQUER TOUT DE SUITE : l'application redémarre sur la nouvelle version. */
+export async function applyLiveUpdateNow(id: string, version: number): Promise<void> {
+  consigner({ etape: 'prete', version })
+  const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+  await CapacitorUpdater.set({ id })
+}
+
+/** 3b. APPLIQUER AU PROCHAIN LANCEMENT : le joueur a choisi de ne pas attendre. */
+export async function applyLiveUpdateLater(id: string, version: number): Promise<void> {
+  const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+  await CapacitorUpdater.next({ id })
+  consigner({ etape: 'prete', version })
 }

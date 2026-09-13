@@ -106,3 +106,19 @@ describe('la décision', () => {
     expect(decideLiveUpdate(manifeste(), { runningBuild: 0, nativeVersionCode: 8 })).toBe('download')
   })
 })
+
+describe('la taille du téléchargement', () => {
+  it('est facultative : un manifeste sans taille reste valide', () => {
+    expect(parseLiveUpdateManifest(manifeste())).toEqual(manifeste())
+  })
+
+  it('est reprise quand elle est donnée', () => {
+    expect(parseLiveUpdateManifest({ ...manifeste(), size: 11_458_121 })?.size).toBe(11_458_121)
+  })
+
+  it('est ignorée si elle est aberrante, sans faire refuser la mise à jour', () => {
+    const lu = parseLiveUpdateManifest({ ...manifeste(), size: -4 })
+    expect(lu).not.toBeNull()
+    expect(lu).not.toHaveProperty('size')
+  })
+})

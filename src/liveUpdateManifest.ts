@@ -58,6 +58,8 @@ export type LiveUpdateManifest = {
   checksum: string
   minNativeVersionCode: number
   builtAt: string
+  /** Taille du zip en octets, pour l'écran de téléchargement. Facultative. */
+  size?: number
 }
 
 export type SignedLiveUpdateManifest = { payload: string; signature: string }
@@ -103,7 +105,10 @@ export function parseLiveUpdateManifest(valeur: unknown): LiveUpdateManifest | n
   if (!url.startsWith(LIVE_UPDATE_BASE_URL) || !url.endsWith('.zip') || url.includes('..')) return null
   if (!/^[0-9a-f]{64}$/.test(checksum)) return null
   if (!builtAt || Number.isNaN(Date.parse(builtAt))) return null
-  return { version, url, checksum, minNativeVersionCode, builtAt }
+  // Facultative : un manifeste plus ancien n'en a pas, et une taille aberrante
+  // est ignorée plutôt que de faire refuser une mise à jour valide.
+  const size = entierPositif(brut.size)
+  return { version, url, checksum, minNativeVersionCode, builtAt, ...(size ? { size } : {}) }
 }
 
 /** Signe un manifeste. Utilisé par la chaîne GitHub, jamais par l'application. */

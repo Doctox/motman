@@ -4,6 +4,9 @@ import './tokens.css'
 import './base.css'
 import { isNativeRuntime } from './nativeRuntime'
 import { AppErrorBoundary } from './AppErrorBoundary'
+import { LaunchScreen } from './LaunchScreen'
+import { downloadStalled, UPDATE_CHECK_LIMIT_MS, type LaunchStage } from './launchProgress'
+import type { LiveUpdateManifest } from './liveUpdateManifest'
 import { installPressFeedback } from './pressFeedback'
 import { initializeSensoryPreferences } from './sensoryPreferences'
 import { installStaleDeployRecovery } from './staleDeployRecovery'
@@ -15,6 +18,16 @@ installStaleDeployRecovery()
 // Retour d'appui immediat : sur Android, `:active` arrive apres l'heuristique
 // de defilement de Chrome, et le flash natif est desactive. Voir pressFeedback.ts.
 installPressFeedback()
+
+// Le thème AVANT la première image : l'écran de lancement doit déjà être sombre
+// pour qui a choisi le sombre. Le menu le repose ensuite, avec la même règle.
+try {
+  const choix = localStorage.getItem('motman-theme') ?? 'light'
+  const sombre = choix === 'dark' || (choix === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+  document.documentElement.dataset.theme = sombre ? 'dark' : 'light'
+} catch {
+  // Stockage indisponible : thème clair, comme le menu par défaut.
+}
 
 const nativeRuntime = isNativeRuntime()
 document.documentElement.classList.toggle('native-runtime', nativeRuntime)
@@ -29,45 +42,109 @@ if (nativeRuntime) {
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 
-// L'ouverture dépend du réseau : chargement des modules, vérification de version,
-// puis bootstrap de la session. Le 28/08/2026, une panne serveur a rendu la
-// dernière étape muette et l'écran est resté figé sur « Ouverture de MotMan… »
-// sans barre, sans message, sans issue. Un joueur dans une zone mal couverte
-// vivrait exactement la même chose sans qu'aucun serveur ne soit en panne.
+// L'ouverture dépend du réseau : recherche de mise à jour, chargement des
+// modules, vérification de version, puis bootstrap de la session. Le 28/08/2026,
+// une panne serveur a rendu la dernière étape muette et l'écran est resté figé
+// sur « Ouverture de MotMan… » sans barre, sans message, sans issue. Un joueur
+// dans une zone mal couverte vivrait exactement la même chose sans qu'aucun
+// serveur ne soit en panne.
 //
-// On rend donc l'attente lisible : une barre qui bouge dès la première seconde,
-// puis, au bout de OUVERTURE_LENTE_MS, l'aveu que c'est anormal et un bouton
-// pour reprendre la main. On ne coupe pas l'ouverture pour autant : si le
-// serveur répond à la douzième seconde, la partie se lance normalement.
+// On rend donc l'attente lisible : le logo, une barre qui avance à chaque étape,
+// puis, au bout de OUVERTURE_LENTE_MS sans aboutir, l'aveu que c'est anormal et
+// un bouton pour reprendre la main. On ne coupe pas l'ouverture pour autant : si
+// le serveur répond à la douzième seconde, la partie se lance normalement.
 const OUVERTURE_LENTE_MS = 7_000
 
-function renderOuverture(lente: boolean) {
-  root.render(
-    <main className="app-loading" role="status" aria-live="polite">
-      <span>Ouverture de MotMan…</span>
-      <div className="app-loading-bar" aria-hidden="true"><i /></div>
-      {lente ? <>
-        <small>Le serveur met plus de temps que d’habitude.</small>
-        <button type="button" onClick={() => location.reload()}>Réessayer</button>
-      </> : null}
-    </main>,
-  )
+let etape: LaunchStage = 'demarrage'
+let lente = false
+let avisLenteur: ReturnType<typeof setTimeout> | undefined
+
+function afficherOuverture() {
+  root.render(<LaunchScreen mode="ouverture" stage={etape} lente={lente} onRetry={() => location.reload()} />)
 }
 
-renderOuverture(false)
-let avisLenteur: ReturnType<typeof setTimeout> | undefined = setTimeout(() => renderOuverture(true), OUVERTURE_LENTE_MS)
+function surveillerLenteur() {
+  if (avisLenteur !== undefined) clearTimeout(avisLenteur)
+  avisLenteur = setTimeout(() => { lente = true; afficherOuverture() }, OUVERTURE_LENTE_MS)
+}
 
 function ouvertureTerminee() {
   if (avisLenteur !== undefined) clearTimeout(avisLenteur)
   avisLenteur = undefined
 }
 
-void Promise.all([
-  import('./auth'), import('./App'), import('./appUpdate'),
-  // Le vrai numéro de l'APK avant le premier appel serveur : c'est lui que
-  // l'en-tête doit annoncer (clientVersion.ts).
-  import('./clientVersion').then(module => module.initializeNativeVersionCode()),
-]).then(async ([auth, app, update]) => {
+function avancer(suivante: LaunchStage) {
+  etape = suivante
+  afficherOuverture()
+}
+
+afficherOuverture()
+surveillerLenteur()
+
+/**
+ * Une mise à jour trouvée au lancement : on la montre, on la télécharge, et on
+ * repart directement sur la nouvelle version, comme dans les autres jeux. Rend
+ * `true` si l'application redémarre.
+ *
+ * Le joueur n'est jamais retenu : « Jouer sans attendre », ou un téléchargement
+ * qui ne progresse plus depuis DOWNLOAD_STALL_LIMIT_MS, et l'ouverture reprend —
+ * le téléchargement, lui, continue et s'appliquera au prochain lancement.
+ */
+function proposerMiseAJour(liveUpdate: typeof import('./liveUpdate'), manifeste: LiveUpdateManifest): Promise<boolean> {
+  ouvertureTerminee()
+  return new Promise(resolve => {
+    let decide = false
+    let pourcentage = 0
+    let derniereProgression = Date.now()
+
+    const afficher = () => root.render(
+      <LaunchScreen mode="mise-a-jour" percent={pourcentage} sizeBytes={manifeste.size} onSkip={passer} />,
+    )
+    function passer() {
+      if (decide) return
+      decide = true
+      clearInterval(veille)
+      surveillerLenteur()
+      resolve(false)
+    }
+    const veille = setInterval(() => { if (downloadStalled(derniereProgression, Date.now())) passer() }, 1_000)
+
+    afficher()
+    liveUpdate.downloadLiveUpdate(manifeste, valeur => {
+      if (valeur > pourcentage) derniereProgression = Date.now()
+      pourcentage = Math.max(pourcentage, valeur)
+      if (!decide) afficher()
+    }).then(async id => {
+      if (decide) {
+        // Le joueur est déjà en train de jouer : la version attendra le prochain lancement.
+        await liveUpdate.applyLiveUpdateLater(id, manifeste.version)
+        return
+      }
+      decide = true
+      clearInterval(veille)
+      await liveUpdate.applyLiveUpdateNow(id, manifeste.version)
+      resolve(true)
+    }).catch(() => passer())
+  })
+}
+
+void (async () => {
+  if (nativeRuntime) {
+    avancer('mises-a-jour')
+    const liveUpdate = await import('./liveUpdate')
+    const manifeste = await liveUpdate.findLiveUpdate(UPDATE_CHECK_LIMIT_MS).catch(() => null)
+    if (manifeste && await proposerMiseAJour(liveUpdate, manifeste)) return
+  }
+
+  avancer('chargement')
+  const [auth, app, update] = await Promise.all([
+    import('./auth'), import('./App'), import('./appUpdate'),
+    // Le vrai numéro de l'APK avant le premier appel serveur : c'est lui que
+    // l'en-tête doit annoncer (clientVersion.ts).
+    import('./clientVersion').then(module => module.initializeNativeVersionCode()),
+  ])
+
+  avancer('version')
   const requiredUpdate = await update.checkRequiredAppUpdate().catch(() => null)
   if (requiredUpdate) {
     ouvertureTerminee()
@@ -75,19 +152,18 @@ void Promise.all([
     root.render(<RequiredAppUpdate update={requiredUpdate} />)
     return
   }
+
+  avancer('connexion')
   await auth.bootstrapPlayerSession()
   ouvertureTerminee()
   const App = app.App
   root.render(<React.StrictMode><AppErrorBoundary><App initialRequiredUpdate={requiredUpdate} /></AppErrorBoundary></React.StrictMode>)
   if (nativeRuntime) {
-    // Après l'ouverture, en arrière-plan : une version plus récente est
-    // téléchargée et programmée pour le prochain lancement.
-    void import('./liveUpdate').then(module => module.checkForLiveUpdate())
     void import('./nativePushNotifications')
       .then(module => module.initializeNativePushNotifications())
       .catch(error => console.error('Initialisation des notifications impossible', error))
   }
-}).catch(reason => {
+})().catch(reason => {
   ouvertureTerminee()
   const message = reason instanceof Error ? reason.message : 'Connexion à MotMan impossible.'
   root.render(<main className="app-loading app-loading-error" role="alert"><strong>MotMan est momentanément indisponible</strong><span>{message}</span><button type="button" onClick={() => location.reload()}>Réessayer</button></main>)

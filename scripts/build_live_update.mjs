@@ -65,6 +65,7 @@ const donnees = {
   checksum: createHash('sha256').update(contenu).digest('hex'),
   minNativeVersionCode: manifeste.LIVE_UPDATE_MIN_NATIVE_VERSION_CODE,
   builtAt: new Date().toISOString(),
+  size: contenu.length,
 }
 if (!manifeste.parseLiveUpdateManifest(donnees)) {
   console.error('✖ Le manifeste produit ne passe pas sa propre validation.')
