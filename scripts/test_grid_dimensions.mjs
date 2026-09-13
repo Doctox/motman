@@ -45,11 +45,11 @@ try {
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
   if (reel) {
-    assert.equal(catalog.version, 26)
-    assert.equal(catalog.grids.length, 106)
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 253)
-    // Les 40 grilles à thème du défi du jour, arrivées en v24.
-    assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 40)
+    assert.equal(catalog.version, 27)
+    assert.equal(catalog.grids.length, 111)
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 257)
+    // Les grilles à thème du défi du jour : 40 en v24, 45 avec « Corps humain » en v27.
+    assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 45)
   }
   assert.ok(catalog.grids.every(grid => grid.columns === 7 && grid.rows === 8 && grid.size === undefined))
   assert.ok(catalog.grids.every(grid => grid.difficulty === undefined))
