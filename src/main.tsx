@@ -3,10 +3,15 @@ import ReactDOM from 'react-dom/client'
 import './tokens.css'
 import './base.css'
 import { isNativeRuntime } from './nativeRuntime'
+import { AppErrorBoundary } from './AppErrorBoundary'
 import { installPressFeedback } from './pressFeedback'
 import { initializeSensoryPreferences } from './sensoryPreferences'
+import { installStaleDeployRecovery } from './staleDeployRecovery'
 
 initializeSensoryPreferences()
+// Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
+// de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
+installStaleDeployRecovery()
 // Retour d'appui immediat : sur Android, `:active` arrive apres l'heuristique
 // de defilement de Chrome, et le flash natif est desactive. Voir pressFeedback.ts.
 installPressFeedback()
@@ -73,7 +78,7 @@ void Promise.all([
   await auth.bootstrapPlayerSession()
   ouvertureTerminee()
   const App = app.App
-  root.render(<React.StrictMode><App initialRequiredUpdate={requiredUpdate} /></React.StrictMode>)
+  root.render(<React.StrictMode><AppErrorBoundary><App initialRequiredUpdate={requiredUpdate} /></AppErrorBoundary></React.StrictMode>)
   if (nativeRuntime) {
     // Après l'ouverture, en arrière-plan : une version plus récente est
     // téléchargée et programmée pour le prochain lancement.
