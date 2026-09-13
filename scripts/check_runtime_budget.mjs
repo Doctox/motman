@@ -13,10 +13,14 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // 56 à 96 grilles, 319 Ko à 465 Ko (103 Ko compressés), les images comptant pour
 // 45 % du fichier. Les seuils sont relevés d'environ un tiers au-dessus : les
 // thèmes suivants provoqueront une nouvelle décision au lieu de passer inaperçus.
+//
+// 2026-09-13 soir : premier lot de grilles normales de l'Éditeur (10 grilles,
+// 30 images) — 106 grilles, 596 Ko (148 Ko compressés). Seuils relevés pour
+// laisser place au thème « Corps humain » et à quelques lots de plus.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 620_000,
-  runtimeCatalogGzip: 140_000,
+  runtimeCatalog: 850_000,
+  runtimeCatalogGzip: 210_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,

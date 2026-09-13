@@ -45,9 +45,9 @@ try {
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
   if (reel) {
-    assert.equal(catalog.version, 25)
-    assert.equal(catalog.grids.length, 96)
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 223)
+    assert.equal(catalog.version, 26)
+    assert.equal(catalog.grids.length, 106)
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 253)
     // Les 40 grilles à thème du défi du jour, arrivées en v24.
     assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 40)
   }
