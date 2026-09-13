@@ -433,7 +433,9 @@
 .board{background:linear-gradient(180deg,#f8f1e2,#f1e9d5)!important;padding:5px!important;border-radius:15px!important;box-shadow:0 12px 28px #173b3018,0 2px 6px #49391f0f,inset 0 0 0 1px #efe3ca!important}
 [data-theme="dark"] .board{background:linear-gradient(180deg,#1c2a24,#16211d)!important;box-shadow:0 12px 28px #0006,inset 0 0 0 1px #33443c!important}
 .board .cell{border:0!important;border-radius:9px!important}
-.board .cell.slot,.board .clue{border:3px solid transparent!important;background-clip:padding-box!important}
+/* Cases noires comprises : sans ce retrait elles remplissaient toute la case,
+   paraissaient plus grosses que les autres et se collaient entre voisines. */
+.board .cell.slot,.board .clue,.board .cell.blocked{border:3px solid transparent!important;background-clip:padding-box!important}
 .board .cell.slot:not([data-confirmed="true"]):not(.correct):not(.wrong):not(.bot-play):not(.drop-target):not(.word-reward-cell):not(.clue-focus){background-color:var(--surface)!important;background-image:none!important;box-shadow:inset 0 2px 4px #b7a67d40,inset 0 0 0 1px #efe6d0!important}
 [data-theme="dark"] .board .cell.slot:not([data-confirmed="true"]):not(.correct):not(.wrong):not(.bot-play):not(.drop-target):not(.word-reward-cell):not(.clue-focus){background-color:#1d2b25!important;box-shadow:inset 0 2px 4px #0006,inset 0 0 0 1px #2f3f38!important}
 .board .clue-tone-0{background-color:#f5dfd6!important;background-image:none!important}

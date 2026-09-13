@@ -44,9 +44,20 @@ export function useTurnPhase(match: MatchState | null): TurnPhase {
   return phaseAt(match)
 }
 
-export function TurnTimer({ match, resolving, started }: { match: MatchState; resolving: boolean; started: boolean }) {
+/**
+ * Le compte à rebours du tour EN COURS, celui de l'adversaire compris.
+ *
+ * Il affichait un tiret pendant tout le tour adverse : le tour suivant ne
+ * « commence » qu'à la fin de la fenêtre de révélation, et le tiret restait
+ * ensuite pendant que l'adversaire — un bot, qui prend quelques secondes à
+ * réfléchir — jouait. On voyait donc le bot jouer sans que rien ne défile.
+ *
+ * Seule la RÉVÉLATION garde le tiret : à ce moment les lettres s'affichent une
+ * à une et aucun tour ne court encore.
+ */
+export function TurnTimer({ match, resolving }: { match: MatchState; resolving: boolean }) {
   const labelAt = () => {
-    if (match.status !== 'active' || resolving || !started) return '—'
+    if (match.status !== 'active' || resolving) return '—'
     const seconds = Math.max(0, Math.ceil((new Date(match.turnEndsAt).getTime() - serverNow()) / 1_000))
     return turnClockLabel(seconds, match.pace === 'async')
   }
@@ -57,9 +68,9 @@ export function TurnTimer({ match, resolving, started }: { match: MatchState; re
       return current === next ? current : next
     })
     update()
-    if (match.status !== 'active' || resolving || !started) return
+    if (match.status !== 'active' || resolving) return
     const timer = window.setInterval(update, 250)
     return () => window.clearInterval(timer)
-  }, [match.pace, match.status, match.turnEndsAt, match.turnNumber, resolving, started])
+  }, [match.pace, match.status, match.turnEndsAt, match.turnNumber, resolving])
   return <span className="turn-timer">{label}</span>
 }

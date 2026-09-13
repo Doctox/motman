@@ -363,5 +363,7 @@ body{overscroll-behavior-y:none}
 /* Case noire des grilles à thème : ni lettre ni définition. Le vert profond de
    la marque en clair ; en sombre, plus sombre que le plateau pour rester lisible
    comme un vide. */
-.board .cell.blocked{background:var(--green);cursor:default}
-[data-theme="dark"] .board .cell.blocked{background:#0f1c18}
+/* Le retrait qui les sépare vit avec celui des autres cases, dans
+   game-interaction.css (`.board .cell.blocked`). */
+.board .cell.blocked{background-color:var(--green);cursor:default}
+[data-theme="dark"] .board .cell.blocked{background-color:#0f1c18}

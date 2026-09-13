@@ -59,7 +59,10 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
             {grid.cells.map((cell, index) => {
               if (cell.kind !== 'letter') {
                 const definitions = 'entries' in cell && Array.isArray(cell.entries) ? cell.entries : []
-                return <div className={`mm-replay-cell ${cell.kind === 'blocked' ? 'blocked' : 'clue'}`} key={index}>
+                // Même règle que le plateau : une case de définition vide est
+                // une case noire, sauf le coin haut gauche qui porte le logo.
+                const noire = cell.kind === 'blocked' || (!definitions.length && index !== 0)
+                return <div className={`mm-replay-cell ${noire ? 'blocked' : 'clue'}`} key={index}>
                   {definitions.map((entry, rang) => <span key={rang}>{String((entry as { text?: string }).text ?? '')}</span>)}
                 </div>
               }
