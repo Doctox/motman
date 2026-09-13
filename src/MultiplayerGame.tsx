@@ -75,7 +75,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const fitBoardRef = useClueAutoFit()
   const [provisional, setProvisional] = useState<Record<number, Tile>>({})
   const [selected, setSelected] = useState<Tile | null>(null)
-  const [drag, setDrag] = useState<{ tile: Tile; origin: 'rack' | number; x: number; y: number } | null>(null)
+  const [drag, setDrag] = useState<{ tile: Tile; origin: 'rack' | number; pointerId: number; x: number; y: number } | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   const [status, setStatus] = useState('Connexion à la partie…')
   const [resolving, setResolving] = useState(false)
@@ -434,18 +434,24 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   }
 
   const pointerDown = (event: React.PointerEvent, tile: Tile, origin: 'rack' | number) => {
-    if (!canAct || resolving) return
+    // Un seul doigt à la fois : un deuxième contact (l'autre main, la paume, le
+    // pouce qui tient le téléphone) ne reprend pas une lettre en plein geste.
+    if (!canAct || resolving || drag) return
     event.currentTarget.setPointerCapture(event.pointerId)
     refreshCellBoxes()
-    setDrag({ tile, origin, x: event.clientX, y: event.clientY })
+    // Le fantôme naît DÉJÀ au point visé : React et `moveGhost` écrivent la même
+    // position, sinon la lettre apparaît sous le doigt puis saute au-dessus.
+    const depart = aimPoint(event.clientX, event.clientY, event.pointerType)
+    setDrag({ tile, origin, pointerId: event.pointerId, x: depart.x, y: depart.y })
     // Un retour dès la PRISE, pas seulement à la pose : le doigt sait que la
     // lettre est attrapée avant même d'avoir bougé.
     haptic(8); playEffect('pick')
-    const point = aimPoint(event.clientX, event.clientY, event.pointerType)
-    moveGhost(point.x, point.y)
+    moveGhost(depart.x, depart.y)
   }
   const pointerMove = (event: React.PointerEvent) => {
-    if (!drag) return
+    // Les autres contacts passent aussi par ici : sans ce filtre, le fantôme
+    // sautait vers l'autre doigt, puis revenait au premier.
+    if (!drag || event.pointerId !== drag.pointerId) return
     // Le fantôme suit LE POINT VISÉ, pas le doigt : ce qu'on voit est ce qui
     // sera posé. Le dessiner sous la main reviendrait à poser à l'aveugle.
     const point = aimPoint(event.clientX, event.clientY, event.pointerType)
@@ -454,6 +460,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     setDropTarget(current => current === nextTarget ? current : nextTarget)
   }
   const pointerUp = (event: React.PointerEvent) => {
+    if (drag && event.pointerId !== drag.pointerId) return
     if (drag) {
       const cible = targetAt(event)
       if (cible !== null && cible >= 0) placeTile(drag.tile, cible, drag.origin)
@@ -461,7 +468,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     }
     stopGhost(); setDrag(null); setDropTarget(null)
   }
-  const pointerCancel = () => { stopGhost(); setDrag(null); setDropTarget(null) }
+  const pointerCancel = (event: React.PointerEvent) => {
+    if (drag && event.pointerId !== drag.pointerId) return
+    stopGhost(); setDrag(null); setDropTarget(null)
+  }
 
   // Un défilement en cours de geste déplace les cases sous le doigt : sans ce
   // rafraîchissement, la visée continuerait de croire à l'ancienne position.
@@ -470,11 +480,22 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     const relever = () => { cellBoxesRef.current = measureCells() }
     window.addEventListener('scroll', relever, { passive: true, capture: true })
     window.addEventListener('resize', relever, { passive: true })
+    // Filet : si le doigt se lève hors de nos éléments (tour terminé en plein
+    // geste, lettre désactivée), le geste se termine quand même. Sans lui, la
+    // règle « un seul doigt à la fois » bloquerait toute prise suivante.
+    const fin = (event: PointerEvent) => {
+      if (event.pointerId !== drag.pointerId) return
+      stopGhost(); setDrag(null); setDropTarget(null)
+    }
+    window.addEventListener('pointerup', fin)
+    window.addEventListener('pointercancel', fin)
     return () => {
       window.removeEventListener('scroll', relever, { capture: true } as EventListenerOptions)
       window.removeEventListener('resize', relever)
+      window.removeEventListener('pointerup', fin)
+      window.removeEventListener('pointercancel', fin)
     }
-  }, [drag])
+  }, [drag, stopGhost])
 
   const validate = async (automatic = false) => {
     const currentMatch = matchRef.current

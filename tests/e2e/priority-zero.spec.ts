@@ -560,3 +560,60 @@ test('une grille complète atteint l’écran final', async ({ browser, request 
     await result.context.close()
   }
 })
+
+test('au doigt, la lettre portée reste au-dessus du même doigt, même quand un autre touche l’écran', async ({ browser, browserName, request }) => {
+  test.skip(browserName !== 'chromium', 'Les contacts tactiles multiples passent par le protocole de Chromium.')
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Deux doigts')
+  const initial = await loadMatch(request, first.playerId, matchId)
+  const placement = playablePlacements(initial)[0]
+  expect(placement).toBeTruthy()
+  const actor = initial.currentPlayerId === first.playerId ? first : second
+  const { context, page } = await openGame(browser, actor, matchId, { width: 390, height: 844 })
+  try {
+    await expect(page.locator('.turn-ready-flash')).toBeHidden()
+    const lettres = page.locator('.rack-letter:not([disabled])')
+    await expect(lettres.nth(1)).toBeVisible()
+    const prise = (await lettres.nth(0).boundingBox())!
+    const autre = (await lettres.nth(1).boundingBox())!
+    const cdp = await context.newCDPSession(page)
+    const doigt = { x: Math.round(prise.x + prise.width / 2), y: Math.round(prise.y + prise.height / 2), id: 1 }
+    const pouce = { x: Math.round(autre.x + autre.width / 2), y: Math.round(autre.y + autre.height / 2), id: 2 }
+    const toucher = (type: string, touchPoints: Array<typeof doigt>) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints })
+    // Le centre du fantôme, là où il est dessiné — pas là où React l'a créé.
+    const fantome = () => page.evaluate(() => {
+      const boite = document.querySelector('.drag-ghost')?.getBoundingClientRect()
+      return boite ? { x: Math.round(boite.x + boite.width / 2), y: Math.round(boite.y + boite.height / 2) } : null
+    })
+    const auDessusDuDoigt = async (x: number, y: number) => {
+      // Tolérance de quelques pixels : le fantôme s'incline en suivant le geste.
+      await expect.poll(async () => {
+        const centre = await fantome()
+        return centre !== null && Math.abs(centre.x - x) <= 8 && Math.abs(centre.y - (y - 34)) <= 8
+      }).toBe(true)
+    }
+
+    await toucher('touchStart', [doigt])
+    await auDessusDuDoigt(doigt.x, doigt.y)
+
+    // Le doigt glisse vers le plateau.
+    const plateau = (await page.locator('.board').boundingBox())!
+    const suite = { ...doigt, y: Math.round(plateau.y + plateau.height / 2) }
+    await toucher('touchMove', [suite])
+    await auDessusDuDoigt(suite.x, suite.y)
+
+    // Un pouce se pose sur une autre lettre et bouge : la lettre portée ne
+    // doit ni sauter vers lui, ni changer de main.
+    await toucher('touchStart', [suite, pouce])
+    await toucher('touchMove', [suite, { ...pouce, x: pouce.x + 30, y: pouce.y - 60 }])
+    await page.waitForTimeout(100)
+    await auDessusDuDoigt(suite.x, suite.y)
+    // `touchEnd` nomme les contacts qui se lèvent : d'abord le pouce, puis le doigt.
+    await toucher('touchEnd', [{ ...pouce, x: pouce.x + 30, y: pouce.y - 60 }])
+    await auDessusDuDoigt(suite.x, suite.y)
+
+    await toucher('touchEnd', [suite])
+    await expect(page.locator('.drag-ghost')).toHaveCount(0)
+  } finally {
+    await context.close()
+  }
+})
