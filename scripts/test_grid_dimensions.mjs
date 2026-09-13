@@ -45,14 +45,24 @@ try {
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
   if (reel) {
-    assert.equal(catalog.version, 23)
-    assert.equal(catalog.grids.length, 56)
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 166)
+    assert.equal(catalog.version, 24)
+    assert.equal(catalog.grids.length, 96)
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 204)
+    // Les 40 grilles à thème du défi du jour, arrivées en v24.
+    assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 40)
   }
   assert.ok(catalog.grids.every(grid => grid.columns === 7 && grid.rows === 8 && grid.size === undefined))
   assert.ok(catalog.grids.every(grid => grid.difficulty === undefined))
   assert.equal(new Set(catalog.grids.map(grid => grid.id)).size, catalog.grids.length)
   const playableSources = catalog.grids.filter(isCatalogGridPlayable)
+  // Les grilles à thème sont RÉSERVÉES au défi du jour : le défi les charge par
+  // leur identifiant, mais aucun tirage ne doit les servir. Les contrôles de
+  // tirage ci-dessous portent donc sur les seules grilles de rotation.
+  const rotationSources = playableSources.filter(grid => !grid.dailyOnly)
+  for (const grid of catalog.grids.filter(grid => grid.dailyOnly)) {
+    assert.ok(typeof grid.theme === 'string' && grid.theme.trim() !== '', `${grid.id} : grille réservée au défi sans libellé de thème`)
+    assert.ok(grid.blockedCells?.length, `${grid.id} : grille à thème sans case noire`)
+  }
   const storedQuarantines = catalog.grids.filter(grid => blacklist.quarantinedGridIds.includes(grid.id))
   assert.ok(storedQuarantines.every(grid => !playableSources.includes(grid)))
   assert.ok(playableSources.length > 0, 'Le catalogue doit conserver au moins une grille jouable.')
@@ -65,12 +75,14 @@ try {
     assert.equal(generated.version, `offline-catalog-${catalog.version}`)
   }
   const chosenIds = new Set()
-  for (let seed = 0; seed < playableSources.length; seed += 1) {
+  for (let seed = 0; seed < rotationSources.length; seed += 1) {
     chosenIds.add((await generateGrid(seed, seed % 2 ? 'easy' : 'hard')).id)
   }
-  assert.equal(chosenIds.size, playableSources.length)
-  const excludedIds = playableSources.slice(0, 3).map(grid => grid.id)
-  const availableSources = playableSources.filter(grid => !excludedIds.includes(grid.id))
+  assert.equal(chosenIds.size, rotationSources.length)
+  assert.ok(![...chosenIds].some(id => catalog.grids.find(grid => grid.id === id)?.dailyOnly),
+    'Une grille réservée au défi du jour est sortie au tirage générique.')
+  const excludedIds = rotationSources.slice(0, 3).map(grid => grid.id)
+  const availableSources = rotationSources.filter(grid => !excludedIds.includes(grid.id))
   const chosenAfterExclusion = new Set()
   for (let seed = 0; seed < availableSources.length; seed += 1) {
     const selected = await generateGrid(seed, 'normal', excludedIds)
@@ -80,19 +92,19 @@ try {
   assert.equal(chosenAfterExclusion.size, availableSources.length)
 
   const productionSelection = new Set()
-  const allPublishedAnswers = playableSources.flatMap(grid => grid.words.map(word => word.answer))
+  const allPublishedAnswers = rotationSources.flatMap(grid => grid.words.map(word => word.answer))
   for (let seed = 0; seed < 20_000; seed += 1) {
     productionSelection.add(selectGridForPlayers({
-      grids: playableSources,
+      grids: rotationSources,
       recentGridIdsByPlayer: [[]],
       globalCooldownAnswers: allPublishedAnswers,
-      popularity: playableSources.map((grid, index) => ({ gridId: grid.id, score: index })),
+      popularity: rotationSources.map((grid, index) => ({ gridId: grid.id, score: index })),
       seed: `production-${seed}`,
     }).grid.id)
   }
-  assert.equal(productionSelection.size, playableSources.length, 'Toutes les grilles publiées doivent rester atteignables en production.')
+  assert.equal(productionSelection.size, rotationSources.length, 'Toutes les grilles de rotation doivent rester atteignables en production.')
 
-  console.log(`Catalogue v${catalog.version} : ${catalog.grids.length} grilles 7x8 stockées, ${playableSources.length} jouables, toutes atteignables par les tirages hors ligne et production ; indexation jusqu'à 55 validée.`)
+  console.log(`Catalogue v${catalog.version} : ${catalog.grids.length} grilles 7x8 stockées, ${playableSources.length} jouables dont ${playableSources.length - rotationSources.length} réservées au défi du jour ; les ${rotationSources.length} autres restent toutes atteignables par les tirages hors ligne et production ; indexation jusqu'à 55 validée.`)
 } finally {
   await vite.close()
 }

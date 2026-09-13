@@ -38,3 +38,11 @@ Twemoji et sont distribués sous licence CC BY 4.0.
 
 - Twemoji : https://github.com/jdecked/twemoji
 - Licence graphique : https://creativecommons.org/licenses/by/4.0/
+
+Les indices-images placés dans `public/assets/clues/custom` proviennent de
+Game Icons et sont distribués sous licence CC BY 3.0. Les silhouettes sont
+recolorées aux teintes du jeu ; l'original et son auteur restent ceux du dépôt
+ci-dessous.
+
+- Game Icons : https://github.com/game-icons/icons
+- Licence graphique : https://creativecommons.org/licenses/by/3.0/

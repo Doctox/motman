@@ -3,10 +3,20 @@ import { resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { exigerCatalogueReel } from './lib/catalogue.mjs'
 
+// Le catalogue runtime a DEUX usages : il alimente `server_grid_catalog` (le
+// serveur sert ses grilles depuis la base) et sert de catalogue hors ligne au
+// client. Il n'entre PAS dans le bundle du navigateur — `check_production_secrets`
+// le vérifie à chaque build. Les budgets ci-dessous sont donc un garde-fou de
+// croissance, pas une limite de téléchargement.
+//
+// 2026-09-13 : l'arrivée des 8 premiers thèmes du défi du jour l'a fait passer de
+// 56 à 96 grilles, 319 Ko à 465 Ko (103 Ko compressés), les images comptant pour
+// 45 % du fichier. Les seuils sont relevés d'environ un tiers au-dessus : les
+// thèmes suivants provoqueront une nouvelle décision au lieu de passer inaperçus.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 400_000,
-  runtimeCatalogGzip: 80_000,
+  runtimeCatalog: 620_000,
+  runtimeCatalogGzip: 140_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,
