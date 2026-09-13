@@ -68,6 +68,10 @@ function isCatalogGridPlayable(grid) {
     && Boolean((word.clue && word.clue.trim()) || word.image))
 }
 
+// Aujourd'hui à Paris : la bascule du défi du jour (contrat 3, §4).
+const today = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
+  .format(new Date())
+
 const byId = new Map((catalog?.grids ?? []).map(grid => [grid.id, grid]))
 const errors = []
 const seenDates = new Set()
@@ -81,6 +85,13 @@ for (const [index, entry] of calendar.days.entries()) {
   seenDates.add(entry.date)
   if (typeof entry.gridId !== 'string' || !entry.gridId) { errors.push(`${where} : gridId manquant`); continue }
   if (!catalog) continue
+  // LE PASSÉ N'EST QU'UNE TRACE. Une grille servie il y a un mois peut avoir
+  // quitté le catalogue depuis : retirée, ou renumérotée — le 13/09/2026, les
+  // 56 grilles génériques ont reçu de nouveaux identifiants pour couper le lien
+  // avec les réponses publiées dans l'historique GitHub. Exiger qu'elles y
+  // soient encore reviendrait à interdire d'en retirer une. Seuls comptent
+  // aujourd'hui et les jours à venir : ceux qui seront réellement servis.
+  if (entry.date < today) continue
   const grid = byId.get(entry.gridId)
   if (!grid) errors.push(`${where} : gridId « ${entry.gridId} » absent de runtime.grid.catalog.json`)
   else if (!isCatalogGridPlayable(grid)) errors.push(`${where} : gridId « ${entry.gridId} » présent mais NON jouable (isCatalogGridPlayable=false)`)
@@ -120,8 +131,6 @@ function dayNumber(key) {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
 }
 
-const today = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
-  .format(new Date())
 const covered = new Set([...seenDates].map(dayNumber))
 let remaining = 0
 while (covered.has(dayNumber(today) + remaining)) remaining += 1
