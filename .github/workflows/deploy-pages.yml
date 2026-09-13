@@ -191,6 +191,26 @@ jobs:
         if: always()
         run: rm -rf "$RUNNER_TEMP/motman-catalogue"
 
+      # Mise à jour embarquée pour l'APK (docs/MOBILE.md). Le même site, construit
+      # pour la RACINE — l'APK sert ses fichiers à /, le site public à /motman/ —,
+      # audité comme le site, puis zippé et signé dans dist/app-update/, qui part
+      # avec GitHub Pages. Sans le secret, rien n'est publié (avertissement).
+      - name: Build the app live update
+        if: github.event_name != 'pull_request'
+        # Un incident sur le canal de mise à jour ne doit pas bloquer le site.
+        # Sans danger : le script s'arrête AVANT de publier si l'audit échoue.
+        continue-on-error: true
+        env:
+          VITE_BASE_PATH: /
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          MOTMAN_UPDATE_SIGNING_KEY: ${{ secrets.MOTMAN_UPDATE_SIGNING_KEY }}
+        run: |
+          npx vite build --outDir dist-app --emptyOutDir
+          MOTMAN_DIST_DIR=dist-app npm run audit:security
+          node scripts/build_live_update.mjs --dist dist-app --out dist/app-update --version "$GITHUB_RUN_NUMBER"
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
 

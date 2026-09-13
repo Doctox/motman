@@ -65,3 +65,56 @@ compilé et signé sur un Mac.
 
 La procédure complète Google Play, les variables de signature et les réponses à
 préparer dans la Console sont documentées dans `docs/GOOGLE_PLAY.md`.
+
+## Mises à jour embarquées
+
+Depuis la version 1.0.7 (code 8), l'APK n'a plus besoin d'être republié pour
+une correction du site. À chaque envoi sur `main`, la chaîne GitHub publie une
+copie du site construite pour l'APK, et l'application l'installe d'elle-même.
+
+**Le trajet.** La chaîne construit le site pour la racine (`dist-app`, car
+l'APK sert ses fichiers à `/` et le site public à `/motman/`), le passe à
+l'audit de sécurité, le zippe et publie dans `https://doctox.fr/motman/app-update/` :
+`bundle-<N>.zip` et `latest.json`, un manifeste signé. Au lancement,
+l'application (`src/liveUpdate.ts`) lit le manifeste, vérifie sa signature,
+télécharge le zip en arrière-plan et l'installe au lancement suivant. Le module
+`@capgo/capacitor-updater` (MPL-2.0) vérifie ensuite l'empreinte SHA-256 du zip.
+
+**Ce qui est refusé.** Une signature invalide, une adresse hors de
+`app-update/`, un numéro égal ou inférieur à celui qui tourne (un vieux
+manifeste reste valablement signé pour toujours : le rejouer ramènerait une
+ancienne version), et un code qui réclame un APK plus récent que celui installé.
+
+**Retour arrière automatique.** L'application confirme son démarrage au module
+avant tout appel réseau (`confirmLiveUpdateBoot`). Sans cette confirmation au
+bout de 10 secondes, le module revient à la version précédente.
+
+**La clé.** La clé publique est dans `src/liveUpdateKey.ts`. La clé privée est
+dans le secret GitHub `MOTMAN_UPDATE_SIGNING_KEY`, et dans un fichier du
+propriétaire hors du dépôt. Jamais ailleurs : quiconque la détient peut
+installer du code sur tous les téléphones. Sans le secret, la chaîne publie le
+site normalement et n'envoie aucune mise à jour (avertissement).
+
+**Quand un APK redevient nécessaire.** Tout ce qui est natif : un nouveau
+module Capacitor, une permission, un réglage du manifeste Android. Monter alors
+`LIVE_UPDATE_MIN_NATIVE_VERSION_CODE` (`src/liveUpdateManifest.ts`) au code du
+nouvel APK : les anciens APK cesseront de recevoir les mises à jour au lieu
+d'exécuter un code qui appelle un module absent. Puis, une fois le nouvel APK
+diffusé, relever `minimum_android_version_code` (voir docs/GOOGLE_PLAY.md).
+
+**Changer de clé**, sans perdre les téléphones déjà installés :
+
+1. Déplacer l'ancien fichier de clé privée, puis lancer
+   `node scripts/generate_update_signing_key.mjs` : il écrit la nouvelle clé
+   privée hors du dépôt et la nouvelle clé publique dans `src/liveUpdateKey.ts`.
+2. Envoyer ce changement SANS toucher au secret : la chaîne signe encore avec
+   l'ancienne clé, que les téléphones connaissent, et leur livre la nouvelle.
+3. Laisser le temps aux téléphones de l'installer, puis seulement remplacer le
+   secret par la nouvelle clé privée.
+
+Un téléphone resté éteint pendant toute l'opération ne reconnaîtra plus les
+mises à jour : il lui faudra un nouvel APK.
+
+**Le poids.** Une mise à jour est une copie complète du site, environ 13 Mo,
+images comprises. Négligeable pendant le test fermé ; à revoir avant une large
+diffusion (le module sait ne télécharger que les fichiers modifiés).

@@ -83,3 +83,6 @@ sauvegardes/
 
 # Le dossier git de l'atelier lui-même.
 /.atelier-git/
+
+# Construction du site pour la racine, zippee en mise a jour embarquee (CI).
+dist-app

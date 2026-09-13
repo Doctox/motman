@@ -1,7 +1,7 @@
 {
   "name": "entrelignes",
   "private": true,
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "module",
   "scripts": {
     "policy:runtime": "node scripts/build_runtime_catalog_policy.mjs",
@@ -50,6 +50,7 @@
     "@capacitor/core": "7.6.8",
     "@capacitor/ios": "7.6.8",
     "@capacitor/push-notifications": "7.0.7",
+    "@capgo/capacitor-updater": "7.51.15",
     "@fontsource-variable/dm-sans": "5.2.8",
     "@fontsource-variable/playfair-display": "5.2.8",
     "@supabase/supabase-js": "2.100.0",

@@ -16,6 +16,13 @@
   "plugins": {
     "PushNotifications": {
       "presentationOptions": ["sound", "alert"]
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "appReadyTimeout": 10000,
+      "autoDeleteFailed": true,
+      "autoDeletePrevious": true,
+      "resetWhenUpdate": true
     }
   }
 }

@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
-import { extname, join } from 'node:path'
+import { extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exigerCatalogueReel, lireCatalogueRuntime } from './lib/catalogue.mjs'
 
-const root = fileURLToPath(new URL('../dist/', import.meta.url))
+// MOTMAN_DIST_DIR : la construction pour l'APK (dist-app), zippée et envoyée aux
+// téléphones par les mises à jour embarquées, passe le même contrôle que le site.
+const root = process.env.MOTMAN_DIST_DIR
+  ? resolve(process.env.MOTMAN_DIST_DIR)
+  : fileURLToPath(new URL('../dist/', import.meta.url))
 // Les identifiants traqués : ceux du vrai catalogue quand il est là (atelier,
 // ou CI qui l'a tiré de la base), ceux de la fixture sinon — et TOUJOURS ceux
 // du calendrier, public, qui pointe les vraies grilles.

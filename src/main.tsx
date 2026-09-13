@@ -15,6 +15,10 @@ const nativeRuntime = isNativeRuntime()
 document.documentElement.classList.toggle('native-runtime', nativeRuntime)
 
 if (nativeRuntime) {
+  // En PREMIER : si cette version vient d'être installée par une mise à jour
+  // embarquée, le module attend cette confirmation, faute de quoi il revient à
+  // la version précédente. Voir liveUpdate.ts.
+  void import('./liveUpdate').then(module => module.confirmLiveUpdateBoot())
   void import('./nativeAuthBridge').then(module => module.initializeNativeAuthBridge())
 }
 
@@ -53,7 +57,12 @@ function ouvertureTerminee() {
   avisLenteur = undefined
 }
 
-void Promise.all([import('./auth'), import('./App'), import('./appUpdate')]).then(async ([auth, app, update]) => {
+void Promise.all([
+  import('./auth'), import('./App'), import('./appUpdate'),
+  // Le vrai numéro de l'APK avant le premier appel serveur : c'est lui que
+  // l'en-tête doit annoncer (clientVersion.ts).
+  import('./clientVersion').then(module => module.initializeNativeVersionCode()),
+]).then(async ([auth, app, update]) => {
   const requiredUpdate = await update.checkRequiredAppUpdate().catch(() => null)
   if (requiredUpdate) {
     ouvertureTerminee()
@@ -66,6 +75,9 @@ void Promise.all([import('./auth'), import('./App'), import('./appUpdate')]).the
   const App = app.App
   root.render(<React.StrictMode><App initialRequiredUpdate={requiredUpdate} /></React.StrictMode>)
   if (nativeRuntime) {
+    // Après l'ouverture, en arrière-plan : une version plus récente est
+    // téléchargée et programmée pour le prochain lancement.
+    void import('./liveUpdate').then(module => module.checkForLiveUpdate())
     void import('./nativePushNotifications')
       .then(module => module.initializeNativePushNotifications())
       .catch(error => console.error('Initialisation des notifications impossible', error))
