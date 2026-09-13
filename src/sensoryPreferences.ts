@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { TurnStep } from './game/turnChoreography'
+import { isAppleTouchDevice, playIosHaptic } from './iosHaptic'
 
 export type SensoryPreferences = {
   effects: boolean
@@ -62,7 +63,9 @@ export function useSensoryPreferences() {
 
 export function haptic(pattern: number | number[]): void {
   if (!loadSensoryPreferences().vibration) return
-  navigator.vibrate?.(pattern)
+  if (typeof navigator.vibrate === 'function') navigator.vibrate(pattern)
+  // Safari iPhone n'a pas d'API de vibration : voir iosHaptic.ts.
+  else if (isAppleTouchDevice(navigator)) playIosHaptic(pattern)
 }
 
 const EFFECT_NOTES: Record<GameEffect, ReadonlyArray<readonly [frequency: number, delay: number, duration: number, volume: number]>> = {
