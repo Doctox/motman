@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { acknowledgedAfter, inactivityAnnouncement, stillTherePrompt, type StillThereInput } from './stillThere'
+import { acknowledgedAfter, stillTherePrompt, type StillThereInput } from './stillThere'
 
 const entree = (modifs: Partial<StillThereInput> = {}): StillThereInput => ({
   status: 'active', pace: 'realtime', missed: 1, isMyTurn: false, justOpened: false, acknowledged: 0, ...modifs,
@@ -42,12 +42,5 @@ describe('le compteur qui redescend', () => {
     const apresRejeu = acknowledgedAfter(2, 0)
     expect(apresRejeu).toBe(0)
     expect(stillTherePrompt(entree({ isMyTurn: true, missed: 1, acknowledged: apresRejeu }))).toEqual({ missed: 1, remaining: 2 })
-  })
-})
-
-describe('l’annonce pour les lecteurs d’écran', () => {
-  it('dit qui a manqué combien de tours', () => {
-    expect(inactivityAnnouncement('Low', 1, 2)).toBe('Low a manqué 1 tour sur 3. Vous avez manqué 2 tours sur 3.')
-    expect(inactivityAnnouncement('Low', 0, 0)).toBe('')
   })
 })

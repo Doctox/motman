@@ -34,7 +34,7 @@ import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTa
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
-import { acknowledgedAfter, inactivityAnnouncement, stillTherePrompt } from './game/stillThere'
+import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
 import { StillThereDialog } from './game/StillThereDialog'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 
@@ -650,7 +650,6 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const myScore = displayedScores[playerId] ?? match.scores[playerId] ?? 0
   const opponentScore = displayedScores[opponentId] ?? match.scores[opponentId] ?? 0
   const myInactivity = match.inactivity[playerId] ?? 0
-  const opponentInactivity = match.inactivity[opponentId] ?? 0
   const hiddenStableLetterCell = hintFlight?.cellIndex ?? (hintRequesting && match.hint?.playerId === playerId ? match.hint.cellIndex : null)
   const presentationPhase = matchPresentationPhase(match.status, resolving)
   const showGame = presentationPhase === 'game'
@@ -668,10 +667,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   return <main className={`app-shell multiplayer-shell ${turnAlert ? 'turn-alerting' : ''} ${resolving ? 'is-resolving' : ''} ${presentationPhase === 'result' ? 'is-finished' : ''}`}>
     <header><button type="button" disabled={match.status === 'finished'} aria-label={match.status === 'active' && isAsync ? 'Retour à toutes les parties' : match.status === 'active' ? 'Options de sortie' : resolving ? 'Résultats en cours' : 'Validez le résultat ci-dessous'} onClick={() => match.status === 'active' && isAsync ? onHome() : match.status === 'active' ? setLeaveOpen(true) : undefined}><ArrowLeft /></button><img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
     {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && turnHasStarted && !assignedToMe} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined}>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={Boolean(match.status === 'active' && isMyTurn)} player /></section>
-    
-    {/* Les étiquettes « Nom 1/3 » ont laissé la place à la fenêtre « Tu es
-        toujours là ? » ; l'annonce reste pour les lecteurs d'écran. */}
-    <p className="duel-inactivity-announcement" role="status">{inactivityAnnouncement(opponentName, opponentInactivity, myInactivity)}</p></> : null}
+    </> : null}
     {error ? <p className="duel-error" role="alert">{error}</p> : null}
     {showGame ? <section className="board-wrap" aria-label="Grille multijoueur" data-bot-level={match.bot ? match.difficulty : undefined}><div ref={fitBoardRef} className={`board ${focusedWordCells.size ? 'has-clue-focus' : ''}`} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows, '--board-aspect': `${grid.columns} / ${grid.rows}` } as CSSProperties}>
       {grid.cells.map((cell, index) => {

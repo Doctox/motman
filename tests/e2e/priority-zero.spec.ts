@@ -639,9 +639,8 @@ test('après un tour manqué, « Tu es toujours là ? » remplace les étiquette
     await expect(fenetre).toBeVisible()
     await expect(fenetre).toContainText('Tour manqué 1/3')
     await expect(fenetre).toContainText('Encore 2 et la partie est perdue.')
-    // Plus d'étiquette visible, mais l'annonce reste pour les lecteurs d'écran.
-    await expect(page.locator('.duel-inactivity')).toHaveCount(0)
-    await expect(page.locator('.duel-inactivity-announcement')).toHaveText('Vous avez manqué 1 tour sur 3.')
+    // Plus aucune étiquette « Nom 1/3 » : seule la fenêtre en parle.
+    await expect(page.locator('.duel-inactivity, .duel-inactivity-announcement')).toHaveCount(0)
     await page.screenshot({ path: 'output/quality/toujours-la-390.png' })
 
     await fenetre.getByRole('button', { name: 'Je suis là' }).click()

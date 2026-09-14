@@ -44,11 +44,3 @@ export function stillTherePrompt(input: StillThereInput): StillTherePrompt | nul
 export function acknowledgedAfter(acknowledged: number, missed: number): number {
   return Math.min(acknowledged, Math.max(0, missed))
 }
-
-/** Phrase pour les lecteurs d'écran, qui remplace les étiquettes visibles. */
-export function inactivityAnnouncement(opponentName: string, opponentMissed: number, myMissed: number): string {
-  const phrases: string[] = []
-  if (opponentMissed > 0) phrases.push(`${opponentName} a manqué ${opponentMissed} tour${opponentMissed > 1 ? 's' : ''} sur ${MAX_INACTIVITY_COUNT}.`)
-  if (myMissed > 0) phrases.push(`Vous avez manqué ${myMissed} tour${myMissed > 1 ? 's' : ''} sur ${MAX_INACTIVITY_COUNT}.`)
-  return phrases.join(' ')
-}

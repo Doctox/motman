@@ -364,9 +364,6 @@ body{overscroll-behavior-y:none}
 .board .cell.blocked{background-color:var(--green);cursor:default}
 [data-theme="dark"] .board .cell.blocked{background-color:#0f1c18}
 
-/* Annonce d'inactivité : lue par les lecteurs d'écran, invisible à l'écran.
-   Les étiquettes « Nom 1/3 » ont été remplacées par la fenêtre ci-dessous. */
-.duel-inactivity-announcement{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* « Tu es toujours là ? » (game/StillThereDialog.tsx) — la fenêtre de pause,
    en plus pressant : l'icône et les points prennent la terre cuite. */
