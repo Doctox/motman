@@ -194,3 +194,70 @@
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .game-portrait,
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:48px;height:48px;flex-basis:48px}
 }
+
+/* ── LA GRILLE PREND LA PLACE LIBRE (14/09/2026) ─────────────────────────────
+   Sur téléphone, la grille était calée sur la largeur, en cases carrées : dans
+   l'appli une bande vide restait au-dessus et au-dessous (≈110 px en 390×796),
+   et sur le site jusqu'à 88 px sous les boutons. Or ce qui manque au joueur,
+   c'est de la place pour LIRE LES DÉFINITIONS.
+   1. Marges latérales réduites (17 → 10 px, 11 → 7 px en 360).
+   2. La zone de la grille prend toute la hauteur libre. L'appli le faisait
+      déjà ; le site en téléphone vertical fait pareil, mais seulement sur un
+      écran d'au moins 700 px de haut : les unités de conteneur (cqh) exigent
+      une colonne de hauteur FIXE, et sur un écran plus court la page doit
+      pouvoir défiler comme avant.
+   3. Les cases peuvent être jusqu'à 15 % plus hautes que larges. Plus haut, la
+      grille ne ressemblerait plus à une grille.
+   4. La taille de départ du texte des définitions suit la case (elle plafonnait
+      à 11 px) : clueAutoFit la réduit ensuite juste assez pour que tout tienne.
+   Le bureau (≥ 700 px de large) ne change pas. */
+@media (max-width:699px){
+  .multiplayer-shell:not(.is-finished){padding-inline:10px}
+}
+@media (max-width:370px){
+  .multiplayer-shell:not(.is-finished){padding-inline:7px}
+}
+@media (max-width:699px) and (min-height:700px){
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished){display:flex;flex-direction:column;height:100dvh;min-height:0}
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>*{flex-shrink:0}
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+}
+/* La grille se dimensionne sur sa zone : dans l'appli (colonne de hauteur fixe),
+   et sur le site quand la colonne est fixée (écran d'au moins 700 px de haut). */
+@media (max-width:699px){
+  html.native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap{container-type:size}
+}
+@media (max-width:699px) and (min-height:700px){
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap{container-type:size}
+}
+@media (max-width:699px){
+  html.native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap>.board{
+    --cell-h:min(calc(100cqh / var(--board-rows,8)), calc(100cqw / var(--board-columns,7) * 1.15));
+    --cell-w:min(calc(100cqw / var(--board-columns,7)), var(--cell-h));
+    width:calc(var(--cell-w) * var(--board-columns,7));
+    height:calc(var(--cell-h) * var(--board-rows,8));
+    aspect-ratio:auto;
+    max-width:100%;
+    max-height:100%;
+  }
+  html.native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap>.board .clue{font-size:clamp(11px, calc(var(--cell-w) * .24), 14px)!important}
+}
+@media (max-width:699px) and (min-height:700px){
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap>.board{
+    --cell-h:min(calc(100cqh / var(--board-rows,8)), calc(100cqw / var(--board-columns,7) * 1.15));
+    --cell-w:min(calc(100cqw / var(--board-columns,7)), var(--cell-h));
+    width:calc(var(--cell-w) * var(--board-columns,7));
+    height:calc(var(--cell-h) * var(--board-rows,8));
+    aspect-ratio:auto;
+    max-width:100%;
+    max-height:100%;
+  }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap>.board .clue{font-size:clamp(11px, calc(var(--cell-w) * .24), 14px)!important}
+}
+/* Les définitions en image grandissent avec leur case : elles plafonnaient à
+   35 px (23 px en case double) et restaient petites dans des cases agrandies. */
+@media (max-width:699px){
+  .multiplayer-shell:not(.is-finished) .board .clue .image-entry{padding:2px 4px 6px 2px}
+  .multiplayer-shell:not(.is-finished) .board .clue .clue-image{width:min(92%,46px);height:min(92%,46px)}
+  .multiplayer-shell:not(.is-finished) .board .clue.double-clue .clue-image{width:min(74%,28px);height:min(74%,28px)}
+}

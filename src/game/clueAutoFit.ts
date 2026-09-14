@@ -128,7 +128,10 @@ export function fitClueTexts(root: HTMLElement | null): void {
     // Rien n'a change depuis le dernier passage (meme largeur, memes indices) :
     // on ne refait pas les mesures. Sans ce garde, poser une lettre — qui
     // modifie le DOM du plateau — relancerait une centaine de mises en page.
-    const signature = `${root.clientWidth}|${nodes.map(directText).join('')}`
+    // La HAUTEUR compte aussi : la grille peut grandir en hauteur seulement
+    // (cases plus hautes que larges, 14/09/2026), et la mesure faite avant
+    // restait sinon figée sur une grille encore petite.
+    const signature = `${root.clientWidth}x${root.clientHeight}|${nodes.map(directText).join('')}`
     if (root.dataset.clueFit === signature) return
 
     nodes.forEach(el => { el.style.fontSize = '' })

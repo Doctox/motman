@@ -235,7 +235,13 @@ test('la partie native reste cadrée au-dessus des commandes système Android', 
     expect(geometry.shell.bottom).toBeLessThanOrEqual(geometry.viewportHeight + 1)
     expect(geometry.actions.bottom).toBeLessThanOrEqual(geometry.viewportHeight - 8)
     expect(geometry.actions.top).toBeGreaterThanOrEqual(geometry.rack.bottom)
-    expect(geometry.board.width / geometry.board.height).toBeCloseTo(7 / 8, 2)
+    // Depuis le 14/09/2026, la grille prend la place libre : ses cases peuvent
+    // être jusqu'à 15 % plus hautes que larges (game-actions.css). Ici, en
+    // 390×796, la place est là : la grille doit l'avoir prise.
+    const ratio = geometry.board.width / geometry.board.height
+    expect(ratio).toBeGreaterThanOrEqual(7 / 8 / 1.15 - 0.01)
+    expect(ratio).toBeLessThanOrEqual(7 / 8 + 0.01)
+    expect(geometry.board.height).toBeGreaterThan(450)
   } finally {
     await context.close()
   }
