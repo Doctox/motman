@@ -68,3 +68,14 @@ button,input,select{font:inherit;color:inherit}
 @keyframes mmLaunchSheen{to{transform:translateX(100%)}}
 @keyframes mmLaunchIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.mm-launch-logo,.mm-launch-tagline{animation:none}.mm-launch-bar i{transition:none}.mm-launch-bar i::after{display:none}}
+
+/* ── « Quitter MotMan ? » (nativeBackButton.tsx) ─────────────────────────────
+   Dans base.css : la question peut venir de n'importe quel écran, y compris
+   avant le chargement du menu. */
+.mm-exit-layer{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:24px;background:#071d1873;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.mm-exit-confirm{width:min(100%,320px);padding:26px 22px 20px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);text-align:center;box-shadow:0 18px 44px #0b2a2238}
+.mm-exit-confirm h2{margin:0 0 6px;font:600 1.5rem 'Playfair Display',Georgia,serif}
+.mm-exit-confirm p{margin:0 0 18px;color:var(--mm-muted);font:500 0.875rem/1.45 'DM Sans',sans-serif}
+.mm-exit-confirm button{display:block;width:100%;min-height:46px;margin-top:8px;border-radius:999px;font:700 0.9375rem 'DM Sans',sans-serif;cursor:pointer}
+.mm-exit-stay{border:0;background:var(--mm-ink);color:var(--mm-paper)}
+.mm-exit-quit{border:1px solid var(--mm-line);background:transparent;color:var(--mm-ink)}

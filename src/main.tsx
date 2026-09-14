@@ -36,6 +36,8 @@ if (nativeRuntime) {
   // la version précédente. Voir liveUpdate.ts.
   void import('./liveUpdate').then(module => module.confirmLiveUpdateBoot())
   void import('./nativeAuthBridge').then(module => module.initializeNativeAuthBridge())
+  // Retour Android : fermer une fenêtre, revenir en arrière, ou demander avant de quitter.
+  void import('./nativeBackButton').then(module => module.installNativeBackButton())
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
