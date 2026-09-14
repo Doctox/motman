@@ -12,6 +12,8 @@
 // la première seconde de jeu.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { Capacitor } from '@capacitor/core'
+import { Share } from '@capacitor/share'
 import type { GeneratedCell } from './generator'
 
 export const MOTMAN_SHARE_URL = 'https://www.doctox.fr/motman/'
@@ -66,12 +68,36 @@ export function dailyShareText(input: DailyShareInput): string {
 
 export type ShareOutcome = 'shared' | 'copied' | 'cancelled' | 'failed'
 
+/** La feuille de partage native de l'appli (module @capacitor/share). */
+export type NativeShare = { available: () => boolean; share: (text: string) => Promise<void> }
+
+const partageNatif: NativeShare = {
+  // Le module n'existe que dans les APK construits depuis le 14/09/2026 (1.0.9 et
+  // suivants). Sur un APK plus ancien mis à jour par le code embarqué, il est
+  // absent : on retombe sur le presse-papiers, sans rien casser.
+  available: () => Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Share'),
+  share: async text => { await Share.share({ text, dialogTitle: 'Partager mon résultat' }) },
+}
+
 /**
- * Feuille de partage du téléphone quand elle existe (navigateurs mobiles),
- * presse-papiers sinon — c'est le cas de l'appli Android, dont le WebView ne
- * propose pas le partage web.
+ * Feuille de partage de l'appli quand le module natif est là, feuille de
+ * partage du navigateur sinon (navigateurs mobiles), presse-papiers en dernier
+ * recours — le WebView Android ne propose pas le partage web.
  */
-export async function shareText(text: string, nav: Pick<Navigator, 'share' | 'clipboard'> = navigator): Promise<ShareOutcome> {
+export async function shareText(
+  text: string,
+  nav: Pick<Navigator, 'share' | 'clipboard'> = navigator,
+  native: NativeShare = partageNatif,
+): Promise<ShareOutcome> {
+  try {
+    if (native.available()) {
+      await native.share(text)
+      return 'shared'
+    }
+  } catch (reason) {
+    // Le module natif rejette avec « Share canceled » quand le joueur renonce.
+    if (reason instanceof Error && /cancel/i.test(reason.message)) return 'cancelled'
+  }
   try {
     if (typeof nav.share === 'function') {
       await nav.share({ text })

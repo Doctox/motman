@@ -56,28 +56,49 @@ describe('le texte partagé', () => {
   })
 })
 
+const sansNatif = { available: () => false, share: vi.fn() }
+
 describe('l’envoi', () => {
+  it('dans l’appli récente, ouvre la feuille de partage native', async () => {
+    const natif = { available: () => true, share: vi.fn().mockResolvedValue(undefined) }
+    const writeText = vi.fn()
+    expect(await shareText('x', { clipboard: { writeText } } as unknown as Navigator, natif)).toBe('shared')
+    expect(natif.share).toHaveBeenCalledWith('x')
+    expect(writeText).not.toHaveBeenCalled()
+  })
+
+  it('renoncer au partage natif n’est pas une erreur', async () => {
+    const natif = { available: () => true, share: vi.fn().mockRejectedValue(new Error('Share canceled')) }
+    expect(await shareText('x', { clipboard: { writeText: vi.fn() } } as unknown as Navigator, natif)).toBe('cancelled')
+  })
+
+  it('si le module natif échoue autrement, le texte est tout de même copié', async () => {
+    const natif = { available: () => true, share: vi.fn().mockRejectedValue(new Error('panne')) }
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    expect(await shareText('x', { clipboard: { writeText } } as unknown as Navigator, natif)).toBe('copied')
+  })
+
   it('passe par la feuille de partage quand le téléphone en a une', async () => {
     const share = vi.fn().mockResolvedValue(undefined)
     const writeText = vi.fn()
-    expect(await shareText('x', { share, clipboard: { writeText } } as unknown as Navigator)).toBe('shared')
+    expect(await shareText('x', { share, clipboard: { writeText } } as unknown as Navigator, sansNatif)).toBe('shared')
     expect(writeText).not.toHaveBeenCalled()
   })
 
   it('renoncer au partage n’est pas une erreur', async () => {
     const share = vi.fn().mockRejectedValue(Object.assign(new Error('fermé'), { name: 'AbortError' }))
-    expect(await shareText('x', { share, clipboard: { writeText: vi.fn() } } as unknown as Navigator)).toBe('cancelled')
+    expect(await shareText('x', { share, clipboard: { writeText: vi.fn() } } as unknown as Navigator, sansNatif)).toBe('cancelled')
   })
 
   it('sans feuille de partage (appli Android), copie le texte', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
-    expect(await shareText('x', { clipboard: { writeText } } as unknown as Navigator)).toBe('copied')
+    expect(await shareText('x', { clipboard: { writeText } } as unknown as Navigator, sansNatif)).toBe('copied')
     expect(writeText).toHaveBeenCalledWith('x')
   })
 
   it('dit quand rien n’a marché', async () => {
     const writeText = vi.fn().mockRejectedValue(new Error('refusé'))
-    expect(await shareText('x', { clipboard: { writeText } } as unknown as Navigator)).toBe('failed')
+    expect(await shareText('x', { clipboard: { writeText } } as unknown as Navigator, sansNatif)).toBe('failed')
   })
 })
 
