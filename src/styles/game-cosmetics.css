@@ -95,19 +95,6 @@
   min-height:145px;margin:0;border:1px solid #d8c79d;border-radius:18px;background:#fff9ed;
   animation:resultContentRise .52s .44s var(--motion) both;
 }
-.game-result-screen .result-feedback{
-  padding:2px 0 0;border:0;animation:resultContentRise .48s .55s var(--motion) both;
-}
-.game-result-screen .result-feedback>p,.game-result-screen .duel-feedback-label{margin:0;color:#52655f;font-size:0.75rem}
-.game-result-screen .feedback-actions{grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
-.game-result-screen .feedback-actions button{
-  height:47px;border-radius:13px;font:600 0.875rem 'Playfair Display',serif;box-shadow:0 4px 11px #49391f0d;
-  transition:transform .18s var(--motion),box-shadow .18s ease,filter .18s ease;
-}
-.game-result-screen .feedback-actions button:first-child{border-color:#c5d3c6;background:linear-gradient(180deg,#f4f8ee,#ebf3e7);color:#164f42}
-.game-result-screen .feedback-actions button:last-child{border-color:#efb8a6;background:linear-gradient(180deg,#fff5ef,#fde9e1);color:#c34d2b}
-.game-result-screen .feedback-actions button svg{width:21px;height:21px;stroke-width:1.8}
-.game-result-screen .feedback-actions button:active{transform:translateY(1px) scale(.985)}
 .game-result-screen .result-feedback-error{margin:8px 0 0;color:#a44132;font-size:0.6875rem}
 .game-result-screen .reasons{margin-top:10px}
 .game-result-screen .end-game-actions{
@@ -136,7 +123,7 @@
 [data-theme="dark"] .app-shell.is-finished{
   background-image:radial-gradient(circle at 50% 215px,#c49b4920,transparent 250px),radial-gradient(#d6b7790d .65px,transparent .75px),linear-gradient(180deg,#1a292480,transparent 42%);
 }
-[data-theme="dark"] .game-result-hero p,[data-theme="dark"] .game-result-score-side small,[data-theme="dark"] .game-result-screen .result-feedback>p,[data-theme="dark"] .game-result-screen .duel-feedback-label{color:#b5c3bd}
+[data-theme="dark"] .game-result-hero p,[data-theme="dark"] .game-result-score-side small{color:#b5c3bd}
 [data-theme="dark"] .game-result-emblem{box-shadow:0 0 0 5px #121c19,0 0 0 6px #7d6c43,0 12px 29px #0006}
 [data-theme="dark"] .game-result-screen .experience-reward,[data-theme="dark"] .game-result-screen .experience-pending{background:linear-gradient(145deg,#25342f,#2e352d);border-color:#74694c;box-shadow:0 9px 24px #0004}
 [data-theme="dark"] .game-result-screen .end-game-actions .end-game-home{background:#22322d;border-color:#50635a;color:#e8f3ec}
@@ -154,7 +141,7 @@
 }
 @media(prefers-reduced-motion:reduce){
   .game-result-screen,.game-result-art,.game-result-emblem,.game-result-hero h2,.game-result-hero p,.game-result-score,
-  .game-result-screen .experience-reward,.game-result-screen .experience-pending,.game-result-screen .result-feedback,
+  .game-result-screen .experience-reward,.game-result-screen .experience-pending,
   .game-result-screen .end-game-actions,.game-result-screen .experience-progress b{animation:none!important}
 }
 

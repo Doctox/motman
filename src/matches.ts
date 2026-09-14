@@ -238,26 +238,6 @@ export async function loadHistoryGrid(historyId: string): Promise<GeneratedGrid>
   return (await supabaseMatch<{ grid: GeneratedGrid }>('history-grid', { historyId })).grid
 }
 
-export async function submitMatchGridFeedback(playerId: string, matchId: string, quality: 'yes' | 'no', reason?: string): Promise<void> {
-  if (localTestServer) {
-    // The local priority-zero server deliberately has no persistent content
-    // telemetry; keeping the UI responsive is enough in that isolated mode.
-    void playerId
-    return
-  }
-  void playerId
-  await supabaseMatch<{ recorded: true }>('feedback', { matchId, quality, reason })
-}
-
-export async function submitPendingResultFeedback(playerId: string, resultId: string, quality: 'yes' | 'no', reason?: string): Promise<void> {
-  if (localTestServer) {
-    await localMatch('result/feedback', { playerId, resultId, quality, reason })
-    return
-  }
-  void playerId
-  await supabaseMatch<{ recorded: true }>('result-feedback', { resultId, quality, reason })
-}
-
 export async function acknowledgeMatchResult(
   playerId: string,
   reference: { resultId: string } | { matchId: string },

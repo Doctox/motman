@@ -10,8 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../auth', () => ({ refreshPlayerAccount: () => Promise.resolve({}) }))
 vi.mock('../matches', () => ({
   acknowledgeMatchResult: vi.fn(),
-  submitMatchGridFeedback: vi.fn(),
-  submitPendingResultFeedback: vi.fn(),
 }))
 const social = vi.hoisted(() => ({ lire: vi.fn(), demander: vi.fn() }))
 vi.mock('../social', () => ({ sendFriendRequestToPlayer: social.demander, loadSocialState: social.lire }))

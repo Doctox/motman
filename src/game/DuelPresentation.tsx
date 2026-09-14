@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Feather, Heart, HeartCrack, House, UserPlus } from 'lucide-react'
+import { Check, Feather, House, UserPlus } from 'lucide-react'
 import { refreshPlayerAccount } from '../auth'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
@@ -10,8 +10,6 @@ import { DailyStreakReward } from '../menu/DailyChallenge'
 import { DailyShareButton } from '../menu/DailyShareButton'
 import {
   acknowledgeMatchResult,
-  submitMatchGridFeedback,
-  submitPendingResultFeedback,
   type MatchState,
   type PendingMatchResult,
 } from '../matches'
@@ -36,9 +34,6 @@ export function DuelPlayer({ name, score, active, initials, avatarId, frameId, a
 }
 
 export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void }) {
-  const [feedbackSent, setFeedbackSent] = useState(false)
-  const [feedbackSending, setFeedbackSending] = useState(false)
-  const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [leavingError, setLeavingError] = useState<string | null>(null)
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null>(null)
@@ -55,19 +50,6 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     : match.finishReason === 'forfeit'
       ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
       : draw ? 'Vous terminez avec le même score.' : won ? 'Vous avez rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
-  const sendFeedback = async (quality: 'yes' | 'no') => {
-    if (feedbackSending || feedbackSent) return
-    setFeedbackSending(true)
-    setFeedbackError(null)
-    try {
-      await submitMatchGridFeedback(playerId, match.id, quality)
-      setFeedbackSent(true)
-    } catch (reason) {
-      setFeedbackError(reason instanceof Error ? reason.message : 'Votre avis n’a pas pu être envoyé.')
-    } finally {
-      setFeedbackSending(false)
-    }
-  }
   const leaveResult = async (destination: () => void) => {
     if (leaving) return
     setLeaving(true)
@@ -163,11 +145,6 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
       <span><small>{rankedPlacementLabel(match.rankedRating.placementNumber)}</small><strong>{rankedResultDivision.label}</strong></span>
       <b className={match.rankedRating.delta >= 0 ? 'positive' : 'negative'}>{match.rankedRating.delta >= 0 ? '+' : ''}{match.rankedRating.delta} pt</b>
     </div> : null}
-    <div className="result-feedback">
-      <p className="duel-feedback-label">{feedbackSent ? 'Merci pour votre retour !' : 'Cette grille était-elle agréable ?'}</p>
-      {!feedbackSent ? <div className="feedback-actions"><button type="button" disabled={feedbackSending} onClick={() => void sendFeedback('yes')}><Heart />Oui</button><button type="button" disabled={feedbackSending} onClick={() => void sendFeedback('no')}><HeartCrack />Non</button></div> : null}
-      {feedbackError ? <p className="result-feedback-error" role="alert">{feedbackError}</p> : null}
-    </div>
     <AddOpponentAsFriend playerId={playerId} opponentId={opponentId} opponentName={opponentName} isBot={Boolean(match.bot)} />
     <div className="end-game-actions">
       <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Feather />Nouvelle partie</button>
@@ -262,9 +239,6 @@ export function PendingResultPanel({
   playerId: string
   acknowledge: (resultId: string) => Promise<void>
 }) {
-  const [feedbackSent, setFeedbackSent] = useState(result.feedbackSent)
-  const [feedbackSending, setFeedbackSending] = useState(false)
-  const [feedbackError, setFeedbackError] = useState<string | null>(null)
   const [acknowledging, setAcknowledging] = useState(false)
   const [acknowledgeError, setAcknowledgeError] = useState<string | null>(null)
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null>(null)
@@ -291,20 +265,6 @@ export function PendingResultPanel({
     return () => { active = false }
   }, [result.id, result.matchId, won])
 
-  const sendFeedback = async (quality: 'yes' | 'no') => {
-    if (feedbackSending || feedbackSent) return
-    setFeedbackSending(true)
-    setFeedbackError(null)
-    try {
-      await submitPendingResultFeedback(playerId, result.id, quality)
-      setFeedbackSent(true)
-    } catch (reason) {
-      setFeedbackError(reason instanceof Error ? reason.message : 'Votre avis n’a pas pu être envoyé.')
-    } finally {
-      setFeedbackSending(false)
-    }
-  }
-
   const confirmHome = async () => {
     if (acknowledging) return
     setAcknowledging(true)
@@ -326,11 +286,6 @@ export function PendingResultPanel({
     opponentName={opponentName}
     award={experienceAward}
   >
-    <div className="result-feedback">
-      <p className="duel-feedback-label">{feedbackSent ? 'Merci pour votre retour !' : 'Cette grille était-elle agréable ?'}</p>
-      {!feedbackSent ? <div className="feedback-actions"><button type="button" disabled={feedbackSending} onClick={() => void sendFeedback('yes')}><Heart />Oui</button><button type="button" disabled={feedbackSending} onClick={() => void sendFeedback('no')}><HeartCrack />Non</button></div> : null}
-      {feedbackError ? <p className="result-feedback-error" role="alert">{feedbackError}</p> : null}
-    </div>
     <div className="end-game-actions pending-result-actions">
       <button type="button" className="end-game-home" disabled={acknowledging} onClick={() => void confirmHome()}><House />Retour à l’accueil</button>
     </div>
