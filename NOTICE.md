@@ -1,22 +1,11 @@
-# Corpus de mots fléchés
+# Définitions et lexique
 
-Le générateur ne consomme plus de définitions de dictionnaire, de relations
-synonymiques automatiques ni de définitions reformulées. Le fichier
-`src/data/crossword.corpus.json` contient uniquement des couples
-définition-réponse provenant de grilles de mots fléchés.
+Les définitions des grilles MotMan sont rédigées pour le jeu et relues par son
+auteur. Aucune définition n'est reprise de grilles publiées par un journal ou un
+éditeur de jeux : le corpus de couples définition-réponse tirés de grilles
+Le Parisien/RCI-Jeux et Ouest-France a été supprimé le 14 septembre 2026.
 
-- Architecture de référence (CWDB) : https://github.com/tommyiaqunisi/Webcrow
-- Étude WebCrow française : https://arxiv.org/abs/2311.15626
-- Première source française : https://github.com/ychalier-rlv/mots-croises/tree/main/data
-- Publication d'origine indiquée par cette source : https://jeux.ouest-france.fr/jeux-de-lettres/mots-fleches/
-- Deuxième source et parseur de recherche : https://github.com/AlexandreEDMOND/flechebench
-- Grilles publiques Le Parisien/RCI : https://static.rcijeux.fr/drupal_game/leparisien/
 - Fréquence servant uniquement à classer la difficulté : https://github.com/rspeer/wordfreq
-
-Les définitions sont conservées mot pour mot. La ponctuation et la casse peuvent
-être normalisées pour l'affichage, mais aucun terme n'est ajouté ou remplacé.
-Le corpus français WebCrow décrit dans l'étude n'est pas présent dans son dépôt
-public ; son intégration reste prévue si un accès est obtenu.
 
 Sources complémentaires étudiées, mais non encore fusionnées au catalogue :
 
