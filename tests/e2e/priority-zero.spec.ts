@@ -617,3 +617,61 @@ test('au doigt, la lettre portée reste au-dessus du même doigt, même quand un
     await context.close()
   }
 })
+
+test('après un tour manqué, « Tu es toujours là ? » remplace les étiquettes 1/3', async ({ browser, browserName, request }) => {
+  test.skip(browserName !== 'chromium', 'La fenêtre est la même sur WebKit ; le chronométrage serveur est coûteux.')
+  test.setTimeout(90_000)
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Toujours la')
+  let match = await loadMatch(request, first.playerId, matchId)
+  const absent = match.currentPlayerId === first.playerId ? first : second
+  // L'absent laisse filer son tour, puis l'adversaire joue le sien : c'est de
+  // nouveau à l'absent.
+  const attente = new Date(match.turnEndsAt).getTime() + 25 - Date.now()
+  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
+  match = (await submitTurn(request, match, [], true)).match
+  expect(match.inactivity[absent.playerId]).toBe(1)
+  match = (await submitTurn(request, match, [], false)).match
+  expect(match.currentPlayerId).toBe(absent.playerId)
+
+  const { context, page } = await openGame(browser, absent, matchId, { width: 390, height: 844 })
+  try {
+    const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
+    await expect(fenetre).toBeVisible()
+    await expect(fenetre).toContainText('Tour manqué 1/3')
+    await expect(fenetre).toContainText('Encore 2 et la partie est perdue.')
+    // Plus d'étiquette visible, mais l'annonce reste pour les lecteurs d'écran.
+    await expect(page.locator('.duel-inactivity')).toHaveCount(0)
+    await expect(page.locator('.duel-inactivity-announcement')).toHaveText('Vous avez manqué 1 tour sur 3.')
+    await page.screenshot({ path: 'output/quality/toujours-la-390.png' })
+
+    await fenetre.getByRole('button', { name: 'Je suis là' }).click()
+    await expect(fenetre).toBeHidden()
+    // Elle ne revient pas pour le même tour manqué.
+    await page.waitForTimeout(1500)
+    await expect(fenetre).toBeHidden()
+  } finally {
+    await context.close()
+  }
+})
+
+test('en temps illimité, « Tu es toujours là ? » attend le retour dans la partie', async ({ browser, browserName, request }) => {
+  test.skip(browserName !== 'chromium', 'Même fenêtre que le temps limité.')
+  test.setTimeout(90_000)
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Retour IL')
+  let match = await loadMatch(request, first.playerId, matchId)
+  const absent = match.currentPlayerId === first.playerId ? first : second
+  const attente = new Date(match.turnEndsAt).getTime() + 25 - Date.now()
+  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
+  match = (await submitTurn(request, match, [], true)).match
+  match = (await submitTurn(request, match, [], false)).match
+
+  const { context, page } = await openGame(browser, absent, matchId, { width: 360, height: 740 })
+  try {
+    const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
+    await expect(fenetre).toContainText('Tour manqué 1/3')
+    await fenetre.getByRole('button', { name: 'Je suis là' }).click()
+    await expect(fenetre).toBeHidden()
+  } finally {
+    await context.close()
+  }
+})

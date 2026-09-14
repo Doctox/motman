@@ -98,7 +98,6 @@
 .native-runtime .multiplayer-shell:not(.is-finished)>header,
 .native-runtime .multiplayer-shell:not(.is-finished)>.scoreboard,
 .native-runtime .multiplayer-shell:not(.is-finished)>.instruction,
-.native-runtime .multiplayer-shell:not(.is-finished)>.duel-inactivity,
 .native-runtime .multiplayer-shell:not(.is-finished)>.duel-error,
 .native-runtime .multiplayer-shell:not(.is-finished)>.rack-area,
 .native-runtime .multiplayer-shell:not(.is-finished)>.turn-actions{

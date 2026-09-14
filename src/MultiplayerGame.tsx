@@ -34,6 +34,8 @@ import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTa
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
+import { acknowledgedAfter, inactivityAnnouncement, stillTherePrompt } from './game/stillThere'
+import { StillThereDialog } from './game/StillThereDialog'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 
 export { LeaveMatchPanel } from './game/DuelPresentation'
@@ -109,6 +111,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [expandedClue, setExpandedClue] = useState<ClueEntry | null>(null)
+  // « Tu es toujours là ? » : le compte de tours manqués déjà confirmé par le
+  // joueur, et le tour auquel il a ouvert la partie (voir game/stillThere.ts).
+  const [stillThereAck, setStillThereAck] = useState(0)
+  const openingTurn = useRef<{ matchId: string; turnNumber: number } | null>(null)
   const seenTurn = useRef<string | null>(null)
   const animationTimer = useRef<number | null>(null)
   const hintFlightTimer = useRef<number | null>(null)
@@ -153,6 +159,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const applyMatchState = (next: MatchState) => {
     noteServerTime(next.serverTime)
     const current = matchRef.current
+    if (openingTurn.current?.matchId !== next.id) openingTurn.current = { matchId: next.id, turnNumber: next.turnNumber }
     if (current?.id === next.id) {
       const nextUpdatedAt = new Date(next.updatedAt).getTime()
       const currentUpdatedAt = new Date(current.updatedAt).getTime()
@@ -631,6 +638,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     onExit()
   }
 
+  // Un compteur redescendu (le joueur a rejoué) efface la confirmation d'avant.
+  const missedByMe = match?.inactivity[playerId] ?? 0
+  useEffect(() => { setStillThereAck(ack => acknowledgedAfter(ack, missedByMe)) }, [missedByMe])
+
   if (!match || !grid) return <main className="app-shell duel-loading"><Wifi /><h2>Connexion à la partie…</h2>{error ? <p>{error}</p> : null}</main>
 
   const hint = match.hint?.playerId === playerId && match.hint.turnNumber === match.turnNumber ? match.hint : null
@@ -643,15 +654,24 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const hiddenStableLetterCell = hintFlight?.cellIndex ?? (hintRequesting && match.hint?.playerId === playerId ? match.hint.cellIndex : null)
   const presentationPhase = matchPresentationPhase(match.status, resolving)
   const showGame = presentationPhase === 'game'
+  const stillThere = showGame && !turnAlert && !leaveOpen && !optionsOpen && !reportOpen
+    ? stillTherePrompt({
+      status: match.status,
+      pace: match.pace,
+      missed: myInactivity,
+      isMyTurn,
+      justOpened: openingTurn.current?.matchId === match.id && openingTurn.current.turnNumber === match.turnNumber,
+      acknowledged: stillThereAck,
+    })
+    : null
 
   return <main className={`app-shell multiplayer-shell ${turnAlert ? 'turn-alerting' : ''} ${resolving ? 'is-resolving' : ''} ${presentationPhase === 'result' ? 'is-finished' : ''}`}>
     <header><button type="button" disabled={match.status === 'finished'} aria-label={match.status === 'active' && isAsync ? 'Retour à toutes les parties' : match.status === 'active' ? 'Options de sortie' : resolving ? 'Résultats en cours' : 'Validez le résultat ci-dessous'} onClick={() => match.status === 'active' && isAsync ? onHome() : match.status === 'active' ? setLeaveOpen(true) : undefined}><ArrowLeft /></button><img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
     {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && turnHasStarted && !assignedToMe} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined}>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={Boolean(match.status === 'active' && isMyTurn)} player /></section>
     
-    {myInactivity || opponentInactivity ? <div className="duel-inactivity" aria-label="Avertissements d’inactivité">
-      {opponentInactivity ? <span><b>{opponentName}</b> {opponentInactivity}/3</span> : null}
-      {myInactivity ? <span className="mine"><b>Vous</b> {myInactivity}/3</span> : null}
-    </div> : null}</> : null}
+    {/* Les étiquettes « Nom 1/3 » ont laissé la place à la fenêtre « Tu es
+        toujours là ? » ; l'annonce reste pour les lecteurs d'écran. */}
+    <p className="duel-inactivity-announcement" role="status">{inactivityAnnouncement(opponentName, opponentInactivity, myInactivity)}</p></> : null}
     {error ? <p className="duel-error" role="alert">{error}</p> : null}
     {showGame ? <section className="board-wrap" aria-label="Grille multijoueur" data-bot-level={match.bot ? match.difficulty : undefined}><div ref={fitBoardRef} className={`board ${focusedWordCells.size ? 'has-clue-focus' : ''}`} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows, '--board-aspect': `${grid.columns} / ${grid.rows}` } as CSSProperties}>
       {grid.cells.map((cell, index) => {
@@ -694,6 +714,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {turnAlert ? <div className="turn-ready-flash" role="status"><span>À vous !</span></div> : null}
+    {stillThere ? <StillThereDialog prompt={stillThere} confirm={() => setStillThereAck(stillThere.missed)} /> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
     {expandedClue ? <ClueZoom entry={expandedClue} onClose={() => setExpandedClue(null)} /> : null}
     {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}

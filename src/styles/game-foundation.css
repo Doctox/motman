@@ -105,7 +105,6 @@ header button:hover{filter:brightness(1.1);transform:translateY(-1px)}header but
 .multiplayer-shell>header{grid-template-columns:40px 1fr 48px}.duel-live{justify-self:end;display:flex;align-items:center;gap:4px;color:#a94b2c;font-weight:800}.duel-live i{width:7px;height:7px;border-radius:50%;background:#e85b32;box-shadow:0 0 0 4px #e85b321b;animation:duelLive 1.5s ease-in-out infinite}@keyframes duelLive{50%{box-shadow:0 0 0 7px #e85b3200}}
 .duel-loading{display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--green)}.duel-loading>svg{width:40px;height:40px;margin-bottom:14px;animation:duelConnect 1.5s ease-in-out infinite}.duel-loading h2{margin:0;font:600 1.4375rem 'Playfair Display',serif}.duel-loading p,.duel-error{font-size:0.6875rem;color:var(--terra)}@keyframes duelConnect{50%{opacity:.45;transform:scale(.94)}}
 .duel-error{margin:-4px 0 7px;padding:7px 10px;border:1px solid #e4ad9d;border-radius:8px;background:#f9e4dd;text-align:center}.duel-rack-waiting .rack-letter{filter:saturate(.45);transform:none!important;box-shadow:0 2px 0 #cdbb9e,0 4px 7px #49341e18,inset 0 0 0 2px #fff}.rack-letter:disabled{cursor:default}.slot:disabled{opacity:1;color:inherit}
-.duel-inactivity{min-height:25px;margin:-3px 0 8px;display:flex;justify-content:center;gap:7px}.duel-inactivity span{padding:0 9px;border:1px solid #e3b19e;border-radius:12px;color:#9d4026;display:flex;align-items:center;gap:4px;font-size:0.5625rem}.duel-inactivity span.mine{border-color:#d4bd83;background:#f8edc9;color:#785916}.duel-inactivity b{font-weight:800}
 .slot.hint-auto-placed{position:relative;z-index:6;background:#fff0bc!important;animation:autoHintLand 1.15s cubic-bezier(.2,.85,.25,1)}.slot.hint-auto-placed .letter-only{color:#8b6115!important;animation:autoHintLetter 1.15s cubic-bezier(.2,.85,.25,1)}@keyframes autoHintLand{0%{filter:brightness(1.3);transform:scale(.72)}45%{transform:scale(1.12)}72%{transform:scale(.97)}100%{filter:brightness(1);transform:scale(1)}}@keyframes autoHintLetter{0%{opacity:0;transform:translateY(-20px) scale(.65)}40%{opacity:1;transform:translateY(2px) scale(1.16)}100%{transform:translateY(0) scale(1)}}
 .slot.hint-awaiting{background:#fff8dd!important;box-shadow:inset 0 0 0 2px #ddb85d,0 0 12px #ddb85d55}.hint-flight{position:fixed;z-index:1600;width:42px;height:50px;display:grid;place-items:center;pointer-events:none;color:#8b6115;font:700 1.9375rem 'Playfair Display',serif;text-shadow:0 6px 14px #5c421f38;will-change:transform,filter;animation:hintGlide .72s cubic-bezier(.22,.8,.24,1) forwards}@keyframes hintGlide{0%{transform:translate(-50%,-50%) scale(1);filter:drop-shadow(0 5px 5px #5c421f28)}58%{transform:translate(calc(-50% + var(--hint-mid-x)),calc(-50% + var(--hint-mid-y))) scale(1.08);filter:drop-shadow(0 10px 8px #5c421f32)}100%{transform:translate(calc(-50% + var(--hint-dx)),calc(-50% + var(--hint-dy))) scale(.82);filter:drop-shadow(0 1px 1px transparent)}}
 @media(prefers-reduced-motion:reduce){.hint-flight{animation-duration:.12s!important}.slot.hint-auto-placed,.slot.hint-auto-placed .letter-only{animation:none!important}}
@@ -113,7 +112,6 @@ header button:hover{filter:brightness(1.1);transform:translateY(-1px)}header but
 .multiplayer-shell .board{position:relative}.confirmed-board-layer{position:absolute;inset:2px;z-index:7;display:grid;grid-template-columns:repeat(var(--board-columns,7),minmax(0,1fr));grid-template-rows:repeat(var(--board-rows,8),minmax(0,1fr));pointer-events:none}.confirmed-board-letter{display:grid;place-items:center;min-width:0;min-height:0;opacity:1!important;visibility:visible!important;color:#0d654c!important;-webkit-text-fill-color:#0d654c!important;font:600 clamp(17px,5.5vw,25px) 'Playfair Display',serif;transform:translateZ(0)}.confirmed-board-letter.player-effect{color:#08744c!important;-webkit-text-fill-color:#08744c!important}.confirmed-board-letter.opponent-effect{color:#a13c1d!important;-webkit-text-fill-color:#a13c1d!important}.slot[aria-disabled="true"]{cursor:default}
 .multiplayer-result{padding-top:21px}.duel-result-mark{width:48px;height:48px;margin:0 auto 10px;border:1px solid #cfbda0;border-radius:50%;display:grid;place-items:center;background:#eee7d9;color:#775e3c;font:700 1.375rem 'Playfair Display',serif}.duel-result-mark.won{background:#dceee2;color:#14734b;border-color:#8dc8a5}.duel-final-score{margin:13px auto 5px;display:flex;align-items:center;justify-content:center;gap:14px}.duel-final-score strong{font:700 1.9375rem 'Playfair Display',serif;color:var(--green)}.duel-final-score span{color:#9a9b91}.feedback-panel .duel-feedback-label{margin-top:17px}.duel-leave{padding-top:28px}.duel-leave h2{margin:0 0 8px}.duel-leave p{margin:0 0 18px}.duel-leave button.danger{background:#fff7f3;color:var(--mm-coral);border:1px solid #e3a48e}
 [data-theme="dark"] .duel-live{color:#ff8f6c}[data-theme="dark"] .duel-error{background:#4b2d27;border-color:#805043;color:#ff9a7b}[data-theme="dark"] .duel-result-mark{background:#25342e;border-color:#50635a;color:#d9c493}[data-theme="dark"] .duel-final-score strong{color:#e8f3ec}
-[data-theme="dark"] .duel-inactivity span{background:#4b2d27;border-color:#805043;color:#ff9a7b}[data-theme="dark"] .duel-inactivity span.mine{background:#463d25;border-color:#78683a;color:#e8ce83}
 
 /* Gameplay header uses the approved MotMan artwork everywhere. */
 .game-brand-logo{display:block;justify-self:center;object-fit:contain}
@@ -274,8 +272,6 @@ body{overscroll-behavior-y:none}
 .feedback-actions button:hover{transform:translateY(-1px);filter:brightness(1.02)}
 
 .duel-live{border:1px solid #e1b9a8;letter-spacing:.07em}
-.duel-inactivity{margin-top:-2px;margin-bottom:7px}
-.duel-inactivity span{height:22px;background:#fae8e2}
 .duel-rack-waiting{opacity:.7;filter:saturate(.8)}
 .confirmed-board-letter{font-weight:600;text-shadow:none}
 
@@ -367,3 +363,20 @@ body{overscroll-behavior-y:none}
    game-interaction.css (`.board .cell.blocked`). */
 .board .cell.blocked{background-color:var(--green);cursor:default}
 [data-theme="dark"] .board .cell.blocked{background-color:#0f1c18}
+
+/* Annonce d'inactivité : lue par les lecteurs d'écran, invisible à l'écran.
+   Les étiquettes « Nom 1/3 » ont été remplacées par la fenêtre ci-dessous. */
+.duel-inactivity-announcement{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* « Tu es toujours là ? » (game/StillThereDialog.tsx) — la fenêtre de pause,
+   en plus pressant : l'icône et les points prennent la terre cuite. */
+.still-there-layer{z-index:1200}
+.still-there>svg{color:var(--mm-coral,#c94d29)}
+.still-there h2{margin-top:8px}
+.still-there p{margin:0 0 6px}
+.still-there .still-there-count{color:var(--mm-ink,#073f36);font-size:1rem}
+.still-there .still-there-count b{font-variant-numeric:tabular-nums}
+.still-there-dots{display:flex;justify-content:center;gap:8px;margin:6px 0 10px}
+.still-there-dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--mm-line,#d7d1c2)}
+.still-there-dots i.is-missed{border-color:var(--mm-coral,#c94d29);background:var(--mm-coral,#c94d29)}
+.still-there #still-there-detail{margin-bottom:16px}
