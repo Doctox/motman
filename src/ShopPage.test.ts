@@ -130,7 +130,7 @@ describe('révéler la trouvaille', () => {
     serveur.ouvrir.mockResolvedValue({ cosmetics: riche(), reward })
     afficher(riche(), 'Paniers')
     cliquer(hote.querySelector('.mm-basket-stage'))
-    await act(async () => { boutonDe('Ouvrir pour')!.click() })
+    await act(async () => { [...dialogue()!.querySelectorAll('button')].find(bouton => bouton.textContent === 'Ouvrir')!.click() })
     await act(async () => { vi.advanceTimersByTime(2_000) })
     vi.useRealTimers()
   }
