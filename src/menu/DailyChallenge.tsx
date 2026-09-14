@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Feather, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
 import { STREAK_REWARD_PLUMES, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
+import { loadDailyShare } from '../dailyShare'
+import { DailyShareButton } from './DailyShareButton'
 import { dailyDateKey } from '../dailyDate'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyChallengeLabel } from '../dailyThemes'
@@ -142,7 +144,7 @@ export function DailyStreakChip() {
  * Trois états rejouables : à faire / perdu (invitation, jamais sanction) / gagné.
  */
 export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
-  const { status, streak, freezes, attempts, theme } = useDailyChallenge()
+  const { day, status, streak, freezes, attempts, theme } = useDailyChallenge()
   const libelle = dailyChallengeLabel(theme)
   const pourLecteur = theme ? `, thème ${theme}` : ''
   const countdown = useDailyCountdown()
@@ -159,6 +161,7 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
             <span className="mm-daily-dot" aria-hidden="true">·</span>nouvelle grille dans {countdown}
           </span>
         </div>
+        <DailyShareHero day={day} />
       </section>
     )
   }
@@ -191,6 +194,12 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
       <ChevronRight aria-hidden="true" />
     </button>
   )
+}
+
+/** Le résultat de la victoire du jour, s'il a été joué sur cet appareil. */
+function DailyShareHero({ day }: { day: string }) {
+  const texte = loadDailyShare(day)
+  return texte ? <DailyShareButton text={texte} compact /> : null
 }
 
 /**

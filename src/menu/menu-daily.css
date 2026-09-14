@@ -208,3 +208,20 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-streak-legend svg { width: 12px; height: 12px; }
 
 .mm-daily-reward-milestone svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; color: var(--mm-gold); }
+
+/* ── Partager le résultat du défi du jour (DailyShareButton.tsx) ── */
+.mm-daily-share { display: grid; justify-items: center; gap: 4px; margin-top: 10px; }
+.mm-daily-share button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px;
+  background: var(--mm-coral); color: #fff; font: 700 0.9375rem 'DM Sans', sans-serif; cursor: pointer;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--mm-coral) 30%, transparent);
+  white-space: nowrap;
+}
+.mm-daily-share button svg { width: 18px; height: 18px; }
+.mm-daily-share p { min-height: 1.2em; margin: 0; color: var(--mm-muted); font-size: 0.8125rem; text-align: center; }
+.mm-daily-share p:empty { display: none; }
+.mm-daily-share.is-compact { margin: 0 0 0 auto; align-self: center; }
+.mm-daily-share.is-compact button { min-width: 112px; min-height: 36px; padding: 0 14px; font-size: 0.8125rem; box-shadow: none; }
+/* Lu par les lecteurs d’écran seulement : le bouton compact montre « Copié ! ». */
+.mm-daily-share p.mm-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

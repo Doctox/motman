@@ -5,7 +5,9 @@ import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
 import { GameResultScreen } from '../GameResultScreen'
+import { dailyShareText, saveDailyShare } from '../dailyShare'
 import { DailyStreakReward } from '../menu/DailyChallenge'
+import { DailyShareButton } from '../menu/DailyShareButton'
 import {
   acknowledgeMatchResult,
   submitMatchGridFeedback,
@@ -40,6 +42,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
   const [leavingError, setLeavingError] = useState<string | null>(null)
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null>(null)
   const [dailyEffects, setDailyEffects] = useState<DailyAdvanceEffects | null>(null)
+  const [dailyShare, setDailyShare] = useState<string | null>(null)
   const won = match.winnerId === playerId
   const administrativeDraw = match.finishReason === 'ranked_transfer'
   const draw = match.winnerId === null && (match.finishReason === 'completed' || administrativeDraw)
@@ -100,7 +103,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     if (recordedDailyMatches.has(match.id)) return
     recordedDailyMatches.add(match.id)
     try {
-      const { effects } = recordDailyResult({
+      const { effects, state: apres, attempts } = recordDailyResult({
         day: match.dailyDate,
         // Même règle de victoire que le serveur : une partie interrompue n'est
         // pas une victoire (cf. dailyResultForMatch).
@@ -110,11 +113,34 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
         theme: dailyThemeFor(match.dailyDate),
       })
       setDailyEffects(effects)
+      // Le résultat à partager, calculé une fois et gardé pour l'accueil.
+      if (match.grid) {
+        const adversaire = match.playerIds.find(id => id !== playerId) ?? ''
+        const texte = dailyShareText({
+          day: match.dailyDate,
+          theme: dailyThemeFor(match.dailyDate),
+          won: match.winnerId === playerId,
+          score: match.scores[playerId] ?? 0,
+          opponentScore: match.scores[adversaire] ?? 0,
+          turns: match.turnNumber,
+          streak: apres.currentStreak,
+          attempt: Math.max(1, attempts),
+          playerId,
+          columns: match.grid.columns,
+          cells: match.grid.cells,
+          board: match.board,
+        })
+        saveDailyShare(match.dailyDate, texte)
+        setDailyShare(texte)
+      }
     } catch {
       // La série est un confort local : si le stockage refuse, le résultat de la
       // partie reste affiché normalement.
       recordedDailyMatches.delete(match.id)
     }
+    // Le reste du match est figé une fois la partie terminée : seules ces clés
+    // décident de l'enregistrement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match.dailyDate, match.finishReason, match.gridId, match.id, match.isDaily, match.winnerId, playerId])
   const opponentId = match.playerIds.find(id => id !== playerId) ?? ''
   const rankedResultDivision = match.rankedRating
@@ -130,6 +156,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     award={experienceAward}
   >
     {dailyEffects ? <DailyStreakReward effects={dailyEffects} /> : null}
+    {dailyShare ? <DailyShareButton text={dailyShare} /> : null}
     {match.mode === 'ranked' && match.rankedRating && rankedResultDivision ? <div className="ranked-result-summary">
       <img src={rankImage(rankedResultDivision)} alt="" />
       <span><small>{rankedPlacementLabel(match.rankedRating.placementNumber)}</small><strong>{rankedResultDivision.label}</strong></span>
