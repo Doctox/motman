@@ -92,6 +92,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   const [status, setStatus] = useState('Connexion à la partie…')
   const [resolving, setResolving] = useState(false)
+  // Joueur dont on révèle le coup, lettre par lettre. Sa carte reste allumée
+  // pendant la révélation : sans cela, aucune des deux ne l'était au moment
+  // précis où l'on regarde l'adversaire — ou le bot — jouer.
+  const [revealingPlayerId, setRevealingPlayerId] = useState<string | null>(null)
   const [wrongCells, setWrongCells] = useState<Set<number>>(new Set())
   const [revealedWrong, setRevealedWrong] = useState<Record<number, string>>({})
   const [greenCells, setGreenCells] = useState<Set<number>>(new Set())
@@ -249,7 +253,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
       setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setWordHighlight(null)
       setRevealedWrong({}); provisionalRef.current = {}; setProvisional({})
       setDisplayedScores(finalScores)
-      resolvingRef.current = false; setResolving(false)
+      resolvingRef.current = false; setResolving(false); setRevealingPlayerId(null)
       const latest = matchRef.current
       setStatus(latest?.status === 'finished' ? 'Partie terminée' : latest?.currentPlayerId === playerId ? 'À vous de jouer' : `Au tour de ${opponentNameRef.current}`)
       animationTimer.current = null
@@ -262,6 +266,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     }
     resolvingRef.current = steps.length > 0
     setResolving(steps.length > 0)
+    setRevealingPlayerId(steps.length > 0 ? turn.playerId : null)
     setDisplayedScores(openingScores(finalScores, turn, steps.length))
     const stepDelay = turnStepDelayMs(steps.length, revealRemaining)
     const play = (index: number) => {
@@ -666,7 +671,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
 
   return <main className={`app-shell multiplayer-shell ${turnAlert ? 'turn-alerting' : ''} ${resolving ? 'is-resolving' : ''} ${presentationPhase === 'result' ? 'is-finished' : ''}`}>
     <header><button type="button" disabled={match.status === 'finished'} aria-label={match.status === 'active' && isAsync ? 'Retour à toutes les parties' : match.status === 'active' ? 'Options de sortie' : resolving ? 'Résultats en cours' : 'Validez le résultat ci-dessous'} onClick={() => match.status === 'active' && isAsync ? onHome() : match.status === 'active' ? setLeaveOpen(true) : undefined}><ArrowLeft /></button><img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
-    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && turnHasStarted && !assignedToMe} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined}>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={Boolean(match.status === 'active' && isMyTurn)} player /></section>
+    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revealingPlayerId ? revealingPlayerId === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined}>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revealingPlayerId ? revealingPlayerId === playerId : isMyTurn)} player /></section>
     </> : null}
     {error ? <p className="duel-error" role="alert">{error}</p> : null}
     {showGame ? <section className="board-wrap" aria-label="Grille multijoueur" data-bot-level={match.bot ? match.difficulty : undefined}><div ref={fitBoardRef} className={`board ${focusedWordCells.size ? 'has-clue-focus' : ''}`} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows, '--board-aspect': `${grid.columns} / ${grid.rows}` } as CSSProperties}>
