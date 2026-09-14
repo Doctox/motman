@@ -8,10 +8,8 @@ import { LaunchScreen } from './LaunchScreen'
 import { downloadStalled, UPDATE_CHECK_LIMIT_MS, type LaunchStage } from './launchProgress'
 import type { LiveUpdateManifest } from './liveUpdateManifest'
 import { installPressFeedback } from './pressFeedback'
-import { initializeSensoryPreferences } from './sensoryPreferences'
 import { installStaleDeployRecovery } from './staleDeployRecovery'
 
-initializeSensoryPreferences()
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
 // de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
 installStaleDeployRecovery()

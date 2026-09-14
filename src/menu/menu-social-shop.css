@@ -316,5 +316,8 @@
 /* Confirmation d'achat (ShopPage.tsx) : reprend la fenêtre de pause. */
 .mm-purchase-confirm>svg{color:var(--mm-gold)}
 .mm-purchase-confirm h2{font-size:1.3rem;line-height:1.2}
-.mm-purchase-confirm p .mm-price{margin:0;padding:0;border:0}
+.mm-purchase-confirm p.mm-purchase-cost{display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 4px;color:var(--mm-ink);font-size:1.25rem;line-height:1}
+.mm-purchase-confirm p.mm-purchase-cost svg{width:20px;height:20px;color:var(--mm-gold)}
+.mm-purchase-confirm p.mm-purchase-cost b{font-weight:800;font-variant-numeric:tabular-nums}
+.mm-purchase-confirm p.mm-purchase-balance{margin:0 0 18px}
 .mm-purchase-confirm button:disabled{opacity:.45;cursor:not-allowed}

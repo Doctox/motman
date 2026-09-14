@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  initializeSensoryPreferences,
   ladderFor,
   SCORE_LADDER,
   loadSensoryPreferences,
@@ -25,23 +24,17 @@ beforeEach(() => {
 describe('préférences d’accessibilité', () => {
   it('migre silencieusement les anciennes préférences avec Musique', () => {
     stored.set('motman-sensory-preferences-v1', JSON.stringify({ music: false, effects: false }))
-    expect(loadSensoryPreferences()).toEqual({ effects: false, vibration: true, largeText: false })
+    expect(loadSensoryPreferences()).toEqual({ effects: false, vibration: true })
   })
 
-  it('applique et conserve le texte agrandi', () => {
-    saveSensoryPreferences({ effects: true, vibration: false, largeText: true })
-    expect(dataset.textSize).toBe('large')
-    expect(JSON.parse(stored.get('motman-sensory-preferences-v1') ?? '{}')).toEqual({
-      effects: true,
-      vibration: false,
-      largeText: true,
-    })
+  it('conserve les réglages', () => {
+    saveSensoryPreferences({ effects: true, vibration: false })
+    expect(JSON.parse(stored.get('motman-sensory-preferences-v1') ?? '{}')).toEqual({ effects: true, vibration: false })
   })
 
-  it('applique la préférence avant le premier écran', () => {
-    stored.set('motman-sensory-preferences-v1', JSON.stringify({ largeText: true }))
-    initializeSensoryPreferences()
-    expect(dataset.textSize).toBe('large')
+  it('oublie l’ancien réglage « Texte plus grand », retiré le 14/09/2026', () => {
+    stored.set('motman-sensory-preferences-v1', JSON.stringify({ largeText: true, vibration: false }))
+    expect(loadSensoryPreferences()).toEqual({ effects: true, vibration: false })
   })
 })
 

@@ -66,16 +66,16 @@ export function PurchaseConfirm({ purchase, balance, confirm, cancel }: {
   const dialogRef = useDialogFocus<HTMLElement>(cancel)
   const manque = Math.max(0, purchase.price - balance)
   const verbe = purchase.kind === 'basket' ? 'Ouvrir' : 'Acheter'
+  const plumes = (n: number) => `${n.toLocaleString('fr-FR')} plume${n > 1 ? 's' : ''}`
   // Rendue dans <body> : dans la page, l'en-tête et la barre du bas restaient
   // au-dessus du voile.
   return createPortal(<div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) cancel() }}>
     <section ref={dialogRef} className="mm-pause mm-purchase-confirm" role="dialog" aria-modal="true" aria-label={`${verbe} ${purchase.name}`} tabIndex={-1}>
       <Feather />
       <h2>{verbe} « {purchase.name} » ?</h2>
-      {manque > 0
-        ? <p>Il vous manque {manque} plume{manque > 1 ? 's' : ''}.</p>
-        : <p><Price value={purchase.price} /> · il vous restera {(balance - purchase.price).toLocaleString('fr-FR')} plume{balance - purchase.price > 1 ? 's' : ''}.</p>}
-      <button type="button" disabled={manque > 0} onClick={confirm}>{verbe} pour {purchase.price} plumes</button>
+      <p className="mm-purchase-cost"><Feather aria-hidden="true" /><b>{plumes(purchase.price)}</b></p>
+      <p className="mm-purchase-balance">{manque > 0 ? `Il vous manque ${plumes(manque)}.` : `Il vous restera ${plumes(balance - purchase.price)}.`}</p>
+      <button type="button" disabled={manque > 0} onClick={confirm}>{verbe}</button>
       <button type="button" className="secondary" data-dialog-autofocus onClick={cancel}>Annuler</button>
     </section>
   </div>, document.body)

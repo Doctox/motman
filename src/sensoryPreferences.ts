@@ -5,14 +5,13 @@ import { isAppleTouchDevice, playIosHaptic } from './iosHaptic'
 export type SensoryPreferences = {
   effects: boolean
   vibration: boolean
-  largeText: boolean
 }
 
 export type GameEffect = 'pick' | 'place' | 'score' | 'word' | 'error' | 'turn' | 'reroll'
 
 const STORAGE_KEY = 'motman-sensory-preferences-v1'
 const CHANGE_EVENT = 'motman:sensory-preferences'
-const DEFAULTS: SensoryPreferences = { effects: true, vibration: true, largeText: false }
+const DEFAULTS: SensoryPreferences = { effects: true, vibration: true }
 
 let audioContext: AudioContext | null = null
 
@@ -22,24 +21,14 @@ export function loadSensoryPreferences(): SensoryPreferences {
     return {
       effects: typeof stored.effects === 'boolean' ? stored.effects : DEFAULTS.effects,
       vibration: typeof stored.vibration === 'boolean' ? stored.vibration : DEFAULTS.vibration,
-      largeText: typeof stored.largeText === 'boolean' ? stored.largeText : DEFAULTS.largeText,
     }
   } catch {
     return { ...DEFAULTS }
   }
 }
 
-export function applySensoryPreferences(preferences: SensoryPreferences): void {
-  document.documentElement.dataset.textSize = preferences.largeText ? 'large' : 'normal'
-}
-
-export function initializeSensoryPreferences(): void {
-  applySensoryPreferences(loadSensoryPreferences())
-}
-
 export function saveSensoryPreferences(preferences: SensoryPreferences): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
-  applySensoryPreferences(preferences)
   window.dispatchEvent(new CustomEvent<SensoryPreferences>(CHANGE_EVENT, { detail: preferences }))
 }
 

@@ -10,7 +10,7 @@
 //   • `state.board` tel quel     2 869 octets (les UUID pèsent tout)
 //   • cette forme-ci               224 octets
 // Deux cents fois plus léger, et surtout : ça se rend en HTML, donc net à toutes
-// les tailles, fidèle au thème clair/sombre, compatible avec « Texte plus grand »
+// les tailles, fidèle au thème clair/sombre, net à toutes les tailles de police
 // et lisible par un lecteur d'écran. Une image est un cul-de-sac sur ces quatre
 // points.
 //

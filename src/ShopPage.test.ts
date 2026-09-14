@@ -48,7 +48,6 @@ afterEach(() => {
 })
 
 const riche = (): PlayerCosmetics => ({ ...loadPlayerCosmetics('joueur'), plumes: 100_000 })
-const prixDe = (article: { pricePlumes: number }) => String(article.pricePlumes)
 const boutonDePrix = (article: { name: string; pricePlumes: number }) =>
   [...hote.querySelectorAll('article')].find(carte => carte.textContent?.includes(article.name))?.querySelector('button')
 
@@ -58,7 +57,7 @@ describe('acheter un article', () => {
     afficher(riche())
     cliquer(boutonDePrix(article))
     expect(dialogue()?.textContent).toContain(article.name)
-    expect(dialogue()?.textContent).toContain(prixDe(article))
+    expect(dialogue()?.textContent).toContain(article.pricePlumes.toLocaleString('fr-FR'))
     expect(serveur.acheter).not.toHaveBeenCalled()
   })
 
@@ -75,7 +74,7 @@ describe('acheter un article', () => {
     const article = aVendre.find(avatar => !riche().ownedAvatarIds.includes(avatar.id))!
     afficher(riche())
     cliquer(boutonDePrix(article))
-    await act(async () => { boutonDe('Acheter pour')!.click() })
+    await act(async () => { (document.querySelector('[role="dialog"] button:not(.secondary)') as HTMLButtonElement).click() })
     expect(serveur.acheter).toHaveBeenCalledTimes(1)
     expect(serveur.acheter).toHaveBeenCalledWith('avatar', article.id)
     expect(dialogue()).toBeNull()
@@ -86,7 +85,7 @@ describe('acheter un article', () => {
     afficher({ ...riche(), plumes: 0 })
     cliquer(boutonDePrix(article))
     expect(dialogue()?.textContent).toContain('Il vous manque')
-    expect((boutonDe('Acheter pour') as HTMLButtonElement).disabled).toBe(true)
+    expect((document.querySelector('[role="dialog"] button:not(.secondary)') as HTMLButtonElement).disabled).toBe(true)
   })
 })
 
