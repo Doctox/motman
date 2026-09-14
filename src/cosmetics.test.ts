@@ -66,3 +66,21 @@ describe('catalogue du serveur', () => {
     expect(serveur.baskets.map(({ id, pricePlumes }) => ({ id, pricePlumes }))).toEqual(BASKETS.map(({ id, pricePlumes }) => ({ id, pricePlumes })))
   })
 })
+
+describe('images du catalogue', () => {
+  it('chaque avatar, cadre et animation pointe vers un fichier présent', async () => {
+    const { existsSync } = await import('node:fs')
+    const assets = [
+      ...AVATARS.map(item => item.asset),
+      ...FRAMES.flatMap(item => item.asset ? [item.asset] : []),
+      ...ANIMATIONS.flatMap(item => [item.asset, item.poster].filter((asset): asset is string => Boolean(asset))),
+    ]
+    expect(assets.filter(asset => !existsSync(`public${asset}`))).toEqual([])
+  })
+
+  it('range les 20 drapeaux dans leur famille, au prix des humains', () => {
+    const drapeaux = AVATARS.filter(avatar => avatar.kind === 'flag')
+    expect(drapeaux).toHaveLength(20)
+    expect(drapeaux.every(drapeau => drapeau.pricePlumes === 1_400 && drapeau.availability === 'epicerie')).toBe(true)
+  })
+})

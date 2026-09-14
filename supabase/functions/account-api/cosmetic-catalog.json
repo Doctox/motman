@@ -84,6 +84,42 @@
     },
     {
       "kind": "avatar",
+      "id": "extraterrestre",
+      "name": "Extraterrestre",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/extraterrestre.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "troll",
+      "name": "Troll",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/troll.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "elfe",
+      "name": "Elfe",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/elfe.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "vampire",
+      "name": "Vampire",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/vampire.webp"
+    },
+    {
+      "kind": "avatar",
       "id": "moka",
       "name": "Moka",
       "rarity": "singulier",
@@ -174,6 +210,24 @@
     },
     {
       "kind": "avatar",
+      "id": "fiole-bois-moi",
+      "name": "Fiole « Bois-moi »",
+      "rarity": "rare",
+      "pricePlumes": 2200,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/fiole-bois-moi.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "ticket-dor",
+      "name": "Ticket d’or",
+      "rarity": "rare",
+      "pricePlumes": 2200,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/ticket-dor.webp"
+    },
+    {
+      "kind": "avatar",
       "id": "easter-egg-chienne",
       "name": "Chien",
       "rarity": "singulier",
@@ -189,6 +243,195 @@
       "pricePlumes": 1800,
       "availability": "epicerie",
       "asset": "/assets/avatars/easter-egg-gecko.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "easter-egg-chat",
+      "name": "Chat",
+      "rarity": "singulier",
+      "pricePlumes": 1800,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/easter-egg-chat.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-france",
+      "name": "France",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-france.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-belgique",
+      "name": "Belgique",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-belgique.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-suisse",
+      "name": "Suisse",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-suisse.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-canada",
+      "name": "Canada",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-canada.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-allemagne",
+      "name": "Allemagne",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-allemagne.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-espagne",
+      "name": "Espagne",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-espagne.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-italie",
+      "name": "Italie",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-italie.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-portugal",
+      "name": "Portugal",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-portugal.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-royaume-uni",
+      "name": "Royaume-Uni",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-royaume-uni.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-etats-unis",
+      "name": "États-Unis",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-etats-unis.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-bresil",
+      "name": "Brésil",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-bresil.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-mexique",
+      "name": "Mexique",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-mexique.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-argentine",
+      "name": "Argentine",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-argentine.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-maroc",
+      "name": "Maroc",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-maroc.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-algerie",
+      "name": "Algérie",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-algerie.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-tunisie",
+      "name": "Tunisie",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-tunisie.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-senegal",
+      "name": "Sénégal",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-senegal.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-cote-divoire",
+      "name": "Côte d’Ivoire",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-cote-divoire.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-japon",
+      "name": "Japon",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-japon.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "drapeau-chine",
+      "name": "Chine",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/drapeau-chine.webp"
     },
     {
       "kind": "frame",

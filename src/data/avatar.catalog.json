@@ -89,6 +89,42 @@
       "tags": ["homme", "portrait", "classique"]
     },
     {
+      "id": "extraterrestre",
+      "name": "Extraterrestre",
+      "kind": "human",
+      "asset": "/assets/avatars/extraterrestre.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["extraterrestre", "fantastique"]
+    },
+    {
+      "id": "troll",
+      "name": "Troll",
+      "kind": "human",
+      "asset": "/assets/avatars/troll.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["troll", "fantastique"]
+    },
+    {
+      "id": "elfe",
+      "name": "Elfe",
+      "kind": "human",
+      "asset": "/assets/avatars/elfe.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["elfe", "fantastique"]
+    },
+    {
+      "id": "vampire",
+      "name": "Vampire",
+      "kind": "human",
+      "asset": "/assets/avatars/vampire.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["vampire", "fantastique"]
+    },
+    {
       "id": "moka",
       "name": "Moka",
       "kind": "animal",
@@ -179,6 +215,24 @@
       "tags": ["objet", "anneau", "relique", "fantastique"]
     },
     {
+      "id": "fiole-bois-moi",
+      "name": "Fiole « Bois-moi »",
+      "kind": "object",
+      "asset": "/assets/avatars/fiole-bois-moi.webp",
+      "availability": "epicerie",
+      "pricePlumes": 2200,
+      "tags": ["objet", "fiole", "alice", "conte"]
+    },
+    {
+      "id": "ticket-dor",
+      "name": "Ticket d’or",
+      "kind": "object",
+      "asset": "/assets/avatars/ticket-dor.webp",
+      "availability": "epicerie",
+      "pricePlumes": 2200,
+      "tags": ["objet", "chocolat", "ticket", "conte"]
+    },
+    {
       "id": "easter-egg-chienne",
       "name": "Chien",
       "kind": "animal",
@@ -195,6 +249,195 @@
       "availability": "epicerie",
       "pricePlumes": 1800,
       "tags": ["animal", "gecko", "easter-egg", "personnel"]
+    },
+    {
+      "id": "easter-egg-chat",
+      "name": "Chat",
+      "kind": "animal",
+      "asset": "/assets/avatars/easter-egg-chat.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1800,
+      "tags": ["animal", "chat", "easter-egg", "personnel"]
+    },
+    {
+      "id": "drapeau-france",
+      "name": "France",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-france.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-belgique",
+      "name": "Belgique",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-belgique.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-suisse",
+      "name": "Suisse",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-suisse.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-canada",
+      "name": "Canada",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-canada.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-allemagne",
+      "name": "Allemagne",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-allemagne.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-espagne",
+      "name": "Espagne",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-espagne.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-italie",
+      "name": "Italie",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-italie.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-portugal",
+      "name": "Portugal",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-portugal.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-royaume-uni",
+      "name": "Royaume-Uni",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-royaume-uni.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-etats-unis",
+      "name": "États-Unis",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-etats-unis.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-bresil",
+      "name": "Brésil",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-bresil.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-mexique",
+      "name": "Mexique",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-mexique.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-argentine",
+      "name": "Argentine",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-argentine.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-maroc",
+      "name": "Maroc",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-maroc.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-algerie",
+      "name": "Algérie",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-algerie.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-tunisie",
+      "name": "Tunisie",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-tunisie.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-senegal",
+      "name": "Sénégal",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-senegal.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-cote-divoire",
+      "name": "Côte d’Ivoire",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-cote-divoire.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-japon",
+      "name": "Japon",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-japon.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
+    },
+    {
+      "id": "drapeau-chine",
+      "name": "Chine",
+      "kind": "flag",
+      "asset": "/assets/avatars/drapeau-chine.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["drapeau", "pays"]
     }
   ]
 }
