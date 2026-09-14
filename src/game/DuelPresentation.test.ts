@@ -13,7 +13,8 @@ vi.mock('../matches', () => ({
   submitMatchGridFeedback: vi.fn(),
   submitPendingResultFeedback: vi.fn(),
 }))
-vi.mock('../social', () => ({ sendFriendRequestToPlayer: vi.fn() }))
+const social = vi.hoisted(() => ({ lire: vi.fn(), demander: vi.fn() }))
+vi.mock('../social', () => ({ sendFriendRequestToPlayer: social.demander, loadSocialState: social.lire }))
 vi.mock('../CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
 vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn() }))
 vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { children: ReactNode }) => createElement('div', null, children) }))
@@ -74,5 +75,33 @@ describe('le partage en fin de défi du jour', () => {
   it('rien à partager après une partie ordinaire', () => {
     afficher(partie({ isDaily: false, dailyDate: undefined }))
     expect(boutonPartage()).toBeUndefined()
+  })
+})
+
+describe('ajouter l’adversaire en ami', () => {
+  const HUMAIN = 'humain-adverse'
+  const duel = () => partie({ mode: 'normal', isDaily: false, dailyDate: undefined, bot: null, playerIds: [MOI, HUMAIN], scores: { [MOI]: 42, [HUMAIN]: 31 } })
+  const moi = { playerId: HUMAIN, displayName: 'Low', code: 'X', online: true, activity: 'online' as const }
+  const bouton = () => [...hote.querySelectorAll('button')].find(b => b.textContent?.includes('en ami'))
+  const ouvrir = async (etat: object) => {
+    social.lire.mockResolvedValue({ friends: [], incoming: [], outgoing: [], blocked: [], ...etat })
+    await act(async () => { racine.render(createElement(ResultPanel, { match: duel(), playerId: MOI, opponentName: 'Low', onExit: vi.fn(), onHome: vi.fn() })) })
+  }
+
+  it('ne le propose pas à quelqu’un qui est déjà un ami', async () => {
+    await ouvrir({ friends: [{ ...moi, since: '' }] })
+    expect(bouton()).toBeUndefined()
+    expect(hote.textContent).not.toContain('déjà dans vos amis')
+  })
+
+  it('dit « demande envoyée » si elle est déjà partie', async () => {
+    await ouvrir({ outgoing: [{ id: 'd', createdAt: '', user: moi }] })
+    expect(bouton()).toBeUndefined()
+    expect(hote.textContent).toContain('Demande envoyée à Low')
+  })
+
+  it('le propose à un inconnu', async () => {
+    await ouvrir({})
+    expect(bouton()?.className).toBe('duel-friend-add')
   })
 })

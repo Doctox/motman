@@ -249,7 +249,13 @@ export function MenuApp({
   // Défi du jour : le SERVEUR dérive la dateKey (horloge serveur), choisit la grille
   // (calendrier du jour), le niveau du bot (player_progress.level) et le rythme —
   // temps limité, toujours. Le client n'envoie rien.
+  // Un appui à la fois : sur un réseau lent, le deuxième appui partait pendant
+  // que le premier créait déjà la partie (deux défis le 14/09/2026). Le serveur
+  // reprend désormais le défi en cours, ce verrou évite même l'aller-retour.
+  const dailyStarting = useRef(false)
   const playDailyChallenge = async () => {
+    if (dailyStarting.current) return
+    dailyStarting.current = true
     try {
       const match = await createDailyMatch()
       onStartMatch(match.id)
@@ -262,6 +268,8 @@ export function MenuApp({
       notify(/session/i.test(raw)
         ? raw
         : 'Le défi du jour n’est pas disponible pour le moment. Réessayez plus tard.')
+    } finally {
+      dailyStarting.current = false
     }
   }
 

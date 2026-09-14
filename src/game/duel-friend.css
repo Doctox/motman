@@ -1,0 +1,24 @@
+/* Ajouter l'adversaire en ami, à la fin d'une partie (DuelPresentation.tsx).
+   Ces règles vivaient dans la feuille du menu, chargée avec le menu seulement :
+   l'écran de fin ouvert sans passer par lui montrait un bouton brut du
+   système, gris et carré. Elles suivent maintenant le composant, et reprennent
+   l'allure de « Retour à l'accueil » juste en dessous. */
+.duel-friend { margin: 12px 0 2px; }
+.duel-friend-add {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  min-height: 44px; padding: 8px 16px;
+  border: 1px solid var(--game-button-secondary-border, #e2cf9f); border-radius: 999px;
+  background: var(--game-button-secondary, #fffaf0); color: var(--green, #075044);
+  font: 600 0.875rem 'Playfair Display', Georgia, serif;
+  box-shadow: 0 4px 12px #49391f0e; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  transition: transform .18s ease, border-color .18s ease;
+}
+.duel-friend-add:active:not(:disabled) { transform: translateY(1px) scale(.992); }
+.duel-friend-add:disabled { opacity: .6; cursor: default; }
+.duel-friend-add svg { width: 17px; height: 17px; color: #b98932; stroke-width: 1.8; }
+.duel-friend-done {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin: 12px 0 2px; font-size: 0.8125rem; color: var(--green, #075044);
+}
+.duel-friend-done svg { width: 15px; height: 15px; }

@@ -19,7 +19,8 @@ import type { ExperienceAward } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import { haptic, playEffect } from '../sensoryPreferences'
 import { useCountUp } from './countUp'
-import { sendFriendRequestToPlayer } from '../social'
+import { loadSocialState, sendFriendRequestToPlayer } from '../social'
+import './duel-friend.css'
 
 // Défi du jour : la série est enregistrée UNE SEULE FOIS par match terminé.
 // L'écran de résultat peut être remonté (retour arrière, reprise, StrictMode) et
@@ -202,11 +203,27 @@ function AddOpponentAsFriend({ playerId, opponentId, opponentName, isBot }: {
   opponentName: string
   isBot: boolean
 }) {
-  const [etat, setEtat] = useState<'repos' | 'envoi' | 'envoye' | 'deja'>('repos')
+  const [etat, setEtat] = useState<'lecture' | 'repos' | 'envoi' | 'envoye' | 'deja'>('lecture')
   const [erreur, setErreur] = useState<string | null>(null)
 
-  // Rien à proposer contre un bot, ni sans adversaire identifié.
-  if (isBot || !opponentId) return null
+  // On demande d'abord où l'on en est avec cet adversaire : proposer d'ajouter
+  // quelqu'un qui est déjà un ami (retour du propriétaire, 14/09/2026) donnait
+  // l'impression que le jeu avait oublié la relation. Rien ne s'affiche pendant
+  // la lecture ; si elle échoue, le bouton reste proposé et le serveur tranche.
+  useEffect(() => {
+    if (isBot || !opponentId) return
+    let vivant = true
+    loadSocialState(playerId).then(social => {
+      if (!vivant) return
+      if (social.friends.some(ami => ami.playerId === opponentId)) setEtat('deja')
+      else if (social.outgoing.some(demande => demande.user.playerId === opponentId)) setEtat('envoye')
+      else setEtat('repos')
+    }, () => { if (vivant) setEtat('repos') })
+    return () => { vivant = false }
+  }, [isBot, opponentId, playerId])
+
+  // Rien à proposer contre un bot, ni sans adversaire identifié, ni à un ami.
+  if (isBot || !opponentId || etat === 'lecture') return null
 
   const demander = async () => {
     setEtat('envoi')
@@ -227,9 +244,7 @@ function AddOpponentAsFriend({ playerId, opponentId, opponentName, isBot }: {
   if (etat === 'envoye') {
     return <p className="duel-friend-done" role="status"><Check aria-hidden="true" />Demande envoyée à {opponentName}</p>
   }
-  if (etat === 'deja') {
-    return <p className="duel-friend-done" role="status"><Check aria-hidden="true" />{opponentName} est déjà dans vos amis</p>
-  }
+  if (etat === 'deja') return null
   return <div className="duel-friend">
     <button type="button" className="duel-friend-add" disabled={etat === 'envoi'} onClick={() => void demander()}>
       <UserPlus aria-hidden="true" />Ajouter {opponentName} en ami

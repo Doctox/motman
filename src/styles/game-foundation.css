@@ -297,8 +297,12 @@ body{overscroll-behavior-y:none}
   .cell-score-effect,.slot.word-highlight,.slot.correct,.slot.bot-play,.slot.wrong{animation-duration:.01ms!important}
 }
 
-/* Entrée douce de l'écran de jeu — pour l'aligner sur le fondu des menus (mmPageIn). */
-.multiplayer-shell{animation:gameShellIn .4s var(--motion) both}
+/* Entrée douce de l'écran de jeu — pour l'aligner sur le fondu des menus (mmPageIn).
+   « backwards » et JAMAIS « both » : gardée après l'animation, la transformation
+   faisait de l'écran le repère des éléments « fixed » (lettre portée, fenêtres,
+   indice volant). Page défilée sur iPhone, la lettre flottait alors bien au-dessus
+   du doigt, d'autant de pixels que le défilement (retour du 14/09/2026). */
+.multiplayer-shell{animation:gameShellIn .4s var(--motion) backwards}
 @keyframes gameShellIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.multiplayer-shell{animation:none!important}}
 

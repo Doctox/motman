@@ -273,23 +273,6 @@
 
 .mm-player-stats.is-empty p { margin: 0; font-size: 0.8125rem; color: var(--mm-muted); }
 
-/* Ajouter l'adversaire en ami, à la fin d'une partie. Une partie contre un
-   inconnu était jusqu'ici une occasion perdue : l'ajout ne passait que par un
-   code à huit caractères, à s'échanger hors du jeu. */
-.duel-friend { margin-top: 10px; }
-.duel-friend-add {
-  display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
-  padding: 10px 12px; border: 1px solid var(--mm-line-strong); border-radius: 13px;
-  background: var(--mm-paper); font-size: 0.8125rem; font-weight: 700; color: var(--mm-ink); cursor: pointer;
-}
-.duel-friend-add:disabled { opacity: .6; cursor: default; }
-.duel-friend-add svg { width: 16px; height: 16px; }
-.duel-friend-done {
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-  margin: 10px 0 0; font-size: 0.8125rem; color: var(--mm-coral);
-}
-.duel-friend-done svg { width: 15px; height: 15px; }
-
 /* La bourse sur le profil. L'entrée de l'Épicerie a disparu d'ici — la
    boutique a son propre onglet — mais le solde reste : ce n'est pas une
    navigation, c'est ce que le joueur possède, et il ne se lit nulle part

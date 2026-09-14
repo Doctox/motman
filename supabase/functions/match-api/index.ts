@@ -358,6 +358,17 @@ Deno.serve(async request => {
       // ancienne, mais c'est ici que la porte se ferme vraiment.
       const pace: Pace = 'realtime'
       const dateKey = parisDateKey(new Date())
+      // UN SEUL DÉFI EN COURS PAR JOUR. Le 14/09/2026, deux appuis à 1,6 s
+      // d'écart ont créé deux défis sur la même grille, chacun avec son minuteur
+      // et son bot : pendant qu'on jouait l'un, l'autre comptait des tours
+      // manqués (« Tu es toujours là ? ») et l'écran passait d'un plateau à
+      // l'autre (lettres « revenues en arrière »). Un défi encore actif est
+      // donc repris, jamais doublé. Un défi terminé (perdu) se rejoue, comme avant.
+      const enCours = (await activeRows()).find(row => row.state.isDaily === true && row.state.dailyDate === dateKey)
+      if (enCours) {
+        const repris = await resolveRow(enCours)
+        return json(200, { match: await view(admin, repris, user.id, await getGrid(admin, repris.grid_id)) })
+      }
       const skill = botSkillForLevel(await playerLevel(admin, user.id))
       const bot = createBot(`${user.id}:daily:${dateKey}:${Date.now()}`, skill)
       const created = await createMatch(admin, user.id, bot.playerId, 'solo', pace, null, bot, {
