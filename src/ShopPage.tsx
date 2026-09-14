@@ -8,6 +8,7 @@ import {
 } from './cosmetics'
 import { CosmeticPortrait } from './CosmeticPortrait'
 import { equipServerCosmetic, openServerBasket, purchaseServerCosmetic } from './auth'
+import { BASKET_DUPLICATE_REFUND_PERCENT } from './progressionRewards'
 import { useDialogFocus } from './useDialogFocus'
 
 type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets'
@@ -20,11 +21,15 @@ const RARITY_LABELS = {
   exceptionnel: 'Exceptionnel', legendaire: 'Légendaire',
 } as const
 
+/** Le panier tremble, puis s'ouvre : assez long pour le suspense, pas pour l'ennui. */
+const BASKET_SUSPENSE_MS = 1600
+
 const ODDS_RARITIES = ['commun', 'singulier', 'rare', 'precieux', 'exceptionnel', 'legendaire'] as const
 const AVATAR_FAMILIES = [
   { kind: 'human' as const, label: 'Humains', itemLabel: 'Humain' },
   { kind: 'animal' as const, label: 'Animaux', itemLabel: 'Animal' },
   { kind: 'object' as const, label: 'Objets', itemLabel: 'Objet' },
+  { kind: 'flag' as const, label: 'Drapeaux', itemLabel: 'Drapeau' },
 ]
 
 function formatProbability(value: number): string {
@@ -44,11 +49,13 @@ function BasketArtwork({ state }: { state: BasketStageState }) {
 }
 
 function BasketReward({ reward, cosmetics }: { reward: CosmeticReward; cosmetics: PlayerCosmetics }) {
-  return <span className="mm-basket-reward" aria-live="polite">
+  return <span className={`mm-basket-reward rarity-${reward.rarity} ${reward.duplicate ? 'is-duplicate' : ''}`} aria-live="polite">
     {reward.kind === 'avatar' && reward.asset ? <CosmeticPortrait avatarId={reward.id} frameId={cosmetics.equippedFrameId} alt={reward.name} />
       : reward.kind === 'frame' ? <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={reward.id} animationId={cosmetics.equippedAnimationId} alt={reward.name} />
         : <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={reward.id} alt={reward.name} />}
-    <span><small>{RARITY_LABELS[reward.rarity]}</small><strong>{reward.name}</strong></span>
+    <span><small>{RARITY_LABELS[reward.rarity]}</small><strong>{reward.name}</strong>
+      {reward.duplicate ? <b className="mm-basket-duplicate">Déjà possédé · <Price value={reward.refund ?? 0} /> rendues</b> : <b className="mm-basket-new">Nouveau !</b>}
+    </span>
   </span>
 }
 
@@ -87,7 +94,9 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
   back: () => void
   notify: (message: string) => void
 }) {
-  const [tab, setTab] = useState<ShopTab>('avatars')
+  // Les paniers ouvrent l'Épicerie : c'est le rayon que le propriétaire veut
+  // mettre en avant (14/09/2026).
+  const [tab, setTab] = useState<ShopTab>('baskets')
   const [reward, setReward] = useState<CosmeticReward | null>(null)
   const [basketState, setBasketState] = useState<BasketStageState>('idle')
   const [pendingItem, setPendingItem] = useState('')
@@ -148,7 +157,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       basketTimerRef.current = window.setTimeout(() => {
         setBasketState('revealed')
         basketTimerRef.current = null
-      }, 1050)
+      }, BASKET_SUSPENSE_MS)
     } catch (reason) {
       setBasketState('idle')
       notify(reason instanceof Error ? reason.message : 'Ce panier ne peut pas être ouvert')
@@ -161,14 +170,15 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       <b><Feather />{cosmetics.plumes.toLocaleString('fr-FR')}</b>
     </section>
     <div className="mm-shop-tabs" role="tablist" aria-label="Rayons de L’Épicerie">
+      <button type="button" role="tab" aria-selected={tab === 'baskets'} className={tab === 'baskets' ? 'active' : ''} onClick={() => setTab('baskets')}><ShoppingBasket />Paniers</button>
       <button type="button" role="tab" aria-selected={tab === 'avatars'} className={tab === 'avatars' ? 'active' : ''} onClick={() => setTab('avatars')}><User />Avatars</button>
       <button type="button" role="tab" aria-selected={tab === 'frames'} className={tab === 'frames' ? 'active' : ''} onClick={() => setTab('frames')}><Palette />Cadres</button>
       <button type="button" role="tab" aria-selected={tab === 'animations'} className={tab === 'animations' ? 'active' : ''} onClick={() => setTab('animations')}><Sparkles />Animations</button>
-      <button type="button" role="tab" aria-selected={tab === 'baskets'} className={tab === 'baskets' ? 'active' : ''} onClick={() => setTab('baskets')}><ShoppingBasket />Paniers</button>
     </div>
 
     {tab === 'avatars' ? <div className="mm-avatar-shelves">
-      {AVATAR_FAMILIES.map(family => <section className="mm-avatar-family" aria-label={`Avatars ${family.label.toLowerCase()}`} key={family.kind}>
+      {/* Une famille sans article en vente (les drapeaux avant leurs images) ne montre pas d'étagère vide. */}
+      {AVATAR_FAMILIES.filter(family => purchasableAvatars.some(avatar => avatar.kind === family.kind)).map(family => <section className="mm-avatar-family" aria-label={`Avatars ${family.label.toLowerCase()}`} key={family.kind}>
         <header><h2>{family.label}</h2></header>
         <div className="mm-shop-grid">
           {purchasableAvatars.filter(avatar => avatar.kind === family.kind).map(avatar => {
@@ -209,7 +219,6 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     </section> : null}
 
     {tab === 'baskets' ? <section className="mm-basket-shelf" aria-label="Paniers">
-      <p>Un seul panier pour toute la collection. Chaque ouverture sans trouvaille rare améliore doucement la suivante.</p>
       {BASKETS.map(basket => {
         // Le prix se voyait, le solde aussi, mais rien ne disait que l'un ne
         // couvrait pas l'autre : on tapait, et le serveur refusait. On le dit
@@ -218,10 +227,11 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         // qu'au repos.
         const manque = Math.max(0, basket.pricePlumes - cosmetics.plumes)
         const inabordable = basketState === 'idle' && manque > 0
-        return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState}`} key={basket.id}>
-        <header><small>Panier unique · sans doublon</small><strong>{basket.name}</strong><p>{basket.description}</p></header>
+        return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState} ${basketState === 'revealed' && reward ? `reveals-${reward.rarity}` : ''}`} key={basket.id}>
+        <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong><p>{basket.description}</p></header>
         <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: basket.pricePlumes }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />
+          <span className="mm-basket-burst" aria-hidden="true" />
           <span className="mm-feather-cloud" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <Feather key={index} />)}</span>
           <BasketArtwork state={basketState} />
           {reward ? <BasketReward reward={reward} cosmetics={cosmetics} /> : null}

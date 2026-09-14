@@ -108,10 +108,9 @@ async function accountState(admin: AdminClient, userId: string) {
   ])
   if (!profile || !progress || !wallet) throw new Error('Profil serveur incomplet.')
   const items = inventory ?? []
-  const ownedKeys = new Set(items.map(item => `${item.kind}:${item.item_id}`))
-  const availableRarities = new Set<RewardRarity>((cosmeticCatalog ?? [])
-    .filter(item => !ownedKeys.has(`${item.kind}:${item.item_id}`))
-    .map(item => item.rarity as RewardRarity))
+  // Le panier tire dans TOUT le catalogue, doubles compris (migration
+  // 20260914120000) : les chances ne dépendent donc plus de la collection.
+  const availableRarities = new Set<RewardRarity>((cosmeticCatalog ?? []).map(item => item.rarity as RewardRarity))
   const basketOdds = basketRarityProbabilities(wallet.basket_pity, availableRarities)
   const unlockedTitleMap = new Map((ownedTitles ?? []).map(title => [title.title_id, title]))
   const titles = (titleCatalog ?? []).map(title => ({

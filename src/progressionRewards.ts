@@ -57,6 +57,18 @@ export function calculateFeatherReward({
   return { base, noHint, noReroll, fullRack, total: base + noHint + noReroll + fullRack }
 }
 
+/**
+ * Un panier peut donner un objet déjà possédé : il rend alors ce pourcentage du
+ * prix direct, arrondi à l'entier inférieur. Écrit aussi en SQL dans
+ * `server_open_basket` (migration 20260914120000) — cosmetics.test.ts vérifie
+ * que les deux chiffres restent d'accord.
+ */
+export const BASKET_DUPLICATE_REFUND_PERCENT = 30
+
+export function basketDuplicateRefund(pricePlumes: number): number {
+  return Math.floor(Math.max(0, pricePlumes) * BASKET_DUPLICATE_REFUND_PERCENT / 100)
+}
+
 export function basketRarityWeights(pity: number): Record<RewardRarity, number> {
   const step = Math.max(0, Math.min(20, Math.floor(pity)))
   return {

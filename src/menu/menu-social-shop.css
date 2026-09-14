@@ -321,3 +321,29 @@
 .mm-purchase-confirm p.mm-purchase-cost b{font-weight:800;font-variant-numeric:tabular-nums}
 .mm-purchase-confirm p.mm-purchase-balance{margin:0 0 18px}
 .mm-purchase-confirm button:disabled{opacity:.45;cursor:not-allowed}
+
+/* Ouverture du panier, version mise en avant (14/09/2026) : le panier tremble,
+   s'ouvre, puis une gerbe de lumière AUX COULEURS DE LA RARETÉ salue la
+   trouvaille. Plus la rareté est haute, plus la gerbe est large et longue. */
+.mm-basket-picture.is-opening{animation:mmBasketShake .7s ease-in-out both}
+.mm-basket-picture.is-opening .mm-basket-picture-closed{animation-delay:.7s}
+.mm-basket-picture.is-opening .mm-basket-picture-open{animation-delay:.9s}
+.mm-basket-burst{--burst:#e9d9a8;--burst-scale:1;--burst-duration:1.1s;position:absolute;z-index:1;left:50%;top:132px;width:300px;height:300px;border-radius:50%;opacity:0;pointer-events:none;translate:-50% -50%;background:repeating-conic-gradient(from 0deg,var(--burst) 0deg 6deg,transparent 6deg 20deg);filter:saturate(1.3);-webkit-mask:radial-gradient(circle,#000 18%,transparent 70%);mask:radial-gradient(circle,#000 18%,transparent 70%)}
+.mm-basket-card.is-revealed .mm-basket-burst{animation:mmBasketBurst var(--burst-duration) var(--mm-ease) both}
+.mm-basket-card.reveals-singulier .mm-basket-burst{--burst:#8fc2ab}
+.mm-basket-card.reveals-rare .mm-basket-burst{--burst:#7fb2d6;--burst-scale:1.12}
+.mm-basket-card.reveals-precieux .mm-basket-burst{--burst:#b49ad6;--burst-scale:1.2;--burst-duration:1.5s}
+.mm-basket-card.reveals-exceptionnel .mm-basket-burst{--burst:#e39a62;--burst-scale:1.3;--burst-duration:1.9s}
+.mm-basket-card.reveals-legendaire .mm-basket-burst{--burst:#f0c64e;--burst-scale:1.45;--burst-duration:2.6s}
+.mm-basket-card.reveals-exceptionnel .mm-basket-halo,.mm-basket-card.reveals-legendaire .mm-basket-halo{background:radial-gradient(circle,#fff6d2 0,color-mix(in srgb,#f0c64e 55%,transparent) 42%,transparent 72%);opacity:1}
+.mm-basket-reward>span b{margin-top:3px;display:inline-flex;align-items:center;gap:3px;font-size:0.4375rem;font-weight:800;letter-spacing:.04em}
+.mm-basket-new{color:#2f7a5d}
+.mm-basket-duplicate{color:var(--mm-ink-soft)}
+.mm-basket-duplicate .mm-price svg{width:10px!important}
+.mm-basket-reward.rarity-legendaire>span{border-color:#d8b84d;box-shadow:0 0 0 1px #f0d99055,0 7px 22px #c5a23f55}
+@keyframes mmBasketShake{0%,100%{rotate:0deg;translate:0 0}12%{rotate:-4deg}24%{rotate:4deg}36%{rotate:-5deg;translate:0 -3px}48%{rotate:5deg}60%{rotate:-3deg}72%{rotate:3deg;translate:0 -2px}86%{rotate:-1deg}}
+@keyframes mmBasketBurst{0%{opacity:0;transform:scale(.3) rotate(0deg)}25%{opacity:1}100%{opacity:0;transform:scale(var(--burst-scale)) rotate(40deg)}}
+@media(prefers-reduced-motion:reduce){.mm-basket-picture.is-opening{animation:none}.mm-basket-burst{display:none}}
+
+/* Pastille de l'onglet Épicerie : assez de plumes pour ouvrir un panier. */
+.mm-nav-badge{position:absolute;top:7px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--mm-coral);box-shadow:0 0 0 2px var(--mm-paper)}

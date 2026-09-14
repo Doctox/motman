@@ -24,10 +24,11 @@ const aVendre = AVATARS.filter(avatar => avatar.availability === 'epicerie')
 let racine: Root
 let hote: HTMLDivElement
 
-function afficher(cosmetics: PlayerCosmetics) {
+function afficher(cosmetics: PlayerCosmetics, rayon = 'Avatars') {
   act(() => {
     racine.render(createElement(ShopPage, { cosmetics, setCosmetics: vi.fn(), back: vi.fn(), notify: vi.fn() }))
   })
+  cliquer(boutonDe(rayon))
 }
 const boutonDe = (texte: string) => [...document.querySelectorAll('button')].find(bouton => bouton.textContent?.includes(texte))
 const cliquer = (bouton: Element | null | undefined) => act(() => { (bouton as HTMLButtonElement).click() })
@@ -100,6 +101,18 @@ describe('ce qui ne demande pas confirmation', () => {
   })
 })
 
+describe('l’Épicerie s’ouvre sur les paniers', () => {
+  it('le rayon Paniers est le premier et celui affiché d’emblée', () => {
+    act(() => {
+      racine.render(createElement(ShopPage, { cosmetics: riche(), setCosmetics: vi.fn(), back: vi.fn(), notify: vi.fn() }))
+    })
+    const onglets = [...hote.querySelectorAll('[role="tab"]')]
+    expect(onglets[0].textContent).toContain('Paniers')
+    expect(onglets[0].getAttribute('aria-selected')).toBe('true')
+    expect(hote.querySelector('.mm-basket-stage')).not.toBeNull()
+  })
+})
+
 describe('ouvrir un panier', () => {
   it('se confirme aussi', () => {
     const panier = BASKETS[0]
@@ -108,5 +121,30 @@ describe('ouvrir un panier', () => {
     cliquer(hote.querySelector('.mm-basket-stage') ?? undefined)
     expect(dialogue()?.textContent).toContain(panier.name)
     expect(serveur.ouvrir).not.toHaveBeenCalled()
+  })
+})
+
+describe('révéler la trouvaille', () => {
+  async function ouvrirAvec(reward: Record<string, unknown>) {
+    vi.useFakeTimers()
+    serveur.ouvrir.mockResolvedValue({ cosmetics: riche(), reward })
+    afficher(riche(), 'Paniers')
+    cliquer(hote.querySelector('.mm-basket-stage'))
+    await act(async () => { boutonDe('Ouvrir pour')!.click() })
+    await act(async () => { vi.advanceTimersByTime(2_000) })
+    vi.useRealTimers()
+  }
+
+  it('un double dit ce qu’il rend', async () => {
+    await ouvrirAvec({ kind: 'frame', id: 'cadre-encre', name: 'Encre', rarity: 'commun', duplicate: true, refund: 390 })
+    expect(hote.querySelector('.mm-basket-reward')?.textContent).toContain('Déjà possédé')
+    expect(hote.querySelector('.mm-basket-reward')?.textContent).toContain('390')
+    expect(hote.querySelector('.mm-basket-card')?.className).toContain('reveals-commun')
+  })
+
+  it('un objet neuf est annoncé comme tel', async () => {
+    await ouvrirAvec({ kind: 'frame', id: 'cadre-royal', name: 'Royal', rarity: 'precieux', duplicate: false, refund: 0 })
+    expect(hote.querySelector('.mm-basket-reward')?.textContent).toContain('Nouveau')
+    expect(hote.querySelector('.mm-basket-reward')?.textContent).not.toContain('Déjà possédé')
   })
 })

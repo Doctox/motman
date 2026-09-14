@@ -34,7 +34,7 @@ export function AppHeader({ onSettings }: { onMenu?: () => void; onSettings: () 
   </header>
 }
 
-export function BottomNav({ page, setPage }: { page: MenuPage; setPage: (page: MenuPage) => void }) {
+export function BottomNav({ page, setPage, basketAffordable = false }: { page: MenuPage; setPage: (page: MenuPage) => void; basketAffordable?: boolean }) {
   // L'Épicerie A SON ONGLET. Elle était déjà une page à part entière, mais on
   // n'y arrivait que depuis le profil — et la barre allumait alors « Profil »
   // alors qu'on n'y était pas. Ce petit mensonge disparaît, et une destination
@@ -45,7 +45,12 @@ export function BottomNav({ page, setPage }: { page: MenuPage; setPage: (page: M
     ['profile', 'Profil', <User />],
   ]
   return <nav className="mm-bottom-nav" aria-label="Navigation principale">
-    {items.map(([id, label, icon]) => <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span></button>)}
+    {items.map(([id, label, icon]) => {
+      // Assez de plumes pour un panier : une pastille le rappelle, sauf quand on
+      // est déjà dans l'Épicerie.
+      const badge = id === 'shop' && basketAffordable && page !== 'shop'
+      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à votre portée` : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
+    })}
   </nav>
 }
 

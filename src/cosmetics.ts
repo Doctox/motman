@@ -1,5 +1,5 @@
 import avatarCatalogData from './data/avatar.catalog.json'
-import { basketRarityProbabilities, basketRarityWeights as progressionRarityWeights, RARITY_ORDER } from './progressionRewards'
+import { basketRarityProbabilities } from './progressionRewards'
 
 export type CosmeticRarity = 'commun' | 'singulier' | 'rare' | 'precieux' | 'exceptionnel' | 'legendaire'
 export type CosmeticKind = 'avatar' | 'frame' | 'animation'
@@ -7,7 +7,7 @@ export type CosmeticKind = 'avatar' | 'frame' | 'animation'
 export type AvatarDefinition = {
   id: string
   name: string
-  kind: 'human' | 'animal' | 'object'
+  kind: 'human' | 'animal' | 'object' | 'flag'
   asset: string
   availability: 'starter' | 'epicerie' | 'easter-egg'
   pricePlumes: number
@@ -49,6 +49,9 @@ export type CosmeticReward = {
   name: string
   rarity: CosmeticRarity
   asset?: string
+  /** Objet déjà possédé : il n'est pas ajouté, `refund` plumes sont rendues. */
+  duplicate?: boolean
+  refund?: number
 }
 
 export type PlayerCosmetics = {
@@ -69,17 +72,12 @@ export type PlayerCosmetics = {
 
 const STORAGE_KEY = 'motman-cosmetics-v1'
 const WELCOME_PLUMES = 600
-const ONE_TIME_PLUME_GRANTS: Record<string, { transactionId: string; amount: number }> = {
-  'guest_df7ab644f1f3d21cc34116385a64d9d9': {
-    transactionId: 'grant:invite-2003:2026-07-17:5000',
-    amount: 5_000,
-  },
-}
-
 export const AVATAR_PRICE_BY_KIND = {
   human: 1_400,
   animal: 1_800,
   object: 2_200,
+  // Les drapeaux (14/09/2026) : même prix que les humains, choix du propriétaire.
+  flag: 1_400,
 } as const
 
 export const AVATARS = (avatarCatalogData.avatars as AvatarDefinition[]).map(avatar => avatar.availability === 'starter'
@@ -136,11 +134,11 @@ export const ANIMATIONS: AnimationDefinition[] = [
 ]
 
 export const BASKETS: BasketDefinition[] = [
-  { id: 'panier-epicerie', name: 'Panier de l’Épicerie', description: 'Un avatar, un cadre ou une animation que vous ne possédez pas encore.', pricePlumes: 999, cloth: 'sage' },
+  { id: 'panier-epicerie', name: 'Panier de l’Épicerie', description: 'Un avatar, un cadre ou une animation au hasard. Déjà dans votre collection ? 30 % de sa valeur vous revient en plumes.', pricePlumes: 999, cloth: 'sage' },
 ]
 
 export function avatarRarity(avatar: AvatarDefinition): CosmeticRarity {
-  if (avatar.availability === 'starter' || avatar.kind === 'human') return 'commun'
+  if (avatar.availability === 'starter' || avatar.kind === 'human' || avatar.kind === 'flag') return 'commun'
   if (avatar.kind === 'animal') return 'singulier'
   return 'rare'
 }
@@ -209,131 +207,18 @@ export function loadPlayerCosmetics(playerId: string): PlayerCosmetics {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const migrated = migratePlayerCosmetics(JSON.parse(stored), playerId)
-      if (migrated) return applyOneTimePlumeGrant(migrated)
+      if (migrated) return migrated
     }
   } catch {
     // Une collection locale incomplète est remplacée sans toucher au profil.
   }
-  const created = createPlayerCosmetics(playerId)
-  return applyOneTimePlumeGrant(created)
-}
-
-function applyOneTimePlumeGrant(cosmetics: PlayerCosmetics): PlayerCosmetics {
-  const grant = ONE_TIME_PLUME_GRANTS[cosmetics.playerId]
-  if (!grant || cosmetics.transactions.includes(grant.transactionId)) return cosmetics
-  return savePlayerCosmetics({
-    ...cosmetics,
-    plumes: cosmetics.plumes + grant.amount,
-    transactions: [...cosmetics.transactions, grant.transactionId].slice(-300),
-  })
+  return createPlayerCosmetics(playerId)
 }
 
 export function savePlayerCosmetics(cosmetics: PlayerCosmetics): PlayerCosmetics {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cosmetics))
   window.dispatchEvent(new CustomEvent<PlayerCosmetics>('motman:cosmetics', { detail: cosmetics }))
   return cosmetics
-}
-
-export function equipCosmetic(cosmetics: PlayerCosmetics, kind: CosmeticKind, id: string): PlayerCosmetics {
-  const owned = kind === 'avatar' ? cosmetics.ownedAvatarIds : kind === 'frame' ? cosmetics.ownedFrameIds : cosmetics.ownedAnimationIds
-  if (!owned.includes(id)) return cosmetics
-  return savePlayerCosmetics(kind === 'avatar'
-    ? { ...cosmetics, equippedAvatarId: id }
-    : kind === 'frame'
-      ? { ...cosmetics, equippedFrameId: id }
-      : { ...cosmetics, equippedAnimationId: id })
-}
-
-export function buyCosmetic(cosmetics: PlayerCosmetics, kind: CosmeticKind, id: string): PlayerCosmetics {
-  const item = kind === 'avatar'
-    ? AVATARS.find(avatar => avatar.id === id)
-    : kind === 'frame'
-      ? FRAMES.find(frame => frame.id === id)
-      : ANIMATIONS.find(animation => animation.id === id)
-  if (!item || item.availability !== 'epicerie') throw new Error('Cet objet n’est pas disponible.')
-  const owned = kind === 'avatar' ? cosmetics.ownedAvatarIds : kind === 'frame' ? cosmetics.ownedFrameIds : cosmetics.ownedAnimationIds
-  if (owned.includes(id)) return equipCosmetic(cosmetics, kind, id)
-  if (cosmetics.plumes < item.pricePlumes) throw new Error('Il vous manque quelques plumes.')
-  return savePlayerCosmetics({
-    ...cosmetics,
-    plumes: cosmetics.plumes - item.pricePlumes,
-    ownedAvatarIds: kind === 'avatar' ? [...cosmetics.ownedAvatarIds, id] : cosmetics.ownedAvatarIds,
-    ownedFrameIds: kind === 'frame' ? [...cosmetics.ownedFrameIds, id] : cosmetics.ownedFrameIds,
-    ownedAnimationIds: kind === 'animation' ? [...cosmetics.ownedAnimationIds, id] : cosmetics.ownedAnimationIds,
-    equippedAvatarId: kind === 'avatar' ? id : cosmetics.equippedAvatarId,
-    equippedFrameId: kind === 'frame' ? id : cosmetics.equippedFrameId,
-    equippedAnimationId: kind === 'animation' ? id : cosmetics.equippedAnimationId,
-    transactions: [...cosmetics.transactions, `buy:${kind}:${id}:${Date.now()}`].slice(-300),
-  })
-}
-
-function everyUnownedReward(cosmetics: PlayerCosmetics): CosmeticReward[] {
-  return [
-    ...AVATARS.flatMap(avatar => avatar.availability === 'epicerie' && !cosmetics.ownedAvatarIds.includes(avatar.id)
-      ? [{ kind: 'avatar' as const, id: avatar.id, name: avatar.name, rarity: avatarRarity(avatar), asset: avatar.asset }]
-      : []),
-    ...FRAMES.flatMap(frame => frame.availability === 'epicerie' && !cosmetics.ownedFrameIds.includes(frame.id)
-      ? [{ kind: 'frame' as const, id: frame.id, name: frame.name, rarity: frame.rarity }]
-      : []),
-    ...ANIMATIONS.flatMap(animation => animation.availability === 'epicerie' && !cosmetics.ownedAnimationIds.includes(animation.id)
-      ? [{ kind: 'animation' as const, id: animation.id, name: animation.name, rarity: animation.rarity, asset: animation.asset }]
-      : []),
-  ]
-}
-
-export function basketRarityWeights(pity: number): Record<CosmeticRarity, number> {
-  return progressionRarityWeights(pity)
-}
-
-function drawReward(rewards: CosmeticReward[], pity: number): CosmeticReward {
-  const weights = basketRarityWeights(pity)
-  const groups = RARITY_ORDER.flatMap(rarity => {
-    const items = rewards.filter(reward => reward.rarity === rarity)
-    return items.length ? [{ rarity, items, weight: weights[rarity] }] : []
-  })
-  const totalWeight = groups.reduce((total, group) => total + group.weight, 0)
-  let roll = Math.random() * totalWeight
-  const group = groups.find(candidate => {
-    roll -= candidate.weight
-    return roll <= 0
-  }) ?? groups[groups.length - 1]
-  return group.items[Math.floor(Math.random() * group.items.length)]
-}
-
-export function openBasket(cosmetics: PlayerCosmetics, basketId: string): { cosmetics: PlayerCosmetics; reward: CosmeticReward } {
-  const basket = BASKETS.find(candidate => candidate.id === basketId)
-  if (!basket) throw new Error('Ce panier n’est plus disponible.')
-  if (cosmetics.plumes < basket.pricePlumes) throw new Error('Il vous manque quelques plumes.')
-  const rewards = everyUnownedReward(cosmetics)
-  if (!rewards.length) throw new Error('Votre collection est déjà complète.')
-  const reward = drawReward(rewards, cosmetics.basketPity)
-  const isRareOrBetter = RARITY_ORDER.indexOf(reward.rarity) >= RARITY_ORDER.indexOf('rare')
-  const nextPity = isRareOrBetter ? 0 : Math.min(20, cosmetics.basketPity + 1)
-  const pending = {
-    ...cosmetics,
-    plumes: cosmetics.plumes - basket.pricePlumes,
-    ownedAvatarIds: reward.kind === 'avatar' ? [...cosmetics.ownedAvatarIds, reward.id] : cosmetics.ownedAvatarIds,
-    ownedFrameIds: reward.kind === 'frame' ? [...cosmetics.ownedFrameIds, reward.id] : cosmetics.ownedFrameIds,
-    ownedAnimationIds: reward.kind === 'animation' ? [...cosmetics.ownedAnimationIds, reward.id] : cosmetics.ownedAnimationIds,
-    openedBaskets: cosmetics.openedBaskets + 1,
-    basketPity: nextPity,
-    transactions: [...cosmetics.transactions, `basket:${basket.id}:${reward.kind}:${reward.id}:${Date.now()}`].slice(-300),
-  }
-  const next = savePlayerCosmetics({
-    ...pending,
-    basketOdds: basketRarityProbabilities(nextPity, everyUnownedReward(pending).map(item => item.rarity)),
-  })
-  return { cosmetics: next, reward }
-}
-
-export function grantPlumes(playerId: string, transactionId: string, amount: number): PlayerCosmetics {
-  const current = loadPlayerCosmetics(playerId)
-  if (amount <= 0 || current.transactions.includes(transactionId)) return current
-  return savePlayerCosmetics({
-    ...current,
-    plumes: current.plumes + Math.floor(amount),
-    transactions: [...current.transactions, transactionId].slice(-300),
-  })
 }
 
 export function frameClassName(frameId: string): string {

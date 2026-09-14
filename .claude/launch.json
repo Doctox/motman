@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "motman-local",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set VITE_MOTMAN_LOCAL_TEST_SERVER=true&& npm run dev -- --port 4176 --strictPort"],
+      "port": 4176
     }
   ]
 }
