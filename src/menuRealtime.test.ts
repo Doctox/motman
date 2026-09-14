@@ -12,13 +12,18 @@ describe('menu Realtime wake-ups', () => {
 
   it('garde un polling lent lorsque Realtime est connecté', () => {
     expect(socialMenuPollDelay('visible', true)).toBe(60_000)
-    expect(lobbyMenuPollDelay('visible', true, true)).toBe(45_000)
+    expect(lobbyMenuPollDelay('visible', true, false)).toBe(45_000)
     expect(lobbyMenuPollDelay('hidden', true, false)).toBe(60_000)
   })
 
   it('accélère seulement le secours si Realtime est indisponible', () => {
     expect(socialMenuPollDelay('visible', false)).toBe(30_000)
     expect(lobbyMenuPollDelay('visible', false, false)).toBe(30_000)
-    expect(lobbyMenuPollDelay('visible', false, true)).toBe(8_000)
+  })
+
+  it('sonde vite pendant une recherche, realtime ou non : la bascule sur un bot n’émet aucun réveil', () => {
+    expect(lobbyMenuPollDelay('visible', true, true)).toBe(5_000)
+    expect(lobbyMenuPollDelay('visible', false, true)).toBe(5_000)
+    expect(lobbyMenuPollDelay('hidden', true, true)).toBe(60_000)
   })
 })

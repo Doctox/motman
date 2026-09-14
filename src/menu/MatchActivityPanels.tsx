@@ -41,7 +41,7 @@ export function MatchWaitingPanel({ invitation, busy, cancel }: { invitation: Ma
  * POURQUOI SEULEMENT L'ÉCOULÉ, ET AUCUNE ESTIMATION. Les testeurs demandaient
  * un temps d'attente « estimé » pour décider s'il faut patienter (suggestion
  * S-03, rapport 6766). Il n'y a rien à estimer : le serveur bascule sur un bot
- * au bout de trente secondes (`BOT_SEARCH_MS`), donc l'attente est bornée par
+ * au bout de quinze secondes (`BOT_SEARCH_MS`), donc l'attente est bornée par
  * construction et personne ne patiente jamais longtemps. La vraie question du
  * joueur n'est pas « combien de temps encore » mais « est-ce que c'est bloqué » —
  * et un compteur qui avance y répond, là où trois points qui clignotent non.

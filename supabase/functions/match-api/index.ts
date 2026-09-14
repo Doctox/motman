@@ -17,7 +17,9 @@ import { nowIso, type MatchRow, type Pace } from './matchModel.ts'
 
 const MANUAL_SUBMIT_GRACE_MS = 2_000
 const AUTOMATIC_SUBMIT_GRACE_MS = 8_000
-const BOT_SEARCH_MS = 30_000
+// Doit rester égal au seuil de `server_create_bot_match_atomic` (migration
+// 20260914090000) : en dessous, le RPC répond `waiting` et rien ne se passe.
+const BOT_SEARCH_MS = 15_000
 // Bonus du défi du jour, versé une seule fois par joueur et par jour. Valeur
 // AUTORITAIRE et unique : le client ne la duplique plus, il lit le montant
 // réellement crédité (account-api → ExperienceAward.dailyBonusPlumes).
@@ -240,8 +242,18 @@ Deno.serve(async request => {
     }
 
     if (action === 'state') {
-      const { data: searches } = await admin.from('server_match_searches').select('*').eq('user_id', user.id)
-      for (const search of searches ?? []) if (Date.now() - new Date(search.created_at).getTime() >= BOT_SEARCH_MS) {
+      // Battement de la file normale : ce sondage est la seule preuve que le
+      // joueur qui cherche est encore là. Le RPC rafraîchit `updated_at` et rend
+      // les lignes ; sans lui, `server_matchmake_atomic` écarte la recherche au
+      // bout de deux minutes et le cron la purge à cinq (migration
+      // 20260914090000). En cas d'échec, on relit la file comme avant : la
+      // bascule sur un bot ne doit pas dépendre du battement.
+      let { data: searches, error: refreshError } = await admin.rpc('server_refresh_match_searches', { p_user_id: user.id })
+      if (refreshError) {
+        logServerError('match-api:refresh-searches', refreshError)
+        ;({ data: searches } = await admin.from('server_match_searches').select('*').eq('user_id', user.id))
+      }
+      for (const search of (searches ?? []) as { id: string; pace: string; created_at: string }[]) if (Date.now() - new Date(search.created_at).getTime() >= BOT_SEARCH_MS) {
         const bot = createBot(`${user.id}:${search.id}`)
         const pace = search.pace as Pace
         const prepared = await prepareAtomicMatch(admin, user.id, bot.playerId, pace, null, bot)
