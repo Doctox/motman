@@ -107,3 +107,15 @@ describe('premier panier offert', () => {
     expect(progres.total).toBe(aVendre.length + FRAMES.filter(f => f.availability === 'epicerie').length + ANIMATIONS.filter(a => a.availability === 'epicerie').length)
   })
 })
+
+describe('avatars retirés', () => {
+  it('ne sont plus en vente mais restent affichables pour leurs propriétaires', async () => {
+    const { getAvatar, collectionProgress } = await import('./cosmetics')
+    const moka = AVATARS.find(avatar => avatar.id === 'moka')!
+    expect(moka.availability).toBe('retire')
+    expect(getAvatar('moka').id).toBe('moka')
+    const avant = collectionProgress({ ownedAvatarIds: [], ownedFrameIds: [], ownedAnimationIds: [] })
+    const apres = collectionProgress({ ownedAvatarIds: ['moka'], ownedFrameIds: [], ownedAnimationIds: [] })
+    expect(apres).toEqual(avant)
+  })
+})

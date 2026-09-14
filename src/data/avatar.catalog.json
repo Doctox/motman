@@ -129,13 +129,13 @@
       "name": "Moka",
       "kind": "animal",
       "asset": "/assets/avatars/moka.webp",
-      "availability": "epicerie",
+      "availability": "retire",
       "pricePlumes": 1800,
       "tags": ["chat", "animal"]
     },
     {
       "id": "celeste",
-      "name": "Céleste",
+      "name": "Chouette",
       "kind": "animal",
       "asset": "/assets/avatars/celeste.webp",
       "availability": "epicerie",
@@ -144,7 +144,7 @@
     },
     {
       "id": "roux",
-      "name": "Roux",
+      "name": "Renard",
       "kind": "animal",
       "asset": "/assets/avatars/roux.webp",
       "availability": "epicerie",

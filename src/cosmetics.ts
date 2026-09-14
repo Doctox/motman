@@ -9,7 +9,11 @@ export type AvatarDefinition = {
   name: string
   kind: 'human' | 'animal' | 'object' | 'flag'
   asset: string
-  availability: 'starter' | 'epicerie' | 'easter-egg'
+  /**
+   * `retire` : plus en vente ni dans les paniers, mais toujours affiché et
+   * équipable par ceux qui le possèdent déjà (le chat noir Moka, 14/09/2026).
+   */
+  availability: 'starter' | 'epicerie' | 'easter-egg' | 'retire'
   pricePlumes: number
   tags: string[]
 }
