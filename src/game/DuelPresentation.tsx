@@ -5,7 +5,8 @@ import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
 import { GameResultScreen } from '../GameResultScreen'
-import { dailyShareText, saveDailyShare } from '../dailyShare'
+import { dailyShareText, saveDailyShare, type DailyShareInput } from '../dailyShare'
+import { loadDailyLeaderboard } from '../dailyLeaderboard'
 import { DailyStreakReward } from '../menu/DailyChallenge'
 import { DailyShareButton } from '../menu/DailyShareButton'
 import {
@@ -86,7 +87,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     if (recordedDailyMatches.has(match.id)) return
     recordedDailyMatches.add(match.id)
     try {
-      const { effects, state: apres, attempts } = recordDailyResult({
+      const { effects, attempts } = recordDailyResult({
         day: match.dailyDate,
         // Même règle de victoire que le serveur : une partie interrompue n'est
         // pas une victoire (cf. dailyResultForMatch).
@@ -97,24 +98,24 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
       })
       setDailyEffects(effects)
       // Le résultat à partager, calculé une fois et gardé pour l'accueil.
-      if (match.grid) {
-        const adversaire = match.playerIds.find(id => id !== playerId) ?? ''
-        const texte = dailyShareText({
-          day: match.dailyDate,
-          theme: dailyThemeFor(match.dailyDate),
-          won: match.winnerId === playerId,
-          score: match.scores[playerId] ?? 0,
-          opponentScore: match.scores[adversaire] ?? 0,
-          turns: match.turnNumber,
-          streak: apres.currentStreak,
-          attempt: Math.max(1, attempts),
-          playerId,
-          columns: match.grid.columns,
-          cells: match.grid.cells,
-          board: match.board,
-        })
-        saveDailyShare(match.dailyDate, texte)
-        setDailyShare(texte)
+      const jour = match.dailyDate
+      const adversaire = match.playerIds.find(id => id !== playerId) ?? ''
+      const partage: DailyShareInput = {
+        theme: dailyThemeFor(jour),
+        outcome: match.winnerId === playerId ? 'win' : match.winnerId === null && match.finishReason === 'completed' ? 'draw' : 'loss',
+        score: match.scores[playerId] ?? 0,
+        opponentScore: match.scores[adversaire] ?? 0,
+        attempt: Math.max(1, attempts),
+      }
+      const publier = (texte: string) => { saveDailyShare(jour, texte); setDailyShare(texte) }
+      publier(dailyShareText(partage))
+      // Le rang arrive du serveur un instant plus tard. On le demande DÈS
+      // l'écran de fin, pas au toucher du bouton : Safari n'ouvre la feuille de
+      // partage que dans la foulée immédiate du geste, sans attente réseau.
+      if (partage.attempt === 1) {
+        void loadDailyLeaderboard(jour).then(classement => {
+          if (classement.me && classement.total > 0) publier(dailyShareText({ ...partage, rank: { position: classement.me.position, total: classement.total } }))
+        }).catch(() => undefined)
       }
     } catch {
       // La série est un confort local : si le stockage refuse, le résultat de la

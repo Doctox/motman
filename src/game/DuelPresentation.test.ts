@@ -13,6 +13,8 @@ vi.mock('../matches', () => ({
 }))
 const social = vi.hoisted(() => ({ lire: vi.fn(), demander: vi.fn() }))
 vi.mock('../social', () => ({ sendFriendRequestToPlayer: social.demander, loadSocialState: social.lire }))
+const classement = vi.hoisted(() => ({ lire: vi.fn() }))
+vi.mock('../dailyLeaderboard', () => ({ loadDailyLeaderboard: classement.lire }))
 vi.mock('../CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
 vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn() }))
 vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { children: ReactNode }) => createElement('div', null, children) }))
@@ -62,12 +64,14 @@ const afficher = (match: MatchState) => act(() => {
 const boutonPartage = () => [...hote.querySelectorAll('button')].find(bouton => bouton.textContent?.includes('Partager mon résultat'))
 
 describe('le partage en fin de défi du jour', () => {
-  it('propose le résultat, et le garde pour l’accueil', () => {
-    afficher(partie())
+  it('propose le défi lancé, complété du rang du jour, et le garde pour l’accueil', async () => {
+    classement.lire.mockResolvedValue({ day: '', general: [], friends: [], me: { position: 3 }, total: 9 })
+    await act(async () => { afficher(partie()) })
     expect(boutonPartage()).toBeTruthy()
     const garde = JSON.parse(localStorage.getItem('motman-daily-share-v1') ?? '{}') as { text?: string }
-    expect(garde.text).toContain('🏆 Gagné 42 à 31 en 9 tours')
-    expect(garde.text).toContain('⬛🟩🟧')
+    expect(garde.text).toContain("J'ai battu le bot 42 à 31")
+    expect(garde.text).toContain("🥉 3e sur 9 joueurs aujourd'hui")
+    expect(garde.text).not.toContain('⬛')
   })
 
   it('rien à partager après une partie ordinaire', () => {

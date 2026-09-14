@@ -1,68 +1,60 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// PARTAGER SON DÉFI DU JOUR — « à la Wordle ».
+// PARTAGER SON DÉFI DU JOUR — « défi lancé ».
 //
-// Ce qui a fait connaître Wordle, c'est un carré d'émojis collé dans une
-// conversation : on voit comment l'autre s'en est sorti SANS rien apprendre de
-// la grille, et on a envie de faire mieux. Tout le monde joue la même grille ce
-// jour-là : c'est ce qui rend la comparaison possible.
+// La première version collait une mosaïque d'émojis à la Wordle. Le propriétaire
+// l'a jugée laide et muette (14/09/2026) : un carré de couleurs ne dit rien à
+// qui ne connaît pas MotMan. Le message est maintenant une provocation amicale,
+// courte, qui se lit d'un coup d'œil dans une conversation :
 //
-// AUCUNE RÉPONSE NE SORT D'ICI. La mosaïque ne dit que qui a rempli quelle
-// case : ⬛ définition ou case noire, 🟩 le joueur, 🟧 l'adversaire, ⬜ vide. La
-// forme de la grille n'apprend rien — elle est la même pour tous et visible dès
-// la première seconde de jeu.
+//     J'ai battu le bot 76 à 60 sur la grille « Corps humain » 💪
+//     🥈 2e sur 7 joueurs aujourd'hui
+//
+//     Tu fais mieux ? 👉 https://www.doctox.fr/motman/
+//
+// AUCUNE RÉPONSE NE SORT D'ICI : ni lettre, ni définition, ni forme de grille.
+// Le rang vient du classement du SERVEUR ; il n'est dit que pour le premier
+// essai du jour, le seul que le classement retient.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Capacitor } from '@capacitor/core'
 import { Share } from '@capacitor/share'
-import type { GeneratedCell } from './generator'
 
 export const MOTMAN_SHARE_URL = 'https://www.doctox.fr/motman/'
 const STORAGE_KEY = 'motman-daily-share-v1'
 
 export type DailyShareInput = {
-  /** Jour du défi, AAAA-MM-JJ. */
-  day: string
+  /** Thème annoncé ce jour-là, null un jour générique. */
   theme: string | null
-  won: boolean
+  /** Vainqueur : le joueur, le bot, ou personne (égalité). */
+  outcome: 'win' | 'loss' | 'draw'
   score: number
   opponentScore: number
-  /** Nombre de tours de la partie (celui du classement du jour). */
-  turns: number
-  /** Série après la partie. */
-  streak: number
   /** Tentative du jour (1 = premier essai). */
   attempt: number
-  playerId: string
-  columns: number
-  cells: readonly Pick<GeneratedCell, 'kind'>[]
-  board: Readonly<Record<string, { playerId: string }>>
+  /** Place au classement du jour, quand le serveur l'a donnée. */
+  rank?: { position: number; total: number } | null
 }
 
-/** Une ligne d'émojis par rangée de la grille. */
-export function shareMosaic(input: Pick<DailyShareInput, 'playerId' | 'columns' | 'cells' | 'board'>): string {
-  if (!input.columns || !input.cells.length) return ''
-  const lignes: string[] = []
-  for (let debut = 0; debut < input.cells.length; debut += input.columns) {
-    lignes.push(input.cells.slice(debut, debut + input.columns).map((cell, decalage) => {
-      if (cell.kind !== 'letter') return '⬛'
-      const posee = input.board[String(debut + decalage)]
-      if (!posee) return '⬜'
-      return posee.playerId === input.playerId ? '🟩' : '🟧'
-    }).join(''))
-  }
-  return lignes.join('\n')
+function ordinal(position: number): string {
+  return position === 1 ? '1er' : `${position}e`
+}
+
+function medaille(position: number): string {
+  return position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '🏅'
 }
 
 export function dailyShareText(input: DailyShareInput): string {
-  const [, mois, jour] = input.day.split('-')
-  const titre = `MotMan · Défi du ${jour}/${mois}${input.theme ? ` · ${input.theme}` : ''}`
-  const resultat = input.won
-    ? `🏆 Gagné ${input.score} à ${input.opponentScore} en ${input.turns} tour${input.turns > 1 ? 's' : ''}`
-    : `Perdu ${input.score} à ${input.opponentScore}${input.attempt > 1 ? ` · essai ${input.attempt}` : ''}`
-  const serie = input.streak > 0 ? `🔥 Série de ${input.streak} jour${input.streak > 1 ? 's' : ''}` : ''
-  const mosaique = shareMosaic(input)
-  return [titre, resultat, serie, mosaique, `Joue la grille du jour : ${MOTMAN_SHARE_URL}`]
-    .filter(Boolean)
+  const grille = input.theme ? `la grille « ${input.theme} »` : 'la grille du jour'
+  const resultat = input.outcome === 'win'
+    ? `J'ai battu le bot ${input.score} à ${input.opponentScore} sur ${grille} 💪`
+    : input.outcome === 'draw'
+      ? `Égalité ${input.score} partout avec le bot sur ${grille} 🤝`
+      : `Le bot m'a eu ${input.score} à ${input.opponentScore} sur ${grille} 😤`
+  const rang = input.attempt === 1 && input.rank && input.rank.position > 0 && input.rank.total > 0
+    ? `${medaille(input.rank.position)} ${ordinal(input.rank.position)} sur ${input.rank.total} joueur${input.rank.total > 1 ? 's' : ''} aujourd'hui`
+    : ''
+  return [resultat, rang, '', `Tu fais mieux ? 👉 ${MOTMAN_SHARE_URL}`]
+    .filter((ligne, index) => ligne !== '' || index === 2)
     .join('\n')
 }
 

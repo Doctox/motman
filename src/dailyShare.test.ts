@@ -1,58 +1,49 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { dailyShareText, loadDailyShare, saveDailyShare, shareMosaic, shareText, type DailyShareInput } from './dailyShare'
+import { dailyShareText, loadDailyShare, saveDailyShare, shareText, type DailyShareInput } from './dailyShare'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LE PARTAGE DU DÉFI DU JOUR : lisible, comparable, et sans aucune réponse.
+// LE PARTAGE DU DÉFI DU JOUR : un défi lancé, court, sans aucune réponse.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOI = 'joueur'
-const BOT = 'bot'
-
-// Grille 3×2 : une définition, cinq cases à lettre (dont une vide, une noire).
 const entree = (modifs: Partial<DailyShareInput> = {}): DailyShareInput => ({
-  day: '2026-09-14',
   theme: 'Corps humain',
-  won: true,
-  score: 42,
-  opponentScore: 31,
-  turns: 9,
-  streak: 12,
+  outcome: 'win',
+  score: 76,
+  opponentScore: 60,
   attempt: 1,
-  playerId: MOI,
-  columns: 3,
-  cells: [{ kind: 'clue' }, { kind: 'letter' }, { kind: 'letter' }, { kind: 'blocked' }, { kind: 'letter' }, { kind: 'letter' }],
-  board: { 1: { playerId: MOI }, 2: { playerId: BOT }, 4: { playerId: MOI } },
+  rank: { position: 2, total: 7 },
   ...modifs,
 })
 
-describe('la mosaïque', () => {
-  it('dit qui a rempli quelle case, rangée par rangée', () => {
-    expect(shareMosaic(entree())).toBe('⬛🟩🟧\n⬛🟩⬜')
-  })
-})
-
 describe('le texte partagé', () => {
-  it('une victoire : jour, thème, score, tours, série, mosaïque et lien', () => {
+  it('une victoire : score, grille, rang et invitation', () => {
     expect(dailyShareText(entree())).toBe([
-      'MotMan · Défi du 14/09 · Corps humain',
-      '🏆 Gagné 42 à 31 en 9 tours',
-      '🔥 Série de 12 jours',
-      '⬛🟩🟧',
-      '⬛🟩⬜',
-      'Joue la grille du jour : https://www.doctox.fr/motman/',
+      "J'ai battu le bot 76 à 60 sur la grille « Corps humain » 💪",
+      "🥈 2e sur 7 joueurs aujourd'hui",
+      '',
+      'Tu fais mieux ? 👉 https://www.doctox.fr/motman/',
     ].join('\n'))
   })
 
-  it('une défaite dit l’essai, et n’affiche pas une série à zéro', () => {
-    const texte = dailyShareText(entree({ won: false, score: 20, opponentScore: 35, attempt: 2, streak: 0, theme: null }))
-    expect(texte.split('\n').slice(0, 2)).toEqual(['MotMan · Défi du 14/09', 'Perdu 20 à 35 · essai 2'])
-    expect(texte).not.toContain('Série')
+  it('une défaite se dit aussi, avec le sourire', () => {
+    expect(dailyShareText(entree({ outcome: 'loss', score: 60, opponentScore: 76 })).split('\n')[0])
+      .toBe("Le bot m'a eu 60 à 76 sur la grille « Corps humain » 😤")
   })
 
-  it('ne contient aucune lettre de la grille', () => {
-    const texte = dailyShareText(entree({ board: { 1: { playerId: MOI, letter: 'Z' } as { playerId: string } } }))
-    expect(texte).not.toContain('Z')
+  it('sans thème, « la grille du jour » ; égalité dite comme telle', () => {
+    expect(dailyShareText(entree({ theme: null, outcome: 'draw', score: 50, opponentScore: 50 })).split('\n')[0])
+      .toBe('Égalité 50 partout avec le bot sur la grille du jour 🤝')
+  })
+
+  it('1er, et un joueur seul au singulier', () => {
+    expect(dailyShareText(entree({ rank: { position: 1, total: 1 } }))).toContain("🥇 1er sur 1 joueur aujourd'hui")
+  })
+
+  it('pas de rang sans classement, ni pour un nouvel essai (le classement ne retient que le premier)', () => {
+    const sansRang = dailyShareText(entree({ rank: null }))
+    expect(sansRang).toBe("J'ai battu le bot 76 à 60 sur la grille « Corps humain » 💪\n\nTu fais mieux ? 👉 https://www.doctox.fr/motman/")
+    expect(dailyShareText(entree({ attempt: 2 }))).not.toContain('sur 7')
   })
 })
 
