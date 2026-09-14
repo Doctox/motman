@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, Check, Feather, PackageOpen, Palette, ShoppingBasket, Sparkles, User } from 'lucide-react'
+import { ArrowLeft, Check, Feather, Gift, PackageOpen, Palette, ShoppingBasket, Sparkles, User } from 'lucide-react'
 import { assetUrl } from './assetUrl'
 import {
-  ANIMATIONS, AVATARS, BASKETS, FRAMES, avatarRarity,
-  type CosmeticKind, type CosmeticReward, type PlayerCosmetics,
+  ANIMATIONS, AVATARS, BASKETS, FRAMES, avatarRarity, basketPriceFor, collectionProgress, isFirstBasketFree,
+  type CosmeticKind, type CosmeticRarity, type CosmeticReward, type PlayerCosmetics,
 } from './cosmetics'
 import { CosmeticPortrait } from './CosmeticPortrait'
 import { equipServerCosmetic, openServerBasket, purchaseServerCosmetic } from './auth'
@@ -39,7 +39,39 @@ function formatProbability(value: number): string {
 }
 
 function Price({ value }: { value: number }) {
-  return <span className="mm-price"><Feather />{value}</span>
+  return <span className="mm-price"><Feather />{value.toLocaleString('fr-FR').replace(/\s/g, ' ')}</span>
+}
+
+/** La rareté se lit à la couleur : même teinte sur la carte, la pastille, les chances du panier et l'ouverture. */
+function RarityPill({ rarity }: { rarity: CosmeticRarity }) {
+  return <span className={`mm-rarity-pill rarity-${rarity}`}>{rarity === 'commun' || rarity === 'singulier' ? null : <i aria-hidden="true" />}{RARITY_LABELS[rarity]}</span>
+}
+
+/**
+ * Une carte d'article, commune aux trois rayons. Quatre états de bouton :
+ * achetable (plein), trop cher (léger, sans montant manquant — choix du
+ * propriétaire), possédé (« Équiper »), porté (« Équipé »).
+ */
+function ShopItemCard({ rarity, name, description, portrait, price, owned, equipped, balance, busy, equippedLabel = 'Équipé', extraClass = '', choose }: {
+  rarity: CosmeticRarity
+  name: string
+  description?: string
+  portrait: ReactNode
+  price: number
+  owned: boolean
+  equipped: boolean
+  balance: number
+  busy: boolean
+  equippedLabel?: string
+  extraClass?: string
+  choose: () => void
+}) {
+  const state = equipped ? 'is-equipped' : owned ? 'is-owned' : balance >= price ? 'is-affordable' : 'is-unaffordable'
+  return <article className={`mm-shop-item rarity-${rarity} ${state} ${extraClass}`}>
+    {portrait}
+    <RarityPill rarity={rarity} /><strong>{name}</strong>{description ? <p>{description}</p> : null}
+    <button type="button" disabled={equipped || busy} onClick={choose}>{equipped ? <><Check />{equippedLabel}</> : owned ? 'Équiper' : <Price value={price} />}</button>
+  </article>
 }
 
 function BasketArtwork({ state }: { state: BasketStageState }) {
@@ -83,9 +115,9 @@ export function PurchaseConfirm({ purchase, balance, preview, confirm, cancel }:
     <section ref={dialogRef} className="mm-pause mm-purchase-confirm" role="dialog" aria-modal="true" aria-label={`${verbe} ${purchase.name}`} tabIndex={-1}>
       {preview ? <div className="mm-purchase-preview" aria-hidden="true">{preview}</div> : null}
       <h2>{verbe} « {purchase.name} » ?</h2>
-      <p className="mm-purchase-cost"><Feather aria-hidden="true" /><b>{plumes(purchase.price)}</b></p>
+      <p className="mm-purchase-cost">{purchase.price === 0 ? <><Gift aria-hidden="true" /><b>Offert</b></> : <><Feather aria-hidden="true" /><b>{plumes(purchase.price)}</b></>}</p>
       <p className="mm-purchase-balance">{manque > 0 ? `Il vous manque ${plumes(manque)}.` : `Il vous restera ${plumes(balance - purchase.price)}.`}</p>
-      <button type="button" disabled={manque > 0} onClick={confirm}>{verbe}</button>
+      <button type="button" disabled={manque > 0} onClick={confirm}>{purchase.price === 0 ? `${verbe} gratuitement` : verbe}</button>
       <button type="button" className="secondary" data-dialog-autofocus onClick={cancel}>Annuler</button>
     </section>
   </div>, document.body)
@@ -104,6 +136,9 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
   const [basketState, setBasketState] = useState<BasketStageState>('idle')
   const [pendingItem, setPendingItem] = useState('')
   const [purchase, setPurchase] = useState<PendingPurchase | null>(null)
+  const [onlyMissing, setOnlyMissing] = useState(false)
+  const familyRefs = useRef<Partial<Record<string, HTMLElement | null>>>({})
+  const collection = collectionProgress(cosmetics)
   const basketTimerRef = useRef<number | null>(null)
   const purchasableAvatars = AVATARS.filter(avatar => avatar.availability === 'epicerie')
   const purchasableFrames = FRAMES.filter(frame => frame.availability === 'epicerie')
@@ -170,6 +205,10 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
   return <div className="mm-page mm-shop-page">
     <section className="mm-shop-toolbar">
       <button type="button" onClick={back} aria-label="Retour au profil"><ArrowLeft /></button>
+      <div className="mm-shop-collection" role="img" aria-label={`Collection : ${collection.owned} objets sur ${collection.total}`}>
+        <span>Collection<em>{collection.owned} / {collection.total}</em></span>
+        <i><b style={{ width: `${collection.total ? collection.owned / collection.total * 100 : 0}%` }} /></i>
+      </div>
       <b><Feather />{cosmetics.plumes.toLocaleString('fr-FR')}</b>
     </section>
     <div className="mm-shop-tabs" role="tablist" aria-label="Rayons de L’Épicerie">
@@ -180,45 +219,40 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     </div>
 
     {tab === 'avatars' ? <div className="mm-avatar-shelves">
-      {/* Une famille sans article en vente (les drapeaux avant leurs images) ne montre pas d'étagère vide. */}
-      {AVATAR_FAMILIES.filter(family => purchasableAvatars.some(avatar => avatar.kind === family.kind)).map(family => <section className="mm-avatar-family" aria-label={`Avatars ${family.label.toLowerCase()}`} key={family.kind}>
-        <header><h2>{family.label}</h2></header>
-        <div className="mm-shop-grid">
-          {purchasableAvatars.filter(avatar => avatar.kind === family.kind).map(avatar => {
-            const owned = cosmetics.ownedAvatarIds.includes(avatar.id)
-            const equipped = cosmetics.equippedAvatarId === avatar.id
-            return <article className={`mm-shop-item rarity-${avatarRarity(avatar)} ${equipped ? 'is-equipped' : ''}`} key={avatar.id}>
-              <CosmeticPortrait avatarId={avatar.id} frameId="cadre-ivoire" alt={avatar.name} />
-              <small>{family.itemLabel}</small><strong>{avatar.name}</strong>
-              <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, owned)}>{equipped ? <><Check />Équipé</> : owned ? 'Équiper' : <Price value={avatar.pricePlumes} />}</button>
-            </article>
-          })}
-        </div>
-      </section>)}
+      <nav className="mm-avatar-family-chips" aria-label="Familles d’avatars">
+        {AVATAR_FAMILIES.filter(family => purchasableAvatars.some(avatar => avatar.kind === family.kind)).map(family => <button type="button" key={family.kind} onClick={() => familyRefs.current[family.kind]?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+          {family.label}<small>{purchasableAvatars.filter(avatar => avatar.kind === family.kind).length}</small>
+        </button>)}
+      </nav>
+      <label className="mm-shop-filter"><span>Seulement ce que je n’ai pas</span><input type="checkbox" role="switch" checked={onlyMissing} onChange={event => setOnlyMissing(event.target.checked)} /></label>
+      {/* Une famille sans article en vente ne montre pas d'étagère vide. */}
+      {AVATAR_FAMILIES.filter(family => purchasableAvatars.some(avatar => avatar.kind === family.kind)).map(family => {
+        const avatars = purchasableAvatars.filter(avatar => avatar.kind === family.kind && !(onlyMissing && cosmetics.ownedAvatarIds.includes(avatar.id)))
+        return <section ref={element => { familyRefs.current[family.kind] = element }} className="mm-avatar-family" aria-label={`Avatars ${family.label.toLowerCase()}`} key={family.kind}>
+          <header><h2>{family.label}</h2></header>
+          {avatars.length ? <div className="mm-shop-grid">
+            {avatars.map(avatar => <ShopItemCard key={avatar.id} rarity={avatarRarity(avatar)} name={avatar.name} price={avatar.pricePlumes}
+              portrait={<CosmeticPortrait avatarId={avatar.id} frameId="cadre-ivoire" alt={avatar.name} />}
+              owned={cosmetics.ownedAvatarIds.includes(avatar.id)} equipped={cosmetics.equippedAvatarId === avatar.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
+              choose={() => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, cosmetics.ownedAvatarIds.includes(avatar.id))} />)}
+          </div> : <p className="mm-shop-empty">Toute la famille est déjà à vous.</p>}
+        </section>
+      })}
     </div> : null}
 
     {tab === 'frames' ? <section className="mm-shop-grid mm-frame-shop" aria-label="Cadres">
-      {purchasableFrames.map(frame => {
-        const owned = cosmetics.ownedFrameIds.includes(frame.id)
-        const equipped = cosmetics.equippedFrameId === frame.id
-        return <article className={`mm-shop-item rarity-${frame.rarity} ${equipped ? 'is-equipped' : ''}`} key={frame.id}>
-          <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={frame.id} alt={frame.name} />
-          <small>{RARITY_LABELS[frame.rarity]}</small><strong>{frame.name}</strong><p>{frame.description}</p>
-          <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => chooseCosmetic('frame', frame.id, frame.name, frame.pricePlumes, owned)}>{equipped ? <><Check />Équipé</> : owned ? 'Équiper' : <Price value={frame.pricePlumes} />}</button>
-        </article>
-      })}
+      {purchasableFrames.map(frame => <ShopItemCard key={frame.id} rarity={frame.rarity} name={frame.name} description={frame.description} price={frame.pricePlumes}
+        portrait={<CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={frame.id} alt={frame.name} />}
+        owned={cosmetics.ownedFrameIds.includes(frame.id)} equipped={cosmetics.equippedFrameId === frame.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
+        choose={() => chooseCosmetic('frame', frame.id, frame.name, frame.pricePlumes, cosmetics.ownedFrameIds.includes(frame.id))} />)}
     </section> : null}
 
     {tab === 'animations' ? <section className="mm-shop-grid mm-animation-shop" aria-label="Animations de portrait">
-      {purchasableAnimations.map(animation => {
-        const owned = cosmetics.ownedAnimationIds.includes(animation.id)
-        const equipped = cosmetics.equippedAnimationId === animation.id
-        return <article className={`mm-shop-item mm-animation-shop-item rarity-${animation.rarity} ${equipped ? 'is-equipped' : ''}`} key={animation.id}>
-          <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={animation.id} alt={animation.name} />
-          <small>{RARITY_LABELS[animation.rarity]}</small><strong>{animation.name}</strong><p>{animation.description}</p>
-          <button type="button" disabled={equipped || Boolean(pendingItem)} onClick={() => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, owned)}>{equipped ? <><Check />Équipée</> : owned ? 'Équiper' : <Price value={animation.pricePlumes} />}</button>
-        </article>
-      })}
+      {purchasableAnimations.map(animation => <ShopItemCard key={animation.id} rarity={animation.rarity} name={animation.name} description={animation.description} price={animation.pricePlumes}
+        portrait={<CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={animation.id} alt={animation.name} />}
+        owned={cosmetics.ownedAnimationIds.includes(animation.id)} equipped={cosmetics.equippedAnimationId === animation.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
+        equippedLabel="Équipée" extraClass="mm-animation-shop-item"
+        choose={() => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, cosmetics.ownedAnimationIds.includes(animation.id))} />)}
     </section> : null}
 
     {tab === 'baskets' ? <section className="mm-basket-shelf" aria-label="Paniers">
@@ -228,11 +262,15 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         // AVANT (suggestion S-01, rapport 6766). Pendant l'ouverture et la
         // révélation, le bouton sert à autre chose : la règle ne s'applique
         // qu'au repos.
-        const manque = Math.max(0, basket.pricePlumes - cosmetics.plumes)
+        const offert = isFirstBasketFree(cosmetics)
+        const prix = basketPriceFor(cosmetics, basket)
+        const manque = Math.max(0, prix - cosmetics.plumes)
         const inabordable = basketState === 'idle' && manque > 0
-        return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState} ${basketState === 'revealed' && reward ? `reveals-${reward.rarity}` : ''}`} key={basket.id}>
-        <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong><p>{basket.description}</p></header>
-        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: basket.pricePlumes }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
+        return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState} ${offert ? 'is-free' : ''} ${basketState === 'revealed' && reward ? `reveals-${reward.rarity}` : ''}`} key={basket.id}>
+        <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong><p>{basket.description}</p>
+          {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />Votre premier panier est offert</span> : null}</header>
+        {offert && basketState === 'idle' ? <span className="mm-basket-ribbon" aria-hidden="true">Offert</span> : null}
+        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: prix }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />
           <span className="mm-basket-burst" aria-hidden="true" />
           <span className="mm-feather-cloud" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <Feather key={index} />)}</span>
@@ -241,7 +279,8 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
           <span className="mm-basket-action">
             {basketState === 'opening' ? <><Sparkles />Le panier s’ouvre…</>
               : basketState === 'revealed' ? <><Check />Ranger la trouvaille</>
-                : <><PackageOpen />Ouvrir <Price value={basket.pricePlumes} /></>}
+                : offert ? <><Gift />Ouvrir gratuitement <s>{basket.pricePlumes}</s></>
+                  : <><PackageOpen />Ouvrir <Price value={basket.pricePlumes} /></>}
           </span>
         </button>
         {inabordable ? <p className="mm-basket-manque" role="status">Il vous manque {manque} plume{manque > 1 ? 's' : ''} pour ouvrir ce panier.</p> : null}
@@ -249,7 +288,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         <details className="mm-basket-odds">
           <summary>Probabilités de ce panier</summary>
           <div>{ODDS_RARITIES.map(rarity => <span key={rarity}><i className={`rarity-${rarity}`} />{RARITY_LABELS[rarity]}<b>{formatProbability(cosmetics.basketOdds[rarity])}</b></span>)}</div>
-          <small>Les chances sont recalculées selon votre collection et le palier actuel.</small>
+          <small>Chaque panier sans trouvaille rare augmente les chances du suivant.</small>
         </details>
       </article>
       })}

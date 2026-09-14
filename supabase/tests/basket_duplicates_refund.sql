@@ -3,7 +3,7 @@
 -- Deux sens, comme toujours : un joueur qui possède TOUT reçoit forcément un
 -- double remboursé (avant la migration 20260914120000 il recevait « collection
 -- complète »), et un joueur qui ne possède RIEN reçoit forcément un objet neuf,
--- sans remboursement. Un remboursement versé à tort dans le second cas passerait
+-- sans remboursement ; et le premier panier d'un joueur est offert. Un remboursement versé à tort dans le second cas passerait
 -- inaperçu sans ce contrôle symétrique.
 
 begin;
@@ -12,6 +12,7 @@ do $$
 declare
   complet constant uuid := 'b45e0001-0000-4000-8000-0000000000c1';
   novice  constant uuid := 'b45e0002-0000-4000-8000-0000000000c2';
+  nouveau constant uuid := 'b45e0003-0000-4000-8000-0000000000c3';
   prix_panier bigint;
   prix_objet bigint;
   objets_avant integer;
@@ -22,10 +23,12 @@ begin
   insert into auth.users(id, is_anonymous, created_at, updated_at)
   values
     (complet, false, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp()),
-    (novice,  false, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp());
+    (novice,  false, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp()),
+    (nouveau, false, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp());
 
   select price_feathers into prix_panier from public.server_basket_catalog where id = 'panier-epicerie';
-  update public.player_wallets set feathers = 100000, basket_pity = 0 where user_id in (complet, novice);
+  -- opened_baskets = 1 : le premier panier, offert, est testé à part (plus bas).
+  update public.player_wallets set feathers = 100000, basket_pity = 0, opened_baskets = 1 where user_id in (complet, novice);
 
   insert into public.player_inventory(user_id, kind, item_id, source)
   select complet, kind, item_id, 'test'
@@ -73,6 +76,23 @@ begin
   if (select feathers from public.player_wallets where user_id = novice) <> 100000 - prix_panier then
     raise exception 'Solde faux apres un objet neuf';
   end if;
+
+  -- ── 3. Premier panier : offert, même sans une plume ────────────────────────
+  update public.player_wallets set feathers = 0, basket_pity = 0 where user_id = nouveau;
+  resultat := public.server_open_basket(nouveau, 'panier-epicerie', 'test-premier-panier-1');
+  if not (resultat ->> 'free')::boolean or (resultat ->> 'price')::bigint <> 0 then
+    raise exception 'Le premier panier aurait du etre offert : %', resultat;
+  end if;
+  if (select feathers from public.player_wallets where user_id = nouveau) <> 0 then
+    raise exception 'Le premier panier a coute des plumes';
+  end if;
+  -- Le deuxième, lui, se paie : sans plumes, il est refusé.
+  begin
+    perform public.server_open_basket(nouveau, 'panier-epicerie', 'test-premier-panier-2');
+    raise exception 'Le deuxieme panier a ete ouvert sans plumes';
+  exception when sqlstate 'P0001' then
+    if sqlerrm not like '%manque quelques plumes%' then raise; end if;
+  end;
 end
 $$;
 

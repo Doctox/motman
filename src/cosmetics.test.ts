@@ -84,3 +84,26 @@ describe('images du catalogue', () => {
     expect(drapeaux.every(drapeau => drapeau.pricePlumes === 1_400 && drapeau.availability === 'epicerie')).toBe(true)
   })
 })
+
+describe('premier panier offert', () => {
+  it('vaut pour l’appli comme pour le serveur', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs')
+    const { basketPriceFor, isFirstBasketFree } = await import('./cosmetics')
+    expect(isFirstBasketFree({ openedBaskets: 0 })).toBe(true)
+    expect(basketPriceFor({ openedBaskets: 0 }, BASKETS[0])).toBe(0)
+    expect(basketPriceFor({ openedBaskets: 1 }, BASKETS[0])).toBe(BASKETS[0].pricePlumes)
+    const dossier = 'supabase/migrations'
+    const derniere = readdirSync(dossier).sort().reverse()
+      .map(nom => readFileSync(`${dossier}/${nom}`, 'utf8'))
+      .find(sql => sql.includes('function public.server_open_basket'))!
+    expect(derniere).toContain('v_free := v_opened = 0')
+  })
+
+  it('compte la collection parmi ce que l’Épicerie vend', async () => {
+    const { collectionProgress } = await import('./cosmetics')
+    const aVendre = AVATARS.filter(avatar => avatar.availability === 'epicerie')
+    const progres = collectionProgress({ ownedAvatarIds: ['plume-motman', aVendre[0].id], ownedFrameIds: ['cadre-ivoire'], ownedAnimationIds: ['animation-none'] })
+    expect(progres.owned).toBe(1)
+    expect(progres.total).toBe(aVendre.length + FRAMES.filter(f => f.availability === 'epicerie').length + ANIMATIONS.filter(a => a.availability === 'epicerie').length)
+  })
+})

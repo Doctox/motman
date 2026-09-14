@@ -5,7 +5,7 @@ import {
 } from './auth'
 import type { GoogleAuthIssue } from './googleAuthCallback'
 import { startAdaptivePolling, type AdaptivePollingController } from './adaptivePolling'
-import { BASKETS, loadPlayerCosmetics, type PlayerCosmetics } from './cosmetics'
+import { BASKETS, basketPriceFor, loadPlayerCosmetics, type PlayerCosmetics } from './cosmetics'
 import type { MenuRealtimeStatus, MenuWakeupScope } from './menuRealtime'
 import { lobbyMenuPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
 import {
@@ -370,7 +370,7 @@ export function MenuApp({
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de L’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
-    <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basket.pricePlumes)} />
+    <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
     {quickMenu ? <QuickMenu page={page} navigate={navigate} close={() => setQuickMenu(false)} /> : null}
     {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
     {legalOpen ? <Suspense fallback={null}><LazyLegalPanel close={() => setLegalOpen(false)} /></Suspense> : null}

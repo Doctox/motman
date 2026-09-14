@@ -146,3 +146,29 @@
   .native-runtime .multiplayer-shell:not(.is-finished) .hint-button,
   .native-runtime .multiplayer-shell:not(.is-finished) .validate{height:40px}
 }
+
+/* Bandeau du duel, 14/09/2026 (demande du propriétaire).
+   1. L'étiquette sous le chrono (« À vous de jouer », « À valider »…) est
+      masquée à l'œil quand la carte verte ou dorée dit déjà la même chose ; les
+      lecteurs d'écran la lisent toujours (`aria-live` sur `.turn`).
+   2. La place qu'elle réservait sous le bandeau est rendue, et les portraits
+      grandissent DANS la même hauteur de carte : la grille ne perd rien, elle
+      remonte même un peu. Les cadres débordent légèrement de la carte, comme
+      ils le faisaient déjà. */
+.scoreboard .turn>strong.turn-status-routine{
+  position:absolute!important;width:1px!important;min-width:0!important;height:1px!important;
+  padding:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;
+  background:none!important;box-shadow:none!important;
+}
+.multiplayer-shell .scoreboard{margin-bottom:14px}
+.multiplayer-shell .scoreboard .game-portrait,.multiplayer-shell .scoreboard .player .avatar{width:58px;height:58px;flex:0 0 58px}
+.multiplayer-shell .scoreboard .player{padding-block:5px}
+@media(max-height:780px){.multiplayer-shell .scoreboard{margin-bottom:12px}}
+@media(max-width:370px){
+  .multiplayer-shell .scoreboard .game-portrait,.multiplayer-shell .scoreboard .player .avatar{width:52px;height:52px;flex-basis:52px}
+}
+@media(max-width:699px) and (max-height:820px){
+  .native-runtime .multiplayer-shell:not(.is-finished)>.scoreboard{margin-bottom:12px}
+  .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .game-portrait,
+  .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:50px;height:50px;flex-basis:50px}
+}

@@ -1,0 +1,131 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Épicerie, passe de lisibilité du 14/09/2026 (maquette validée par le
+   propriétaire). Chargée APRÈS menu-controls.css, qui pose le bouton plein
+   commun à tout le menu ; les sélecteurs sont préfixés par `.mm-shop-page`
+   pour l'emporter sans `!important`.
+
+   1. UNE couleur par rareté, la même partout : cartes, pastilles, chances du
+      panier, gerbe d'ouverture. Avant, précieux était brun-rouge dans les
+      rayons et violet dans les chances ; exceptionnel, l'inverse.
+   2. Des textes lisibles : plus rien sous 10 px dans l'Épicerie.
+   3. Quatre états de bouton : achetable, trop cher, possédé, porté.
+   ────────────────────────────────────────────────────────────────────────── */
+:root{
+  --mm-rarity-commun:#7f8f86;
+  --mm-rarity-singulier:#4f9573;
+  --mm-rarity-rare:#3f7fb0;
+  --mm-rarity-precieux:#8561b3;
+  --mm-rarity-exceptionnel:#c4702f;
+  --mm-rarity-legendaire:#b98b17;
+}
+.rarity-commun{--mm-rarity:var(--mm-rarity-commun)}
+.rarity-singulier{--mm-rarity:var(--mm-rarity-singulier)}
+.rarity-rare{--mm-rarity:var(--mm-rarity-rare)}
+.rarity-precieux{--mm-rarity:var(--mm-rarity-precieux)}
+.rarity-exceptionnel{--mm-rarity:var(--mm-rarity-exceptionnel)}
+.rarity-legendaire{--mm-rarity:var(--mm-rarity-legendaire)}
+
+/* Barre : retour · collection · plumes */
+.mm-shop-page .mm-shop-toolbar{display:grid;grid-template-columns:39px minmax(0,1fr) auto;gap:12px}
+.mm-shop-collection{min-width:0;display:flex;flex-direction:column;gap:5px}
+.mm-shop-collection>span{display:flex;justify-content:space-between;gap:8px;color:var(--mm-ink-soft);font-size:0.75rem;font-weight:700}
+.mm-shop-collection>span em{font-style:normal;font-weight:600;color:var(--mm-muted);font-variant-numeric:tabular-nums}
+.mm-shop-collection>i{display:block;height:7px;overflow:hidden;border-radius:9px;background:color-mix(in srgb,var(--mm-line) 80%,transparent)}
+.mm-shop-collection>i>b{display:block;height:100%;min-width:4px;border-radius:9px;background:linear-gradient(90deg,var(--mm-rarity-singulier),var(--mm-gold,#c29a2c));transition:width .6s var(--mm-ease)}
+.mm-shop-page .mm-shop-toolbar>b{font-size:0.875rem}
+.mm-shop-page .mm-shop-tabs button{font-size:0.6875rem}
+
+/* Cartes d'article */
+.mm-shop-page .mm-shop-item{
+  --mm-rarity:var(--mm-rarity-commun);
+  border:1.5px solid color-mix(in srgb,var(--mm-rarity) 42%,var(--mm-line));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--mm-rarity) 12%,var(--mm-surface)),var(--mm-surface) 55%);
+}
+.mm-shop-page .mm-shop-item.rarity-legendaire{
+  border:2px solid transparent;
+  background:linear-gradient(180deg,color-mix(in srgb,#f3dc93 45%,var(--mm-surface)),var(--mm-surface) 60%) padding-box,
+    linear-gradient(135deg,#e9c766,#b98b17 40%,#f6e3a1 55%,#b98b17) border-box;
+  box-shadow:0 0 0 3px #e9c76622,0 8px 18px #b98b1730;
+}
+.mm-shop-page .mm-shop-item.is-equipped{border-color:#75a58e;box-shadow:0 0 0 2px #3f8c6a26,0 7px 17px var(--mm-shadow)}
+.mm-shop-page .mm-shop-item>strong{font-size:1.0625rem}
+.mm-shop-page .mm-shop-item>p{min-height:32px;font-size:0.75rem;line-height:1.35}
+.mm-shop-item .mm-portrait:is(.has-frame-art,.has-avatar-animation){margin-top:8px;margin-bottom:14px}
+
+.mm-rarity-pill{
+  height:20px;padding:0 8px;border-radius:10px;display:inline-flex;align-items:center;gap:5px;
+  background:color-mix(in srgb,var(--mm-rarity) 16%,transparent);
+  color:color-mix(in srgb,var(--mm-rarity) 78%,#000);
+  font-size:0.625rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
+}
+.mm-rarity-pill>i{width:8px;height:8px;border-radius:2px;transform:rotate(45deg);background:var(--mm-rarity);box-shadow:0 0 5px color-mix(in srgb,var(--mm-rarity) 70%,transparent)}
+
+/* Boutons : achetable (plein, style commun) · trop cher · possédé · porté */
+.mm-shell .mm-shop-page .mm-shop-item>button:not(:disabled),
+.mm-shell .mm-shop-page .mm-shop-item>button:disabled{height:38px;min-height:38px;font-family:'DM Sans',sans-serif;font-size:0.9375rem;font-weight:800;font-variant-numeric:tabular-nums}
+.mm-shell .mm-shop-page .mm-shop-item.is-unaffordable>button:not(:disabled){
+  border:1.5px solid color-mix(in srgb,var(--mm-line) 70%,#c9bca0);background:transparent;box-shadow:none;color:#8d8a7f!important;
+}
+.mm-shell .mm-shop-page .mm-shop-item.is-unaffordable .mm-price svg{color:#b9ad8c}
+.mm-shell .mm-shop-page .mm-shop-item.is-owned>button:not(:disabled){
+  border:1.5px solid #8fb9a5;background:var(--mm-surface);box-shadow:none;color:#1f6a52!important;
+}
+.mm-shop-page .mm-price svg{width:15px!important}
+
+/* Pastilles de familles et filtre */
+.mm-avatar-family-chips{position:sticky;top:62px;z-index:7;margin:-8px -2px 0;padding:6px 2px;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;background:color-mix(in srgb,var(--mm-paper) 92%,transparent);backdrop-filter:blur(8px)}
+.mm-avatar-family-chips::-webkit-scrollbar{display:none}
+.mm-avatar-family-chips button{height:34px;padding:0 8px;flex:1 0 auto;justify-content:center;border:1px solid var(--mm-line);border-radius:17px;background:var(--mm-surface);display:flex;align-items:center;gap:5px;color:var(--mm-ink-soft);font-size:0.75rem;font-weight:700;cursor:pointer}
+.mm-avatar-family-chips button small{color:var(--mm-muted);font-size:0.6875rem;font-weight:600}
+.mm-avatar-family{scroll-margin-top:112px}
+.mm-shop-filter{margin:-12px 2px -8px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--mm-ink-soft);font-size:0.8125rem;font-weight:600;cursor:pointer}
+.mm-shop-filter input{appearance:none;width:40px;height:23px;flex:none;margin:0;border-radius:12px;background:#d9d1c0;position:relative;cursor:pointer;transition:background .2s ease}
+.mm-shop-filter input:after{content:'';position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .2s var(--mm-ease)}
+.mm-shop-filter input:checked{background:var(--mm-ink)}
+.mm-shop-filter input:checked:after{transform:translateX(17px)}
+.mm-shop-filter input:focus-visible{outline:2px solid var(--mm-coral);outline-offset:2px}
+.mm-shop-empty{margin:0 2px!important;color:var(--mm-muted);font-size:0.8125rem}
+
+/* Panier : textes lisibles, premier panier offert, chances en couleurs */
+.mm-shop-page .mm-basket-card small{font-size:0.6875rem}
+.mm-shop-page .mm-basket-card>header>small{padding:0 46px}
+.mm-shop-page .mm-basket-card p{font-size:0.8125rem;line-height:1.45;max-width:300px}
+.mm-shop-page .mm-basket-card>em{font-size:0.75rem}
+.mm-shop-page .mm-basket-manque{font-size:0.8125rem!important}
+.mm-shop-page .mm-shop-note{font-size:0.75rem!important}
+.mm-basket-card{position:relative}
+.mm-basket-ribbon{position:absolute;z-index:4;top:12px;right:-40px;width:128px;height:22px;transform:rotate(38deg);background:var(--mm-coral);color:#fff;display:grid;place-items:center;font-size:0.625rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 3px 8px #0002;pointer-events:none}
+.mm-basket-gift{margin-top:10px;padding:7px 13px;border:1px solid #f0c2ad;border-radius:12px;background:#fff3e8;color:#9b3d24;display:inline-flex;align-items:center;gap:7px;font-size:0.875rem;font-weight:800}
+.mm-basket-gift svg{width:17px;height:17px}
+.mm-basket-card.is-free.is-idle .mm-basket-action{background:linear-gradient(#d9643f,#c24f30);box-shadow:0 8px 18px #c24f3040;font-size:0.9375rem}
+.mm-basket-action s{margin-left:4px;opacity:.75;font-weight:600;font-size:0.8125rem}
+.mm-shop-page .mm-basket-action{font-size:0.8125rem}
+.mm-shop-page .mm-basket-reward>span small{font-size:0.625rem}
+.mm-shop-page .mm-basket-reward>span b{font-size:0.6875rem}
+.mm-shop-page .mm-basket-odds summary{font-size:0.8125rem}
+.mm-shop-page .mm-basket-odds>div span{font-size:0.75rem}
+.mm-shop-page .mm-basket-odds>div b{font-size:0.75rem}
+.mm-shop-page .mm-basket-odds>small{font-size:0.6875rem!important}
+.mm-basket-odds>div span>i[class*="rarity-"]{width:9px;height:9px;background:var(--mm-rarity);box-shadow:none}
+
+/* La gerbe d'ouverture reprend les mêmes teintes. */
+.mm-basket-card.reveals-singulier .mm-basket-burst{--burst:var(--mm-rarity-singulier)}
+.mm-basket-card.reveals-rare .mm-basket-burst{--burst:var(--mm-rarity-rare)}
+.mm-basket-card.reveals-precieux .mm-basket-burst{--burst:var(--mm-rarity-precieux)}
+.mm-basket-card.reveals-exceptionnel .mm-basket-burst{--burst:var(--mm-rarity-exceptionnel)}
+.mm-basket-card.reveals-legendaire .mm-basket-burst{--burst:#e2b53a}
+
+[data-theme="dark"] .mm-shop-page .mm-shop-item{background:linear-gradient(180deg,color-mix(in srgb,var(--mm-rarity) 22%,#1d2a26),#1d2a26 60%)}
+[data-theme="dark"] .mm-rarity-pill{color:color-mix(in srgb,var(--mm-rarity) 55%,#fff)}
+[data-theme="dark"] .mm-shell .mm-shop-page .mm-shop-item.is-unaffordable>button:not(:disabled){color:#a9b2ac!important;border-color:#4a5a54}
+[data-theme="dark"] .mm-shell .mm-shop-page .mm-shop-item.is-owned>button:not(:disabled){background:#21302b;color:#9de0bd!important}
+[data-theme="dark"] .mm-shop-page .mm-shop-tabs{background:color-mix(in srgb,#16211e 92%,transparent)!important;border-color:#3a4a44!important}
+[data-theme="dark"] .mm-avatar-family-chips{background:color-mix(in srgb,#16211e 92%,transparent)}
+[data-theme="dark"] .mm-avatar-family-chips button{background:#21302b;border-color:#3a4a44;color:#dfe8e3}
+[data-theme="dark"] .mm-basket-gift{background:#3a2a22;border-color:#7a4a36;color:#ffc2a8}
+
+@media(max-width:360px){
+  .mm-shop-page .mm-shop-item>strong{font-size:0.9375rem}
+  .mm-shop-page .mm-shop-item>p{font-size:0.6875rem}
+  .mm-shell .mm-shop-page .mm-shop-item>button:not(:disabled),.mm-shell .mm-shop-page .mm-shop-item>button:disabled{font-size:0.8125rem}
+}

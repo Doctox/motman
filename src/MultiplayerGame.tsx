@@ -47,6 +47,17 @@ type HintFlight = { letter: string; cellIndex: number; fromX: number; fromY: num
 const TURN_READY_DURATION_MS = 1_800
 let multiplayerEffectSequence = 0
 
+/**
+ * La carte verte (ou dorée pour l'adversaire) dit déjà à qui c'est le tour, et les
+ * points s'affichent sur la grille : l'étiquette sous le chrono ne reste visible
+ * que pour ce qu'aucun autre signe ne montre — un tour expiré ou passé, une
+ * pause, la fin. Le reste est lu aux lecteurs d'écran mais masqué à l'œil, ce
+ * qui libère la place prise sous le bandeau (demande du propriétaire, 14/09/2026).
+ */
+export function isRoutineTurnStatus(status: string): boolean {
+  return !/Temps écoulé|n’a pas joué|Tour passé| passe$|pause|terminée/.test(status)
+}
+
 export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }: {
   matchId: string
   onExit: () => void
@@ -635,7 +646,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
 
   return <main className={`app-shell multiplayer-shell ${turnAlert ? 'turn-alerting' : ''} ${resolving ? 'is-resolving' : ''} ${presentationPhase === 'result' ? 'is-finished' : ''}`}>
     <header><button type="button" disabled={match.status === 'finished'} aria-label={match.status === 'active' && isAsync ? 'Retour à toutes les parties' : match.status === 'active' ? 'Options de sortie' : resolving ? 'Résultats en cours' : 'Validez le résultat ci-dessous'} onClick={() => match.status === 'active' && isAsync ? onHome() : match.status === 'active' ? setLeaveOpen(true) : undefined}><ArrowLeft /></button><img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
-    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && turnHasStarted && !assignedToMe} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={Boolean(match.status === 'active' && isMyTurn)} player /></section>
+    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && turnHasStarted && !assignedToMe} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined}>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={Boolean(match.status === 'active' && isMyTurn)} player /></section>
     
     {myInactivity || opponentInactivity ? <div className="duel-inactivity" aria-label="Avertissements d’inactivité">
       {opponentInactivity ? <span><b>{opponentName}</b> {opponentInactivity}/3</span> : null}

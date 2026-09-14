@@ -137,6 +137,29 @@ export const BASKETS: BasketDefinition[] = [
   { id: 'panier-epicerie', name: 'Panier de l’Épicerie', description: 'Un avatar, un cadre ou une animation au hasard. Déjà dans votre collection ? 30 % de sa valeur vous revient en plumes.', pricePlumes: 999, cloth: 'sage' },
 ]
 
+/**
+ * Le tout premier panier d'un joueur est offert (14/09/2026). Le serveur applique
+ * la même règle dans `server_open_basket` (migration 20260914170000) : tant que
+ * `opened_baskets` vaut 0, l'ouverture ne coûte rien.
+ */
+export function isFirstBasketFree(cosmetics: Pick<PlayerCosmetics, 'openedBaskets'>): boolean {
+  return cosmetics.openedBaskets === 0
+}
+
+export function basketPriceFor(cosmetics: Pick<PlayerCosmetics, 'openedBaskets'>, basket: BasketDefinition): number {
+  return isFirstBasketFree(cosmetics) ? 0 : basket.pricePlumes
+}
+
+/** Ce que le joueur possède parmi tout ce que l'Épicerie vend. */
+export function collectionProgress(cosmetics: Pick<PlayerCosmetics, 'ownedAvatarIds' | 'ownedFrameIds' | 'ownedAnimationIds'>): { owned: number; total: number } {
+  const forSale = [
+    ...AVATARS.filter(item => item.availability === 'epicerie').map(item => cosmetics.ownedAvatarIds.includes(item.id)),
+    ...FRAMES.filter(item => item.availability === 'epicerie').map(item => cosmetics.ownedFrameIds.includes(item.id)),
+    ...ANIMATIONS.filter(item => item.availability === 'epicerie').map(item => cosmetics.ownedAnimationIds.includes(item.id)),
+  ]
+  return { owned: forSale.filter(Boolean).length, total: forSale.length }
+}
+
 export function avatarRarity(avatar: AvatarDefinition): CosmeticRarity {
   if (avatar.availability === 'starter' || avatar.kind === 'human' || avatar.kind === 'flag') return 'commun'
   if (avatar.kind === 'animal') return 'singulier'

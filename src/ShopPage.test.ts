@@ -130,7 +130,7 @@ describe('révéler la trouvaille', () => {
     serveur.ouvrir.mockResolvedValue({ cosmetics: riche(), reward })
     afficher(riche(), 'Paniers')
     cliquer(hote.querySelector('.mm-basket-stage'))
-    await act(async () => { [...dialogue()!.querySelectorAll('button')].find(bouton => bouton.textContent === 'Ouvrir')!.click() })
+    await act(async () => { [...dialogue()!.querySelectorAll('button')].find(bouton => bouton.textContent?.startsWith('Ouvrir'))!.click() })
     await act(async () => { vi.advanceTimersByTime(2_000) })
     vi.useRealTimers()
   }
@@ -146,5 +146,50 @@ describe('révéler la trouvaille', () => {
     await ouvrirAvec({ kind: 'frame', id: 'cadre-royal', name: 'Royal', rarity: 'precieux', duplicate: false, refund: 0 })
     expect(hote.querySelector('.mm-basket-reward')?.textContent).toContain('Nouveau')
     expect(hote.querySelector('.mm-basket-reward')?.textContent).not.toContain('Déjà possédé')
+  })
+})
+
+describe('premier panier offert', () => {
+  it('se dit, et la confirmation ne demande aucune plume', () => {
+    afficher({ ...riche(), plumes: 0, openedBaskets: 0 }, 'Paniers')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('Votre premier panier est offert')
+    cliquer(hote.querySelector('.mm-basket-stage'))
+    expect(dialogue()?.textContent).toContain('Offert')
+    expect((boutonDe('Ouvrir gratuitement') as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('le deuxième se paie à nouveau', () => {
+    afficher({ ...riche(), plumes: 0, openedBaskets: 1 }, 'Paniers')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).not.toContain('offert')
+    expect((hote.querySelector('.mm-basket-stage') as HTMLButtonElement).disabled).toBe(true)
+  })
+})
+
+describe('cartes de l’Épicerie', () => {
+  const carteDe = (nom: string) => [...hote.querySelectorAll('article')].find(carte => carte.querySelector('strong')?.textContent === nom)!
+
+  it('distingue achetable, trop cher, possédé et porté', () => {
+    const [a, b, c] = aVendre.filter(avatar => avatar.kind === 'human')
+    afficher({ ...riche(), plumes: a.pricePlumes, ownedAvatarIds: [...riche().ownedAvatarIds, b.id, c.id], equippedAvatarId: c.id })
+    const cher = aVendre.find(avatar => avatar.pricePlumes > a.pricePlumes)!
+    expect(carteDe(a.name).className).toContain('is-affordable')
+    expect(carteDe(cher.name).className).toContain('is-unaffordable')
+    expect(carteDe(b.name).className).toContain('is-owned')
+    expect(carteDe(c.name).className).toContain('is-equipped')
+    // Pas de montant manquant sur la carte : choix du propriétaire.
+    expect(carteDe(cher.name).textContent).not.toContain('manque')
+  })
+
+  it('le filtre cache ce que le joueur possède déjà', () => {
+    const possede = aVendre[0]
+    afficher({ ...riche(), ownedAvatarIds: [...riche().ownedAvatarIds, possede.id] })
+    expect(carteDe(possede.name)).toBeTruthy()
+    act(() => { (hote.querySelector('.mm-shop-filter input') as HTMLInputElement).click() })
+    expect([...hote.querySelectorAll('article strong')].some(nom => nom.textContent === possede.name)).toBe(false)
+  })
+
+  it('affiche la jauge de collection', () => {
+    afficher({ ...riche(), ownedAvatarIds: [...riche().ownedAvatarIds, aVendre[0].id] })
+    expect(hote.querySelector('.mm-shop-collection')?.textContent).toMatch(/Collection1 \/ \d+/)
   })
 })
