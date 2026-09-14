@@ -138,6 +138,33 @@
     },
     {
       "kind": "avatar",
+      "id": "panda",
+      "name": "Panda",
+      "rarity": "singulier",
+      "pricePlumes": 1800,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/panda.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "lapin",
+      "name": "Lapin",
+      "rarity": "singulier",
+      "pricePlumes": 1800,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/lapin.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "loutre",
+      "name": "Loutre",
+      "rarity": "singulier",
+      "pricePlumes": 1800,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/loutre.webp"
+    },
+    {
+      "kind": "avatar",
       "id": "machine-a-ecrire",
       "name": "Machine à écrire",
       "rarity": "rare",

@@ -143,6 +143,33 @@
       "tags": ["renard", "animal"]
     },
     {
+      "id": "panda",
+      "name": "Panda",
+      "kind": "animal",
+      "asset": "/assets/avatars/panda.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1800,
+      "tags": ["panda", "animal"]
+    },
+    {
+      "id": "lapin",
+      "name": "Lapin",
+      "kind": "animal",
+      "asset": "/assets/avatars/lapin.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1800,
+      "tags": ["lapin", "animal"]
+    },
+    {
+      "id": "loutre",
+      "name": "Loutre",
+      "kind": "animal",
+      "asset": "/assets/avatars/loutre.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1800,
+      "tags": ["loutre", "animal"]
+    },
+    {
       "id": "machine-a-ecrire",
       "name": "Machine à écrire",
       "kind": "object",
