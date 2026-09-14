@@ -57,7 +57,7 @@ export function useDailyChallenge() {
 }
 
 function streakLabel(streak: number): string {
-  return streak > 1 ? `Série ${streak} jours` : streak === 1 ? 'Série 1 jour' : 'Commencez votre série'
+  return streak > 1 ? `Série de ${streak} victoires` : streak === 1 ? 'Série de 1 victoire' : 'Commencez votre série'
 }
 
 /**
@@ -188,7 +188,7 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <strong>Jouer la grille du jour</strong>
         <span className="mm-daily-hero-meta">
           <Flame aria-hidden="true" />{streakLabel(streak)}
-          {freezes > 0 ? <><span className="mm-daily-dot" aria-hidden="true">·</span><Snowflake aria-hidden="true" />gel ×{freezes}</> : null}
+          {freezes > 0 ? <><span className="mm-daily-dot" aria-hidden="true">·</span><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''}</> : null}
         </span>
       </div>
       <ChevronRight aria-hidden="true" />
@@ -209,19 +209,16 @@ function DailyShareHero({ day }: { day: string }) {
  */
 export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects }) {
   if (!effects.changed) return null
-  const milestone = effects.reachedMilestones.at(-1)
   // Même règle que le serveur, qui verse réellement le panier offert.
   const tranches = streakRewardsEarned(effects.previousStreak, effects.streak)
   return (
-    <section className="mm-daily-reward" aria-label={`Série du défi du jour : ${effects.streak} jour${effects.streak > 1 ? 's' : ''}`}>
+    <section className="mm-daily-reward" aria-label={`Série du défi du jour : ${effects.streak} victoire${effects.streak > 1 ? 's' : ''}`}>
       <div className="mm-daily-reward-heading">
         <span><Flame aria-hidden="true" />Série</span>
-        <strong>{effects.streak} jour{effects.streak > 1 ? 's' : ''}</strong>
+        <strong>{effects.streak} victoire{effects.streak > 1 ? 's' : ''}</strong>
       </div>
-      {effects.usedFreeze ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />Gel de série utilisé — série préservée</p> : null}
-      {effects.recovered ? <p className="mm-daily-reward-note"><Flame aria-hidden="true" />Série restaurée</p> : null}
-      {tranches > 0 ? <p className="mm-daily-reward-milestone"><Gift aria-hidden="true" />{effects.streak} jours de série · {freeBasketsLabel(tranches * STREAK_REWARD_FREE_BASKETS)} à l’Épicerie</p> : null}
-      {milestone && milestone.freeze > 0 ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />+{milestone.freeze} gel de série</p> : null}
+      {effects.usedFreeze ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />{effects.frozenDays.length > 1 ? `${effects.frozenDays.length} gels utilisés` : 'Gel de série utilisé'} — série protégée</p> : null}
+      {tranches > 0 ? <p className="mm-daily-reward-milestone"><Gift aria-hidden="true" />{effects.streak} victoires de série · {freeBasketsLabel(tranches * STREAK_REWARD_FREE_BASKETS)} à l’Épicerie</p> : null}
     </section>
   )
 }

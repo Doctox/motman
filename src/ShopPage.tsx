@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, Check, Feather, Gift, PackageOpen, Palette, ShoppingBasket, Sparkles, User } from 'lucide-react'
+import { ArrowLeft, Backpack, Check, Feather, Gift, PackageOpen, Palette, ShoppingBasket, Snowflake, Sparkles, User } from 'lucide-react'
 import { assetUrl } from './assetUrl'
 import {
   ANIMATIONS, AVATARS, BASKETS, FRAMES, avatarRarity, basketPriceFor, collectionProgress, isBasketFree, isFirstBasketFree,
   type CosmeticKind, type CosmeticRarity, type CosmeticReward, type PlayerCosmetics,
 } from './cosmetics'
 import { CosmeticPortrait } from './CosmeticPortrait'
-import { equipServerCosmetic, openServerBasket, purchaseServerCosmetic } from './auth'
+import { buyServerStreakFreeze, equipServerCosmetic, openServerBasket, purchaseServerCosmetic } from './auth'
+import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from './dailyStreakRule'
 import { BASKET_DUPLICATE_REFUND_PERCENT } from './progressionRewards'
 import { useDialogFocus } from './useDialogFocus'
 
-type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets'
+type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets' | 'objects'
 type BasketStageState = 'idle' | 'opening' | 'revealed'
 /** Ce que le joueur s'apprête à payer : un article, ou l'ouverture d'un panier. */
-type PendingPurchase = { kind: CosmeticKind | 'basket'; id: string; name: string; price: number }
+type PendingPurchase = { kind: CosmeticKind | 'basket' | 'freeze'; id: string; name: string; price: number }
 
 const RARITY_LABELS = {
   commun: 'Normal', singulier: 'Singulier', rare: 'Rare', precieux: 'Précieux',
@@ -185,7 +186,23 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     if (!purchase) return
     setPurchase(null)
     if (purchase.kind === 'basket') void unwrapBasket(purchase.id)
+    else if (purchase.kind === 'freeze') void buyFreeze()
     else void selectCosmetic(purchase.kind, purchase.id)
+  }
+
+  // Le gel de série : un OBJET, pas un style. Il n'équipe rien, il se range en poche.
+  const buyFreeze = async () => {
+    if (pendingItem) return
+    setPendingItem('freeze')
+    try {
+      const response = await buyServerStreakFreeze()
+      if (response.cosmetics) setCosmetics(response.cosmetics)
+      notify('Gel de série rangé dans votre poche')
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : 'Achat impossible')
+    } finally {
+      setPendingItem('')
+    }
   }
 
   const unwrapBasket = async (basketId: string) => {
@@ -225,6 +242,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       <button type="button" role="tab" aria-selected={tab === 'avatars'} className={tab === 'avatars' ? 'active' : ''} onClick={() => setTab('avatars')}><User />Avatars</button>
       <button type="button" role="tab" aria-selected={tab === 'frames'} className={tab === 'frames' ? 'active' : ''} onClick={() => setTab('frames')}><Palette />Cadres</button>
       <button type="button" role="tab" aria-selected={tab === 'animations'} className={tab === 'animations' ? 'active' : ''} onClick={() => setTab('animations')}><Sparkles />Animations</button>
+      <button type="button" role="tab" aria-selected={tab === 'objects'} className={tab === 'objects' ? 'active' : ''} onClick={() => setTab('objects')}><Backpack />Objets</button>
     </div>
 
     {tab === 'avatars' ? <div className="mm-avatar-shelves">
@@ -262,6 +280,31 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         owned={cosmetics.ownedAnimationIds.includes(animation.id)} equipped={cosmetics.equippedAnimationId === animation.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
         equippedLabel="Équipée" extraClass="mm-animation-shop-item"
         choose={() => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, cosmetics.ownedAnimationIds.includes(animation.id))} />)}
+    </section> : null}
+
+    {tab === 'objects' ? <section className="mm-object-shelf" aria-label="Objets">
+      {(() => {
+        const enPoche = cosmetics.streakFreezes
+        const plein = enPoche >= MAX_STREAK_FREEZES
+        const manque = Math.max(0, STREAK_FREEZE_PRICE - cosmetics.plumes)
+        return <article className={`mm-object-card ${plein ? 'is-full' : ''}`}>
+          <span className="mm-object-art" aria-hidden="true"><Snowflake /></span>
+          <div className="mm-object-copy">
+            <small>Objet · défi du jour</small>
+            <strong>Gel de série</strong>
+            <p>Il protège une journée de défi manquée : votre série continue, sans compter de victoire. Il s’utilise tout seul à votre victoire suivante.</p>
+            <span className="mm-object-stock" aria-label={`${enPoche} gel${enPoche > 1 ? 's' : ''} en poche sur ${MAX_STREAK_FREEZES}`}>
+              {Array.from({ length: MAX_STREAK_FREEZES }, (_, index) => <i key={index} className={index < enPoche ? 'is-owned' : ''}><Snowflake /></i>)}
+              <em>En poche : {enPoche}/{MAX_STREAK_FREEZES}</em>
+            </span>
+          </div>
+          <button type="button" disabled={plein || manque > 0 || Boolean(pendingItem)} onClick={() => setPurchase({ kind: 'freeze', id: 'gel-de-serie', name: 'Gel de série', price: STREAK_FREEZE_PRICE })}>
+            {plein ? <><Check />Poche pleine</> : <Price value={STREAK_FREEZE_PRICE} />}
+          </button>
+          {!plein && manque > 0 ? <p className="mm-basket-manque" role="status">Il vous manque {manque} plume{manque > 1 ? 's' : ''}.</p> : null}
+        </article>
+      })()}
+      <small className="mm-shop-note"><Sparkles />D’autres objets arriveront ici.</small>
     </section> : null}
 
     {tab === 'baskets' ? <section className="mm-basket-shelf" aria-label="Paniers">
@@ -307,7 +350,9 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     {purchase ? <PurchaseConfirm
       purchase={purchase}
       balance={cosmetics.plumes}
-      preview={purchase.kind === 'basket'
+      preview={purchase.kind === 'freeze'
+        ? <span className="mm-object-art"><Snowflake /></span>
+        : purchase.kind === 'basket'
         ? <BasketArtwork state="idle" />
         : <CosmeticPortrait
           avatarId={purchase.kind === 'avatar' ? purchase.id : cosmetics.equippedAvatarId}

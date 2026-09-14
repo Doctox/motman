@@ -161,12 +161,13 @@ export async function recordDailyWinAndMilestones(
     return
   }
 
-  // `ignoreDuplicates` → ON CONFLICT DO NOTHING : on ne réécrit jamais la
-  // PREMIÈRE victoire du jour, c'est elle qui fait foi. Rejouer et regagner la
-  // même grille ne doit pas déplacer l'horodatage ni changer le match de
-  // référence.
-  const { error: winError } = await admin.from('daily_wins')
-    .upsert({ user_id: playerId, day: dailyDate, match_id: matchId }, { onConflict: 'user_id,day', ignoreDuplicates: true })
+  // La PREMIÈRE victoire du jour fait foi : un rejeu ne réécrit rien. Depuis le
+  // 14/09/2026, la même opération consomme les gels de série qui couvrent les
+  // jours manqués depuis la dernière journée active (migration 20260914220000,
+  // jumeau TypeScript freezeDaysToUse).
+  const { error: winError } = await admin.rpc('server_record_daily_win', {
+    p_user_id: playerId, p_day: dailyDate, p_match_id: matchId,
+  })
   if (winError) {
     logServerError('match-api', winError, { action: 'daily-win-record', userId: playerId })
     return

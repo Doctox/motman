@@ -3,7 +3,8 @@
 // POURQUOI CE SCRIPT EXISTE. Trois règles du jeu sont écrites dans deux langages
 // à la fois, parce qu'aucun moteur SQL ne peut importer du TypeScript :
 //
-//   • la SÉRIE du défi du jour — `advanceStreak` / `private.daily_streak_from_days` ;
+//   • la SÉRIE du défi du jour — `src/dailyStreakRule.ts` / `private.daily_streak_from_history`
+//     et `private.daily_freeze_days` ;
 //   • la COURBE D'XP — `experienceCurve.ts` / `public.server_award_progress` ;
 //   • les PALIERS DE CLASSE — `RANKED_DIVISIONS` / `private.ranked_tier_index`.
 //
@@ -55,24 +56,40 @@ function entier(valeur, quoi) {
 }
 
 // ── Famille 1 : la série du défi du jour ─────────────────────────────────────
-function sqlSeries(scenarios) {
-  return `select * from (values\n${scenarios.map((scenario, index) =>
-    `  (${index}, private.daily_streak_from_days(${tableauDates(scenario.jours)}, ${litteralDate(scenario.aujourdhui)}))`,
+function sqlSeries(series) {
+  return `select * from (values
+${series.map((s, index) =>
+    `  (${index}, private.daily_streak_from_history(${tableauDates(s.victoires)}, ${tableauDates(s.gels)}, ${litteralDate(s.aujourdhui)}, ${entier(s.poche, 'poche')}))`,
   ).join(',\n')}\n) as t(rang, resultat) order by rang;`
 }
 
-function verifieSeries(scenarios, lignes) {
-  return scenarios.map((scenario, index) => ({
-    nom: `série · ${scenario.nom}`,
-    pourquoi: scenario.pourquoi,
-    attendu: {
-      streakAtLastWin: scenario.apresDerniereVictoire.serie,
-      best: scenario.apresDerniereVictoire.meilleure,
-      freezes: scenario.apresDerniereVictoire.gels,
-      streak: scenario.serieAujourdhui,
-      lastWin: scenario.jours.at(-1) ?? null,
-    },
-    obtenu: lignes[index]?.resultat ?? null,
+function verifieSeries(series, lignes) {
+  return series.map((s, index) => {
+    const r = lignes[index]?.resultat ?? null
+    return {
+      nom: `série · ${s.nom}`,
+      pourquoi: s.pourquoi,
+      attendu: { streakAtLastWin: s.attendu.serieDerniereVictoire, best: s.attendu.meilleure, streak: s.attendu.serieAujourdhui, lastWin: s.attendu.derniereVictoire },
+      obtenu: r && { streakAtLastWin: r.streakAtLastWin, best: r.best, streak: r.streak, lastWin: r.lastWin },
+    }
+  })
+}
+
+function sqlConsommation(cas) {
+  return `select * from (values
+${cas.map((c, index) =>
+    `  (${index}, to_jsonb(private.daily_freeze_days(${c.derniereActivite ? litteralDate(c.derniereActivite) : 'null::date'}, ${litteralDate(c.victoire)}, ${entier(c.poche, 'poche')})))`,
+  ).join(',\n')}\n) as t(rang, jours) order by rang;`
+}
+
+function verifieConsommation(cas, lignes) {
+  // Comparés en texte : `rapporte` compare champ par champ avec !==, qui ne sait
+  // pas comparer deux tableaux.
+  return cas.map((c, index) => ({
+    nom: `gels · ${c.nom}`,
+    pourquoi: 'freezeDaysToUse et daily_freeze_days doivent couvrir les mêmes jours.',
+    attendu: { jours: JSON.stringify(c.joursGeles) },
+    obtenu: { jours: JSON.stringify(lignes[index]?.jours ?? null) },
   }))
 }
 
@@ -186,11 +203,12 @@ async function main() {
   const lancer = async corps => requete(jeton, `begin;\n${prelude}${corps}\nrollback;`)
 
   const echecs = []
-  rapporte(verifieSeries(scenarios, await lancer(sqlSeries(scenarios))), echecs)
+  rapporte(verifieSeries(scenarios.series, await lancer(sqlSeries(scenarios.series))), echecs)
+  rapporte(verifieConsommation(scenarios.consommation, await lancer(sqlConsommation(scenarios.consommation))), echecs)
   rapporte(verifieRangs(fixtures.rangs.cas, await lancer(sqlRangs(fixtures.rangs.cas))), echecs)
   rapporte(verifieExperience(fixtures.xp.cas, await lancer(sqlExperience(fixtures.xp.cas)), fixtures.xp.maxNiveau), echecs)
 
-  const total = scenarios.length + fixtures.rangs.cas.length + fixtures.xp.cas.filter(c => c.palier > 0).length * 2
+  const total = scenarios.series.length + scenarios.consommation.length + fixtures.rangs.cas.length + fixtures.xp.cas.filter(c => c.palier > 0).length * 2
   console.log(`\n${total - echecs.length}/${total} contrôle(s) conforme(s) sur ${PROJECT_REF}.`)
   if (echecs.length > 0) {
     throw new Error([

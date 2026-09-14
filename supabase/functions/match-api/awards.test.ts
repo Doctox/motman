@@ -203,7 +203,7 @@ Deno.test('défi du jour PERDU : aucun bonus, aucune victoire enregistrée', asy
   const { client, rpcs, tables } = clientFactice()
   await awardFinished(client, defiDuJour({ winner_id: BOT }))
   egal(versements(rpcs, 'server_award_feathers').length, 0, 'aucun bonus')
-  verifie(!tables.some(appel => appel.table === 'daily_wins'), 'aucune victoire quotidienne écrite')
+  verifie(!rpcs.some(appel => appel.fonction === 'server_record_daily_win'), 'aucune victoire quotidienne écrite')
 })
 
 Deno.test('clôture rejouée : la série n’est pas recalculée', async () => {
@@ -275,11 +275,11 @@ Deno.test('victoire trop ancienne : la série n’est pas rétro-alimentée', as
   // Une ligne `daily_wins` datée du passé reboucherait un trou de série après
   // coup. Seules aujourd'hui et la veille sont acceptées.
   const vieux = new Date(Date.now() - 10 * 86_400_000).toISOString().slice(0, 10)
-  const { client, tables } = clientFactice({
+  const { client, rpcs } = clientFactice({
     'rpc.server_award_feathers': { data: { applied: true }, error: null },
   })
   await awardFinished(client, defiDuJour({}, vieux))
-  verifie(!tables.some(appel => appel.table === 'daily_wins'), 'aucune victoire quotidienne écrite')
+  verifie(!rpcs.some(appel => appel.fonction === 'server_record_daily_win'), 'aucune victoire quotidienne écrite')
 })
 
 Deno.test('un versement d’XP en échec n’interrompt pas la clôture', async () => {

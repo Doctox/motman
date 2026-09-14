@@ -7,11 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // L'ÉPICERIE : un prix touché ne dépense rien tant que le joueur n'a pas dit oui.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const serveur = vi.hoisted(() => ({ acheter: vi.fn(), equiper: vi.fn(), ouvrir: vi.fn() }))
+const serveur = vi.hoisted(() => ({ acheter: vi.fn(), equiper: vi.fn(), ouvrir: vi.fn(), gel: vi.fn() }))
 vi.mock('./auth', () => ({
   purchaseServerCosmetic: serveur.acheter,
   equipServerCosmetic: serveur.equiper,
   openServerBasket: serveur.ouvrir,
+  buyServerStreakFreeze: serveur.gel,
 }))
 vi.mock('./CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
 
@@ -214,5 +215,32 @@ describe('montants en plumes', () => {
     const { formatPlumes } = await import('./ShopPage')
     expect(formatPlumes(1_700)).toBe('1\u00a0700')
     expect(formatPlumes(999)).toBe('999')
+  })
+})
+
+describe('rayon Objets : le gel de série', () => {
+  const carte = () => hote.querySelector('.mm-object-card')!
+  const bouton = () => carte().querySelector('button') as HTMLButtonElement
+
+  it('se confirme, puis s’achète une fois', async () => {
+    serveur.gel.mockResolvedValue({ cosmetics: { ...riche(), streakFreezes: 1 } })
+    afficher({ ...riche(), streakFreezes: 0 }, 'Objets')
+    expect(carte().textContent).toContain('En poche : 0/3')
+    cliquer(bouton())
+    expect(dialogue()?.textContent).toContain('Gel de série')
+    expect(serveur.gel).not.toHaveBeenCalled()
+    await act(async () => { (document.querySelector('[role="dialog"] button:not(.secondary)') as HTMLButtonElement).click() })
+    expect(serveur.gel).toHaveBeenCalledTimes(1)
+  })
+
+  it('poche pleine à 3 : plus d’achat', () => {
+    afficher({ ...riche(), streakFreezes: 3 }, 'Objets')
+    expect(bouton().disabled).toBe(true)
+    expect(carte().textContent).toContain('Poche pleine')
+  })
+
+  it('sans 500 plumes, bouton bloqué', () => {
+    afficher({ ...riche(), plumes: 499, streakFreezes: 0 }, 'Objets')
+    expect(bouton().disabled).toBe(true)
   })
 })

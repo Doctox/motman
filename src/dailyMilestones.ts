@@ -14,20 +14,7 @@
 // répétable à chaque tranche de 7 jours de série (7, 14, 21…) : d'abord
 // +250 plumes, puis le même jour UN PANIER OFFERT (« ça donne grave envie »),
 // voir la migration 20260914200000.
-// Les paliers ne portent plus que les gels, dont la règle ne change pas.
-
-export type DailyMilestone = {
-  /** Longueur de série à atteindre. */
-  streak: number
-  /** Gel crédité (plafond 2), une fois par compte. Jumeau SQL : `private.daily_streak_from_days`. */
-  freeze: number
-}
-
-/** Paliers de GEL. Ils ne versent plus de plumes depuis le 14/09/2026. */
-export const DAILY_MILESTONES: readonly DailyMilestone[] = [
-  { streak: 7, freeze: 1 },
-  { streak: 30, freeze: 1 },
-]
+// Plus aucun palier : le gel de série est un objet acheté (dailyStreakRule.ts).
 
 /** Une récompense toutes les N journées de série. */
 export const STREAK_REWARD_EVERY_DAYS = 7

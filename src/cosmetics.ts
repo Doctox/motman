@@ -67,6 +67,8 @@ export type PlayerCosmetics = {
   openedBaskets: number
   /** Paniers offerts en réserve, gagnés par la série du défi du jour (serveur). */
   freeBaskets: number
+  /** Gels de série en poche (serveur : player_wallets.streak_freezes), 3 au plus. */
+  streakFreezes: number
   basketPity: number
   basketOdds: Record<CosmeticRarity, number>
   transactions: string[]
@@ -204,6 +206,7 @@ function createPlayerCosmetics(playerId: string): PlayerCosmetics {
     equippedAnimationId: NO_ANIMATION_ID,
     openedBaskets: 0,
     freeBaskets: 0,
+    streakFreezes: 0,
     basketPity: 0,
     basketOdds: basketRarityProbabilities(0),
     transactions: ['welcome-credit'],
@@ -234,6 +237,7 @@ function migratePlayerCosmetics(value: unknown, playerId: string): PlayerCosmeti
     equippedAnimationId: ownedAnimationIds.includes(candidate.equippedAnimationId ?? '') ? candidate.equippedAnimationId! : NO_ANIMATION_ID,
     openedBaskets: Math.max(0, Math.floor(candidate.openedBaskets ?? 0)),
     freeBaskets: Math.max(0, Math.floor(candidate.freeBaskets ?? 0)),
+    streakFreezes: Math.max(0, Math.floor(candidate.streakFreezes ?? 0)),
     basketPity: Math.max(0, Math.min(20, Math.floor(candidate.basketPity ?? 0))),
     basketOdds: candidate.basketOdds ?? basketRarityProbabilities(candidate.basketPity ?? 0),
     transactions: isStringArray(candidate.transactions) ? candidate.transactions.slice(-300) : [],

@@ -45,10 +45,10 @@ describe('advanceStreak (victoire)', () => {
     expect(advanceStreak(state, '2026-08-01').effects.changed).toBe(false)
   })
 
-  it('réinitialise après un seul jour raté sans gel, en gardant de quoi rattraper', () => {
+  it('réinitialise après un seul jour raté sans gel (plus de rattrapage)', () => {
     const state = ['2026-08-05', '2026-08-06', '2026-08-08'].reduce(play, emptyDailyChallengeState())
     expect(state.currentStreak).toBe(1)
-    expect(state.recovery).toEqual({ previousStreak: 2, brokenDay: '2026-08-08' })
+    expect(state.recovery).toBeNull()
   })
 
   it('réinitialise sans rattrapage possible après deux jours ratés ou plus', () => {
@@ -65,12 +65,27 @@ describe('advanceStreak (victoire)', () => {
     expect(frozen.state.freezes).toBe(0)
   })
 
-  it('restaure la série si l’on regagne le lendemain d’une rupture', () => {
+  it('ne restaure plus la série en regagnant le lendemain d’une rupture', () => {
+    // Le rattrapage a été supprimé le 14/09/2026 : il était invisible et incompris.
     const broken = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-07'].reduce(play, emptyDailyChallengeState())
     expect(broken.currentStreak).toBe(1)
-    const recovered = advanceStreak(broken, '2026-08-08')
-    expect(recovered.effects.recovered).toBe(true)
-    expect(recovered.state.currentStreak).toBe(7)
+    expect(advanceStreak(broken, '2026-08-08').state.currentStreak).toBe(2)
+  })
+
+  it('deux jours manqués, deux gels : les deux sont pris et la série continue', () => {
+    const base = { ...emptyDailyChallengeState(), freezes: 2, lastWonDay: '2026-08-05', currentStreak: 4 }
+    const suite = advanceStreak(base, '2026-08-08')
+    expect(suite.state.currentStreak).toBe(5)
+    expect(suite.state.freezes).toBe(0)
+    expect(suite.effects.frozenDays).toEqual(['2026-08-06', '2026-08-07'])
+  })
+
+  it('deux jours manqués, un seul gel : aucun gel pris, la série repart', () => {
+    const base = { ...emptyDailyChallengeState(), freezes: 1, lastWonDay: '2026-08-05', currentStreak: 4 }
+    const suite = advanceStreak(base, '2026-08-08')
+    expect(suite.state.currentStreak).toBe(1)
+    expect(suite.state.freezes).toBe(1)
+    expect(suite.effects.usedFreeze).toBe(false)
   })
 
   it('ne rattrape pas une longue absence', () => {
@@ -80,18 +95,12 @@ describe('advanceStreak (victoire)', () => {
     expect(state.currentStreak).toBe(2)
   })
 
-  it('franchit le palier 7 une seule fois et crédite son gel local (plafond 2)', () => {
+  it('ne crédite plus aucun gel en jouant : le gel s’achète', () => {
     let state = emptyDailyChallengeState()
-    const reached: number[] = []
-    for (let i = 0; i < 8; i += 1) {
-      const step = advanceStreak(state, `2026-01-${String(i + 1).padStart(2, '0')}`)
-      state = step.state
-      reached.push(...step.effects.reachedMilestones.map(m => m.streak))
-    }
-    expect(reached.filter(s => s === 7)).toHaveLength(1)
-    expect(state.awardedMilestones).toContain(7)
-    expect(state.freezes).toBe(1)
-    expect(state.freezes).toBeLessThanOrEqual(MAX_FREEZES)
+    for (let i = 0; i < 31; i += 1) state = advanceStreak(state, `2026-01-${String(i + 1).padStart(2, '0')}`).state
+    expect(state.currentStreak).toBe(31)
+    expect(state.freezes).toBe(0)
+    expect(MAX_FREEZES).toBe(3)
   })
 })
 
@@ -209,8 +218,13 @@ describe('reconcileServerDailyStreak', () => {
     expect(merged.longestStreak).toBe(30)
     expect(merged.freezes).toBe(1)
     expect(merged.lastWonDay).toBe('2026-08-30')
-    // Le palier des 7 jours a déjà été franchi : l'app ne doit pas re-féliciter.
-    expect(merged.awardedMilestones).toContain(7)
+  })
+
+  it('reprend les jours gelés et les gels en poche du serveur', () => {
+    const local: DailyChallengeState = { ...emptyDailyChallengeState(), lastWonDay: '2026-09-14', currentStreak: 4, longestStreak: 4, freezes: 0 }
+    const merged = reconcileServerDailyStreak(local, { streak: 4, best: 4, freezes: 2, lastWin: '2026-09-14', winDays: ['2026-09-13', '2026-09-14'], frozenDays: ['2026-09-12'] })
+    expect(merged.freezes).toBe(2)
+    expect(merged.serverFrozenDays).toEqual(['2026-09-12'])
   })
 
   it('ne raccourcit jamais une série locale plus avancée', () => {
@@ -245,7 +259,6 @@ describe('reconcileServerDailyStreak', () => {
     expect(merged.currentStreak).toBe(0)
     // Le record, lui, ne redescend pas : les paliers franchis restent acquis.
     expect(merged.longestStreak).toBe(9)
-    expect(merged.awardedMilestones).toContain(7)
   })
 
   it('garde la série locale quand le serveur n’a rien à dire', () => {

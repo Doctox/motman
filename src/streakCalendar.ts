@@ -1,22 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // LE CALENDRIER DE SÉRIE — ce que montre la fenêtre ouverte depuis la flamme.
 //
-// Une semaine du lundi au dimanche, et pour chaque jour : gagné, manqué, sauvé
-// par un gel, ou rattrapé le lendemain. PUR : aucune lecture de stockage, aucun
-// affichage.
+// Une semaine du lundi au dimanche, et pour chaque jour : défi réussi, manqué,
+// ou protégé par un gel. PUR : aucune lecture de stockage, aucun affichage.
 //
-// Gels et rattrapages ne sont écrits nulle part : ils se DÉDUISENT des jours
-// gagnés. On rejoue donc ces jours dans `advanceStreak` — le moteur de série du
-// client, tenu égal au moteur SQL par le banc d'essai commun —, depuis la toute
-// première victoire. Écrire ici une troisième version de la règle, c'était
-// s'assurer qu'un jour le calendrier dise « série sauvée » quand le serveur l'a
-// cassée.
+// Depuis le 14/09/2026, les jours gelés sont ENREGISTRÉS par le serveur
+// (daily_frozen_days) : plus rien à déduire, on lit les deux listes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { advanceStreak, emptyDailyChallengeState } from './dailyChallenge'
 import { winsUntilNextStreakReward } from './dailyMilestones'
 
-export type DayMark = 'won' | 'frozen' | 'recovered' | 'missed'
+export type DayMark = 'won' | 'frozen' | 'missed'
 
 const JOUR_MS = 86_400_000
 const CLE = /^\d{4}-\d{2}-\d{2}$/
@@ -45,26 +39,16 @@ export function weekDays(monday: string): string[] {
  * Aujourd'hui n'est marqué que s'il est gagné : il reste jouable jusqu'à minuit.
  * Un jour sans marque est soit avant la première victoire, soit à venir.
  */
-export function streakDayMarks(winDays: readonly string[], today: string): Map<string, DayMark> {
-  const jours = [...new Set(winDays.filter(day => CLE.test(day) && day <= today))].sort()
+export function streakDayMarks(winDays: readonly string[], frozenDays: readonly string[], today: string): Map<string, DayMark> {
+  const victoires = [...new Set(winDays.filter(day => CLE.test(day) && day <= today))].sort()
   const marques = new Map<string, DayMark>()
-  if (!jours.length) return marques
+  if (!victoires.length) return marques
 
-  // D'abord tout ce qui s'est écoulé est manqué ; les victoires, gels et
-  // rattrapages viennent ensuite remplacer ce qui doit l'être.
-  for (let jour = jours[0]; jour < today; jour = addDays(jour, 1)) marques.set(jour, 'missed')
-
-  let state = emptyDailyChallengeState()
-  for (const jour of jours) {
-    const { state: suivant, effects } = advanceStreak(state, jour)
-    marques.set(jour, 'won')
-    // Gel : il couvre le jour manqué juste avant cette victoire.
-    if (effects.usedFreeze) marques.set(addDays(jour, -1), 'frozen')
-    // Pont : la victoire de la veille relevait la rupture, le jour manqué est
-    // celui d'avant.
-    if (effects.recovered) marques.set(addDays(jour, -2), 'recovered')
-    state = suivant
-  }
+  // Tout ce qui s'est écoulé depuis la première victoire est d'abord manqué ;
+  // les jours gelés puis les victoires remplacent ce qui doit l'être.
+  for (let jour = victoires[0]; jour < today; jour = addDays(jour, 1)) marques.set(jour, 'missed')
+  for (const jour of frozenDays) if (CLE.test(jour) && jour <= today) marques.set(jour, 'frozen')
+  for (const jour of victoires) marques.set(jour, 'won')
   return marques
 }
 

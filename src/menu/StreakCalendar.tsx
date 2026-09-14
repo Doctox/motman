@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronLeft, ChevronRight, Flame, Gift, RotateCcw, Snowflake, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Flame, Gift, Snowflake, X } from 'lucide-react'
 import { freeBasketsLabel, STREAK_REWARD_EVERY_DAYS, STREAK_REWARD_FREE_BASKETS, winsUntilNextStreakReward } from '../dailyMilestones'
 import type { DailyChallengeState } from '../dailyChallenge'
+import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from '../dailyStreakRule'
 import { addDays, mondayOf, nextStreakRewardDay, streakDayMarks, weekDays, weekLabel, type DayMark } from '../streakCalendar'
 import { useDialogFocus } from '../useDialogFocus'
 
@@ -21,17 +22,20 @@ const SEMAINES_A_VENIR = 4
 
 const LIBELLE: Record<DayMark, string> = {
   won: 'défi réussi',
-  frozen: 'manqué, sauvé par un gel',
-  recovered: 'manqué, rattrapé le lendemain',
+  frozen: 'manqué, protégé par un gel',
   missed: 'manqué',
 }
 
 function IconeDuJour({ marque }: { marque: DayMark | undefined }) {
   if (marque === 'won') return <Check aria-hidden="true" />
   if (marque === 'frozen') return <Snowflake aria-hidden="true" />
-  if (marque === 'recovered') return <RotateCcw aria-hidden="true" />
   if (marque === 'missed') return <X aria-hidden="true" />
   return null
+}
+
+/** Tous les jours gelés connus : ceux du serveur, et ceux prévus sur cet appareil. */
+export function knownFrozenDays(state: DailyChallengeState): string[] {
+  return [...new Set([...(state.serverFrozenDays ?? []), ...(state.frozenDays ?? [])])].sort()
 }
 
 /** Tous les jours gagnés connus : ceux du serveur, et ceux que cet appareil vient de jouer. */
@@ -53,7 +57,7 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
 }) {
   const dialogRef = useDialogFocus<HTMLElement>(close)
   const joursGagnes = useMemo(() => knownWinDays(state), [state])
-  const marques = useMemo(() => streakDayMarks(joursGagnes, today), [joursGagnes, today])
+  const marques = useMemo(() => streakDayMarks(joursGagnes, knownFrozenDays(state), today), [joursGagnes, state, today])
   const semaineActuelle = mondayOf(today)
   const premiereSemaine = joursGagnes.length ? mondayOf(joursGagnes[0]) : semaineActuelle
   const derniereSemaine = addDays(semaineActuelle, 7 * SEMAINES_A_VENIR)
@@ -72,8 +76,8 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
           l'en-tête du jeu (grille à 3 colonnes) s'appliquait aussi ici. */}
       <div className="mm-streak-calendar-head">
         <span className="mm-streak-calendar-flame" aria-hidden="true"><Flame /></span>
-        <strong>{streak} jour{streak > 1 ? 's' : ''}</strong>
-        <small>de série{freezes > 0 ? <> · <Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} en réserve</> : null}</small>
+        <strong>{streak} victoire{streak > 1 ? 's' : ''}</strong>
+        <small>de série · <Snowflake aria-hidden="true" />{freezes}/{MAX_STREAK_FREEZES} gel{freezes > 1 ? 's' : ''}</small>
       </div>
 
       <div className="mm-streak-goal" role="group" aria-label="Objectif de série">
@@ -83,7 +87,7 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
         <p>{recompenseAujourdhui
           ? <><Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b> gagné aujourd’hui !</>
           : <>Encore <b>{restantes} victoire{restantes > 1 ? 's' : ''}</b> pour <Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b></>}</p>
-        <small>Tous les {STREAK_REWARD_EVERY_DAYS} jours de série, sans limite.</small>
+        <small>Toutes les {STREAK_REWARD_EVERY_DAYS} victoires de série, sans limite.</small>
       </div>
 
       <nav className="mm-streak-week-nav" aria-label="Changer de semaine">
@@ -111,11 +115,12 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
         })}
       </ol>
 
+      <p className="mm-streak-freeze-note"><Snowflake aria-hidden="true" /><span><b>Gel de série</b> : il protège une journée manquée. La série continue, sans compter de victoire. À l’Épicerie · {STREAK_FREEZE_PRICE} plumes · {MAX_STREAK_FREEZES} au plus.</span></p>
+
       <ul className="mm-streak-legend" aria-hidden="true">
         <li><Check />réussi</li>
         <li><X />manqué</li>
         <li><Snowflake />gel</li>
-        <li><RotateCcw />rattrapé</li>
         <li><Gift />panier offert</li>
       </ul>
     </section>

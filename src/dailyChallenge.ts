@@ -19,13 +19,18 @@
 //    portefeuille local à chaque rafraîchissement de compte — un grantPlumes local
 //    disparaîtrait sans erreur. Ce module ne connaît donc AUCUN grantPlumes.
 //
-// Le gel, lui, est un état LOCAL de la série : il est crédité ici (paliers 7 et 30,
-// plafond 2).
+// LE GEL (14/09/2026) : un objet ACHETÉ à l'Épicerie (500 plumes, 3 en poche au
+// plus), tenu par le SERVEUR (player_wallets.streak_freezes). Ici, on ne fait que
+// prévoir sa consommation pour l'affichage immédiat ; le serveur la fait
+// réellement en enregistrant la victoire. Plus de rattrapage, plus de gel offert.
+// La règle elle-même vit dans `dailyStreakRule.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { freezeDaysToUse, MAX_STREAK_FREEZES } from './dailyStreakRule'
 
 export const DAILY_STORAGE_KEY = 'motman-daily-v1'
 export const DAILY_STATE_VERSION = 1
-export const MAX_FREEZES = 2
+export const MAX_FREEZES = MAX_STREAK_FREEZES
 export const HISTORY_LIMIT = 90
 
 // NOTE (2026-08-16) : `DAILY_COMPLETION_PLUMES = 250` a été RETIRÉ. C'était un
@@ -33,17 +38,6 @@ export const HISTORY_LIMIT = 90
 // montant affiché en fin de partie est désormais le montant RÉELLEMENT crédité,
 // remonté par account-api (ExperienceAward.dailyBonusPlumes) : aucune constante
 // locale ne doit pouvoir le contredire.
-
-// Le barème vit désormais dans `dailyMilestones.ts`, sans dépendance, pour que
-// l'edge function `match-api` puisse l'importer sans embarquer ce module-ci —
-// qui lit le localStorage et n'a rien à faire dans un worker Deno. Réexporté
-// ici pour ne rien casser des appelants existants.
-export { DAILY_MILESTONES, type DailyMilestone } from './dailyMilestones'
-// `export … from` ne crée AUCUNE liaison locale : sans cet import, le type
-// `DailyMilestone` utilisé plus bas n'est pas dans la portée du module et
-// `tsc -b` échoue — alors que `vite dev` et `vitest` passent, tous deux sur
-// esbuild, qui ne vérifie pas les types.
-import { DAILY_MILESTONES, type DailyMilestone } from './dailyMilestones'
 
 export type DailyResult = 'win' | 'loss'
 export type DailyStatus = 'todo' | 'lost' | 'won'
@@ -58,11 +52,12 @@ export type DailyChallengeState = {
   lastWonDay: string | null
   currentStreak: number
   longestStreak: number
+  /** Gels de série en poche (serveur : player_wallets.streak_freezes). */
   freezes: number
-  /** Paliers déjà franchis (seuils) — garantit gel + signalement UI une seule fois. */
+  /** Conservé pour relire les anciens états ; plus utilisé depuis le 14/09/2026. */
   awardedMilestones: number[]
-  /** Fenêtre de récupération armée après une rupture (validité : J+1). */
-  recovery: { previousStreak: number; brokenDay: string } | null
+  /** Ancien rattrapage, supprimé le 14/09/2026 : toujours null. */
+  recovery: null
   /** Suivi des tentatives du jour courant (UI + règle de première victoire). */
   today: DailyToday | null
   history: DailyHistoryEntry[]
@@ -72,6 +67,10 @@ export type DailyChallengeState = {
    * et d'un compte que le serveur n'a pas encore rapporté.
    */
   serverWinDays?: string[]
+  /** Jours couverts par un gel, tels que le serveur les connaît (`daily_frozen_days`). */
+  serverFrozenDays?: string[]
+  /** Jours couverts par un gel sur cet appareil, avant que le serveur ne les rapporte. */
+  frozenDays?: string[]
 }
 
 export type DailyAdvanceEffects = {
@@ -80,10 +79,11 @@ export type DailyAdvanceEffects = {
   previousStreak: number
   streak: number
   usedFreeze: boolean
-  recovered: boolean
-  /** Paliers franchis à cette victoire — pour l'UI ET le déclenchement du paiement serveur. */
-  reachedMilestones: DailyMilestone[]
+  /** Jours manqués couverts par un gel à cette victoire. */
+  frozenDays: string[]
 }
+
+const aucunEffet = (streak: number): DailyAdvanceEffects => ({ changed: false, previousStreak: streak, streak, usedFreeze: false, frozenDays: [] })
 
 type ReadableStorage = Pick<Storage, 'getItem'>
 type WritableStorage = Pick<Storage, 'setItem'>
@@ -117,75 +117,40 @@ export function daysBetween(fromKey: string, toKey: string): number {
 /**
  * Applique une VICTOIRE du jour `day` à la partie « série » de `state`. PURE :
  * ne lit/écrit aucun stockage, ne verse aucune plume (le serveur s'en charge).
- * Crédite le gel local des paliers (plafond 2). Idempotent : re-gagner le même
- * jour, ou un jour passé, ne change rien.
+ * Idempotent : re-gagner le même jour, ou un jour passé, ne change rien.
+ *
+ * Règle (dailyStreakRule.ts, jumeau SQL server_record_daily_win) : s'il manque
+ * N jours depuis la dernière journée active et que le joueur a au moins N gels,
+ * ils couvrent ces jours et la série continue ; sinon la série repart à 1.
  */
 export function advanceStreak(
   state: DailyChallengeState,
   day: string,
 ): { state: DailyChallengeState; effects: DailyAdvanceEffects } {
   const last = state.lastWonDay
-  const idempotent = (): { state: DailyChallengeState; effects: DailyAdvanceEffects } => ({
-    state,
-    effects: { changed: false, previousStreak: state.currentStreak, streak: state.currentStreak, usedFreeze: false, recovered: false, reachedMilestones: [] },
-  })
+  if (last !== null && daysBetween(last, day) <= 0) return { state, effects: aucunEffet(state.currentStreak) }
 
-  if (last !== null && daysBetween(last, day) <= 0) return idempotent()
-
-  let freezes = state.freezes
-  let recovery = state.recovery
-  let usedFreeze = false
-  let recovered = false
-  let streak: number
-
-  if (last === null) {
-    streak = 1
-  } else {
-    const gap = daysBetween(last, day)
-    if (gap === 1 && recovery && recovery.brokenDay === last) {
-      streak = recovery.previousStreak + 2 // pont : run d'avant + jour de rupture + aujourd'hui
-      recovered = true
-      recovery = null
-    } else if (gap === 1) {
-      streak = state.currentStreak + 1
-    } else if (gap === 2 && freezes > 0) {
-      freezes -= 1
-      usedFreeze = true
-      streak = state.currentStreak + 1
-      recovery = null
-    } else {
-      // Le pont ne s'ouvre que sur UN jour manqué (écart de 2, sans gel pour le
-      // couvrir). Après une vraie absence, la série repart sans mémoire : sinon
-      // neuf jours d'absence se rattrapaient en deux victoires, et une série de
-      // 29 jours touchait son palier payé après trois semaines d'arrêt.
-      // Jumeau SQL : `private.daily_streak_from_days`.
-      recovery = gap === 2 ? { previousStreak: state.currentStreak, brokenDay: day } : null
-      streak = 1
-    }
-  }
-
-  const reachedMilestones = DAILY_MILESTONES.filter(
-    milestone => streak >= milestone.streak && !state.awardedMilestones.includes(milestone.streak),
-  )
-  const awardedMilestones = reachedMilestones.length
-    ? [...state.awardedMilestones, ...reachedMilestones.map(milestone => milestone.streak)]
-    : state.awardedMilestones
-
-  const freezeGain = reachedMilestones.reduce((sum, milestone) => sum + milestone.freeze, 0)
-  freezes = Math.min(MAX_FREEZES, freezes + freezeGain)
+  const joursGeles = [...(state.serverFrozenDays ?? []), ...(state.frozenDays ?? [])]
+  const derniereActivite = [last, ...joursGeles.filter(jour => jour < day)]
+    .filter((jour): jour is string => jour !== null)
+    .sort()
+    .at(-1) ?? null
+  const couverts = freezeDaysToUse(derniereActivite, day, state.freezes)
+  const continue_ = derniereActivite !== null && (daysBetween(derniereActivite, day) === 1 || couverts.length > 0)
+  const streak = continue_ ? state.currentStreak + 1 : 1
 
   const next: DailyChallengeState = {
     ...state,
     lastWonDay: day,
     currentStreak: streak,
     longestStreak: Math.max(state.longestStreak, streak),
-    freezes,
-    awardedMilestones,
-    recovery,
+    freezes: Math.max(0, state.freezes - couverts.length),
+    recovery: null,
+    frozenDays: couverts.length ? [...new Set([...(state.frozenDays ?? []), ...couverts])].sort() : state.frozenDays,
   }
   return {
     state: next,
-    effects: { changed: true, previousStreak: state.currentStreak, streak, usedFreeze, recovered, reachedMilestones },
+    effects: { changed: true, previousStreak: state.currentStreak, streak, usedFreeze: couverts.length > 0, frozenDays: couverts },
   }
 }
 
@@ -215,7 +180,7 @@ export function loadDailyChallengeState(storage: ReadableStorage = localStorage)
       ...parsed,
       // Tolère un ancien champ lastCompletedDay (renommé lastWonDay).
       lastWonDay: parsed.lastWonDay ?? legacyLastCompletedDay,
-      recovery: parsed.recovery ?? null,
+      recovery: null,
       today: parsed.today ?? null,
       awardedMilestones: [...(parsed.awardedMilestones ?? [])],
       history: (parsed.history ?? []).slice(-HISTORY_LIMIT),
@@ -233,6 +198,8 @@ export type ServerDailyStreak = {
   lastWin: string | null
   /** Tous les jours gagnés, du plus ancien au plus récent. */
   winDays?: string[]
+  /** Jours couverts par un gel. */
+  frozenDays?: string[]
 }
 
 /**
@@ -280,30 +247,28 @@ export function reconcileServerDailyStreak(
   const serveurAJour = local.lastWonDay === null
     || (server.lastWin !== null && server.lastWin >= local.lastWonDay)
   const currentStreak = serveurAJour ? serverStreak : Math.max(local.currentStreak, serverStreak)
-  // Le RECORD, lui, ne redescend jamais : c'est un maximum historique, et il
-  // commande l'affichage des paliers déjà franchis.
+  // Le RECORD, lui, ne redescend jamais : c'est un maximum historique.
   const longestStreak = Math.max(local.longestStreak, serverBest, currentStreak)
+  // Les gels sont un objet du portefeuille serveur : dès qu'il est à jour, il fait
+  // autorité (un achat fait sur un autre appareil y apparaît).
   const freezes = serveurAJour ? serverFreezes : local.freezes
   const serverWinDays = Array.isArray(server.winDays) ? server.winDays.filter(day => typeof day === 'string') : local.serverWinDays
+  const serverFrozenDays = Array.isArray(server.frozenDays) ? server.frozenDays.filter(day => typeof day === 'string') : local.serverFrozenDays
   const memesJours = (serverWinDays ?? []).join() === (local.serverWinDays ?? []).join()
+    && (serverFrozenDays ?? []).join() === (local.serverFrozenDays ?? []).join()
   if (currentStreak === local.currentStreak && longestStreak === local.longestStreak && freezes === local.freezes && memesJours) return local
   return {
     ...local,
     ...(serverWinDays ? { serverWinDays } : {}),
+    ...(serverFrozenDays ? { serverFrozenDays } : {}),
+    // Les gels prévus sur cet appareil sont désormais connus du serveur.
+    ...(serveurAJour ? { frozenDays: [] } : {}),
     currentStreak,
     longestStreak,
-    // Les gels se déduisent de l'historique complet des victoires : celui du
-    // serveur fait autorité dès qu'il est à jour.
     freezes,
     lastWonDay: local.lastWonDay && server.lastWin
       ? (local.lastWonDay > server.lastWin ? local.lastWonDay : server.lastWin)
       : local.lastWonDay ?? server.lastWin,
-    // Un palier déjà franchi ne doit plus être annoncé : sinon l'écran de fin
-    // félicite à nouveau le joueur pour ses sept jours, sur un appareil neuf.
-    awardedMilestones: [...new Set([
-      ...local.awardedMilestones,
-      ...DAILY_MILESTONES.filter(milestone => longestStreak >= milestone.streak).map(milestone => milestone.streak),
-    ])].sort((a, b) => a - b),
   }
 }
 
@@ -366,7 +331,7 @@ export function recordDailyResult(
     saveDailyChallengeState(next, storage)
     return {
       state: next,
-      effects: { changed: false, previousStreak: current.currentStreak, streak: current.currentStreak, usedFreeze: false, recovered: false, reachedMilestones: [] },
+      effects: aucunEffet(current.currentStreak),
       attempts,
       status: today.won ? 'won' : 'lost',
     }

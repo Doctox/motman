@@ -45,6 +45,7 @@ function publicAccountBusinessError(error: unknown): string | null {
       : ''
   const message = rawMessage.toLocaleLowerCase('fr')
   if (message.includes('manque quelques plumes')) return 'Vous n’avez pas assez de plumes.'
+  if (message.includes('deja 3 gels')) return 'Vous avez déjà 3 gels de série.'
   if (message.includes('déjà possédé')) return 'Cet objet est déjà dans votre collection.'
   if (message.includes('collection est déjà complète')) return 'Votre collection est déjà complète.'
   if (message.includes('panier') && message.includes('disponible')) return 'Ce panier n’est plus disponible.'
@@ -68,7 +69,7 @@ async function accountState(admin: AdminClient, userId: string) {
     { data: profile }, { data: progress }, { data: wallet }, { data: inventory }, { data: awardRows },
     { data: dailyBonusRows },
     { data: titleCatalog }, { data: ownedTitles }, { data: cosmeticCatalog },
-    { data: dailyStreak }, { data: dailyWinRows },
+    { data: dailyStreak }, { data: dailyWinRows }, { data: frozenDayRows },
   ] = await Promise.all([
     admin.from('profiles').select('*').eq('id', userId).single(),
     admin.from('player_progress').select('*').eq('user_id', userId).single(),
@@ -105,6 +106,8 @@ async function accountState(admin: AdminClient, userId: string) {
     // compte des gels. Une ligne par victoire quotidienne : quelques centaines
     // au plus, sur un index (user_id, day).
     admin.from('daily_wins').select('day').eq('user_id', userId).order('day', { ascending: true }).limit(1000),
+    // Les jours couverts par un gel de série (migration 20260914220000).
+    admin.from('daily_frozen_days').select('day').eq('user_id', userId).order('day', { ascending: true }).limit(1000),
   ])
   if (!profile || !progress || !wallet) throw new Error('Profil serveur incomplet.')
   const items = inventory ?? []
@@ -150,6 +153,7 @@ async function accountState(admin: AdminClient, userId: string) {
       freezes: Math.max(0, Number(daily?.freezes) || 0),
       lastWin: typeof daily?.lastWin === 'string' ? daily.lastWin : null,
       winDays: (dailyWinRows ?? []).map(row => String(row.day)).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)),
+      frozenDays: (frozenDayRows ?? []).map(row => String(row.day)).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)),
     },
     identity: {
       version: 2,
@@ -194,6 +198,7 @@ async function accountState(admin: AdminClient, userId: string) {
       equippedAvatarId: profile.avatar_id, equippedFrameId: profile.frame_id,
       equippedAnimationId: profile.animation_id, openedBaskets: wallet.opened_baskets,
       freeBaskets: Math.max(0, Number(wallet.free_baskets) || 0),
+      streakFreezes: Math.max(0, Number(wallet.streak_freezes) || 0),
       basketPity: wallet.basket_pity, basketOdds, transactions: [],
     },
   }
@@ -318,6 +323,11 @@ Deno.serve(async request => {
       if (error) throw error
       const { error: equipError } = await admin.from('profiles').update({ [cosmeticColumn(cosmetic.kind)]: cosmetic.id, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (equipError) throw equipError
+    } else if (action === 'buy-streak-freeze') {
+      // Gel de série : 500 plumes, 3 en poche au plus (server_buy_streak_freeze).
+      const idempotencyKey = typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()
+      const { error } = await admin.rpc('server_buy_streak_freeze', { p_user_id: user.id, p_idempotency_key: idempotencyKey })
+      if (error) throw error
     } else if (action === 'open-basket') {
       const basketId = typeof body.basketId === 'string' && /^[a-z0-9-]{1,64}$/i.test(body.basketId) ? body.basketId : ''
       if (!basketId) return json(400, { error: 'Panier invalide.' })

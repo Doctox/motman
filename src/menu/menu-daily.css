@@ -225,3 +225,5 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-share.is-compact button { min-width: 112px; min-height: 36px; padding: 0 14px; font-size: 0.8125rem; box-shadow: none; }
 /* Lu par les lecteurs d’écran seulement : le bouton compact montre « Copié ! ». */
 .mm-daily-share p.mm-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mm-streak-freeze-note { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #8fb8d0 16%, var(--mm-surface)); color: var(--mm-ink); font-size: 0.75rem; line-height: 1.4; text-align: left; }
+.mm-streak-freeze-note svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; color: #4f89ad; }

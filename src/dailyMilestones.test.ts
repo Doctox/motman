@@ -41,32 +41,22 @@ describe('la récompense de série', () => {
   })
 
   it('un gel qui couvre un jour manqué ne décale rien', () => {
-    // 7 jours (gel gagné), le 8e manqué, puis on reprend : le gel tient la série.
-    const { serie, payes } = jouer([...suite(1, 7), ...suite(9, 15)])
-    expect(serie).toBe(14)
+    // Deux gels achetés d'avance : le 8e jour est manqué, le gel le couvre.
+    let state = { ...emptyDailyChallengeState(), freezes: 2 }
+    const payes: number[] = []
+    for (const n of [...suite(1, 7), ...suite(9, 15)]) {
+      const { state: suivant, effects } = advanceStreak(state, jour(n))
+      if (streakRewardsEarned(effects.previousStreak, effects.streak) > 0) payes.push(n)
+      state = suivant
+    }
+    expect(state.currentStreak).toBe(14)
     expect(payes).toEqual([7, 15])
   })
 
-  it('le rattrapage qui franchit 7 paie ce jour-là', () => {
-    // 6 jours, le 7e manqué, 8e gagné (série 1), 9e gagné : la série revient à 8.
-    const { serie, payes } = jouer([...suite(1, 6), 8, 9])
-    expect(serie).toBe(8)
-    expect(payes).toEqual([9])
-  })
-
-  it('le rattrapage ne repaie PAS une tranche déjà touchée avant la rupture', () => {
-    // Le gel gagné au 7e jour couvre le premier trou ; le second, sans gel,
-    // passe par le pont.
-    const { payes } = jouer([...suite(1, 7), ...suite(9, 12), 14, 15])
-    // Série : 1-7 (payé le 7), 9-12 → 8..11 (gel), 13 manqué sans gel, 14 → 1, 15 → 13.
-    expect(payes).toEqual([7])
-  })
-
-  it('le rattrapage qui franchit 14 paie, sans repayer 7', () => {
-    const { serie, payes } = jouer([...suite(1, 7), ...suite(9, 14), 16, 17])
-    // 1-7 (payé), 9-14 → 8..13 (gel), 15 manqué, 16 → 1, 17 → 13 + 2 = 15.
-    expect(serie).toBe(15)
-    expect(payes).toEqual([7, 17])
+  it('sans gel, un jour manqué fait repartir la série : le cadeau revient à la 7e victoire suivante', () => {
+    const { serie, payes } = jouer([...suite(1, 6), ...suite(8, 14)])
+    expect(serie).toBe(7)
+    expect(payes).toEqual([14])
   })
 
   it('une vraie absence remet le compteur à zéro : la série suivante paie à nouveau', () => {

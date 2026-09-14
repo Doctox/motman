@@ -233,6 +233,11 @@ export function purchaseServerCosmetic(kind: CosmeticKind, id: string, idempoten
   return accountAction('purchase-cosmetic', { kind, id, idempotencyKey })
 }
 
+/** Achète un gel de série : 500 plumes, 3 en poche au plus (server_buy_streak_freeze). */
+export function buyServerStreakFreeze(idempotencyKey = crypto.randomUUID()): Promise<AuthResponse> {
+  return accountAction('buy-streak-freeze', { idempotencyKey })
+}
+
 export async function openServerBasket(basketId: string, idempotencyKey = crypto.randomUUID()): Promise<AuthResponse & { reward: CosmeticReward }> {
   return accountAction('open-basket', { basketId, idempotencyKey }) as Promise<AuthResponse & { reward: CosmeticReward }>
 }

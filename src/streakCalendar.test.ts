@@ -28,7 +28,7 @@ describe('la semaine', () => {
 
 describe('les marques', () => {
   it('gagné, puis manqué pour les jours passés sans victoire', () => {
-    const marques = streakDayMarks(['2026-09-01', '2026-09-02', '2026-09-05'], '2026-09-06')
+    const marques = streakDayMarks(['2026-09-01', '2026-09-02', '2026-09-05'], [], '2026-09-06')
     expect(marques.get('2026-09-01')).toBe('won')
     expect(marques.get('2026-09-03')).toBe('missed')
     expect(marques.get('2026-09-04')).toBe('missed')
@@ -36,31 +36,23 @@ describe('les marques', () => {
   })
 
   it('aujourd’hui n’est pas « manqué » tant qu’on peut encore jouer', () => {
-    const marques = streakDayMarks(['2026-09-01'], '2026-09-03')
+    const marques = streakDayMarks(['2026-09-01'], [], '2026-09-03')
     expect(marques.get('2026-09-02')).toBe('missed')
     expect(marques.has('2026-09-03')).toBe(false)
   })
 
   it('rien avant la première victoire', () => {
-    expect(streakDayMarks(['2026-09-10'], '2026-09-12').has('2026-09-09')).toBe(false)
+    expect(streakDayMarks(['2026-09-10'], [], '2026-09-12').has('2026-09-09')).toBe(false)
   })
 
-  it('le jour couvert par un gel', () => {
-    // 7 jours gagnent un gel ; le 8e est manqué ; le 9e le consomme.
-    const jours = [...suite('2026-09-01', 7), '2026-09-09']
-    expect(streakDayMarks(jours, '2026-09-09').get('2026-09-08')).toBe('frozen')
-  })
-
-  it('le jour rattrapé par le pont', () => {
-    // Sans gel : 3 jours, le 4e manqué, 5e et 6e gagnés → la série revient.
-    const jours = ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-05', '2026-09-06']
-    const marques = streakDayMarks(jours, '2026-09-06')
-    expect(marques.get('2026-09-04')).toBe('recovered')
-    expect(marques.get('2026-09-05')).toBe('won')
+  it('le jour couvert par un gel, tel que le serveur l’a enregistré', () => {
+    const marques = streakDayMarks(['2026-09-10', '2026-09-11', '2026-09-13'], ['2026-09-12'], '2026-09-14')
+    expect(marques.get('2026-09-12')).toBe('frozen')
+    expect(marques.get('2026-09-13')).toBe('won')
   })
 
   it('ignore les dates futures ou mal formées', () => {
-    const marques = streakDayMarks(['2026-09-01', 'n’importe quoi', '2026-12-31'], '2026-09-02')
+    const marques = streakDayMarks(['2026-09-01', 'n’importe quoi', '2026-12-31'], ['2026-12-30'], '2026-09-02')
     expect([...marques.keys()]).toEqual(['2026-09-01'])
   })
 })
