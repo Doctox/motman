@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, Check, Feather, PackageOpen, Palette, ShoppingBasket, Sparkles, User } from 'lucide-react'
 import { assetUrl } from './assetUrl'
@@ -64,9 +65,11 @@ function BasketReward({ reward, cosmetics }: { reward: CosmeticReward; cosmetics
  * doigt qui ripe en faisant défiler l'Épicerie suffisait. On demande donc
  * confirmation, en montrant le solde qui restera.
  */
-export function PurchaseConfirm({ purchase, balance, confirm, cancel }: {
+export function PurchaseConfirm({ purchase, balance, preview, confirm, cancel }: {
   purchase: PendingPurchase
   balance: number
+  /** Ce qu'on achète, tel qu'on le portera : c'est ce qui fait dire oui. */
+  preview?: ReactNode
   confirm: () => void
   cancel: () => void
 }) {
@@ -78,7 +81,7 @@ export function PurchaseConfirm({ purchase, balance, confirm, cancel }: {
   // au-dessus du voile.
   return createPortal(<div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) cancel() }}>
     <section ref={dialogRef} className="mm-pause mm-purchase-confirm" role="dialog" aria-modal="true" aria-label={`${verbe} ${purchase.name}`} tabIndex={-1}>
-      <Feather />
+      {preview ? <div className="mm-purchase-preview" aria-hidden="true">{preview}</div> : null}
       <h2>{verbe} « {purchase.name} » ?</h2>
       <p className="mm-purchase-cost"><Feather aria-hidden="true" /><b>{plumes(purchase.price)}</b></p>
       <p className="mm-purchase-balance">{manque > 0 ? `Il vous manque ${plumes(manque)}.` : `Il vous restera ${plumes(balance - purchase.price)}.`}</p>
@@ -252,6 +255,17 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       })}
       <small className="mm-shop-note"><Sparkles />Les paniers ne contiennent ni titre ni avantage de jeu.</small>
     </section> : null}
-    {purchase ? <PurchaseConfirm purchase={purchase} balance={cosmetics.plumes} confirm={confirmPurchase} cancel={() => setPurchase(null)} /> : null}
+    {purchase ? <PurchaseConfirm
+      purchase={purchase}
+      balance={cosmetics.plumes}
+      preview={purchase.kind === 'basket'
+        ? <BasketArtwork state="idle" />
+        : <CosmeticPortrait
+          avatarId={purchase.kind === 'avatar' ? purchase.id : cosmetics.equippedAvatarId}
+          frameId={purchase.kind === 'frame' ? purchase.id : cosmetics.equippedFrameId}
+          animationId={purchase.kind === 'animation' ? purchase.id : cosmetics.equippedAnimationId}
+          alt="" />}
+      confirm={confirmPurchase}
+      cancel={() => setPurchase(null)} /> : null}
   </div>
 }

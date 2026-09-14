@@ -256,7 +256,7 @@ export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects })
 function DailyRankRow({ entry }: { entry: DailyRankingEntry }) {
   return <div className={`mm-ranking-row ${entry.isMe ? 'you' : ''}`}>
     <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
-    <SocialPortrait user={{ displayName: entry.displayName, avatarId: entry.avatarId ?? undefined, frameId: entry.frameId ?? undefined }} small />
+    <SocialPortrait user={{ displayName: entry.displayName, avatarId: entry.avatarId ?? undefined, frameId: entry.frameId ?? undefined, animationId: entry.animationId ?? undefined }} small />
     <strong>
       {entry.displayName}
       <small>{entry.isMe ? 'Vous' : `${entry.score} pts · ${entry.turns} tours`}</small>

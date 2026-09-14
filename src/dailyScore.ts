@@ -65,6 +65,8 @@ export type DailyRankingEntry = {
   displayName: string
   avatarId?: string | null
   frameId?: string | null
+  /** Animation de portrait, comme au classement général. */
+  animationId?: string | null
   note: number
   score: number
   turns: number

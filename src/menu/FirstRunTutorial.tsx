@@ -1,17 +1,24 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
+  Award,
   BookOpen,
   Check,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Feather,
+  Flame,
+  Frame,
   Gamepad2,
   Hourglass,
   Lightbulb,
   MousePointer2,
+  Pencil,
+  Snowflake,
   Sparkles,
   Swords,
   Trophy,
+  User,
   Users,
 } from 'lucide-react'
 import { useDialogFocus } from '../useDialogFocus'
@@ -52,6 +59,39 @@ function RackVisual() {
   </div>
 }
 
+function StreakVisual() {
+  const semaine: Array<['L' | 'M' | 'J' | 'V' | 'S' | 'D', 'won' | 'frozen' | 'today' | 'future']> = [
+    ['L', 'won'], ['M', 'won'], ['M', 'frozen'], ['J', 'won'], ['V', 'today'], ['S', 'future'], ['D', 'future'],
+  ]
+  return <div className="mm-tutorial-streak" aria-hidden="true">
+    <span className="chip"><Flame /><b>12</b><MousePointer2 className="tap" /></span>
+    <div className="week">
+      {semaine.map(([jour, etat], index) => <span key={index} className={`is-${etat}`}>
+        <small>{jour}</small>
+        <i>{etat === 'won' ? <Check /> : etat === 'frozen' ? <Snowflake /> : null}</i>
+        {index === 6 ? <em><Feather /></em> : null}
+      </span>)}
+    </div>
+    <span className="reward"><Feather /><strong>+250 plumes</strong><small>tous les 7 jours de série</small></span>
+  </div>
+}
+
+function ProfileVisual() {
+  return <div className="mm-tutorial-profile" aria-hidden="true">
+    <div className="card">
+      <span className="portrait"><User /></span>
+      <span className="who"><strong>Votre pseudo</strong><small>Votre titre</small></span>
+      <span className="edit"><Pencil />Modifier</span>
+    </div>
+    <div className="choices">
+      <span><User /><small>Avatar</small></span>
+      <span><Frame /><small>Cadre</small></span>
+      <span><Sparkles /><small>Animation</small></span>
+      <span><Award /><small>Titre</small></span>
+    </div>
+  </div>
+}
+
 function ModesVisual() {
   return <div className="mm-tutorial-modes" aria-hidden="true">
     <span><Gamepad2 /><strong>Solo</strong><small>Contre un bot<br />Pas de classement</small></span>
@@ -88,6 +128,19 @@ const STEPS: TutorialStep[] = [
     description: 'Touchez une lettre du chevalet puis une case vide, ou faites-la glisser. Si les 5 lettres sont correctes au même tour sans indice, le bonus Chevalet complet ajoute 5 points.',
     visual: <RackVisual />,
     note: <><Lightbulb /> L’indice place une lettre correcte, mais ne rapporte aucun point.</>,
+  },
+  {
+    eyebrow: 'Chaque jour',
+    title: 'Le défi du jour et votre série',
+    description: 'Une grille à thème, la même pour tout le monde, jusqu’à minuit. Gagnez-la chaque jour pour faire grimper votre série : tous les 7 jours, +250 plumes.',
+    visual: <StreakVisual />,
+    note: <><Flame /> Touchez la flamme en haut à gauche pour voir votre semaine.</>,
+  },
+  {
+    eyebrow: 'Votre identité',
+    title: 'Un profil à votre image',
+    description: 'Dans Profil, touchez Modifier pour choisir votre pseudo, votre avatar, votre cadre, votre animation et votre titre. Vos plumes se dépensent à l’Épicerie.',
+    visual: <ProfileVisual />,
   },
   {
     eyebrow: 'Choisir un mode',

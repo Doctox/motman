@@ -133,6 +133,7 @@ export async function loadDailyLeaderboard(
       displayName: profil?.displayName ?? 'Joueur',
       avatarId: profil?.avatarId ?? null,
       frameId: profil?.frameId ?? null,
+      animationId: profil?.animationId ?? null,
       note: course.note,
       score: course.score,
       turns: course.turns,

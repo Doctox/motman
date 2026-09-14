@@ -315,6 +315,11 @@
 
 /* Confirmation d'achat (ShopPage.tsx) : reprend la fenêtre de pause. */
 .mm-purchase-confirm>svg{color:var(--mm-gold)}
+.mm-purchase-preview{display:grid;place-items:center;height:112px;margin:-4px auto 6px}
+.mm-purchase-preview .mm-portrait{width:88px;height:88px;flex-basis:88px}
+.mm-purchase-preview .mm-basket-picture{position:relative;left:auto;top:auto;display:block;width:120px;height:108px;aspect-ratio:auto;transform:none}
+.mm-purchase-preview .mm-basket-picture img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.mm-purchase-preview .mm-basket-picture-open{display:none}
 .mm-purchase-confirm h2{font-size:1.3rem;line-height:1.2}
 .mm-purchase-confirm p.mm-purchase-cost{display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 4px;color:var(--mm-ink);font-size:1.25rem;line-height:1}
 .mm-purchase-confirm p.mm-purchase-cost svg{width:20px;height:20px;color:var(--mm-gold)}
@@ -347,3 +352,21 @@
 
 /* Pastille de l'onglet Épicerie : assez de plumes pour ouvrir un panier. */
 .mm-nav-badge{position:absolute;top:7px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--mm-coral);box-shadow:0 0 0 2px var(--mm-paper)}
+
+/* ── Modifier le profil : tout centré ──
+   Les choix étaient en grille à 3 colonnes calée à gauche : une ligne
+   incomplète (2 avatars, un 4e cadre) paraissait décalée. Des lignes centrées,
+   à largeur de case constante. L'aperçu passe en colonne : un cadre décoré
+   déborde d'un côté du portrait, et le groupe portrait + nom ne semblait plus
+   au milieu. */
+.mm-profile-editor .mm-owned-avatar-grid,
+.mm-profile-editor .mm-owned-frame-grid,
+.mm-profile-editor .mm-owned-animation-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.mm-profile-editor .mm-owned-avatar-grid button,
+.mm-profile-editor .mm-owned-frame-grid button,
+.mm-profile-editor .mm-owned-animation-grid button { flex: 0 0 calc((100% - 14px) / 3); justify-content: center; }
+.mm-profile-editor .mm-owned-avatar-grid .mm-portrait,
+.mm-profile-editor .mm-owned-frame-grid .mm-portrait,
+.mm-profile-editor .mm-owned-animation-grid .mm-portrait { margin-inline: auto; }
+.mm-profile-editor .mm-guest-preview { flex-direction: column; gap: 8px; text-align: center; }
+.mm-profile-editor .mm-guest-preview > span { align-items: center; }

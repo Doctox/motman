@@ -309,6 +309,39 @@
 .mm-tutorial-paces svg{width:27px;height:27px;color:var(--mm-coral)}
 .mm-tutorial-paces strong{font-size:0.75rem}.mm-tutorial-paces b{font-size:0.625rem;color:var(--mm-coral)}
 .mm-tutorial-paces small{color:var(--mm-muted);font-size:0.5rem;line-height:1.42}
+/* ── Étape « Défi du jour et série » ── */
+.mm-tutorial-streak{width:min(330px,92%);display:grid;justify-items:center;gap:12px}
+.mm-tutorial-streak .chip{position:relative;display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 12px;border-radius:999px;background:color-mix(in srgb,var(--mm-gold) 20%,var(--mm-surface));font:700 1rem 'Playfair Display',serif}
+.mm-tutorial-streak .chip svg{width:18px;height:18px;color:var(--mm-coral)}
+.mm-tutorial-streak .chip .tap{position:absolute;right:-16px;bottom:-12px;width:20px;height:20px;color:var(--mm-ink)}
+.mm-tutorial-streak .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:100%;padding:10px 8px;border:1px solid var(--mm-line);border-radius:14px;background:var(--mm-surface)}
+.mm-tutorial-streak .week>span{position:relative;display:grid;justify-items:center;gap:4px}
+.mm-tutorial-streak .week small{color:var(--mm-muted);font-size:0.5625rem;font-weight:700}
+.mm-tutorial-streak .week i{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--mm-line)}
+.mm-tutorial-streak .week i svg{width:14px;height:14px;stroke-width:3}
+.mm-tutorial-streak .week .is-won i{border-color:transparent;background:var(--mm-ink);color:var(--mm-paper)}
+.mm-tutorial-streak .week .is-frozen i{border-color:#8fb8d0;background:color-mix(in srgb,#8fb8d0 22%,transparent);color:#4f89ad}
+.mm-tutorial-streak .week .is-today i{box-shadow:0 0 0 2px var(--mm-surface),0 0 0 4px var(--mm-coral)}
+.mm-tutorial-streak .week .is-future i{opacity:.5}
+.mm-tutorial-streak .week em{position:absolute;top:10px;right:-3px;display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:var(--mm-gold);color:#fff}
+.mm-tutorial-streak .week em svg{width:9px;height:9px}
+.mm-tutorial-streak .reward{display:inline-flex;align-items:center;gap:6px;font-size:0.75rem}
+.mm-tutorial-streak .reward svg{width:16px;height:16px;color:var(--mm-gold)}
+.mm-tutorial-streak .reward small{color:var(--mm-muted);font-size:0.625rem}
+/* ── Étape « Un profil à votre image » ── */
+.mm-tutorial-profile{width:min(320px,92%);display:grid;gap:10px}
+.mm-tutorial-profile .card{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--mm-line);border-radius:15px;background:var(--mm-surface)}
+.mm-tutorial-profile .portrait{display:grid;place-items:center;width:52px;height:52px;flex:0 0 52px;border-radius:50%;background:var(--mm-sage);box-shadow:0 0 0 3px var(--mm-surface),0 0 0 5px var(--mm-gold)}
+.mm-tutorial-profile .portrait svg{width:26px;height:26px;color:var(--mm-ink)}
+.mm-tutorial-profile .who{display:grid;flex:1;text-align:left}
+.mm-tutorial-profile .who strong{font:600 0.9375rem 'Playfair Display',serif}
+.mm-tutorial-profile .who small{color:var(--mm-muted);font-size:0.625rem}
+.mm-tutorial-profile .edit{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:999px;background:var(--mm-ink);color:var(--mm-paper);font-size:0.625rem;font-weight:700}
+.mm-tutorial-profile .edit svg{width:11px;height:11px}
+.mm-tutorial-profile .choices{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.mm-tutorial-profile .choices span{display:grid;justify-items:center;gap:4px;padding:10px 4px;border:1px solid var(--mm-line);border-radius:12px;background:var(--mm-surface)}
+.mm-tutorial-profile .choices svg{width:20px;height:20px;color:var(--mm-coral)}
+.mm-tutorial-profile .choices small{font-size:0.5625rem;font-weight:700}
 @keyframes mmTutorialIn{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
 @media(max-height:700px){
   .mm-tutorial-visual{min-height:170px;margin-bottom:14px}
