@@ -58,7 +58,7 @@ describe('acheter un article', () => {
     afficher(riche())
     cliquer(boutonDePrix(article))
     expect(dialogue()?.textContent).toContain(article.name)
-    expect(dialogue()?.textContent).toContain(article.pricePlumes.toLocaleString('fr-FR'))
+    expect(dialogue()?.textContent).toContain(article.pricePlumes.toLocaleString('fr-FR').replace(/s/g, '00a0'))
     expect(serveur.acheter).not.toHaveBeenCalled()
   })
 
@@ -191,5 +191,13 @@ describe('cartes de l’Épicerie', () => {
   it('affiche la jauge de collection', () => {
     afficher({ ...riche(), ownedAvatarIds: [...riche().ownedAvatarIds, aVendre[0].id] })
     expect(hote.querySelector('.mm-shop-collection')?.textContent).toMatch(/Collection1 \/ \d+/)
+  })
+})
+
+describe('montants en plumes', () => {
+  it('gardent l’espace des milliers, insécable', async () => {
+    const { formatPlumes } = await import('./ShopPage')
+    expect(formatPlumes(1_700)).toBe('1\u00a0700')
+    expect(formatPlumes(999)).toBe('999')
   })
 })

@@ -38,8 +38,17 @@ function formatProbability(value: number): string {
   return `${value.toLocaleString('fr-FR', { minimumFractionDigits: value < 1 ? 1 : 0, maximumFractionDigits: 1 })} %`
 }
 
+/**
+ * « 1 700 » : `fr-FR` sépare les milliers par une espace fine insécable, absente
+ * de nos polices — le prix s'affichait « 1700 ». On la remplace par une espace
+ * insécable ordinaire.
+ */
+export function formatPlumes(value: number): string {
+  return value.toLocaleString('fr-FR').replace(/\s/g, '\u00a0')
+}
+
 function Price({ value }: { value: number }) {
-  return <span className="mm-price"><Feather />{value.toLocaleString('fr-FR').replace(/\s/g, ' ')}</span>
+  return <span className="mm-price"><Feather />{formatPlumes(value)}</span>
 }
 
 /** La rareté se lit à la couleur : même teinte sur la carte, la pastille, les chances du panier et l'ouverture. */
@@ -108,7 +117,7 @@ export function PurchaseConfirm({ purchase, balance, preview, confirm, cancel }:
   const dialogRef = useDialogFocus<HTMLElement>(cancel)
   const manque = Math.max(0, purchase.price - balance)
   const verbe = purchase.kind === 'basket' ? 'Ouvrir' : 'Acheter'
-  const plumes = (n: number) => `${n.toLocaleString('fr-FR').replace(/s/g, ' ')} plume${n > 1 ? 's' : ''}`
+  const plumes = (n: number) => `${formatPlumes(n)} plume${n > 1 ? 's' : ''}`
   // Rendue dans <body> : dans la page, l'en-tête et la barre du bas restaient
   // au-dessus du voile.
   return createPortal(<div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) cancel() }}>
