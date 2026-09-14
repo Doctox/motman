@@ -13,7 +13,7 @@
 // quel. Le seul changement est l'appel direct à `loadPublicProfile`, qui était
 // masqué derrière un alias local resté dans `index.ts`.
 
-import { STREAK_REWARD_PLUMES, streakRewardsEarned } from '../../../src/dailyMilestones.ts'
+import { STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../../../src/dailyMilestones.ts'
 import { encodeBoardSnapshot } from '../../../src/matchBoardSnapshot.ts'
 import { dailyNote } from '../../../src/dailyScore.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
@@ -96,7 +96,7 @@ export async function recordMatchHistory(
  * Enregistre la victoire quotidienne côté serveur, puis verse la récompense de
  * série si cette victoire franchit une tranche de 7 jours.
  *
- * DEPUIS LE 14/09/2026 : +250 plumes à chaque tranche de 7 jours (7, 14, 21…),
+ * DEPUIS LE 14/09/2026 : UN PANIER OFFERT à chaque tranche de 7 jours (7, 14, 21…),
  * à la place des paliers uniques (200 / 700 / 1 800 / 4 500). La règle est
  * `streakRewardsEarned` (src/dailyMilestones.ts), partagée avec le client. Les
  * paliers déjà versés sous l'ancienne règle restent versés.
@@ -195,14 +195,12 @@ export async function recordDailyWinAndMilestones(
 
   // Clé du JOUR : une victoire quotidienne n'existe qu'une fois par jour, et la
   // règle ne paie qu'au franchissement. Rejouer la clôture ne verse rien de plus.
-  const { error } = await admin.rpc('server_award_feathers', {
+  // Un panier offert en réserve (player_wallets.free_baskets), consommé à la
+  // prochaine ouverture à l'Épicerie — migration 20260914200000.
+  const { error } = await admin.rpc('server_grant_free_basket', {
     p_user_id: playerId,
     p_idempotency_key: `daily-streak-reward:${playerId}:${dailyDate}`,
-    p_amount: tranches * STREAK_REWARD_PLUMES,
-    // `server_award_feathers` n'accepte que 'daily-completion' et
-    // 'streak-milestone' (liste blanche de la migration qui le définit) : la
-    // récompense de série garde le type des anciens paliers.
-    p_kind: 'streak-milestone',
+    p_count: tranches * STREAK_REWARD_FREE_BASKETS,
     p_metadata: { reward: 'streak-7-days', streak: serieDe(apres), dateKey: dailyDate, matchId },
   })
   if (error) logServerError('match-api', error, { action: 'daily-streak-reward', userId: playerId })

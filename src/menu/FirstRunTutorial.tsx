@@ -6,7 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Feather,
+  Gift,
   Flame,
   Frame,
   Gamepad2,
@@ -69,10 +69,10 @@ function StreakVisual() {
       {semaine.map(([jour, etat], index) => <span key={index} className={`is-${etat}`}>
         <small>{jour}</small>
         <i>{etat === 'won' ? <Check /> : etat === 'frozen' ? <Snowflake /> : null}</i>
-        {index === 6 ? <em><Feather /></em> : null}
+        {index === 6 ? <em><Gift /></em> : null}
       </span>)}
     </div>
-    <span className="reward"><Feather /><strong>+250 plumes</strong><small>tous les 7 jours de série</small></span>
+    <span className="reward"><Gift /><strong>1 panier offert</strong><small>tous les 7 jours de série</small></span>
   </div>
 }
 
@@ -132,7 +132,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Chaque jour',
     title: 'Le défi du jour et votre série',
-    description: 'Une grille à thème, la même pour tout le monde, jusqu’à minuit. Gagnez-la chaque jour pour faire grimper votre série : tous les 7 jours, +250 plumes.',
+    description: 'Une grille à thème, la même pour tout le monde, jusqu’à minuit. Gagnez-la chaque jour pour faire grimper votre série : tous les 7 jours, un panier offert à l’Épicerie.',
     visual: <StreakVisual />,
     note: <><Flame /> Touchez la flamme en haut à gauche pour voir votre semaine.</>,
   },

@@ -24,7 +24,7 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   await expect(page.getByRole('heading', { name: 'Posez vos lettres, puis validez' })).toBeVisible()
   await tutorial.getByRole('button', { name: 'Suivant' }).click()
   await expect(page.getByRole('heading', { name: 'Le défi du jour et votre série' })).toBeVisible()
-  await expect(tutorial).toContainText('+250 plumes')
+  await expect(tutorial).toContainText('1 panier offert')
   await page.screenshot({ path: `output/quality/first-run-tutorial-serie-${testInfo.project.name}.png`, fullPage: false })
   await tutorial.getByRole('button', { name: 'Suivant' }).click()
   await expect(page.getByRole('heading', { name: 'Un profil à votre image' })).toBeVisible()

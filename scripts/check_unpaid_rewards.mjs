@@ -15,7 +15,8 @@
 //
 //   1. RÉCOMPENSE DE SÉRIE DUE — une victoire quotidienne a franchi une tranche
 //      de 7 jours (7, 14, 21…) d'après `daily_wins`, et aucune transaction
-//      `daily-streak-reward:<user>:<jour>` n'existe. 250 plumes chacune.
+//      `daily-streak-reward:<user>:<jour>` n'existe. Un panier offert chacune
+//      (250 plumes jusqu'à la migration 20260914200000).
 //      (Avant le 14/09/2026, c'étaient des paliers uniques jusqu'à 4 500 plumes.)
 //   2. MATCH NON RÉCOMPENSÉ — une partie terminée dont un participant humain n'a
 //      pas de ligne `experience_awards` sous la clé `match:<id>`. Attrape en
@@ -89,7 +90,7 @@ export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = 
         and not exists (
           select 1 from public.economy_transactions as versement
           where versement.user_id = serie.user_id
-            and versement.kind = 'streak-milestone'
+            and versement.kind in ('streak-milestone', 'streak-free-basket')
             and versement.idempotency_key = 'daily-streak-reward:' || serie.user_id || ':' || serie.day
         )
     ),

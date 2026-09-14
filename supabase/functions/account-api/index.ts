@@ -193,6 +193,7 @@ async function accountState(admin: AdminClient, userId: string) {
       ownedAnimationIds: items.filter(item => item.kind === 'animation').map(item => item.item_id),
       equippedAvatarId: profile.avatar_id, equippedFrameId: profile.frame_id,
       equippedAnimationId: profile.animation_id, openedBaskets: wallet.opened_baskets,
+      freeBaskets: Math.max(0, Number(wallet.free_baskets) || 0),
       basketPity: wallet.basket_pity, basketOdds, transactions: [],
     },
   }

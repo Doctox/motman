@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { ArrowLeft, Check, Feather, Gift, PackageOpen, Palette, ShoppingBasket, Sparkles, User } from 'lucide-react'
 import { assetUrl } from './assetUrl'
 import {
-  ANIMATIONS, AVATARS, BASKETS, FRAMES, avatarRarity, basketPriceFor, collectionProgress, isFirstBasketFree,
+  ANIMATIONS, AVATARS, BASKETS, FRAMES, avatarRarity, basketPriceFor, collectionProgress, isBasketFree, isFirstBasketFree,
   type CosmeticKind, type CosmeticRarity, type CosmeticReward, type PlayerCosmetics,
 } from './cosmetics'
 import { CosmeticPortrait } from './CosmeticPortrait'
@@ -271,13 +271,14 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         // AVANT (suggestion S-01, rapport 6766). Pendant l'ouverture et la
         // révélation, le bouton sert à autre chose : la règle ne s'applique
         // qu'au repos.
-        const offert = isFirstBasketFree(cosmetics)
+        const offert = isBasketFree(cosmetics)
+        const reserve = isFirstBasketFree(cosmetics) ? 0 : cosmetics.freeBaskets
         const prix = basketPriceFor(cosmetics, basket)
         const manque = Math.max(0, prix - cosmetics.plumes)
         const inabordable = basketState === 'idle' && manque > 0
         return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState} ${offert ? 'is-free' : ''} ${basketState === 'revealed' && reward ? `reveals-${reward.rarity}` : ''}`} key={basket.id}>
         <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong>
-          {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />Votre premier panier est offert</span> : null}</header>
+          {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />{reserve > 0 ? `${reserve} panier${reserve > 1 ? 's' : ''} offert${reserve > 1 ? 's' : ''} par votre série` : 'Votre premier panier est offert'}</span> : null}</header>
         {offert && basketState === 'idle' ? <span className="mm-basket-ribbon" aria-hidden="true">Offert</span> : null}
         <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: prix }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />

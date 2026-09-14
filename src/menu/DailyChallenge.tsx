@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Feather, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
-import { STREAK_REWARD_PLUMES, streakRewardsEarned } from '../dailyMilestones'
+import { Check, ChevronRight, Flame, Gift, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
 import { loadDailyShare } from '../dailyShare'
 import { DailyShareButton } from './DailyShareButton'
@@ -210,7 +210,7 @@ function DailyShareHero({ day }: { day: string }) {
 export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects }) {
   if (!effects.changed) return null
   const milestone = effects.reachedMilestones.at(-1)
-  // Même règle que le serveur, qui verse réellement les plumes.
+  // Même règle que le serveur, qui verse réellement le panier offert.
   const tranches = streakRewardsEarned(effects.previousStreak, effects.streak)
   return (
     <section className="mm-daily-reward" aria-label={`Série du défi du jour : ${effects.streak} jour${effects.streak > 1 ? 's' : ''}`}>
@@ -220,7 +220,7 @@ export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects })
       </div>
       {effects.usedFreeze ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />Gel de série utilisé — série préservée</p> : null}
       {effects.recovered ? <p className="mm-daily-reward-note"><Flame aria-hidden="true" />Série restaurée</p> : null}
-      {tranches > 0 ? <p className="mm-daily-reward-milestone"><Feather aria-hidden="true" />{effects.streak} jours de série · +{tranches * STREAK_REWARD_PLUMES} plumes</p> : null}
+      {tranches > 0 ? <p className="mm-daily-reward-milestone"><Gift aria-hidden="true" />{effects.streak} jours de série · {freeBasketsLabel(tranches * STREAK_REWARD_FREE_BASKETS)} à l’Épicerie</p> : null}
       {milestone && milestone.freeze > 0 ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />+{milestone.freeze} gel de série</p> : null}
     </section>
   )

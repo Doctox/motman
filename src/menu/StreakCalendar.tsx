@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronLeft, ChevronRight, Feather, Flame, RotateCcw, Snowflake, X } from 'lucide-react'
-import { STREAK_REWARD_EVERY_DAYS, STREAK_REWARD_PLUMES, winsUntilNextStreakReward } from '../dailyMilestones'
+import { Check, ChevronLeft, ChevronRight, Flame, Gift, RotateCcw, Snowflake, X } from 'lucide-react'
+import { freeBasketsLabel, STREAK_REWARD_EVERY_DAYS, STREAK_REWARD_FREE_BASKETS, winsUntilNextStreakReward } from '../dailyMilestones'
 import type { DailyChallengeState } from '../dailyChallenge'
 import { addDays, mondayOf, nextStreakRewardDay, streakDayMarks, weekDays, weekLabel, type DayMark } from '../streakCalendar'
 import { useDialogFocus } from '../useDialogFocus'
@@ -81,8 +81,8 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
           {Array.from({ length: STREAK_REWARD_EVERY_DAYS }, (_, index) => <i key={index} className={index < progression ? 'is-on' : ''} />)}
         </div>
         <p>{recompenseAujourdhui
-          ? <><Feather aria-hidden="true" /><b>+{STREAK_REWARD_PLUMES} plumes</b> gagnées aujourd’hui !</>
-          : <>Encore <b>{restantes} victoire{restantes > 1 ? 's' : ''}</b> pour <Feather aria-hidden="true" /><b>+{STREAK_REWARD_PLUMES} plumes</b></>}</p>
+          ? <><Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b> gagné aujourd’hui !</>
+          : <>Encore <b>{restantes} victoire{restantes > 1 ? 's' : ''}</b> pour <Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b></>}</p>
         <small>Tous les {STREAK_REWARD_EVERY_DAYS} jours de série, sans limite.</small>
       </div>
 
@@ -102,11 +102,11 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
           const etat = marque ? LIBELLE[marque] : estAujourdhui ? 'à jouer aujourd’hui' : aVenir ? 'à venir' : 'avant votre série'
           return <li key={jour}
             className={`is-${marque ?? (estAujourdhui ? 'today' : aVenir ? 'future' : 'none')} ${estAujourdhui ? 'is-current' : ''}`}
-            aria-label={`${JOURS_LONGS[index]} ${numero} : ${etat}${recompense ? `, +${STREAK_REWARD_PLUMES} plumes` : ''}`}>
+            aria-label={`${JOURS_LONGS[index]} ${numero} : ${etat}${recompense ? `, ${freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}` : ''}`}>
             <small aria-hidden="true">{JOURS[index]}</small>
             <span className="mm-streak-day" aria-hidden="true">{numero}</span>
             <span className="mm-streak-day-mark" aria-hidden="true"><IconeDuJour marque={marque} /></span>
-            {recompense ? <span className="mm-streak-day-reward" aria-hidden="true"><Feather /></span> : null}
+            {recompense ? <span className="mm-streak-day-reward" aria-hidden="true"><Gift /></span> : null}
           </li>
         })}
       </ol>
@@ -116,7 +116,7 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
         <li><X />manqué</li>
         <li><Snowflake />gel</li>
         <li><RotateCcw />rattrapé</li>
-        <li><Feather />récompense</li>
+        <li><Gift />panier offert</li>
       </ul>
     </section>
   </div>, document.body)

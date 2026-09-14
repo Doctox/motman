@@ -103,7 +103,7 @@ jobs:
               `| Bonus sans victoire enregistrée (jour de série perdu) | ${report.bonusSansVictoire} |`,
               '',
               report.paliersDus > 0
-                ? `⚠️ **${report.paliersDus} récompense(s) de série due(s)** à ${report.joueursConcernesParPalier} joueur(s) : 250 plumes chacune, que le joueur a déjà vues annoncées à l’écran.`
+                ? `⚠️ **${report.paliersDus} récompense(s) de série due(s)** à ${report.joueursConcernesParPalier} joueur(s) : un panier offert chacune, que le joueur a déjà vu annoncé à l’écran.`
                 : 'Aucune récompense de série en attente.',
               '',
               '### Pour les traiter',
@@ -112,8 +112,8 @@ jobs:
               'Le détail se relit avec les requêtes de `scripts/check_unpaid_rewards.mjs` (les CTE',
               '`recompenses_dues`, `matchs_non_recompenses`, `victoires_sans_bonus`, `bonus_sans_victoire`).',
               '',
-              'Une récompense de série due se règle en appelant `server_award_feathers` avec la clé',
-              '`daily-streak-reward:<user>:<jour>`, le type `streak-milestone` et 250 plumes (`src/dailyMilestones.ts`).',
+              'Une récompense de série due se règle en appelant `server_grant_free_basket` avec la clé',
+              '`daily-streak-reward:<user>:<jour>` via `server_grant_free_basket` (1 panier, `src/dailyMilestones.ts`).',
               'L’appel est idempotent : le relancer sur une récompense déjà réglée ne verse rien.',
               '',
               'Cette alerte se fermera d’elle-même une fois les écarts résorbés.',

@@ -165,6 +165,21 @@ describe('premier panier offert', () => {
   })
 })
 
+describe('paniers offerts par la série', () => {
+  it('disent combien il en reste, et s’ouvrent sans plume', () => {
+    afficher({ ...riche(), plumes: 0, openedBaskets: 3, freeBaskets: 2 }, 'Paniers')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('2 paniers offerts par votre série')
+    expect((hote.querySelector('.mm-basket-stage') as HTMLButtonElement).disabled).toBe(false)
+    cliquer(hote.querySelector('.mm-basket-stage'))
+    expect(dialogue()?.textContent).toContain('Offert')
+  })
+
+  it('le premier panier reste annoncé comme tel, réserve ou pas', () => {
+    afficher({ ...riche(), plumes: 0, openedBaskets: 0, freeBaskets: 1 }, 'Paniers')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('Votre premier panier est offert')
+  })
+})
+
 describe('cartes de l’Épicerie', () => {
   const carteDe = (nom: string) => [...hote.querySelectorAll('article')].find(carte => carte.querySelector('strong')?.textContent === nom)!
 

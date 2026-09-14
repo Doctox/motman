@@ -11,7 +11,9 @@
 //
 // 14/09/2026 — décision du propriétaire : les paliers uniques payés (7 j = 200,
 // 30 j = 700, 100 j = 1 800, 365 j = 4 500) sont REMPLACÉS par une récompense
-// répétable : +250 plumes à chaque tranche de 7 jours de série (7, 14, 21…).
+// répétable à chaque tranche de 7 jours de série (7, 14, 21…) : d'abord
+// +250 plumes, puis le même jour UN PANIER OFFERT (« ça donne grave envie »),
+// voir la migration 20260914200000.
 // Les paliers ne portent plus que les gels, dont la règle ne change pas.
 
 export type DailyMilestone = {
@@ -29,8 +31,13 @@ export const DAILY_MILESTONES: readonly DailyMilestone[] = [
 
 /** Une récompense toutes les N journées de série. */
 export const STREAK_REWARD_EVERY_DAYS = 7
-/** Plumes versées PAR LE SERVEUR à chaque tranche franchie. */
-export const STREAK_REWARD_PLUMES = 250
+/** Paniers offerts versés PAR LE SERVEUR à chaque tranche franchie. */
+export const STREAK_REWARD_FREE_BASKETS = 1
+
+/** « 1 panier offert », « 2 paniers offerts ». */
+export function freeBasketsLabel(count: number): string {
+  return `${count} panier${count > 1 ? 's' : ''} offert${count > 1 ? 's' : ''}`
+}
 
 /**
  * Nombre de tranches de 7 jours franchies par UNE victoire.

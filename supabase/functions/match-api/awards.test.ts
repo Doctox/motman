@@ -230,23 +230,25 @@ function series(avant: number, apres: number): Reponses {
     [`rpc.server_daily_streak@${jour}`]: { data: { streakAtLastWin: apres }, error: null },
   }
 }
+// Depuis le 14/09/2026 la tranche de série offre un PANIER (server_grant_free_basket).
 const recompenseDeSerie = (rpcs: AppelRpc[]) =>
-  versements(rpcs, 'server_award_feathers').filter(appel => appel.arguments.p_kind === 'streak-milestone')
+  versements(rpcs, 'server_grant_free_basket')
 
-Deno.test('7e jour de série : 250 plumes sous la clé du jour', async () => {
+Deno.test('7e jour de série : un panier offert sous la clé du jour', async () => {
   const jour = parisDateKey()
   const { client, rpcs } = clientFactice(series(6, 7))
   await awardFinished(client, defiDuJour())
   const recompense = recompenseDeSerie(rpcs)
   egal(recompense.length, 1, 'une récompense de série')
-  egal(recompense[0]?.arguments.p_amount, 250, 'montant')
+  egal(recompense[0]?.arguments.p_count, 1, 'un panier')
+  egal(versements(rpcs, 'server_award_feathers').filter(appel => appel.arguments.p_kind === 'streak-milestone').length, 0, 'plus de plumes de série')
   egal(recompense[0]?.arguments.p_idempotency_key, `daily-streak-reward:${HUMAIN_A}:${jour}`, 'clé du jour : jamais deux fois')
 })
 
 Deno.test('14e jour : la tranche suivante paie à nouveau', async () => {
   const { client, rpcs } = clientFactice(series(13, 14))
   await awardFinished(client, defiDuJour())
-  egal(recompenseDeSerie(rpcs)[0]?.arguments.p_amount, 250, 'une nouvelle tranche')
+  egal(recompenseDeSerie(rpcs)[0]?.arguments.p_count, 1, 'une nouvelle tranche')
 })
 
 Deno.test('entre deux tranches : aucune récompense de série', async () => {

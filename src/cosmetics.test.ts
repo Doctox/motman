@@ -97,6 +97,13 @@ describe('premier panier offert', () => {
       .map(nom => readFileSync(`${dossier}/${nom}`, 'utf8'))
       .find(sql => sql.includes('function public.server_open_basket'))!
     expect(derniere).toContain('v_free := v_opened = 0')
+    // Paniers offerts par la série (20260914200000) : une réserve rend l'ouverture
+    // gratuite et se consomme, sans jamais toucher au premier panier.
+    expect(derniere).toContain('v_credit_used := not v_free and v_credits > 0')
+    const { isBasketFree } = await import('./cosmetics')
+    expect(isBasketFree({ openedBaskets: 3, freeBaskets: 1 })).toBe(true)
+    expect(basketPriceFor({ openedBaskets: 3, freeBaskets: 1 }, BASKETS[0])).toBe(0)
+    expect(isBasketFree({ openedBaskets: 3, freeBaskets: 0 })).toBe(false)
   })
 
   it('compte la collection parmi ce que l’Épicerie vend', async () => {

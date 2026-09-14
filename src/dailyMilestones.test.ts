@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { advanceStreak, emptyDailyChallengeState } from './dailyChallenge'
-import { STREAK_REWARD_PLUMES, streakRewardsEarned, winsUntilNextStreakReward } from './dailyMilestones'
+import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned, winsUntilNextStreakReward } from './dailyMilestones'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // +250 PLUMES TOUTES LES 7 JOURNÉES DE SÉRIE.
@@ -31,7 +31,9 @@ const suite = (de: number, a: number) => Array.from({ length: a - de + 1 }, (_, 
 describe('la récompense de série', () => {
   it('tombe au 7e jour, puis au 14e, au 21e…', () => {
     expect(jouer(suite(1, 22)).payes).toEqual([7, 14, 21])
-    expect(STREAK_REWARD_PLUMES).toBe(250)
+    expect(STREAK_REWARD_FREE_BASKETS).toBe(1)
+    expect(freeBasketsLabel(1)).toBe('1 panier offert')
+    expect(freeBasketsLabel(2)).toBe('2 paniers offerts')
   })
 
   it('rien avant 7 jours', () => {

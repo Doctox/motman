@@ -65,6 +65,8 @@ export type PlayerCosmetics = {
   equippedFrameId: string
   equippedAnimationId: string
   openedBaskets: number
+  /** Paniers offerts en réserve, gagnés par la série du défi du jour (serveur). */
+  freeBaskets: number
   basketPity: number
   basketOdds: Record<CosmeticRarity, number>
   transactions: string[]
@@ -146,8 +148,19 @@ export function isFirstBasketFree(cosmetics: Pick<PlayerCosmetics, 'openedBasket
   return cosmetics.openedBaskets === 0
 }
 
-export function basketPriceFor(cosmetics: Pick<PlayerCosmetics, 'openedBaskets'>, basket: BasketDefinition): number {
-  return isFirstBasketFree(cosmetics) ? 0 : basket.pricePlumes
+type BasketWallet = Pick<PlayerCosmetics, 'openedBaskets'> & Partial<Pick<PlayerCosmetics, 'freeBaskets'>>
+
+/**
+ * L'ouverture est-elle gratuite ? Le premier panier, ou un panier offert par la
+ * série du défi du jour (migration 20260914200000 : un panier offert se consomme,
+ * le premier panier n'en consomme pas).
+ */
+export function isBasketFree(cosmetics: BasketWallet): boolean {
+  return isFirstBasketFree(cosmetics) || (cosmetics.freeBaskets ?? 0) > 0
+}
+
+export function basketPriceFor(cosmetics: BasketWallet, basket: BasketDefinition): number {
+  return isBasketFree(cosmetics) ? 0 : basket.pricePlumes
 }
 
 /** Ce que le joueur possède parmi tout ce que l'Épicerie vend. */
@@ -190,6 +203,7 @@ function createPlayerCosmetics(playerId: string): PlayerCosmetics {
     equippedFrameId: 'cadre-ivoire',
     equippedAnimationId: NO_ANIMATION_ID,
     openedBaskets: 0,
+    freeBaskets: 0,
     basketPity: 0,
     basketOdds: basketRarityProbabilities(0),
     transactions: ['welcome-credit'],
@@ -219,6 +233,7 @@ function migratePlayerCosmetics(value: unknown, playerId: string): PlayerCosmeti
     equippedFrameId: ownedFrameIds.includes(candidate.equippedFrameId ?? '') ? candidate.equippedFrameId! : 'cadre-ivoire',
     equippedAnimationId: ownedAnimationIds.includes(candidate.equippedAnimationId ?? '') ? candidate.equippedAnimationId! : NO_ANIMATION_ID,
     openedBaskets: Math.max(0, Math.floor(candidate.openedBaskets ?? 0)),
+    freeBaskets: Math.max(0, Math.floor(candidate.freeBaskets ?? 0)),
     basketPity: Math.max(0, Math.min(20, Math.floor(candidate.basketPity ?? 0))),
     basketOdds: candidate.basketOdds ?? basketRarityProbabilities(candidate.basketPity ?? 0),
     transactions: isStringArray(candidate.transactions) ? candidate.transactions.slice(-300) : [],
