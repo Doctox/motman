@@ -75,6 +75,52 @@ export function uniformClueSizes(fits: readonly ClueFit[], uniformFloor = MIN_UN
   return fits.map(({ group, fit }) => Math.min(fit, Math.max(uniformFloor, communes.get(group) ?? fit)))
 }
 
+// ── LA COUPE CIBLÉE (14/09/2026) ────────────────────────────────────────────
+// Sur 20 vraies grilles, la taille commune était presque toujours fixée par UN
+// mot long (« chanteuse, », « Considération ») : un mot ne se coupait jamais,
+// il devait tenir entier dans la largeur, et tout le plateau s'alignait sur lui.
+// On autorise donc la coupe française (« Écono-mies ») — mais SEULEMENT dans les
+// définitions qui bloquent : la plus serrée, puis la suivante, trois au plus.
+// Couper partout gagnait à peine plus et hachait des définitions entières
+// (« Formu-lée claire-ment »). Et si le plateau n'y gagne pas au moins un
+// demi-pixel, on ne coupe rien. Mesuré : taille typique 6,6 → 7,8 px.
+
+/** Au plus trois définitions coupées par groupe. */
+export const MAX_HYPHENATED_CLUES = 3
+/** En dessous de ce gain sur la taille commune, la coupe ne vaut pas la lecture hachée. */
+export const MIN_HYPHENATION_GAIN_PX = 0.5
+/** Couper une définition doit lui rapporter au moins ça, sinon on s'arrête. */
+const MIN_HYPHENATION_STEP_PX = 0.2
+
+/**
+ * Quelles définitions couper, et leurs nouvelles tailles possibles.
+ * `fits` : la plus grande taille de chaque définition SANS coupe ;
+ * `hyphenatedFit(i)` : la même, coupe autorisée (mesurée à la demande).
+ */
+export function planHyphenation(
+  fits: readonly number[],
+  hyphenatedFit: (index: number) => number,
+): { cut: number[]; fits: number[] } {
+  const depart = Math.min(...fits)
+  const tailles = [...fits]
+  const coupees: number[] = []
+  for (let tour = 0; tour < MAX_HYPHENATED_CLUES; tour += 1) {
+    let pire = -1
+    tailles.forEach((taille, index) => {
+      if (!coupees.includes(index) && (pire < 0 || taille < tailles[pire])) pire = index
+    })
+    // Seule la plus serrée de tout le groupe fixe la taille commune : si c'est
+    // une définition déjà coupée, couper les autres ne sert plus à rien.
+    if (pire < 0 || tailles[pire] > Math.min(...tailles) + 0.05) break
+    const coupe = hyphenatedFit(pire)
+    if (coupe < tailles[pire] + MIN_HYPHENATION_STEP_PX) break
+    tailles[pire] = coupe
+    coupees.push(pire)
+  }
+  if (!coupees.length || Math.min(...tailles) - depart < MIN_HYPHENATION_GAIN_PX) return { cut: [], fits: [...fits] }
+  return { cut: coupees, fits: tailles }
+}
+
 let measureCanvas: HTMLCanvasElement | null = null
 
 function measureWord(word: string, font: string): number {
@@ -94,8 +140,15 @@ function directText(el: HTMLElement): string {
   return text.trim()
 }
 
-/** Taille maximale a laquelle l'indice tient en largeur ET en hauteur. */
-function measureFit(el: HTMLElement): { base: number; fit: number } | null {
+/** Classe qui autorise la coupe française dans une définition (voir planHyphenation). */
+export const HYPHENATE_CLASS = 'clue-hyphenate'
+
+/**
+ * Taille maximale a laquelle l'indice tient en largeur ET en hauteur.
+ * Coupe autorisée : c'est le navigateur qui place les traits d'union, on
+ * mesure donc le vrai rendu (un mot qu'il ne sait pas couper déborde en largeur).
+ */
+function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: number } | null {
   const text = directText(el)
   if (!text) return null
   const style = getComputedStyle(el)
@@ -111,9 +164,9 @@ function measureFit(el: HTMLElement): { base: number; fit: number } | null {
   const tokens = text.split(/[\s-]+/).filter(Boolean)
   const fits = (size: number) => {
     const font = `${weight} ${size}px ${family}`
-    if (tokens.some(token => measureWord(token, font) > available)) return false
+    if (!hyphenate && tokens.some(token => measureWord(token, font) > available)) return false
     el.style.fontSize = `${size}px`
-    return el.scrollHeight <= el.clientHeight + 0.5
+    return el.scrollHeight <= el.clientHeight + 0.5 && (!hyphenate || el.scrollWidth <= el.clientWidth + 0.5)
   }
   const fit = largestFittingSize(base, MIN_FONT_PX, fits)
   el.style.fontSize = ''
@@ -134,9 +187,23 @@ export function fitClueTexts(root: HTMLElement | null): void {
     const signature = `${root.clientWidth}x${root.clientHeight}|${nodes.map(directText).join('')}`
     if (root.dataset.clueFit === signature) return
 
-    nodes.forEach(el => { el.style.fontSize = '' })
+    nodes.forEach(el => { el.style.fontSize = ''; el.classList.remove(HYPHENATE_CLASS) })
     const mesures = nodes.map(el => ({ el, mesure: measureFit(el) }))
     const retenues = mesures.filter((item): item is { el: HTMLElement; mesure: { base: number; fit: number } } => item.mesure !== null)
+    // La coupe ciblée, groupe par groupe (cases simples, cases doubles).
+    for (const groupe of ['simple', 'double']) {
+      const membres = retenues.filter(({ el }) => (el.closest('.double-clue') ? 'double' : 'simple') === groupe)
+      if (!membres.length) continue
+      const plan = planHyphenation(membres.map(({ mesure }) => mesure.fit), index => {
+        const { el } = membres[index]
+        el.classList.add(HYPHENATE_CLASS)
+        const coupe = measureFit(el, true)
+        el.classList.remove(HYPHENATE_CLASS)
+        return coupe?.fit ?? 0
+      })
+      plan.cut.forEach(index => membres[index].el.classList.add(HYPHENATE_CLASS))
+      membres.forEach((membre, index) => { membre.mesure.fit = plan.fits[index] })
+    }
     const tailles = uniformClueSizes(retenues.map(({ el, mesure }) => ({
       group: el.closest('.double-clue') ? 'double' : 'simple',
       fit: mesure.fit,

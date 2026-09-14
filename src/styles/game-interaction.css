@@ -433,3 +433,8 @@
 .board .clue.double-clue .clue-entry:not(.image-entry){padding:1px 3px 8px 1px}
 .board .clue .clue-entry:not(.image-entry) b{bottom:1px;font-size:9px;line-height:9px}
 .board .clue.double-clue .clue-entry:not(.image-entry) b{font-size:8px;line-height:8px}
+
+/* Coupe française autorisée dans une définition qui bloque la taille du plateau
+   (clueAutoFit.ts, planHyphenation). Mots d'au moins 8 lettres, 3 de chaque côté
+   (Safari ignore ce dernier réglage et peut couper un peu plus court). */
+.board .clue .clue-entry.clue-hyphenate{overflow-wrap:normal!important;word-break:normal!important;-webkit-hyphens:auto;hyphens:auto;hyphenate-limit-chars:8 3 3}

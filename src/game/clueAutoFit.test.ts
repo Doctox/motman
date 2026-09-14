@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { largestFittingSize, MIN_FONT_PX, MIN_UNIFORM_FONT_PX, uniformClueSizes } from './clueAutoFit'
+import { largestFittingSize, MIN_FONT_PX, MIN_UNIFORM_FONT_PX, planHyphenation, uniformClueSizes } from './clueAutoFit'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LA TAILLE DES DÉFINITIONS.
@@ -65,5 +65,49 @@ describe('une seule taille par plateau', () => {
       { group: 'double', fit: 6.8 },
     ])
     expect(tailles).toEqual([7.5, 7.5, 6.2, 6.2])
+  })
+})
+
+describe('la coupe ciblée des mots longs', () => {
+  // La taille avec coupe de chaque définition, et le relevé des mesures demandées.
+  const mesureur = (avecCoupe: number[]) => {
+    const demandes: number[] = []
+    return { demandes, mesurer: (index: number) => { demandes.push(index); return avecCoupe[index] } }
+  }
+
+  it('coupe la définition qui bloque tout le plateau, et elle seule', () => {
+    // « Considération » fixe tout à 5 px ; coupée, elle tient à 7,4 px.
+    const { demandes, mesurer } = mesureur([7.4, 9, 9, 9])
+    const plan = planHyphenation([5, 8, 8.5, 9], mesurer)
+    expect(plan.cut).toEqual([0])
+    expect(Math.min(...plan.fits)).toBe(7.4)
+    expect(demandes).toEqual([0])
+  })
+
+  it('passe à la suivante quand la première ne bloque plus, trois au plus', () => {
+    const { mesurer } = mesureur([9, 9, 9, 9, 9])
+    const plan = planHyphenation([5, 5.5, 6, 6.5, 8], mesurer)
+    expect(plan.cut).toEqual([0, 1, 2])
+    expect(Math.min(...plan.fits)).toBe(6.5)
+  })
+
+  it('ne coupe rien si le plateau gagne moins d’un demi-pixel', () => {
+    // Trois mots coupés pour 0,1 px : constaté sur une vraie grille, pas rentable.
+    const { mesurer } = mesureur([7.3, 7.3, 7.3, 9])
+    const plan = planHyphenation([7.2, 7.25, 7.3, 9], mesurer)
+    expect(plan.cut).toEqual([])
+    expect(plan.fits).toEqual([7.2, 7.25, 7.3, 9])
+  })
+
+  it('s’arrête quand couper ne rapporte rien à la définition qui bloque', () => {
+    // Pas de mot assez long pour être coupé : la mesure avec coupe est la même.
+    const { demandes, mesurer } = mesureur([6, 9, 9])
+    expect(planHyphenation([6, 8, 9], mesurer).cut).toEqual([])
+    expect(demandes).toEqual([0])
+  })
+
+  it('ne mesure rien de plus quand tout tient déjà à la même taille', () => {
+    const { mesurer } = mesureur([9, 9])
+    expect(planHyphenation([9, 9], mesurer).cut).toEqual([])
   })
 })
