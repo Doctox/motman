@@ -129,3 +129,82 @@
 .mm-daily-teaser b { color: var(--mm-coral); font-size: 0.9375rem; }
 .mm-daily-teaser sup { font-size: 0.625rem; }
 p.mm-daily-teaser { cursor: default; }
+
+/* ── Calendrier de série (StreakCalendar.tsx), ouvert depuis la puce ── */
+button.mm-streak-chip { border: 0; cursor: pointer; font: inherit; font-family: 'Playfair Display', Georgia, serif; }
+button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline-offset: 2px; }
+
+.mm-streak-calendar {
+  position: relative;
+  width: min(92%, 360px);
+  padding: 22px 18px 16px;
+  border-radius: 20px;
+  background: var(--mm-paper);
+  color: var(--mm-ink);
+  box-shadow: 0 18px 44px #0b2a2238;
+  text-align: center;
+}
+.mm-streak-calendar-close {
+  position: absolute; top: 10px; right: 10px;
+  display: grid; place-items: center; width: 34px; height: 34px;
+  border: 0; border-radius: 50%; background: transparent; color: var(--mm-muted); cursor: pointer;
+}
+.mm-streak-calendar-close svg { width: 18px; height: 18px; }
+.mm-streak-calendar header { display: grid; justify-items: center; gap: 2px; }
+.mm-streak-calendar-flame {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  background: color-mix(in srgb, var(--mm-gold) 20%, transparent); color: var(--mm-coral);
+}
+.mm-streak-calendar-flame svg { width: 26px; height: 26px; }
+.mm-streak-calendar header strong { margin-top: 4px; font: 700 1.6rem/1 'Playfair Display', Georgia, serif; }
+.mm-streak-calendar header small { display: inline-flex; align-items: center; gap: 4px; color: var(--mm-muted); font-size: .8125rem; }
+.mm-streak-calendar header small svg { width: 13px; height: 13px; color: #5b8fb0; }
+
+.mm-streak-goal { margin: 16px 0 14px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--mm-gold) 12%, transparent); }
+.mm-streak-goal-bar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.mm-streak-goal-bar i { height: 8px; border-radius: 4px; background: var(--mm-line); }
+.mm-streak-goal-bar i.is-on { background: linear-gradient(90deg, var(--mm-gold), var(--mm-coral)); }
+.mm-streak-goal p { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; margin: 9px 0 2px; font-size: .9rem; }
+.mm-streak-goal p svg { width: 15px; height: 15px; color: var(--mm-gold); }
+.mm-streak-goal small { color: var(--mm-muted); font-size: .75rem; }
+
+.mm-streak-week-nav { display: grid; grid-template-columns: 38px 1fr 38px; align-items: center; margin-bottom: 8px; }
+.mm-streak-week-nav button {
+  display: grid; place-items: center; width: 38px; height: 38px;
+  border: 1px solid var(--mm-line); border-radius: 50%; background: transparent; color: var(--mm-ink); cursor: pointer;
+}
+.mm-streak-week-nav button:disabled { opacity: .35; cursor: default; }
+.mm-streak-week-nav button svg { width: 18px; height: 18px; }
+.mm-streak-week-nav span { font-weight: 700; font-size: .9rem; }
+
+.mm-streak-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.mm-streak-week li { position: relative; display: grid; justify-items: center; gap: 3px; padding: 4px 0 2px; }
+.mm-streak-week li > small { color: var(--mm-muted); font-size: .6875rem; font-weight: 700; }
+.mm-streak-day {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--mm-line); font-weight: 700; font-size: .875rem; font-variant-numeric: tabular-nums;
+}
+.mm-streak-day-mark { display: grid; place-items: center; height: 14px; }
+.mm-streak-day-mark svg { width: 13px; height: 13px; stroke-width: 3; }
+.mm-streak-week li.is-won .mm-streak-day { border-color: transparent; background: var(--mm-ink); color: var(--mm-paper); }
+.mm-streak-week li.is-won .mm-streak-day-mark { color: #2f8a5c; }
+.mm-streak-week li.is-missed .mm-streak-day { border-style: dashed; color: var(--mm-muted); }
+.mm-streak-week li.is-missed .mm-streak-day-mark { color: var(--mm-coral); }
+.mm-streak-week li.is-frozen .mm-streak-day { border-color: #8fb8d0; background: color-mix(in srgb, #8fb8d0 22%, transparent); }
+.mm-streak-week li.is-frozen .mm-streak-day-mark { color: #4f89ad; }
+.mm-streak-week li.is-recovered .mm-streak-day { border-color: var(--mm-gold); background: color-mix(in srgb, var(--mm-gold) 18%, transparent); }
+.mm-streak-week li.is-recovered .mm-streak-day-mark { color: var(--mm-gold); }
+.mm-streak-week li.is-future .mm-streak-day, .mm-streak-week li.is-none .mm-streak-day { color: var(--mm-muted); opacity: .6; }
+.mm-streak-week li.is-current .mm-streak-day { box-shadow: 0 0 0 2px var(--mm-paper), 0 0 0 4px var(--mm-coral); }
+.mm-streak-day-reward {
+  position: absolute; top: 14px; right: calc(50% - 22px);
+  display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--mm-gold); color: #fff; box-shadow: 0 2px 5px #0003;
+}
+.mm-streak-day-reward svg { width: 11px; height: 11px; }
+
+.mm-streak-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin: 12px 0 0; padding: 0; list-style: none; color: var(--mm-muted); font-size: .6875rem; }
+.mm-streak-legend li { display: inline-flex; align-items: center; gap: 3px; }
+.mm-streak-legend svg { width: 12px; height: 12px; }
+
+.mm-daily-reward-milestone svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; color: var(--mm-gold); }

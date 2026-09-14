@@ -91,33 +91,30 @@ jobs:
               if (error.status !== 404) throw error
               await github.rest.issues.createLabel({ owner, repo, name: label, color: 'B60205', description: 'Récompenses dues et non versées' })
             }
-            const paliers = Object.entries(report.paliersDetail)
-              .sort((a, b) => Number(a[0]) - Number(b[0]))
-              .map(([seuil, n]) => `| Palier ${seuil} jours | ${n} |`)
             const body = [
               `<!-- rewards-signature:${report.signature} -->`,
               `**${report.total} écart(s)** entre ce que les données impliquent et ce qui a été versé.`,
               '',
               '| Écart | Nombre |',
               '| --- | --- |',
-              ...paliers,
+              `| Récompenses de série (7 jours) non versées | ${report.paliersDus} |`,
               `| Matchs terminés sans récompense | ${report.matchsNonRecompenses} |`,
               `| Victoires quotidiennes sans bonus | ${report.victoiresSansBonus} |`,
               `| Bonus sans victoire enregistrée (jour de série perdu) | ${report.bonusSansVictoire} |`,
               '',
               report.paliersDus > 0
-                ? `⚠️ **${report.paliersDus} palier(s) de série dû(s)** à ${report.joueursConcernesParPalier} joueur(s). C’est le plus cher : jusqu’à 4 500 plumes pièce, et le joueur a déjà vu « palier atteint » à l’écran.`
-                : 'Aucun palier de série en attente.',
+                ? `⚠️ **${report.paliersDus} récompense(s) de série due(s)** à ${report.joueursConcernesParPalier} joueur(s) : 250 plumes chacune, que le joueur a déjà vues annoncées à l’écran.`
+                : 'Aucune récompense de série en attente.',
               '',
               '### Pour les traiter',
               '',
               'Les identifiants de joueurs ne sont **volontairement pas repris ici** : ils restent en base.',
               'Le détail se relit avec les requêtes de `scripts/check_unpaid_rewards.mjs` (les CTE',
-              '`paliers_dus`, `matchs_non_recompenses`, `victoires_sans_bonus`, `bonus_sans_victoire`).',
+              '`recompenses_dues`, `matchs_non_recompenses`, `victoires_sans_bonus`, `bonus_sans_victoire`).',
               '',
-              'Un palier dû se règle en appelant `server_award_feathers` avec la clé',
-              '`daily-milestone:<user>:<palier>` et le montant du barème (`src/dailyMilestones.ts`).',
-              'L’appel est idempotent : le relancer sur un palier déjà réglé ne verse rien.',
+              'Une récompense de série due se règle en appelant `server_award_feathers` avec la clé',
+              '`daily-streak-reward:<user>:<jour>`, le type `streak-milestone` et 250 plumes (`src/dailyMilestones.ts`).',
+              'L’appel est idempotent : le relancer sur une récompense déjà réglée ne verse rien.',
               '',
               'Cette alerte se fermera d’elle-même une fois les écarts résorbés.',
               '',

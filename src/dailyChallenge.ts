@@ -11,15 +11,16 @@
 //    franchis, tentatives du jour). Clé localStorage 'motman-daily-v1', SÉPARÉE de
 //    'motman-progress-v1' (on ne touche pas à la migration PlayerProgress v4).
 //  - SERVEUR (edge function match-api) : TOUS les VERSEMENTS DE PLUMES — le bonus
-//    de 250 à la victoire (idempotent `daily:<userId>:<date>`) et les plumes de
-//    palier (idempotent `daily-milestone:<userId>:<palier>`).
+//    de 250 à la victoire (idempotent `daily:<userId>:<date>`) et les 250 plumes
+//    de chaque tranche de 7 jours de série (idempotent
+//    `daily-streak-reward:<userId>:<date>`, voir dailyMilestones.ts).
 //  ⚠️ NE JAMAIS verser de plumes en local : auth.ts fait
 //    savePlayerCosmetics(payload.cosmetics), donc le serveur ÉCRASE le
 //    portefeuille local à chaque rafraîchissement de compte — un grantPlumes local
 //    disparaîtrait sans erreur. Ce module ne connaît donc AUCUN grantPlumes.
 //
 // Le gel, lui, est un état LOCAL de la série : il est crédité ici (paliers 7 et 30,
-// plafond 2). Les plumes des mêmes paliers sont versées par le serveur.
+// plafond 2).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DAILY_STORAGE_KEY = 'motman-daily-v1'
@@ -65,6 +66,12 @@ export type DailyChallengeState = {
   /** Suivi des tentatives du jour courant (UI + règle de première victoire). */
   today: DailyToday | null
   history: DailyHistoryEntry[]
+  /**
+   * Jours gagnés tels que le serveur les connaît (`daily_wins`), pour le
+   * calendrier de série. Facultatif : absent d'un état écrit avant le 14/09/2026,
+   * et d'un compte que le serveur n'a pas encore rapporté.
+   */
+  serverWinDays?: string[]
 }
 
 export type DailyAdvanceEffects = {
@@ -224,6 +231,8 @@ export type ServerDailyStreak = {
   best: number
   freezes: number
   lastWin: string | null
+  /** Tous les jours gagnés, du plus ancien au plus récent. */
+  winDays?: string[]
 }
 
 /**
@@ -275,9 +284,12 @@ export function reconcileServerDailyStreak(
   // commande l'affichage des paliers déjà franchis.
   const longestStreak = Math.max(local.longestStreak, serverBest, currentStreak)
   const freezes = serveurAJour ? serverFreezes : local.freezes
-  if (currentStreak === local.currentStreak && longestStreak === local.longestStreak && freezes === local.freezes) return local
+  const serverWinDays = Array.isArray(server.winDays) ? server.winDays.filter(day => typeof day === 'string') : local.serverWinDays
+  const memesJours = (serverWinDays ?? []).join() === (local.serverWinDays ?? []).join()
+  if (currentStreak === local.currentStreak && longestStreak === local.longestStreak && freezes === local.freezes && memesJours) return local
   return {
     ...local,
+    ...(serverWinDays ? { serverWinDays } : {}),
     currentStreak,
     longestStreak,
     // Les gels se déduisent de l'historique complet des victoires : celui du

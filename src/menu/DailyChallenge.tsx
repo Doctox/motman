@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { Check, ChevronRight, Feather, Flame, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { STREAK_REWARD_PLUMES, streakRewardsEarned } from '../dailyMilestones'
+import { StreakCalendar } from './StreakCalendar'
 import { dailyDateKey } from '../dailyDate'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyChallengeLabel } from '../dailyThemes'
@@ -110,18 +112,28 @@ function useDailyCountdown(): string {
   return countdownLabel(remainingMs)
 }
 
-/** Puce de série pour le header. Visible sur les 4 onglets, dès la 1re session. */
+/**
+ * Puce de série pour le header. Visible sur les 4 onglets, dès la 1re session.
+ * La toucher ouvre le calendrier de série (StreakCalendar.tsx).
+ */
 export function DailyStreakChip() {
-  const { streak, status } = useDailyChallenge()
+  const { day, state, streak, freezes, status } = useDailyChallenge()
+  const [ouvert, setOuvert] = useState(false)
   return (
-    <span
-      className={`mm-streak-chip ${status === 'won' ? 'is-done' : ''}`}
-      title={status === 'won' ? 'Défi du jour réussi' : 'Défi du jour'}
-      aria-label={`${streakLabel(streak)}${status === 'won' ? ', défi du jour réussi' : ''}`}
-    >
-      <Flame aria-hidden="true" />
-      <b>{streak}</b>
-    </span>
+    <>
+      <button
+        type="button"
+        className={`mm-streak-chip ${status === 'won' ? 'is-done' : ''}`}
+        title={status === 'won' ? 'Défi du jour réussi' : 'Défi du jour'}
+        aria-haspopup="dialog"
+        aria-label={`${streakLabel(streak)}${status === 'won' ? ', défi du jour réussi' : ''}. Ouvrir le calendrier de série`}
+        onClick={() => setOuvert(true)}
+      >
+        <Flame aria-hidden="true" />
+        <b>{streak}</b>
+      </button>
+      {ouvert ? <StreakCalendar state={state} today={day} streak={streak} freezes={freezes} wonToday={status === 'won'} close={() => setOuvert(false)} /> : null}
+    </>
   )
 }
 
@@ -189,6 +201,8 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
 export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects }) {
   if (!effects.changed) return null
   const milestone = effects.reachedMilestones.at(-1)
+  // Même règle que le serveur, qui verse réellement les plumes.
+  const tranches = streakRewardsEarned(effects.previousStreak, effects.streak)
   return (
     <section className="mm-daily-reward" aria-label={`Série du défi du jour : ${effects.streak} jour${effects.streak > 1 ? 's' : ''}`}>
       <div className="mm-daily-reward-heading">
@@ -197,7 +211,8 @@ export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects })
       </div>
       {effects.usedFreeze ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />Gel de série utilisé — série préservée</p> : null}
       {effects.recovered ? <p className="mm-daily-reward-note"><Flame aria-hidden="true" />Série restaurée</p> : null}
-      {milestone ? <p className="mm-daily-reward-milestone">Palier {milestone.streak} jours atteint{milestone.plumes > 0 ? ` · +${milestone.plumes} plumes` : ''}{milestone.freeze > 0 ? ` · +${milestone.freeze} gel` : ''}</p> : null}
+      {tranches > 0 ? <p className="mm-daily-reward-milestone"><Feather aria-hidden="true" />{effects.streak} jours de série · +{tranches * STREAK_REWARD_PLUMES} plumes</p> : null}
+      {milestone && milestone.freeze > 0 ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />+{milestone.freeze} gel de série</p> : null}
     </section>
   )
 }

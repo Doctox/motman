@@ -63,7 +63,10 @@ function clientFactice(reponses: Reponses = {}) {
     },
     rpc(fonction: string, args: Record<string, unknown>) {
       rpcs.push({ fonction, arguments: args })
-      return chaine(`rpc.${fonction}`)
+      // Une réponse peut viser une date précise (`rpc.server_daily_streak@2026-09-14`) :
+      // la série se lit à deux dates, la veille et le jour du défi.
+      const precise = `rpc.${fonction}@${String(args.p_today ?? '')}`
+      return chaine(precise in reponses ? precise : `rpc.${fonction}`)
     },
   }
 
@@ -214,32 +217,56 @@ Deno.test('clôture rejouée : la série n’est pas recalculée', async () => {
   egal(versements(rpcs, 'server_daily_streak').length, 0, 'pas de recalcul de série')
 })
 
-Deno.test('palier de série atteint : versé une seule fois par compte', async () => {
-  const { client, rpcs } = clientFactice({
+function veille(jour: string): string {
+  return new Date(Date.parse(`${jour}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+}
+
+/** Série au moment de la victoire d'avant, puis après celle du jour. */
+function series(avant: number, apres: number): Reponses {
+  const jour = parisDateKey()
+  return {
     'rpc.server_award_feathers': { data: { applied: true }, error: null },
-    'rpc.server_daily_streak': { data: { best: 7 }, error: null },
-  })
+    [`rpc.server_daily_streak@${veille(jour)}`]: { data: { streakAtLastWin: avant }, error: null },
+    [`rpc.server_daily_streak@${jour}`]: { data: { streakAtLastWin: apres }, error: null },
+  }
+}
+const recompenseDeSerie = (rpcs: AppelRpc[]) =>
+  versements(rpcs, 'server_award_feathers').filter(appel => appel.arguments.p_kind === 'streak-milestone')
+
+Deno.test('7e jour de série : 250 plumes sous la clé du jour', async () => {
+  const jour = parisDateKey()
+  const { client, rpcs } = clientFactice(series(6, 7))
   await awardFinished(client, defiDuJour())
-  const palier = versements(rpcs, 'server_award_feathers')
-    .find(appel => appel.arguments.p_kind === 'streak-milestone')
-  verifie(Boolean(palier), 'le palier des 7 jours est versé')
-  egal(palier?.arguments.p_amount, 200, 'montant du palier')
-  egal(palier?.arguments.p_idempotency_key, `daily-milestone:${HUMAIN_A}:7`, 'clé par compte et par palier')
+  const recompense = recompenseDeSerie(rpcs)
+  egal(recompense.length, 1, 'une récompense de série')
+  egal(recompense[0]?.arguments.p_amount, 250, 'montant')
+  egal(recompense[0]?.arguments.p_idempotency_key, `daily-streak-reward:${HUMAIN_A}:${jour}`, 'clé du jour : jamais deux fois')
 })
 
-Deno.test('palier déjà payé : aucune nouvelle demande de versement', async () => {
-  // `server_award_feathers` prend un verrou de portefeuille AVANT de constater
-  // l'idempotence : redemander un palier déjà réglé coûte un verrou pour rien.
-  const { client, rpcs } = clientFactice({
-    'rpc.server_award_feathers': { data: { applied: true }, error: null },
-    'rpc.server_daily_streak': { data: { best: 7 }, error: null },
-    'economy_transactions.select': { data: [{ idempotency_key: `daily-milestone:${HUMAIN_A}:7` }], error: null },
-  })
+Deno.test('14e jour : la tranche suivante paie à nouveau', async () => {
+  const { client, rpcs } = clientFactice(series(13, 14))
   await awardFinished(client, defiDuJour())
-  egal(
-    versements(rpcs, 'server_award_feathers').filter(appel => appel.arguments.p_kind === 'streak-milestone').length,
-    0, 'le palier déjà réglé n’est pas redemandé',
-  )
+  egal(recompenseDeSerie(rpcs)[0]?.arguments.p_amount, 250, 'une nouvelle tranche')
+})
+
+Deno.test('entre deux tranches : aucune récompense de série', async () => {
+  const { client, rpcs } = clientFactice(series(8, 9))
+  await awardFinished(client, defiDuJour())
+  egal(recompenseDeSerie(rpcs).length, 0, 'rien au 9e jour')
+})
+
+Deno.test('rattrapage d’un jour manqué : une tranche déjà touchée n’est pas repayée', async () => {
+  // 7 jours (payés), un jour manqué, une victoire (série 1), puis le pont : 7 + 2.
+  const { client, rpcs } = clientFactice(series(1, 9))
+  await awardFinished(client, defiDuJour())
+  egal(recompenseDeSerie(rpcs).length, 0, 'pas de second paiement pour les 7 premiers jours')
+})
+
+Deno.test('rattrapage qui franchit 7 : payé ce jour-là', async () => {
+  // 6 jours, un jour manqué, une victoire (série 1), puis le pont : 6 + 2.
+  const { client, rpcs } = clientFactice(series(1, 8))
+  await awardFinished(client, defiDuJour())
+  egal(recompenseDeSerie(rpcs).length, 1, 'la tranche franchie par le pont est payée')
 })
 
 Deno.test('victoire trop ancienne : la série n’est pas rétro-alimentée', async () => {

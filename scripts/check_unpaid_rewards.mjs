@@ -13,9 +13,10 @@
 // RPC en échec, un déploiement raté, un bug corrigé depuis. Trois écarts sont
 // cherchés, tous entre ce que les données IMPLIQUENT et ce qui a été versé :
 //
-//   1. PALIER DE SÉRIE DÛ — le joueur a atteint 7, 30, 100 ou 365 jours d'après
-//      `daily_wins`, et aucune transaction `daily-milestone:<user>:<palier>`
-//      n'existe. C'est le plus cher : jusqu'à 4 500 plumes.
+//   1. RÉCOMPENSE DE SÉRIE DUE — une victoire quotidienne a franchi une tranche
+//      de 7 jours (7, 14, 21…) d'après `daily_wins`, et aucune transaction
+//      `daily-streak-reward:<user>:<jour>` n'existe. 250 plumes chacune.
+//      (Avant le 14/09/2026, c'étaient des paliers uniques jusqu'à 4 500 plumes.)
 //   2. MATCH NON RÉCOMPENSÉ — une partie terminée dont un participant humain n'a
 //      pas de ligne `experience_awards` sous la clé `match:<id>`. Attrape en
 //      particulier un `server_award_progress` qui a échoué.
@@ -33,14 +34,27 @@ import path from 'node:path'
 const MANAGEMENT_API = 'https://api.supabase.com'
 
 /**
- * Seuils de paliers de série — MIROIR de `DAILY_MILESTONES` (src/dailyMilestones.ts).
+ * Récompense de série — MIROIR de `src/dailyMilestones.ts`.
  *
- * Recopiés parce que ce script est du JavaScript pur, lancé par GitHub Actions,
+ * Recopiée parce que ce script est du JavaScript pur, lancé par GitHub Actions,
  * et ne peut pas importer un module TypeScript. La recopie n'est pas laissée à la
- * vigilance : `src/unpaidRewards.test.ts` compare ces valeurs au barème et rougit
- * si l'un des deux bouge sans l'autre.
+ * vigilance : `src/unpaidRewards.test.ts` compare ces valeurs au barème, et
+ * rejoue la formule SQL ci-dessous contre `streakRewardsEarned`.
+ *
+ * `depuis` : premier jour entièrement servi par la nouvelle règle. Les victoires
+ * d'avant ont été réglées par les anciens paliers.
  */
-export const PALIERS_SERIE = [7, 30, 100, 365]
+export const RECOMPENSE_SERIE = { tousLesJours: 7, depuis: '2026-09-15' }
+
+/**
+ * Tranches franchies, en SQL — même calcul que `streakRewardsEarned` : écart 1
+ * (jour suivant ou gel) ou 2 (pont) entre la série de la victoire d'avant et
+ * celle du jour ; une série à 1 ou inchangée ne franchit rien.
+ */
+export function tranchesSql(apres, avant, tous = RECOMPENSE_SERIE.tousLesJours) {
+  return `case when ${apres} <= 1 or ${apres} - ${avant} <= 0 then 0
+    else ${apres} / ${tous} - (${apres} - least(2, ${apres} - ${avant})) / ${tous} end`
+}
 
 /** Exécute une requête SQL via l'API de gestion Supabase (même jeton que les autres surveillances). */
 async function runQuery(projectRef, accessToken, query, fetchImpl = fetch) {
@@ -57,25 +71,26 @@ async function runQuery(projectRef, accessToken, query, fetchImpl = fetch) {
 
 /** Compte les écarts entre ce qui est dû et ce qui a été versé. Aucun identifiant de joueur n'est remonté. */
 export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = fetch) {
-  const paliers = PALIERS_SERIE.map(seuil => Number(seuil)).filter(Number.isInteger).join(',')
+  const depuis = /^\d{4}-\d{2}-\d{2}$/.test(RECOMPENSE_SERIE.depuis) ? RECOMPENSE_SERIE.depuis : '9999-12-31'
   const rows = await runQuery(projectRef, accessToken, `
-    with meilleures as (
-      -- Une seule évaluation de série par joueur : la fonction parcourt tout son
-      -- historique, la rappeler par palier coûterait quatre fois le prix.
-      select joueur.user_id,
-             (public.server_daily_streak(joueur.user_id, current_date)->>'best')::int as best
-      from (select distinct user_id from public.daily_wins) as joueur
+    with series as (
+      -- La série après chaque victoire, et au moment de la victoire d'avant
+      -- (server_daily_streak ne lit que les jours jusqu'à la date donnée).
+      select victoire.user_id, victoire.day,
+             coalesce((public.server_daily_streak(victoire.user_id, victoire.day)->>'streakAtLastWin')::int, 0) as apres,
+             coalesce((public.server_daily_streak(victoire.user_id, victoire.day - 1)->>'streakAtLastWin')::int, 0) as avant
+      from public.daily_wins as victoire
+      where victoire.day >= date '${depuis}'
     ),
-    paliers_dus as (
-      select meilleure.user_id, seuil.palier
-      from meilleures as meilleure
-      cross join unnest(array[${paliers}]) as seuil(palier)
-      where meilleure.best >= seuil.palier
+    recompenses_dues as (
+      select serie.user_id, serie.day
+      from series as serie
+      where (${tranchesSql('serie.apres', 'serie.avant')}) > 0
         and not exists (
           select 1 from public.economy_transactions as versement
-          where versement.user_id = meilleure.user_id
+          where versement.user_id = serie.user_id
             and versement.kind = 'streak-milestone'
-            and versement.idempotency_key = 'daily-milestone:' || meilleure.user_id || ':' || seuil.palier
+            and versement.idempotency_key = 'daily-streak-reward:' || serie.user_id || ':' || serie.day
         )
     ),
     matchs_non_recompenses as (
@@ -117,10 +132,8 @@ export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = 
         )
     )
     select
-      (select count(*)::int from paliers_dus)              as paliers_dus,
-      (select count(distinct user_id)::int from paliers_dus) as joueurs_paliers,
-      (select coalesce(jsonb_object_agg(palier, n), '{}'::jsonb) from (
-         select palier, count(*)::int as n from paliers_dus group by palier) as parPalier) as paliers_detail,
+      (select count(*)::int from recompenses_dues)              as paliers_dus,
+      (select count(distinct user_id)::int from recompenses_dues) as joueurs_paliers,
       (select count(*)::int from matchs_non_recompenses)   as matchs_non_recompenses,
       (select max(updated_at) from matchs_non_recompenses) as match_plus_recent,
       (select count(*)::int from victoires_sans_bonus)     as victoires_sans_bonus,
@@ -139,7 +152,6 @@ export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = 
     generatedAt: new Date().toISOString(),
     paliersDus,
     joueursConcernesParPalier: nombre('joueurs_paliers'),
-    paliersDetail: row.paliers_detail ?? {},
     matchsNonRecompenses,
     matchPlusRecent: row.match_plus_recent ?? null,
     victoiresSansBonus,
@@ -173,7 +185,7 @@ async function main(env = process.env) {
   await appendGithubValue(env.GITHUB_OUTPUT, 'signature', report.signature)
 
   console.log(report.hasPending
-    ? `[ALERTE] ${report.total} écart(s) : ${report.paliersDus} palier(s) dû(s), ${report.matchsNonRecompenses} match(s) non récompensé(s), ${report.victoiresSansBonus + report.bonusSansVictoire} jour(s) de série incohérent(s).`
+    ? `[ALERTE] ${report.total} écart(s) : ${report.paliersDus} récompense(s) de série due(s), ${report.matchsNonRecompenses} match(s) non récompensé(s), ${report.victoiresSansBonus + report.bonusSansVictoire} jour(s) de série incohérent(s).`
     : '[OK] Tout ce qui est dû a été versé.')
 }
 

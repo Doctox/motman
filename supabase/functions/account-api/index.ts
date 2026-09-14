@@ -68,7 +68,7 @@ async function accountState(admin: AdminClient, userId: string) {
     { data: profile }, { data: progress }, { data: wallet }, { data: inventory }, { data: awardRows },
     { data: dailyBonusRows },
     { data: titleCatalog }, { data: ownedTitles }, { data: cosmeticCatalog },
-    { data: dailyStreak },
+    { data: dailyStreak }, { data: dailyWinRows },
   ] = await Promise.all([
     admin.from('profiles').select('*').eq('id', userId).single(),
     admin.from('player_progress').select('*').eq('user_id', userId).single(),
@@ -99,6 +99,12 @@ async function accountState(admin: AdminClient, userId: string) {
     // ne rejette pas sur erreur SQL — il résout avec `{ data: null, error }` —
     // donc l'ajouter ici ne peut pas faire tomber le chargement du compte.
     admin.rpc('server_daily_streak', { p_user_id: userId, p_today: parisDateKey() }),
+    // Les jours gagnés, pour le calendrier de série (menu). Toute l'histoire est
+    // lue, pas une fenêtre : le client en déduit gels et rattrapages en rejouant
+    // la règle depuis le premier jour, et une fenêtre tronquée fausserait le
+    // compte des gels. Une ligne par victoire quotidienne : quelques centaines
+    // au plus, sur un index (user_id, day).
+    admin.from('daily_wins').select('day').eq('user_id', userId).order('day', { ascending: true }).limit(1000),
   ])
   if (!profile || !progress || !wallet) throw new Error('Profil serveur incomplet.')
   const items = inventory ?? []
@@ -144,6 +150,7 @@ async function accountState(admin: AdminClient, userId: string) {
       best: Math.max(0, Number(daily?.best) || 0),
       freezes: Math.max(0, Number(daily?.freezes) || 0),
       lastWin: typeof daily?.lastWin === 'string' ? daily.lastWin : null,
+      winDays: (dailyWinRows ?? []).map(row => String(row.day)).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)),
     },
     identity: {
       version: 2,

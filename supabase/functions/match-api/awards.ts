@@ -13,7 +13,7 @@
 // quel. Le seul changement est l'appel direct à `loadPublicProfile`, qui était
 // masqué derrière un alias local resté dans `index.ts`.
 
-import { DAILY_MILESTONES } from '../../../src/dailyMilestones.ts'
+import { STREAK_REWARD_PLUMES, streakRewardsEarned } from '../../../src/dailyMilestones.ts'
 import { encodeBoardSnapshot } from '../../../src/matchBoardSnapshot.ts'
 import { dailyNote } from '../../../src/dailyScore.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
@@ -93,8 +93,13 @@ export async function recordMatchHistory(
 }
 
 /**
- * Enregistre la victoire quotidienne côté serveur, puis verse les paliers de
- * série devenus dus.
+ * Enregistre la victoire quotidienne côté serveur, puis verse la récompense de
+ * série si cette victoire franchit une tranche de 7 jours.
+ *
+ * DEPUIS LE 14/09/2026 : +250 plumes à chaque tranche de 7 jours (7, 14, 21…),
+ * à la place des paliers uniques (200 / 700 / 1 800 / 4 500). La règle est
+ * `streakRewardsEarned` (src/dailyMilestones.ts), partagée avec le client. Les
+ * paliers déjà versés sous l'ancienne règle restent versés.
  *
  * POURQUOI CE N'EST PAS LE CLIENT QUI DEMANDE. La série vivait uniquement dans
  * le `localStorage` du joueur : elle mourait à la réinstallation, et le serveur
@@ -103,17 +108,8 @@ export async function recordMatchHistory(
  * créditait rien. Ici le serveur écrit sa propre trace (`daily_wins`), recompte
  * la série lui-même (`server_daily_streak`, gels compris) et paie ce qui est dû.
  *
- * On paie sur le MEILLEUR palier atteint (`best`), pas sur la série courante :
- * un joueur qui a tenu 30 jours puis a tout perdu garde ses paliers. Ils sont
- * définitifs, et l'idempotence `daily-milestone:<user>:<palier>` garantit qu'ils
- * ne sont versés qu'une fois.
- *
- * ⚠️ PAS DE RATTRAPAGE : `daily_wins` naît vide. Les séries antérieures à cette
- * migration ne sont pas reconstituées — un joueur à 40 jours repart de 0 côté
- * serveur et devra réatteindre 7 pour toucher les 200 plumes. La matière
- * première existerait (`economy_transactions` où `kind='daily-completion'` porte
- * `metadata.dateKey`), mais aucun rattrapage n'est écrit ici. À faire tant que
- * la bêta est petite, ça deviendra vite impraticable.
+ * Une série se déduit de `daily_wins`, qui n’existe que depuis le 01/09/2026 :
+ * les séries plus anciennes n’y sont pas reconstituées.
  *
  * `bonusApplied` évite de refaire le travail coûteux à chaque sondage :
  * `awardFinished` est rejouée sur toute action visant un match déjà terminé.
@@ -177,60 +173,39 @@ export async function recordDailyWinAndMilestones(
   }
   if (!bonusApplied) return
 
-  // Les deux lectures sont indépendantes : on les mène de front plutôt que l'une
-  // après l'autre.
-  //
-  // `deja` sert à ne PAS rappeler `server_award_feathers` pour un palier déjà
-  // payé. Ce RPC prend un `for update` sur le portefeuille AVANT de constater
-  // l'idempotence : sans ce filtre, un joueur installé à 100 jours de série
-  // reprenait quatre verrous de portefeuille par victoire quotidienne, pour
-  // n'écrire strictement rien. La lecture qui les évite est un simple parcours
-  // de l'index unique (user_id, idempotency_key).
-  //
-  // Le filet de rattrapage est intact : un palier dont le versement a échoué
-  // n'est pas dans `economy_transactions`, donc il reste candidat et sera
-  // retenté à la prochaine victoire quotidienne.
+  // La série APRÈS cette victoire, et celle au moment de la victoire d'avant :
+  // `server_daily_streak` ne lit que les victoires jusqu'à la date donnée, la
+  // veille rend donc l'état d'avant aujourd'hui. Le moteur de série reste le
+  // seul, en SQL ; seule la comparaison des deux est faite ici.
+  const veilleDuDefi = parisDateKey(new Date(Date.parse(`${dailyDate}T12:00:00Z`) - 86_400_000))
   const [
-    { data: streak, error: streakError },
-    { data: paid, error: paidError },
+    { data: apres, error: apresError },
+    { data: avant, error: avantError },
   ] = await Promise.all([
     admin.rpc('server_daily_streak', { p_user_id: playerId, p_today: dailyDate }),
-    admin.from('economy_transactions').select('idempotency_key')
-      .eq('user_id', playerId).eq('kind', 'streak-milestone'),
+    admin.rpc('server_daily_streak', { p_user_id: playerId, p_today: veilleDuDefi }),
   ])
-  if (streakError) {
-    logServerError('match-api', streakError, { action: 'daily-streak', userId: playerId })
+  if (apresError || avantError) {
+    logServerError('match-api', apresError ?? avantError, { action: 'daily-streak', userId: playerId })
     return
   }
-  // Une lecture ratée ne doit pas bloquer un versement dû : on retombe sur
-  // l'ancien comportement — tout tenter et laisser l'idempotence trancher.
-  if (paidError) logServerError('match-api', paidError, { action: 'daily-milestone-paid', userId: playerId })
-  const deja = new Set((paid ?? []).map(row => String(row.idempotency_key)))
+  const serieDe = (valeur: unknown) => Math.max(0, Number((valeur as { streakAtLastWin?: unknown } | null)?.streakAtLastWin) || 0)
+  const tranches = streakRewardsEarned(serieDe(avant), serieDe(apres))
+  if (tranches === 0) return
 
-  const best = Math.max(0, Number((streak as { best?: unknown } | null)?.best) || 0)
-  const dus = DAILY_MILESTONES
-    .map(milestone => ({ milestone, key: `daily-milestone:${playerId}:${milestone.streak}` }))
-    .filter(({ milestone, key }) => best >= milestone.streak && !deja.has(key))
-  if (dus.length === 0) return
-
-  // De front, et non en séquence : ces versements sont indépendants les uns des
-  // autres. Ils se sérialiseront de toute façon sur le verrou de portefeuille
-  // côté base, mais les allers-retours réseau, eux, se recouvrent.
-  await Promise.all(dus.map(async ({ milestone, key }) => {
-    const { error } = await admin.rpc('server_award_feathers', {
-      p_user_id: playerId,
-      p_idempotency_key: key,
-      p_amount: milestone.plumes,
-      // `server_award_feathers` n'accepte que 'daily-completion' et
-      // 'streak-milestone' (liste blanche de la migration qui le définit).
-      // Envoyer 'daily-milestone' — le nom de la CLÉ d'idempotence — ferait
-      // lever « invalid feather kind », erreur avalée par le journal : les
-      // paliers ne seraient toujours pas versés.
-      p_kind: 'streak-milestone',
-      p_metadata: { milestone: milestone.streak, dateKey: dailyDate, matchId },
-    })
-    if (error) logServerError('match-api', error, { action: 'daily-milestone', userId: playerId, milestone: milestone.streak })
-  }))
+  // Clé du JOUR : une victoire quotidienne n'existe qu'une fois par jour, et la
+  // règle ne paie qu'au franchissement. Rejouer la clôture ne verse rien de plus.
+  const { error } = await admin.rpc('server_award_feathers', {
+    p_user_id: playerId,
+    p_idempotency_key: `daily-streak-reward:${playerId}:${dailyDate}`,
+    p_amount: tranches * STREAK_REWARD_PLUMES,
+    // `server_award_feathers` n'accepte que 'daily-completion' et
+    // 'streak-milestone' (liste blanche de la migration qui le définit) : la
+    // récompense de série garde le type des anciens paliers.
+    p_kind: 'streak-milestone',
+    p_metadata: { reward: 'streak-7-days', streak: serieDe(apres), dateKey: dailyDate, matchId },
+  })
+  if (error) logServerError('match-api', error, { action: 'daily-streak-reward', userId: playerId })
 }
 
 export async function awardFinished(admin: AdminClient, row: MatchRow) {
