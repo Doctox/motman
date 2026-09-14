@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { TurnStep } from './game/turnChoreography'
-import { isAppleTouchDevice, playIosHaptic } from './iosHaptic'
 
 export type SensoryPreferences = {
   effects: boolean
@@ -52,9 +51,11 @@ export function useSensoryPreferences() {
 
 export function haptic(pattern: number | number[]): void {
   if (!loadSensoryPreferences().vibration) return
-  if (typeof navigator.vibrate === 'function') navigator.vibrate(pattern)
-  // Safari iPhone n'a pas d'API de vibration : voir iosHaptic.ts.
-  else if (isAppleTouchDevice(navigator)) playIosHaptic(pattern)
+  // Safari iPhone n'a pas d'API de vibration. L'astuce de l'interrupteur natif
+  // d'iOS 18 a été essayée puis retirée (14/09/2026) : testé sur un vrai iPhone,
+  // iOS ne vibre que si le doigt touche l'interrupteur, jamais quand la page le
+  // bascule. Seule une appli iPhone native (@capacitor/haptics) le permettrait.
+  navigator.vibrate?.(pattern)
 }
 
 const EFFECT_NOTES: Record<GameEffect, ReadonlyArray<readonly [frequency: number, delay: number, duration: number, volume: number]>> = {
