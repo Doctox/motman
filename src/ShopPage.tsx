@@ -108,7 +108,7 @@ export function PurchaseConfirm({ purchase, balance, preview, confirm, cancel }:
   const dialogRef = useDialogFocus<HTMLElement>(cancel)
   const manque = Math.max(0, purchase.price - balance)
   const verbe = purchase.kind === 'basket' ? 'Ouvrir' : 'Acheter'
-  const plumes = (n: number) => `${n.toLocaleString('fr-FR')} plume${n > 1 ? 's' : ''}`
+  const plumes = (n: number) => `${n.toLocaleString('fr-FR').replace(/s/g, ' ')} plume${n > 1 ? 's' : ''}`
   // Rendue dans <body> : dans la page, l'en-tête et la barre du bas restaient
   // au-dessus du voile.
   return createPortal(<div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) cancel() }}>
