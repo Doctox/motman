@@ -16,7 +16,7 @@ vi.mock('./auth', () => ({
 vi.mock('./CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
 
 import { AVATARS, BASKETS, loadPlayerCosmetics, type PlayerCosmetics } from './cosmetics'
-import { ShopPage } from './ShopPage'
+import { formatPlumes, ShopPage } from './ShopPage'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -58,7 +58,7 @@ describe('acheter un article', () => {
     afficher(riche())
     cliquer(boutonDePrix(article))
     expect(dialogue()?.textContent).toContain(article.name)
-    expect(dialogue()?.textContent).toContain(article.pricePlumes.toLocaleString('fr-FR').replace(/s/g, '00a0'))
+    expect(dialogue()?.textContent).toContain(formatPlumes(article.pricePlumes))
     expect(serveur.acheter).not.toHaveBeenCalled()
   })
 
