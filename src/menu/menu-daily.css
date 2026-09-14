@@ -150,15 +150,15 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
   border: 0; border-radius: 50%; background: transparent; color: var(--mm-muted); cursor: pointer;
 }
 .mm-streak-calendar-close svg { width: 18px; height: 18px; }
-.mm-streak-calendar header { display: grid; justify-items: center; gap: 2px; }
+.mm-streak-calendar-head { display: grid; justify-items: center; gap: 2px; }
 .mm-streak-calendar-flame {
   display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
   background: color-mix(in srgb, var(--mm-gold) 20%, transparent); color: var(--mm-coral);
 }
 .mm-streak-calendar-flame svg { width: 26px; height: 26px; }
-.mm-streak-calendar header strong { margin-top: 4px; font: 700 1.6rem/1 'Playfair Display', Georgia, serif; }
-.mm-streak-calendar header small { display: inline-flex; align-items: center; gap: 4px; color: var(--mm-muted); font-size: .8125rem; }
-.mm-streak-calendar header small svg { width: 13px; height: 13px; color: #5b8fb0; }
+.mm-streak-calendar-head strong { margin-top: 4px; font: 700 1.6rem/1 'Playfair Display', Georgia, serif; }
+.mm-streak-calendar-head small { display: inline-flex; align-items: center; gap: 4px; color: var(--mm-muted); font-size: .8125rem; }
+.mm-streak-calendar-head small svg { width: 13px; height: 13px; color: #5b8fb0; }
 
 .mm-streak-goal { margin: 16px 0 14px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--mm-gold) 12%, transparent); }
 .mm-streak-goal-bar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }

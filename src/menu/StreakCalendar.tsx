@@ -68,11 +68,13 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
     <section ref={dialogRef} className="mm-streak-calendar" role="dialog" aria-modal="true" aria-label="Calendrier de série" tabIndex={-1}>
       <button type="button" className="mm-streak-calendar-close" aria-label="Fermer" data-dialog-autofocus onClick={close}><X /></button>
 
-      <header>
+      {/* Un <div> et non un <header> : une fois une partie ouverte, le style de
+          l'en-tête du jeu (grille à 3 colonnes) s'appliquait aussi ici. */}
+      <div className="mm-streak-calendar-head">
         <span className="mm-streak-calendar-flame" aria-hidden="true"><Flame /></span>
         <strong>{streak} jour{streak > 1 ? 's' : ''}</strong>
         <small>de série{freezes > 0 ? <> · <Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} en réserve</> : null}</small>
-      </header>
+      </div>
 
       <div className="mm-streak-goal" role="group" aria-label="Objectif de série">
         <div className="mm-streak-goal-bar" role="progressbar" aria-valuemin={0} aria-valuemax={STREAK_REWARD_EVERY_DAYS} aria-valuenow={progression}>
