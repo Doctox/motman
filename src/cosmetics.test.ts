@@ -108,14 +108,10 @@ describe('premier panier offert', () => {
   })
 })
 
-describe('avatars retirés', () => {
-  it('ne sont plus en vente mais restent affichables pour leurs propriétaires', async () => {
-    const { getAvatar, collectionProgress } = await import('./cosmetics')
-    const moka = AVATARS.find(avatar => avatar.id === 'moka')!
-    expect(moka.availability).toBe('retire')
-    expect(getAvatar('moka').id).toBe('moka')
-    const avant = collectionProgress({ ownedAvatarIds: [], ownedFrameIds: [], ownedAnimationIds: [] })
-    const apres = collectionProgress({ ownedAvatarIds: ['moka'], ownedFrameIds: [], ownedAnimationIds: [] })
-    expect(apres).toEqual(avant)
+describe('avatars supprimés', () => {
+  it('Moka a disparu du catalogue ; un profil qui le portait retombe sur la Plume', async () => {
+    const { getAvatar } = await import('./cosmetics')
+    expect(AVATARS.some(avatar => avatar.id === 'moka')).toBe(false)
+    expect(getAvatar('moka').id).toBe('plume-motman')
   })
 })

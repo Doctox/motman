@@ -125,15 +125,6 @@
       "tags": ["vampire", "fantastique"]
     },
     {
-      "id": "moka",
-      "name": "Moka",
-      "kind": "animal",
-      "asset": "/assets/avatars/moka.webp",
-      "availability": "retire",
-      "pricePlumes": 1800,
-      "tags": ["chat", "animal"]
-    },
-    {
       "id": "celeste",
       "name": "Chouette",
       "kind": "animal",

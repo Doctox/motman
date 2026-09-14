@@ -8,8 +8,7 @@
       "rarity": "commun",
       "pricePlumes": 0,
       "availability": "starter",
-      "asset": "/assets/avatars/plume-motman.webp",
-      "active": true
+      "asset": "/assets/avatars/plume-motman.webp"
     },
     {
       "kind": "avatar",
@@ -18,8 +17,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/amina.webp",
-      "active": true
+      "asset": "/assets/avatars/amina.webp"
     },
     {
       "kind": "avatar",
@@ -28,8 +26,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/malik.webp",
-      "active": true
+      "asset": "/assets/avatars/malik.webp"
     },
     {
       "kind": "avatar",
@@ -38,8 +35,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/mei.webp",
-      "active": true
+      "asset": "/assets/avatars/mei.webp"
     },
     {
       "kind": "avatar",
@@ -48,8 +44,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/kenji.webp",
-      "active": true
+      "asset": "/assets/avatars/kenji.webp"
     },
     {
       "kind": "avatar",
@@ -58,8 +53,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/ines.webp",
-      "active": true
+      "asset": "/assets/avatars/ines.webp"
     },
     {
       "kind": "avatar",
@@ -68,8 +62,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/nael.webp",
-      "active": true
+      "asset": "/assets/avatars/nael.webp"
     },
     {
       "kind": "avatar",
@@ -78,8 +71,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/portrait-camille.webp",
-      "active": true
+      "asset": "/assets/portrait-camille.webp"
     },
     {
       "kind": "avatar",
@@ -88,8 +80,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/portrait-player.webp",
-      "active": true
+      "asset": "/assets/portrait-player.webp"
     },
     {
       "kind": "avatar",
@@ -98,8 +89,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/extraterrestre.webp",
-      "active": true
+      "asset": "/assets/avatars/extraterrestre.webp"
     },
     {
       "kind": "avatar",
@@ -108,8 +98,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/troll.webp",
-      "active": true
+      "asset": "/assets/avatars/troll.webp"
     },
     {
       "kind": "avatar",
@@ -118,8 +107,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/elfe.webp",
-      "active": true
+      "asset": "/assets/avatars/elfe.webp"
     },
     {
       "kind": "avatar",
@@ -128,18 +116,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/vampire.webp",
-      "active": true
-    },
-    {
-      "kind": "avatar",
-      "id": "moka",
-      "name": "Moka",
-      "rarity": "singulier",
-      "pricePlumes": 1800,
-      "availability": "retire",
-      "asset": "/assets/avatars/moka.webp",
-      "active": false
+      "asset": "/assets/avatars/vampire.webp"
     },
     {
       "kind": "avatar",
@@ -148,8 +125,7 @@
       "rarity": "singulier",
       "pricePlumes": 1800,
       "availability": "epicerie",
-      "asset": "/assets/avatars/celeste.webp",
-      "active": true
+      "asset": "/assets/avatars/celeste.webp"
     },
     {
       "kind": "avatar",
@@ -158,8 +134,7 @@
       "rarity": "singulier",
       "pricePlumes": 1800,
       "availability": "epicerie",
-      "asset": "/assets/avatars/roux.webp",
-      "active": true
+      "asset": "/assets/avatars/roux.webp"
     },
     {
       "kind": "avatar",
@@ -168,8 +143,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/machine-a-ecrire.webp",
-      "active": true
+      "asset": "/assets/avatars/machine-a-ecrire.webp"
     },
     {
       "kind": "avatar",
@@ -178,8 +152,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/theiere.webp",
-      "active": true
+      "asset": "/assets/avatars/theiere.webp"
     },
     {
       "kind": "avatar",
@@ -188,8 +161,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/livre-et-plume.webp",
-      "active": true
+      "asset": "/assets/avatars/livre-et-plume.webp"
     },
     {
       "kind": "avatar",
@@ -198,8 +170,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/couronne.webp",
-      "active": true
+      "asset": "/assets/avatars/couronne.webp"
     },
     {
       "kind": "avatar",
@@ -208,8 +179,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/pieces-dorees.webp",
-      "active": true
+      "asset": "/assets/avatars/pieces-dorees.webp"
     },
     {
       "kind": "avatar",
@@ -218,8 +188,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/baguette-magique.webp",
-      "active": true
+      "asset": "/assets/avatars/baguette-magique.webp"
     },
     {
       "kind": "avatar",
@@ -228,8 +197,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/anneau-ancien.webp",
-      "active": true
+      "asset": "/assets/avatars/anneau-ancien.webp"
     },
     {
       "kind": "avatar",
@@ -238,8 +206,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/fiole-bois-moi.webp",
-      "active": true
+      "asset": "/assets/avatars/fiole-bois-moi.webp"
     },
     {
       "kind": "avatar",
@@ -248,8 +215,7 @@
       "rarity": "rare",
       "pricePlumes": 2200,
       "availability": "epicerie",
-      "asset": "/assets/avatars/ticket-dor.webp",
-      "active": true
+      "asset": "/assets/avatars/ticket-dor.webp"
     },
     {
       "kind": "avatar",
@@ -258,8 +224,7 @@
       "rarity": "singulier",
       "pricePlumes": 1800,
       "availability": "epicerie",
-      "asset": "/assets/avatars/easter-egg-chienne.webp",
-      "active": true
+      "asset": "/assets/avatars/easter-egg-chienne.webp"
     },
     {
       "kind": "avatar",
@@ -268,8 +233,7 @@
       "rarity": "singulier",
       "pricePlumes": 1800,
       "availability": "epicerie",
-      "asset": "/assets/avatars/easter-egg-gecko.webp",
-      "active": true
+      "asset": "/assets/avatars/easter-egg-gecko.webp"
     },
     {
       "kind": "avatar",
@@ -278,8 +242,7 @@
       "rarity": "singulier",
       "pricePlumes": 1800,
       "availability": "epicerie",
-      "asset": "/assets/avatars/easter-egg-chat.webp",
-      "active": true
+      "asset": "/assets/avatars/easter-egg-chat.webp"
     },
     {
       "kind": "avatar",
@@ -288,8 +251,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-france.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-france.webp"
     },
     {
       "kind": "avatar",
@@ -298,8 +260,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-belgique.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-belgique.webp"
     },
     {
       "kind": "avatar",
@@ -308,8 +269,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-suisse.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-suisse.webp"
     },
     {
       "kind": "avatar",
@@ -318,8 +278,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-canada.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-canada.webp"
     },
     {
       "kind": "avatar",
@@ -328,8 +287,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-allemagne.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-allemagne.webp"
     },
     {
       "kind": "avatar",
@@ -338,8 +296,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-espagne.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-espagne.webp"
     },
     {
       "kind": "avatar",
@@ -348,8 +305,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-italie.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-italie.webp"
     },
     {
       "kind": "avatar",
@@ -358,8 +314,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-portugal.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-portugal.webp"
     },
     {
       "kind": "avatar",
@@ -368,8 +323,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-royaume-uni.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-royaume-uni.webp"
     },
     {
       "kind": "avatar",
@@ -378,8 +332,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-etats-unis.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-etats-unis.webp"
     },
     {
       "kind": "avatar",
@@ -388,8 +341,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-bresil.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-bresil.webp"
     },
     {
       "kind": "avatar",
@@ -398,8 +350,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-mexique.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-mexique.webp"
     },
     {
       "kind": "avatar",
@@ -408,8 +359,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-argentine.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-argentine.webp"
     },
     {
       "kind": "avatar",
@@ -418,8 +368,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-maroc.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-maroc.webp"
     },
     {
       "kind": "avatar",
@@ -428,8 +377,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-algerie.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-algerie.webp"
     },
     {
       "kind": "avatar",
@@ -438,8 +386,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-tunisie.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-tunisie.webp"
     },
     {
       "kind": "avatar",
@@ -448,8 +395,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-senegal.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-senegal.webp"
     },
     {
       "kind": "avatar",
@@ -458,8 +404,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-cote-divoire.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-cote-divoire.webp"
     },
     {
       "kind": "avatar",
@@ -468,8 +413,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-japon.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-japon.webp"
     },
     {
       "kind": "avatar",
@@ -478,8 +422,7 @@
       "rarity": "commun",
       "pricePlumes": 1400,
       "availability": "epicerie",
-      "asset": "/assets/avatars/drapeau-chine.webp",
-      "active": true
+      "asset": "/assets/avatars/drapeau-chine.webp"
     },
     {
       "kind": "frame",
