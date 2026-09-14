@@ -11,6 +11,12 @@ declare
   first_acceptance jsonb;
   repeated_acceptance jsonb;
 begin
+  -- La suite tourne sur la VRAIE base, dans une transaction annulée. Une
+  -- recherche réelle restée dans la file (14/09/2026 : un joueur parti sans
+  -- annuler) appariait le premier joueur de test au lieu de le mettre en
+  -- attente. On vide la file ici ; le rollback final la rend intacte.
+  delete from public.server_match_searches;
+
   insert into auth.users(id, is_anonymous, created_at, updated_at)
   values
     (first_user, false, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp()),
