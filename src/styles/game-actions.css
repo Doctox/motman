@@ -153,22 +153,35 @@
       lecteurs d'écran la lisent toujours (`aria-live` sur `.turn`).
    2. La place qu'elle réservait sous le bandeau est rendue, et les portraits
       grandissent DANS la même hauteur de carte : la grille ne perd rien, elle
-      remonte même un peu. Les cadres débordent légèrement de la carte, comme
-      ils le faisaient déjà. */
+      remonte même un peu.
+   3. Un cadre déborde de 19 % de chaque côté du portrait (138 %). On réserve
+      cette place vers le nom et le score — sinon un grand cadre (Dragon doré,
+      Jardin des songes) mordait sur le chiffre de l'adversaire — et le nom se
+      coupe en « … » DANS la carte au lieu de courir jusqu'au chrono.
+   4. L'animation garde à peu près l'emprise qu'elle avait autour de l'ancien
+      portrait de 46 px (204 % × 46 ≈ 94 px) au lieu de grandir avec lui.
+   Vérifié avec les plus grands cadres et animations, en 390, 360 et natif. */
 .scoreboard .turn>strong.turn-status-routine{
   position:absolute!important;width:1px!important;min-width:0!important;height:1px!important;
   padding:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;
   background:none!important;box-shadow:none!important;
 }
 .multiplayer-shell .scoreboard{margin-bottom:14px}
-.multiplayer-shell .scoreboard .game-portrait,.multiplayer-shell .scoreboard .player .avatar{width:58px;height:58px;flex:0 0 58px}
-.multiplayer-shell .scoreboard .player{padding-block:5px}
 @media(max-height:780px){.multiplayer-shell .scoreboard{margin-bottom:12px}}
+.multiplayer-shell .scoreboard .player{padding-block:5px;padding-inline:6px;gap:6px}
+.multiplayer-shell .scoreboard .game-portrait,.multiplayer-shell .scoreboard .player .avatar{width:54px;height:54px;flex:0 0 54px}
+.multiplayer-shell .scoreboard .player:first-child .game-portrait:is(.has-frame-art,.has-avatar-animation){margin-right:10px}
+.multiplayer-shell .scoreboard .player:last-child .game-portrait:is(.has-frame-art,.has-avatar-animation){margin-left:10px}
+.multiplayer-shell .scoreboard .game-portrait>.cosmetic-avatar-animation{width:174%;height:174%}
+.multiplayer-shell .scoreboard .player small{max-width:100%}
 @media(max-width:370px){
-  .multiplayer-shell .scoreboard .game-portrait,.multiplayer-shell .scoreboard .player .avatar{width:52px;height:52px;flex-basis:52px}
+  .multiplayer-shell .scoreboard .player{padding-inline:5px;gap:5px}
+  .multiplayer-shell .scoreboard .game-portrait,.multiplayer-shell .scoreboard .player .avatar{width:48px;height:48px;flex-basis:48px}
+  .multiplayer-shell .scoreboard .player:first-child .game-portrait:is(.has-frame-art,.has-avatar-animation){margin-right:9px}
+  .multiplayer-shell .scoreboard .player:last-child .game-portrait:is(.has-frame-art,.has-avatar-animation){margin-left:9px}
 }
 @media(max-width:699px) and (max-height:820px){
   .native-runtime .multiplayer-shell:not(.is-finished)>.scoreboard{margin-bottom:12px}
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .game-portrait,
-  .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:50px;height:50px;flex-basis:50px}
+  .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:48px;height:48px;flex-basis:48px}
 }
