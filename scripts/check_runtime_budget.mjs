@@ -23,10 +23,16 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // porter la réponse. 614 → 758 Ko, 153 → 222 Ko compressés ; les images font
 // désormais 65 % du fichier. Seuil compressé relevé à 260 Ko. Piste si ça
 // continue : servir les pictogrammes par leur fichier plutôt qu'en data: URI.
+//
+// 2026-09-15 soir : v29, 134 grilles (+ Culture pop, École, 13 normales). 912 Ko
+// bruts / 266 Ko compressés : seuils relevés à 1,1 Mo et 320 Ko. Le fichier ne
+// part toujours pas au navigateur. La vraie piste — servir les pictogrammes par
+// fichier — exige des noms de fichier NEUTRES : equerre.svg, selfie.svg… disent
+// la réponse, et un chemin part au téléphone.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 850_000,
-  runtimeCatalogGzip: 260_000,
+  runtimeCatalog: 1_100_000,
+  runtimeCatalogGzip: 320_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,
