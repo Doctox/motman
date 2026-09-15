@@ -1,4 +1,4 @@
-import { botThinkingDelayMs, type BotSkill } from '../../../src/botOpponents.ts'
+import type { BotSkill } from '../../../src/botOpponents.ts'
 import { canUseHint, canUseReroll, hintCandidates } from '../../../src/gameRules.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { dailyGridIdFor, parisDateKey } from '../_shared/dailyCalendar.ts'
@@ -16,7 +16,6 @@ import { awardFinished, recordMatchHistory } from './awards.ts'
 import { nowIso, type MatchRow, type Pace } from './matchModel.ts'
 
 const MANUAL_SUBMIT_GRACE_MS = 2_000
-const AUTOMATIC_SUBMIT_GRACE_MS = 8_000
 // Doit rester égal au seuil de `server_create_bot_match_atomic` (migration
 // 20260914090000) : en dessous, le RPC répond `waiting` et rien ne se passe.
 const BOT_SEARCH_MS = 15_000
@@ -27,10 +26,11 @@ const BOT_SEARCH_MS = 15_000
 // Les dérivations de grille et la mécanique de tour vivent à côté :
 // `matchGrid.ts` et `matchTurns.ts`. Sorties d'ici pour devenir testables —
 // ce fichier démarre un serveur à l'import.
-import { ensureFinalSprintRacks, ensureSharedLetterBag, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
-import { applyTurn, botPlacements, finish, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
+import { ensureFinalSprintRacks, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
+import { applyTurn, finish, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, matchConflictResponse, profile, view } from './matchView.ts'
+import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
 import { atomicResult, botSkillForLevel, createBot, createMatch, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { loadPlayerStats } from './playerStats.ts'
@@ -74,33 +74,8 @@ Deno.serve(async request => {
       return (data ?? []) as MatchRow[]
     }
 
-    const resolveRow = async (row: MatchRow) => {
-      try {
-        if (row.status !== 'active') return row
-        if (row.paused_at) return row
-        const previousPlayerId = row.current_player_id
-        let turnAdvanced = false
-        const grid = await getGrid(admin, row.grid_id)
-        const rules = ruleGrid(grid)
-        const initializedBag = ensureSharedLetterBag(rules, row.state)
-        const initializedFinale = ensureFinalSprintRacks(rules, row.state)
-        if (row.state.bot?.playerId === row.current_player_id) {
-          const delay = botThinkingDelayMs(`${row.id}:${row.turn_number}`)
-          if (Date.now() >= new Date(row.turn_started_at).getTime() + delay) {
-            applyTurn(row, grid, row.current_player_id, botPlacements(row, grid)); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
-          }
-        } else if (Date.now() >= new Date(row.turn_ends_at).getTime() + AUTOMATIC_SUBMIT_GRACE_MS) {
-          timeoutTurn(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
-        } else if (initializedBag || initializedFinale) row = await persist(admin, row)
-        if (turnAdvanced && row.current_player_id !== previousPlayerId) notifyCurrentTurn(admin, row)
-        return row
-      } catch (error) {
-        // Polling, Realtime and a simultaneous action can all notice the same
-        // transition. The first write wins; readers simply continue from it.
-        if (error instanceof MatchStateConflictError) return error.latest
-        throw error
-      }
-    }
+    // Coup du bot en retard, tour dépassé : voir matchResolve.ts, partagé avec la tâche des rappels.
+    const resolveRow = (row: MatchRow) => resolveMatchRow(admin, row)
 
     if (action === 'ranked-state' || action === 'ranked-search') {
       if (action === 'ranked-search' && user.is_anonymous === true) {

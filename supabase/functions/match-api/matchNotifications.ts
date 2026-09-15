@@ -11,12 +11,17 @@
 import { queuePush, sendPushToUser } from '../_shared/pushNotifications.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import type { MatchRow, Pace } from './matchModel.ts'
+import { inQuietHours } from './matchReminders.ts'
 
 export function notifyCurrentTurn(admin: AdminClient, row: MatchRow): void {
   if (row.status !== 'active' || row.pace !== 'async' || row.state.bot?.playerId === row.current_player_id) return
+  // Un tour PASSÉ est désormais clos par la tâche des rappels, à toute heure :
+  // pas de notification la nuit pour ça, le rappel de 8 h prendra le relais.
+  const tourPasse = row.state.lastTurn?.kind === 'timeout'
+  if (tourPasse && inQuietHours(Date.now())) return
   queuePush(sendPushToUser(admin, row.current_player_id, {
     title: 'C’est à vous',
-    body: 'Votre adversaire a joué. À vous de compléter la grille.',
+    body: tourPasse ? 'Votre adversaire n’a pas joué à temps. À vous de compléter la grille.' : 'Votre adversaire a joué. À vous de compléter la grille.',
     data: { type: 'match_turn', matchId: row.id },
     tag: `match-${row.id}`,
   }))

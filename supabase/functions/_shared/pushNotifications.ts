@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-type PushMessage = {
+export type PushMessage = {
   title: string
   body: string
   data: Record<string, string>
