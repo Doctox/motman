@@ -55,7 +55,8 @@ describe('le catalogue réel (ou la fixture en CI), tel que le serveur l’envoi
           const reponse = reponses.get(entree.wordId) ?? ''
           if (Object.keys(entree.image).sort().join() !== 'alt,asset') fuites.push(`${entree.wordId} : champs ${Object.keys(entree.image).join(',')}`)
           if (entree.text) fuites.push(`${entree.wordId} : texte « ${entree.text} » sous une image`)
-          if (contientReponse(entree.image.alt, reponse)) fuites.push(`${entree.wordId} : alt « ${entree.image.alt} »`)
+          // Le libellé neutre est le même pour tous : qu'il contienne « AGE » (IMAGE) ne dit rien.
+          if (entree.image.alt !== ALT_NEUTRE && contientReponse(entree.image.alt, reponse)) fuites.push(`${entree.wordId} : alt « ${entree.image.alt} »`)
         }
       }
     }
