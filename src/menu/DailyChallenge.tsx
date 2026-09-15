@@ -158,7 +158,7 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
           <strong>Défi réussi</strong>
           <span className="mm-daily-hero-meta">
             <Flame aria-hidden="true" />{streakLabel(streak)}
-            <span className="mm-daily-dot" aria-hidden="true">·</span>nouvelle grille dans {countdown}
+            <span className="mm-daily-countdown">nouvelle grille dans {countdown}</span>
           </span>
         </div>
         <DailyShareHero day={day} />

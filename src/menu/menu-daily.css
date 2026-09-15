@@ -221,8 +221,17 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-share button svg { width: 18px; height: 18px; }
 .mm-daily-share p { min-height: 1.2em; margin: 0; color: var(--mm-muted); font-size: 0.8125rem; text-align: center; }
 .mm-daily-share p:empty { display: none; }
-.mm-daily-share.is-compact { margin: 0 0 0 auto; align-self: center; }
-.mm-daily-share.is-compact button { min-width: 112px; min-height: 36px; padding: 0 14px; font-size: 0.8125rem; box-shadow: none; }
+/* Accueil : une petite icône dans le coin haut droit de la carte « Défi réussi ». */
+.mm-daily-hero.is-done { position: relative; padding-right: 50px; }
+/* Le compte à rebours a sa propre ligne : un « · » restait seul en bout de ligne. */
+.mm-daily-countdown { flex-basis: 100%; }
+.mm-daily-share.is-compact { position: absolute; top: 8px; right: 8px; margin: 0; }
+.mm-daily-share.is-compact button {
+  width: 36px; min-height: 36px; height: 36px; padding: 0; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--mm-coral) 30%, var(--mm-line));
+  background: color-mix(in srgb, var(--mm-coral) 10%, var(--mm-surface)); color: var(--mm-coral); box-shadow: none;
+}
+.mm-daily-share.is-compact button svg { width: 17px; height: 17px; }
 /* Lu par les lecteurs d’écran seulement : le bouton compact montre « Copié ! ». */
 .mm-daily-share p.mm-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .mm-streak-freeze-note { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #8fb8d0 16%, var(--mm-surface)); color: var(--mm-ink); font-size: 0.75rem; line-height: 1.4; text-align: left; }
