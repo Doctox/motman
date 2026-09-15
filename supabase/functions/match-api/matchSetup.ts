@@ -71,6 +71,41 @@ export async function activeMatchesForPlayers(
   }))
 }
 
+type HistoriqueJoueur = { recent: string[]; counts: Record<string, number> }
+
+/**
+ * Tout ce que chaque joueur a joué : ses 5 dernières grilles (à éviter) et le
+ * nombre de parties par grille (la moins jouée d'abord, src/gridSelection.ts).
+ * Anciens identifiants rattachés aux grilles renommées, archive comprise
+ * (`server_player_grid_plays`, migration 20260915150000).
+ */
+async function historiquesJoueurs(admin: AdminClient, playerIds: string[]): Promise<HistoriqueJoueur[]> {
+  if (!playerIds.length) return []
+  const { data, error } = await Promise.resolve()
+    .then(() => admin.rpc('server_player_grid_plays', { p_user_ids: playerIds }))
+    .catch((raison: unknown) => ({ data: null, error: raison }))
+  if (!error && Array.isArray(data)) {
+    const lignes = data as Array<{ user_id: string; grid_id: string; plays: number | string; last_played_at: string | null }>
+    return playerIds.map(playerId => {
+      const miennes = lignes.filter(ligne => ligne.user_id === playerId)
+      return {
+        recent: [...miennes]
+          .sort((gauche, droite) => Date.parse(droite.last_played_at ?? '') - Date.parse(gauche.last_played_at ?? ''))
+          .slice(0, RECENT_GRID_AVOIDANCE_LIMIT)
+          .map(ligne => ligne.grid_id),
+        counts: Object.fromEntries(miennes.map(ligne => [ligne.grid_id, Number(ligne.plays) || 0])),
+      }
+    })
+  }
+  // Repli (fonction absente) : l'ancien tirage, 5 dernières grilles sans comptes.
+  return Promise.all(playerIds.map(async playerId => {
+    const { data: recentes } = await admin.from('grid_player_history')
+      .select('grid_id').eq('user_id', playerId)
+      .order('completed_at', { ascending: false }).limit(RECENT_GRID_AVOIDANCE_LIMIT)
+    return { recent: (recentes ?? []).map(item => item.grid_id as string), counts: {} }
+  }))
+}
+
 export async function chooseGrid(
   admin: AdminClient,
   seed: string,
@@ -79,12 +114,7 @@ export async function chooseGrid(
 ): Promise<CatalogGrid> {
   const [{ data: catalogRows }, histories, activeMatches] = await Promise.all([
     admin.from('server_grid_catalog').select('payload').eq('active', true).order('id'),
-    Promise.all(playerIds.map(async playerId => {
-      const { data } = await admin.from('grid_player_history')
-        .select('grid_id').eq('user_id', playerId)
-        .order('completed_at', { ascending: false }).limit(RECENT_GRID_AVOIDANCE_LIMIT)
-      return (data ?? []).map(item => item.grid_id as string)
-    })),
+    historiquesJoueurs(admin, playerIds),
     activeMatchesForPlayers(admin, playerIds, excludedMatchId),
   ])
   if (!catalogRows?.length) throw new Error('Le catalogue serveur est vide.')
@@ -96,7 +126,8 @@ export async function chooseGrid(
   const grids = normalRotationGrids(catalogRows.map(item => item.payload as CatalogGrid))
   return selectGridForPlayers({
     grids,
-    recentGridIdsByPlayer: histories,
+    recentGridIdsByPlayer: histories.map(historique => historique.recent),
+    playCountsByPlayer: histories.map(historique => historique.counts),
     activeGridIds: activeMatches.map(item => item.gridId),
     seed,
   }).grid

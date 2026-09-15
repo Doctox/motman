@@ -49,6 +49,14 @@ function answerSet(grid: SelectionGrid): Set<string> {
 /**
  * Selects a random grid while avoiding each human player's latest five plays.
  *
+ * LA MOINS JOUÉE D'ABORD (15/09/2026). Éviter les 5 dernières ne suffisait pas :
+ * une joueuse avait fait 43 parties sur 24 grilles seulement, 42 des 66 grilles
+ * ne lui étant jamais sorties. Parmi les grilles permises, on tire donc parmi
+ * celles que les joueurs ont le MOINS jouées (somme de leurs parties) : chacun
+ * fait le tour du catalogue avant de revoir une grille, et une grille neuve sort
+ * dès la partie suivante. Sans comptes (ancien serveur, hors ligne), le tirage
+ * reste celui d'avant.
+ *
  * Editorial validation happens before publication. Runtime answer cooldowns,
  * popularity and feedback must therefore never remove a published grid from
  * the playable pool.
@@ -56,11 +64,14 @@ function answerSet(grid: SelectionGrid): Set<string> {
 export function selectGridForPlayers<T extends SelectionGrid>({
   grids,
   recentGridIdsByPlayer,
+  playCountsByPlayer = [],
   activeGridIds = [],
   seed,
 }: {
   grids: readonly T[]
   recentGridIdsByPlayer: readonly (readonly string[])[]
+  /** Parties déjà jouées par grille, pour chaque joueur humain (identifiants actuels). */
+  playCountsByPlayer?: readonly Readonly<Record<string, number>>[]
   activeGridIds?: readonly string[]
   globalCooldownAnswers?: Iterable<string>
   popularity?: readonly GridPopularity[]
@@ -96,7 +107,10 @@ export function selectGridForPlayers<T extends SelectionGrid>({
   const occupancyPool = unoccupied.length ? unoccupied : [...grids]
   const fresh = occupancyPool.filter(grid => !recentIdSet.has(grid.id))
   const pool = fresh.length ? fresh : occupancyPool
-  const grid = pool[stableHash(seed) % pool.length]
+  const jouees = (gridId: string) => playCountsByPlayer.reduce((total, counts) => total + Math.max(0, counts[gridId] ?? 0), 0)
+  const minimum = Math.min(...pool.map(candidate => jouees(candidate.id)))
+  const moinsJouees = pool.filter(candidate => jouees(candidate.id) === minimum)
+  const grid = moinsJouees[stableHash(seed) % moinsJouees.length]
   let overlapCount = 0
   for (const answer of answerSet(grid)) {
     if ((recentAnswerFrequency.get(answer) ?? 0) > 0) overlapCount += 1

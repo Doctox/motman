@@ -59,6 +59,56 @@ describe('sélection anti-répétition des grilles', () => {
     expect(selected).toEqual(new Set(['overused', 'clean']))
   })
 
+  it('la moins jouée d’abord : une grille jamais jouée passe devant toutes les autres', () => {
+    const grids = Array.from({ length: 12 }, (_, index) => grid(`g${index}`, `MOT${index}`))
+    const counts = Object.fromEntries(grids.map(item => [item.id, 3]))
+    counts.g7 = 0
+    const tirees = new Set(Array.from({ length: 50 }, (_, index) => selectGridForPlayers({
+      grids, recentGridIdsByPlayer: [[]], playCountsByPlayer: [counts], seed: `neuve-${index}`,
+    }).grid.id))
+    expect(tirees).toEqual(new Set(['g7']))
+  })
+
+  it('à deux joueurs, compte les parties des deux', () => {
+    const grids = [grid('a', 'A'), grid('b', 'B'), grid('c', 'C')]
+    const moi = { a: 0, b: 2, c: 1 }
+    const ami = { a: 3, b: 0, c: 0 }
+    expect(selectGridForPlayers({ grids, recentGridIdsByPlayer: [[], []], playCountsByPlayer: [moi, ami], seed: 'duo' }).grid.id).toBe('c')
+  })
+
+  it('les 5 dernières restent écartées, même si elles sont les moins jouées', () => {
+    const grids = [grid('recente', 'A'), grid('autre', 'B')]
+    expect(selectGridForPlayers({
+      grids, recentGridIdsByPlayer: [['recente']], playCountsByPlayer: [{ recente: 0, autre: 9 }], seed: 'x',
+    }).grid.id).toBe('autre')
+  })
+
+  it('une joueuse fait le tour de 66 grilles avant d’en revoir une (43 parties : 43 grilles différentes)', () => {
+    // Le cas relevé en base le 15/09/2026 : 43 parties, 24 grilles seulement.
+    const grids = Array.from({ length: 66 }, (_, index) => grid(`g${index}`, `MOT${index}`))
+    const counts: Record<string, number> = {}
+    let recentes: string[] = []
+    const tirees: string[] = []
+    for (let partie = 0; partie < 132; partie += 1) {
+      const choisie = selectGridForPlayers({ grids, recentGridIdsByPlayer: [recentes], playCountsByPlayer: [counts], seed: `joueuse-${partie}` }).grid.id
+      tirees.push(choisie)
+      counts[choisie] = (counts[choisie] ?? 0) + 1
+      recentes = [choisie, ...recentes].slice(0, 5)
+    }
+    expect(new Set(tirees.slice(0, 43)).size).toBe(43)
+    expect(new Set(tirees.slice(0, 66)).size).toBe(66)
+    expect(Math.max(...Object.values(counts))).toBe(2)
+  })
+
+  it('sans comptes (ancien serveur, hors ligne), le tirage reste celui d’avant', () => {
+    const grids = Array.from({ length: 8 }, (_, index) => grid(`g${index}`, `MOT${index}`))
+    for (let index = 0; index < 20; index += 1) {
+      const seed = `ancien-${index}`
+      expect(selectGridForPlayers({ grids, recentGridIdsByPlayer: [['g1']], seed }).grid.id)
+        .toBe(selectGridForPlayers({ grids, recentGridIdsByPlayer: [['g1']], playCountsByPlayer: [], seed }).grid.id)
+    }
+  })
+
   it('retombe sur le catalogue complet lorsque tout a été joué', () => {
     const grids = [grid('a', 'UN'), grid('b', 'DEUX')]
     const result = selectGridForPlayers({
