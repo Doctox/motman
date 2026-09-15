@@ -15,7 +15,8 @@ for (let attempt = 1; attempt <= attempts; attempt += 1) {
     assert.equal(pageResponse.status, 200, `La page publiée répond avec le statut ${pageResponse.status}.`)
 
     const html = await pageResponse.text()
-    assert.match(html, /<title>MotMan<\/title>/i, 'Le titre MotMan est absent de la page publiée.')
+    // Le titre porte aussi les mots cherchés sur Google (15/09/2026) : « MotMan · Mots fléchés… ».
+    assert.match(html, /<title>MotMan\b[^<]*<\/title>/i, 'Le titre MotMan est absent de la page publiée.')
     assert.match(html, /<div\s+id=["']root["']><\/div>/, 'Le point de montage React est absent de la page publiée.')
     assert.ok(!/https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i.test(html), 'La page publiée contient une adresse locale.')
 
