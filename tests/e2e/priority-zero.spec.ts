@@ -700,6 +700,35 @@ test('tablette en portrait : la page s’agrandit, tient dans l’écran, et la 
   }
 })
 
+test('ordinateur portable : la partie tient dans l’écran, grille à gauche, lettre posée à la souris', async ({ browser, request }) => {
+  // game-desktop.css : sur 1366×657, chevalet et boutons étaient sous la ligne de flottaison.
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Portable')
+  const initial = await loadMatch(request, first.playerId, matchId)
+  const actor = initial.currentPlayerId === first.playerId ? first : second
+  const placement = playablePlacements(initial)[0]
+  const { context, page } = await openGame(browser, actor, matchId, { width: 1366, height: 657 })
+  try {
+    await expect(page.locator('.turn-ready-flash')).toBeHidden()
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBe(0)
+    const plateau = (await page.locator('.board').boundingBox())!
+    const chevalet = (await page.locator('.rack-area').boundingBox())!
+    const valider = (await page.locator('.turn-actions').boundingBox())!
+    expect(plateau.height).toBeGreaterThan(420)
+    expect(chevalet.x).toBeGreaterThan(plateau.x + plateau.width)
+    expect(valider.y + valider.height).toBeLessThanOrEqual(657)
+
+    const lettre = (await page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]`).first().boundingBox())!
+    const cellule = (await page.locator(`[data-cell="${placement.cellIndex}"]`).boundingBox())!
+    await page.mouse.move(lettre.x + lettre.width / 2, lettre.y + lettre.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(cellule.x + cellule.width / 2, cellule.y + cellule.height / 2, { steps: 10 })
+    await page.mouse.up()
+    await expect(page.locator(`[data-cell="${placement.cellIndex}"]`)).toContainText(placement.letter)
+  } finally {
+    await context.close()
+  }
+})
+
 test('après un tour manqué, « Tu es toujours là ? » remplace les étiquettes 1/3', async ({ browser, browserName, request }) => {
   test.skip(browserName !== 'chromium', 'La fenêtre est la même sur WebKit ; le chronométrage serveur est coûteux.')
   test.setTimeout(90_000)

@@ -1,0 +1,66 @@
+/* ── Partie sur ordinateur : la grille à gauche, le jeu à droite ─────────────
+   Sur un écran en largeur, la colonne de téléphone laissait les deux tiers de
+   l'écran vides, des définitions de 8 px, et une page à faire défiler pendant
+   la partie : sur un portable 1366×657, le chevalet et les boutons étaient
+   sous la ligne de flottaison (retour du 15/09/2026).
+   Ici, tout tient dans la hauteur de l'écran : la grille occupe toute la
+   hauteur à gauche ; scores, minuteur, lettres et boutons forment une colonne
+   à droite. Seulement sur le site (l'appli est un téléphone), sur un écran plus
+   large que haut, et pendant la partie — l'écran de résultat garde sa colonne. */
+@media (min-width: 900px) and (min-aspect-ratio: 5/4) {
+  /* Le body garde 24 px en haut et en bas (base) : la partie tient dans l'écran à 12 px. */
+  html:not(.native-runtime) body:has(.multiplayer-shell:not(.is-finished)) { padding-block: 12px; }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) {
+    display: grid;
+    /* La grille prend la largeur que sa hauteur lui donne (7 colonnes pour 8
+       rangées, sous l'en-tête) ; le bloc entier est centré dans l'écran. */
+    --desk-board: calc((100dvh - 150px) * .875);
+    --desk-side: clamp(330px, 26vw, 460px);
+    grid-template-columns: minmax(0, var(--desk-board)) var(--desk-side);
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "header header"
+      "board  ."
+      "board  score"
+      "board  rack"
+      "board  actions"
+      "board  error"
+      "board  .";
+    justify-content: center;
+    column-gap: clamp(24px, 3vw, 48px);
+    width: min(100%, calc(var(--desk-board) + var(--desk-side) + 48px + 2 * clamp(20px, 3vw, 40px)));
+    height: calc(100dvh - 24px);
+    min-height: 0;
+    margin: 0 auto;
+    padding: 12px clamp(20px, 3vw, 40px) 20px;
+    overflow: hidden;
+  }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > header { grid-area: header; }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .scoreboard { grid-area: score; margin-bottom: clamp(16px, 4dvh, 40px); }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .rack-area { grid-area: rack; }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .turn-actions { grid-area: actions; }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .duel-error { grid-area: error; }
+
+  /* La grille se règle sur sa zone, comme sur téléphone (game-actions.css). */
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .board-wrap {
+    grid-area: board;
+    container-type: size;
+    min-height: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .board-wrap > .board {
+    --cell-h: min(calc(100cqh / var(--board-rows, 8)), calc(100cqw / var(--board-columns, 7) * 1.15));
+    --cell-w: min(calc(100cqw / var(--board-columns, 7)), var(--cell-h));
+    width: calc(var(--cell-w) * var(--board-columns, 7));
+    height: calc(var(--cell-h) * var(--board-rows, 8));
+    aspect-ratio: auto;
+    max-width: 100%;
+    max-height: 100%;
+  }
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .board-wrap > .board .clue {
+    font-size: clamp(11px, calc(var(--cell-w) * .22), 20px) !important;
+  }
+}
