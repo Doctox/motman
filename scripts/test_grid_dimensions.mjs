@@ -45,9 +45,10 @@ try {
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
   if (reel) {
-    assert.equal(catalog.version, 27)
+    assert.equal(catalog.version, 28)
     assert.equal(catalog.grids.length, 111)
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 257)
+    // 257 en v27 ; la relecture complète (v28) retire 45 images refusées et en change 67 : 212.
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 212)
     // Les grilles à thème du défi du jour : 40 en v24, 45 avec « Corps humain » en v27.
     assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 45)
   }

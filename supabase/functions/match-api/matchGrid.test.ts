@@ -47,6 +47,24 @@ const GRILLE: CatalogGrid = {
 
 const index = ([ligne, colonne]: number[]) => ligne * COLONNES + colonne
 
+Deno.test('une définition en image ne part qu’avec son dessin et une description sans la réponse', () => {
+  // Relevé le 15/09/2026 : `concept`, `emoji`, `sourceAsset` et parfois `alt` et
+  // `clue` portaient la réponse, et partaient tels quels vers le téléphone.
+  const [premier, ...autres] = MOTS
+  const illustre = {
+    ...premier,
+    clue: premier.answer,
+    image: { asset: 'data:image/svg+xml;base64,AAAA', alt: premier.answer.toLowerCase(), concept: premier.answer, emoji: '🎂', sourceAsset: `/assets/clues/${premier.answer}.svg` },
+  }
+  const grille = publicGrid({ ...GRILLE, words: [illustre, ...autres] as CatalogGrid['words'] })
+  const envoye = JSON.stringify(grille)
+  verifie(!envoye.includes(premier.answer), 'la réponse ne doit apparaître nulle part dans la grille envoyée')
+  const entree = (grille.cells[index(premier.clueCell)] as { entries: Array<{ text: string; image?: Record<string, string> }> }).entries[0]
+  verifie(entree.text === '', 'aucun texte sous une image')
+  verifie(Object.keys(entree.image ?? {}).sort().join() === 'alt,asset', 'seulement asset et alt')
+  verifie(entree.image?.alt === 'Définition en image', 'description neutre quand elle dit la réponse')
+})
+
 Deno.test('une case noire reste noire dans la grille envoyée au joueur', () => {
   const grille = publicGrid(GRILLE)
   const compte = (kind: string) => grille.cells.filter(cell => cell.kind === kind).length

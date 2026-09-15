@@ -9,6 +9,7 @@
 // Rien n'a été réécrit : le corps est celui d'`index.ts`, déplacé tel quel.
 
 import { drawRackFromBag, prepareFinalSprintRacks, type GameRuleGrid, type GameRuleWord } from '../../../src/gameRules.ts'
+import { publicClueImage, publicClueText } from '../../../src/publicClue.ts'
 import type { CatalogGrid, CatalogWord, State } from './matchModel.ts'
 
 export function hash(text: string): number {
@@ -77,7 +78,10 @@ export function publicGrid(grid: CatalogGrid) {
     const clueIndex = word.clueCell[0] * columns + word.clueCell[1]
     const clue = cells[clueIndex]
     const entries = Array.isArray(clue.entries) ? clue.entries as unknown[] : []
-    entries.push({ text: word.clue ?? '', image: word.image, direction: word.direction, arrow: word.arrow ?? (word.direction === 'across' ? 'right' : 'down'), wordId: id })
+    // Le dessin et une description sans la réponse, rien d'autre (src/publicClue.ts).
+    const image = publicClueImage(word.image, word.answer)
+    const text = publicClueText(word)
+    entries.push({ text, image, direction: word.direction, arrow: word.arrow ?? (word.direction === 'across' ? 'right' : 'down'), wordId: id })
     clue.entries = entries
     for (const [row, col] of word.cells) {
       const cell = cells[row * columns + col]
@@ -85,7 +89,7 @@ export function publicGrid(grid: CatalogGrid) {
       wordIds.push(id); cell.wordIds = wordIds
     }
     const [row, col] = word.cells[0]
-    return { id, answer: '•'.repeat(word.answer.length), clue: word.clue ?? '', image: word.image, difficulty: 1, theme: 'catalogue', row, col, direction: word.direction, length: word.answer.length }
+    return { id, answer: '•'.repeat(word.answer.length), clue: text, image, difficulty: 1, theme: 'catalogue', row, col, direction: word.direction, length: word.answer.length }
   })
   return { id: grid.id, columns, rows, difficulty: 'normal', cells, words, seed: hash(grid.id), version: 'supabase-v1', validation: { valid: true, errors: [], score: 100 } }
 }

@@ -5,7 +5,8 @@ import { gridCellIndex, resolveGridDimensions, type GridDimensionsSource } from 
 export type Direction = 'across' | 'down'
 export type ArrowDirection = 'right' | 'down' | 'downright' | 'rightdown'
 export type GridDifficulty = 'easy' | 'normal' | 'hard'
-export type ClueImage = { asset: string; alt: string; source: string; license: string }
+// Ce que le serveur envoie d'une image (src/publicClue.ts) : source et licence restent au catalogue.
+export type ClueImage = { asset: string; alt: string; source?: string; license?: string }
 export type PlacedWord = { answer: string; clue: string; image?: ClueImage; difficulty: 1 | 2 | 3; theme: string; id: string; row: number; col: number; direction: Direction }
 export type ClueEntry = { text: string; image?: ClueImage; direction: Direction; arrow: ArrowDirection; wordId: string }
 export type GeneratedCell =

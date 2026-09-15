@@ -17,6 +17,7 @@
     "vite.config.ts",
     "src/gridCatalogPolicy.ts",
     "src/gridDimensions.ts",
+    "src/publicClue.ts",
     "src/gameRules.ts",
     "src/botOpponents.ts",
     "src/playerNamePolicy.ts",

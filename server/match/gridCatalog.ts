@@ -2,6 +2,7 @@ import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
 import { isCatalogGridPlayable } from '../../src/gridCatalogPolicy'
 import { gridCellIndex, resolveGridDimensions } from '../../src/gridDimensions'
 import { gameWordCellIndexes, type GameRuleGrid, type GameRuleWord } from '../../src/gameRules'
+import { publicClueImage, publicClueText } from '../../src/publicClue'
 import type { CatalogGrid, CatalogWord } from './types'
 
 // Lu sur le disque et non importé : ce module est chargé par `vite.config.ts`
@@ -84,8 +85,11 @@ export function publicGrid(grid: CatalogGrid) {
     const clueIndex = gridCellIndex({ columns, rows }, word.clueCell[0], word.clueCell[1])
     const clueCell = cells[clueIndex]
     const entries = Array.isArray(clueCell.entries) ? clueCell.entries as unknown[] : []
+    // Même règle que match-api : le dessin et une description sans la réponse.
+    const image = publicClueImage(word.image, word.answer)
+    const text = publicClueText(word)
     entries.push({
-      text: word.clue ?? '', image: word.image, direction: word.direction,
+      text, image, direction: word.direction,
       arrow: word.arrow ?? (word.direction === 'across' ? 'right' : 'down'), wordId: id,
     })
     clueCell.entries = entries
@@ -97,7 +101,7 @@ export function publicGrid(grid: CatalogGrid) {
     }
     const [row, col] = word.cells[0]
     return {
-      id, answer: '•'.repeat(word.answer.length), clue: word.clue ?? '', image: word.image,
+      id, answer: '•'.repeat(word.answer.length), clue: text, image,
       difficulty: 1, theme: 'catalogue', row, col, direction: word.direction, length: word.answer.length,
     }
   })

@@ -35,3 +35,9 @@ ci-dessous.
 
 - Game Icons : https://github.com/game-icons/icons
 - Licence graphique : https://creativecommons.org/licenses/by/3.0/
+
+Le pictogramme `public/assets/clues/custom/tpe-paiement.svg` (terminal de
+paiement) provient de Streamline et est distribué sous licence CC BY 4.0.
+
+- Streamline : https://github.com/webalys-hq/streamline-vectors
+- Licence graphique : https://creativecommons.org/licenses/by/4.0/
