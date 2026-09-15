@@ -12,6 +12,12 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "set VITE_MOTMAN_LOCAL_TEST_SERVER=true&& npm run dev -- --port 4176 --strictPort"],
       "port": 4176
+    },
+    {
+      "name": "motman-dist",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set GITHUB_REPOSITORY=Doctox/motman&& npx vite preview --port 4180 --strictPort"],
+      "port": 4180
     }
   ]
 }

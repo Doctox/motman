@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mots fléchés en duel, gratuits en ligne · MotMan</title>
+<meta name="description" content="MotMan : les mots fléchés à deux sur la même grille, contre un ami, un joueur ou un bot. Défi du jour à thème, classement et séries. Gratuit, sans publicité, sur téléphone, tablette et ordinateur.">
+<link rel="canonical" href="https://www.doctox.fr/motman/mots-fleches-en-duel/">
+<meta name="theme-color" content="#073f36">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MotMan">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Mots fléchés en duel · MotMan">
+<meta property="og:description" content="Une grille, deux joueurs. Et chaque jour, un défi à thème. Gratuit et sans publicité.">
+<meta property="og:url" content="https://www.doctox.fr/motman/mots-fleches-en-duel/">
+<meta property="og:image" content="https://www.doctox.fr/motman/assets/social/motman-partage.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="MotMan, mots fléchés en duel : une grille partagée entre deux joueurs">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"MotMan","url":"https://www.doctox.fr/motman/","image":"https://www.doctox.fr/motman/assets/social/motman-partage.jpg","description":"Jeu de mots fléchés en duel : deux joueurs partagent la même grille. Défi du jour à thème, classement, parties entre amis.","inLanguage":"fr","genre":["Mots fléchés","Jeu de lettres"],"playMode":["MultiPlayer","SinglePlayer"],"gamePlatform":["Navigateur web","Android"],"applicationCategory":"GameApplication","operatingSystem":"Web, Android","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
+<style>
+@font-face{font-family:'DM Sans';src:url('../assets/fonts/dm-sans-latin-variable.woff2') format('woff2');font-weight:100 1000;font-display:swap}
+@font-face{font-family:'Playfair Display';src:url('../assets/fonts/playfair-display-latin-variable.woff2') format('woff2');font-weight:400 900;font-display:swap}
+:root{--ink:#073f36;--ink-soft:#24594f;--muted:#5f6b67;--paper:#fffaf0;--surface:#fffdf8;--terra:#c94d29;--sage:#e8ece2;--line:#d7d1c2;--vous:#eaf5ee;--adv:#fff0e9}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font:16px/1.6 'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--paper)}
+a{color:inherit}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;line-height:1.1;margin:0}
+.largeur{width:min(100% - 40px,1040px);margin-inline:auto}
+.bandeau{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bandeau .largeur{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px}
+.bandeau img{display:block;width:150px;height:auto}
+.bouton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:999px;background:var(--ink);color:var(--paper);font-weight:800;text-decoration:none;box-shadow:0 8px 20px #173b3026;transition:transform .15s ease,box-shadow .15s ease}
+.bouton:hover{transform:translateY(-1px);box-shadow:0 12px 26px #173b3033}
+.bouton.petit{min-height:40px;padding:0 18px;font-size:.9375rem}
+.accroche{padding:56px 0 64px;background:radial-gradient(circle at 80% 30%,var(--surface),var(--paper) 45%,#f3ecdc)}
+.accroche .largeur{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:48px}
+.surtitre{margin:0 0 14px;color:var(--terra);font-size:.8125rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.accroche h1{font-size:clamp(2.5rem,6vw,4.25rem);font-weight:800}
+.intro{margin:20px 0 28px;font-size:1.1875rem;color:var(--ink-soft);max-width:34em}
+.precision{margin:12px 0 0;font-size:.875rem;color:var(--muted)}
+.jeu{display:grid;gap:12px;justify-self:center;width:min(100%,420px);transform:rotate(-2deg)}
+.scores{display:flex;justify-content:space-between;font-weight:800;font-size:.9375rem}
+.scores span{padding:6px 14px;border-radius:999px;color:var(--paper)}
+.scores .vous{background:var(--ink)}.scores .adv{background:var(--terra)}
+.grille{display:grid;grid-template-columns:repeat(5,1fr);border:3px solid var(--ink);border-radius:16px;overflow:hidden;background:var(--surface);box-shadow:0 22px 50px #173b3029}
+.grille span{aspect-ratio:1;display:grid;place-items:center;border-right:1px solid #b8b6aa;border-bottom:1px solid #b8b6aa;font:700 clamp(1.5rem,5vw,2.25rem)/1 'Playfair Display',serif}
+.grille span:nth-child(5n){border-right:0}
+.grille span:nth-last-child(-n+5){border-bottom:0}
+.grille .clue{position:relative;padding:4px 14px 4px 4px;background:var(--sage);color:var(--ink-soft);font:700 clamp(.625rem,1.8vw,.8125rem)/1.1 'DM Sans',sans-serif;text-align:center}
+.grille .clue::after{content:'→';position:absolute;right:3px;top:50%;translate:0 -50%;color:var(--ink);font-size:1.1em}
+.grille .vous{background:var(--vous);color:var(--ink)}
+.grille .adv{background:var(--adv);color:var(--terra)}
+section{padding:64px 0;scroll-margin-top:64px}
+section h2{font-size:clamp(1.875rem,4vw,2.625rem);font-weight:800;margin-bottom:12px}
+.chapeau{margin:0 0 32px;color:var(--ink-soft);font-size:1.0625rem;max-width:40em}
+.cartes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.cartes.quatre{grid-template-columns:repeat(4,1fr)}
+.carte{padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:0 10px 30px #49391f0a}
+.carte h3{font-size:1.3125rem;margin-bottom:8px}
+.carte p{margin:0;color:var(--muted);font-size:.9375rem}
+.numero{display:grid;place-items:center;width:36px;height:36px;margin-bottom:14px;border-radius:50%;background:var(--ink);color:var(--paper);font-weight:800}
+.carte .etiquette{display:inline-block;margin-bottom:10px;padding:3px 10px;border-radius:999px;background:var(--sage);color:var(--ink-soft);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.alterne{background:var(--surface);border-block:1px solid var(--line)}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.liste{margin:0;padding:0;list-style:none;display:grid;gap:14px}
+.liste li{position:relative;padding-left:30px;color:var(--ink-soft)}
+.liste li::before{content:'';position:absolute;left:0;top:.45em;width:16px;height:16px;border-radius:5px;background:var(--terra)}
+.liste strong{color:var(--ink)}
+.defi{display:grid;gap:6px;justify-self:center;width:min(100%,380px);padding:28px;border-radius:24px;background:var(--ink);color:var(--paper);box-shadow:0 22px 50px #173b3033;transform:rotate(1.5deg)}
+.defi .etiquette{justify-self:start;padding:3px 10px;border-radius:999px;background:#ffffff1f;color:#cfe3db;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.defi strong{margin-top:8px;font:800 2.25rem/1.1 'Playfair Display',Georgia,serif}
+.defi .sous{margin-bottom:12px;color:#cfe3db;font-size:.9375rem}
+.defi-ligne{display:flex;align-items:baseline;gap:10px;padding:12px 16px;border-radius:14px;background:#ffffff14}
+.defi-ligne b{font-size:1.25rem}
+.defi-ligne span{color:#cfe3db}
+.intertitre{margin:44px 0 16px;font-size:1.5rem}
+.rythmes{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.rythme{padding:20px 22px;border-radius:18px;background:var(--surface);border:1px solid var(--line)}
+.rythme strong{display:block;font-family:'Playfair Display',Georgia,serif;font-size:1.375rem}
+.rythme span{color:var(--muted);font-size:.9375rem}
+.questions{display:grid;gap:12px;max-width:760px}
+details{border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+summary{cursor:pointer;padding:18px 22px;font-weight:800;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';color:var(--terra);font-size:1.4em;line-height:1}
+details[open] summary::after{content:'–'}
+details p{margin:0;padding:0 22px 20px;color:var(--ink-soft)}
+.final{text-align:center;background:var(--ink);color:var(--paper)}
+.final h2{color:var(--paper)}
+.final p{margin:0 auto 28px;max-width:32em;color:#cfe3db}
+.final .bouton{background:var(--paper);color:var(--ink)}
+footer{padding:28px 0 40px;font-size:.875rem;color:var(--muted)}
+footer .largeur{display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:space-between}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 18px}
+footer a{color:var(--ink-soft)}
+@media (max-width:820px){
+  .accroche{padding:36px 0 48px}
+  .accroche .largeur,.deux{grid-template-columns:1fr;gap:36px}
+  .cartes,.cartes.quatre,.rythmes{grid-template-columns:1fr}
+  section{padding:48px 0}
+  .bouton:not(.petit){width:100%}
+}
+@media (min-width:821px) and (max-width:1020px){.cartes.quatre{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bouton{transition:none}}
+</style>
+</head>
+<body>
+<header class="bandeau">
+  <div class="largeur">
+    <a href="../" aria-label="MotMan, ouvrir le jeu"><img src="../assets/motman-logo-v2.webp" alt="MotMan" width="150" height="33"></a>
+    <a class="bouton petit" href="../">Jouer</a>
+  </div>
+</header>
+
+<main>
+  <div class="accroche">
+    <div class="largeur">
+      <div>
+        <p class="surtitre">Jeu de mots fléchés gratuit</p>
+        <h1>Les mots fléchés, en duel</h1>
+        <p class="intro">Sur MotMan, vous partagez la même grille qu’un autre joueur. Chaque lettre juste colore une case à votre nom&nbsp;: à la fin, le meilleur score l’emporte.</p>
+        <a class="bouton" href="../">Jouer maintenant</a>
+        <p class="precision">Gratuit, sans publicité, sans rien télécharger. On joue tout de suite, sans inscription.</p>
+      </div>
+      <div class="jeu" aria-hidden="true">
+        <div class="scores"><span class="vous">Vous · 12</span><span class="adv">Adversaire · 9</span></div>
+        <div class="grille">
+          <span class="clue">Combat</span><span class="vous">D</span><span class="vous">U</span><span class="adv">E</span><span class="adv">L</span>
+          <span class="clue">Termes</span><span class="adv">M</span><span></span><span class="vous">T</span><span></span>
+          <span class="clue">Copine</span><span class="vous">A</span><span class="vous">M</span><span></span><span class="adv">E</span>
+          <span class="clue">Parties</span><span></span><span class="adv">E</span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="principe">
+    <div class="largeur">
+      <h2>Comment ça marche&nbsp;?</h2>
+      <p class="chapeau">Les règles des mots fléchés que vous connaissez, avec un adversaire en face. Une partie se joue tour à tour.</p>
+      <div class="cartes">
+        <article class="carte">
+          <div class="numero">1</div>
+          <h3>Suivez les flèches</h3>
+          <p>Les cases colorées donnent les définitions. La flèche indique où commence la réponse et dans quel sens elle se lit. Une définition trop petite&nbsp;? Touchez-la pour la lire en grand.</p>
+        </article>
+        <article class="carte">
+          <div class="numero">2</div>
+          <h3>Posez vos lettres</h3>
+          <p>À chaque tour, cinq lettres attendent sur votre chevalet. Posez-les dans les cases, puis validez. Cinq lettres justes au même tour, sans indice&nbsp;: 5 points de bonus.</p>
+        </article>
+        <article class="carte">
+          <div class="numero">3</div>
+          <h3>Marquez plus que l’autre</h3>
+          <p>Chaque lettre juste rapporte des points et prend la couleur de celui qui l’a trouvée. Quand la grille est remplie, le meilleur score gagne la partie.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="defi-du-jour" class="alterne">
+    <div class="largeur deux">
+      <div>
+        <h2>Le défi du jour</h2>
+        <p class="chapeau">Chaque jour, une nouvelle grille à thème, la même pour tout le monde jusqu’à minuit&nbsp;: les animaux, le corps humain, l’école, la culture pop…</p>
+        <ul class="liste">
+          <li><strong>Battez le bot du jour</strong> et comparez votre score au classement de la journée.</li>
+          <li><strong>Faites grimper votre série</strong> en gagnant jour après jour&nbsp;: toutes les 7 victoires, un cadeau.</li>
+          <li><strong>Lancez le défi à vos proches</strong> en partageant votre résultat.</li>
+        </ul>
+      </div>
+      <div class="defi" aria-hidden="true">
+        <span class="etiquette">Défi du jour</span>
+        <strong>Les animaux</strong>
+        <span class="sous">La même grille pour tout le monde, jusqu’à minuit</span>
+        <div class="defi-ligne"><b>🔥 7 jours</b><span>de série</span></div>
+        <div class="defi-ligne"><b>🥈 2e</b><span>sur 7 joueurs aujourd’hui</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="modes">
+    <div class="largeur">
+      <h2>Quatre façons de jouer</h2>
+      <p class="chapeau">Pour s’entraîner tranquillement ou pour grimper au classement.</p>
+      <div class="cartes quatre">
+        <article class="carte"><span class="etiquette">Seul</span><h3>Solo</h3><p>Contre un bot, pour vous entraîner à votre rythme.</p></article>
+        <article class="carte"><span class="etiquette">Sans enjeu</span><h3>Normal</h3><p>Contre un joueur tiré au hasard, sans toucher à votre classement.</p></article>
+        <article class="carte"><span class="etiquette">Compétition</span><h3>Classé</h3><p>Contre un joueur de votre niveau&nbsp;: vos points montent ou descendent.</p></article>
+        <article class="carte"><span class="etiquette">En famille</span><h3>Entre amis</h3><p>Invitez un proche à une partie, et jouez chacun sur son téléphone.</p></article>
+      </div>
+      <h3 class="intertitre">Et choisissez votre rythme</h3>
+      <div class="rythmes">
+        <div class="rythme"><strong>Temps limité</strong><span>45 secondes par tour, pour une partie rapide.</span></div>
+        <div class="rythme"><strong>Temps illimité</strong><span>24 heures par tour&nbsp;: jouez un coup, revenez plus tard, la partie vous attend sur l’accueil.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="appareils" class="alterne">
+    <div class="largeur deux">
+      <div>
+        <h2>Sur téléphone, tablette et ordinateur</h2>
+        <p class="chapeau">MotMan se joue directement dans le navigateur. Rien à installer, mais vous pouvez l’ajouter à l’écran d’accueil pour l’ouvrir comme une application.</p>
+      </div>
+      <ul class="liste">
+        <li><strong>Grand sur tablette&nbsp;:</strong> la grille occupe tout l’écran, les lettres sont faciles à lire.</li>
+        <li><strong>Des définitions pour tous&nbsp;:</strong> relues une à une, avec des mots de tous les jours et parfois une image pour indice.</li>
+        <li><strong>Votre progression vous suit&nbsp;:</strong> liez un compte Google ou une adresse e-mail pour retrouver niveau et série sur un autre appareil.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="questions">
+    <div class="largeur">
+      <h2>Questions fréquentes</h2>
+      <p class="chapeau">Tout ce qu’il faut savoir avant la première grille.</p>
+      <div class="questions">
+        <details><summary>MotMan est-il vraiment gratuit&nbsp;?</summary><p>Oui. MotMan est gratuit et n’affiche aucune publicité. Les plumes gagnées en jouant servent à personnaliser votre profil&nbsp;: avatar, cadre, titre.</p></details>
+        <details><summary>Faut-il créer un compte&nbsp;?</summary><p>Non, vous jouez tout de suite en invité. Un compte, Google ou par e-mail, sert seulement à garder votre progression d’un appareil à l’autre.</p></details>
+        <details><summary>Peut-on jouer seul&nbsp;?</summary><p>Oui&nbsp;: le mode Solo et le défi du jour se jouent contre un bot, à toute heure.</p></details>
+        <details><summary>Comment jouer avec un ami&nbsp;?</summary><p>Ajoutez-le à vos amis dans MotMan, puis invitez-le à une partie. En temps illimité, chacun joue son tour quand il a un moment.</p></details>
+        <details><summary>Quelle différence avec des mots fléchés classiques&nbsp;?</summary><p>La grille et les définitions sont les mêmes, mais vous n’êtes pas seul devant&nbsp;: chaque case trouvée l’est pour vous, pas pour votre adversaire. Il faut aller vite, et bien choisir où poser ses lettres.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="largeur">
+      <h2>Prêt pour votre premier duel&nbsp;?</h2>
+      <p>Une grille vous attend, et le défi du jour change à minuit.</p>
+      <a class="bouton" href="../">Jouer à MotMan</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="largeur">
+    <span>MotMan, un jeu indépendant · <a href="mailto:contact@doctox.fr">contact@doctox.fr</a></span>
+    <nav aria-label="Informations"><a href="../legal/confidentialite.html">Confidentialité</a><a href="../legal/conditions.html">Conditions</a><a href="../legal/credits.html">Crédits</a></nav>
+  </div>
+</footer>
+</body>
+</html>

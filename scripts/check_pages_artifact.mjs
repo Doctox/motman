@@ -42,4 +42,43 @@ for (const documentName of legalDocuments) {
 
 assert.ok(existsSync(resolve(legalDirectory, 'legal.css')), 'Feuille de style légale absente du build.')
 
-console.log(`Artefact GitHub Pages valide : base ${expectedBase}, ${assets.length} ressources CSS/JS et ${legalDocuments.length} documents légaux vérifiés.`)
+// ── Référencement (15/09/2026) ──────────────────────────────────────────────
+// index.html, la page de présentation et sitemap.xml citent des adresses
+// ABSOLUES du site public. Un fichier renommé ou oublié ne casse rien à l'écran :
+// l'aperçu WhatsApp devient vide, ou Google lit une page 404. D'où ce contrôle.
+const SITE_PUBLIC = 'https://www.doctox.fr/motman/'
+const fichierPublic = adresse => {
+  assert.ok(adresse.startsWith(SITE_PUBLIC), `Adresse hors du site public : ${adresse}`)
+  const chemin = adresse.slice(SITE_PUBLIC.length)
+  return resolve(distributionDirectory, chemin === '' || chemin.endsWith('/') ? `${chemin}index.html` : chemin)
+}
+const meta = (page, attribut, nom) => page.match(new RegExp(`<meta ${attribut}="${nom}" content="([^"]+)"`))?.[1]
+
+const pagesReferencees = [
+  { nom: 'index.html', html, adresse: SITE_PUBLIC },
+  { nom: 'mots-fleches-en-duel/index.html', adresse: `${SITE_PUBLIC}mots-fleches-en-duel/` },
+]
+for (const page of pagesReferencees) {
+  const chemin = resolve(distributionDirectory, page.nom)
+  assert.ok(existsSync(chemin), `Page publique absente du build : ${page.nom}`)
+  const contenu = page.html ?? readFileSync(chemin, 'utf8')
+  assert.equal(contenu.match(/<link rel="canonical" href="([^"]+)"/)?.[1], page.adresse, `Adresse canonique inattendue : ${page.nom}`)
+  assert.ok(meta(contenu, 'name', 'description'), `Description absente : ${page.nom}`)
+  const image = meta(contenu, 'property', 'og:image')
+  assert.ok(image && existsSync(fichierPublic(image)), `Image d’aperçu introuvable dans le build : ${page.nom} → ${image}`)
+}
+
+const presentation = readFileSync(resolve(distributionDirectory, 'mots-fleches-en-duel/index.html'), 'utf8')
+for (const [, reference] of presentation.matchAll(/\b(?:src|href)=["']([^"']+)["']/g)) {
+  if (/^(?:https?:|mailto:|#)/i.test(reference)) continue
+  assert.ok(!reference.startsWith('/'), `Chemin absolu incompatible avec GitHub Pages : mots-fleches-en-duel → ${reference}`)
+  const cible = resolve(distributionDirectory, 'mots-fleches-en-duel', reference.replace(/[?#].*$/, ''))
+  assert.ok(existsSync(reference.endsWith('/') ? resolve(cible, 'index.html') : cible), `Lien cassé : mots-fleches-en-duel → ${reference}`)
+}
+
+const sitemap = readFileSync(resolve(distributionDirectory, 'sitemap.xml'), 'utf8')
+const adressesSitemap = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1])
+assert.ok(adressesSitemap.length >= pagesReferencees.length, 'sitemap.xml ne liste pas les pages publiques.')
+for (const adresse of adressesSitemap) assert.ok(existsSync(fichierPublic(adresse)), `sitemap.xml cite une page absente du build : ${adresse}`)
+
+console.log(`Artefact GitHub Pages valide : base ${expectedBase}, ${assets.length} ressources CSS/JS, ${legalDocuments.length} documents légaux et ${adressesSitemap.length} pages du plan du site vérifiés.`)
