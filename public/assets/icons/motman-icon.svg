@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icône MotMan : le « O » en quadrillage du logo, case terracotta en bas à droite.
+       Fond plein bord à bord : iOS et Android arrondissent eux-mêmes. -->
+  <rect width="512" height="512" fill="#fffaf0"/>
+  <g transform="translate(256 256)">
+    <rect x="-170" y="-170" width="340" height="340" rx="84" fill="#073f36"/>
+    <path d="M-142 -98a44 44 0 0 1 44-44h84v128h-128z" fill="#fffaf0"/>
+    <path d="M14 -142h84a44 44 0 0 1 44 44v84h-128z" fill="#fffaf0"/>
+    <path d="M-142 14h128v128h-84a44 44 0 0 1-44-44z" fill="#fffaf0"/>
+    <path d="M14 14h128v84a44 44 0 0 1-44 44h-84z" fill="#c8502d"/>
+  </g>
+</svg>

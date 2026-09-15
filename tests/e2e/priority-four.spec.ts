@@ -202,3 +202,39 @@ test('le mode classé affiche son emblème et explique la recherche en arrière-
   await page.waitForTimeout(500)
   await page.screenshot({ path: `output/quality/ranked-mode-${testInfo.project.name}.png`, fullPage: false })
 })
+
+test('le site est installable : manifeste, icônes, et Chrome ne relève aucune erreur', async ({ page, context, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Le diagnostic d’installation passe par le protocole de Chromium.')
+  await page.goto('/')
+  const lien = await page.locator('link[rel="manifest"]').getAttribute('href')
+  expect(lien).toBeTruthy()
+  const manifeste = await (await page.request.get(new URL(lien!, page.url()).toString())).json() as { display: string; icons: Array<{ src: string; sizes: string; purpose: string }> }
+  expect(manifeste.display).toBe('standalone')
+  for (const icone of manifeste.icons) {
+    const reponse = await page.request.get(new URL(icone.src, new URL(lien!, page.url())).toString())
+    expect(reponse.ok(), icone.src).toBe(true)
+    expect(reponse.headers()['content-type']).toContain('image/png')
+  }
+  const cdp = await context.newCDPSession(page)
+  await expect.poll(async () => (await cdp.send('Page.getInstallabilityErrors')).installabilityErrors.map(erreur => erreur.errorId)).toEqual([])
+})
+
+test('sur iPhone, les paramètres expliquent comment installer, et préviennent l’invité', async ({ browser, browserName }) => {
+  test.skip(browserName !== 'chromium', 'Un seul moteur suffit : la détection repose sur l’identité du navigateur.')
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+  })
+  await context.addInitScript(() => localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' })))
+  const page = await context.newPage()
+  try {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Paramètres' }).first().click()
+    await page.getByRole('button', { name: /Installer MotMan/ }).click()
+    await expect(page.locator('.mm-install-steps')).toContainText('Sur l’écran d’accueil')
+    await expect(page.locator('.mm-install-warning')).toContainText('repart de zéro')
+    await page.locator('.mm-settings').screenshot({ path: 'output/quality/installer-iphone.png' })
+  } finally {
+    await context.close()
+  }
+})

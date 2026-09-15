@@ -11,6 +11,7 @@ import type { LiveUpdateManifest } from './liveUpdateManifest'
 import { installPressFeedback } from './pressFeedback'
 import { installStaleDeployRecovery } from './staleDeployRecovery'
 import { installTabletViewport } from './tabletViewport'
+import { installInstallPromptCapture } from './installApp'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
 // de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
@@ -20,6 +21,8 @@ installStaleDeployRecovery()
 installPressFeedback()
 // Tablette en portrait : la page s'agrandit jusqu'à la taille de l'écran. Voir tabletViewport.ts.
 installTabletViewport()
+// L'annonce d'installation du navigateur arrive tôt et une seule fois : on la garde. Voir installApp.ts.
+installInstallPromptCapture()
 
 // Le thème AVANT la première image : l'écran de lancement doit déjà être sombre
 // pour qui a choisi le sombre. Le menu le repose ensuite, avec la même règle.

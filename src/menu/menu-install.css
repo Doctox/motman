@@ -1,0 +1,18 @@
+/* « Installer MotMan » dans les paramètres (InstallAppRow.tsx). */
+.mm-install .mm-settings-link svg.is-open { rotate: 90deg; }
+.mm-settings-link svg:last-child { transition: rotate 160ms ease; }
+.mm-install-steps { padding: 10px 2px 14px; border-bottom: 1px solid var(--mm-line); }
+.mm-install-steps ol { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.mm-install-steps li { display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--mm-ink); }
+.mm-install-steps li > svg { width: 20px; height: 20px; justify-self: center; color: var(--mm-ink); }
+.mm-install-icon {
+  width: 24px; height: 24px; justify-self: center; border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--mm-line);
+}
+.mm-install-warning {
+  display: grid; grid-template-columns: 22px 1fr; gap: 8px; margin: 0 0 12px; padding: 10px 12px;
+  border-radius: 12px; background: color-mix(in srgb, var(--mm-coral) 12%, var(--mm-surface));
+  color: var(--mm-ink); font-size: 0.75rem; line-height: 1.4;
+}
+.mm-install-warning svg { width: 18px; height: 18px; margin-top: 1px; color: var(--mm-coral); }
+.mm-install-warning button { padding: 0; border: 0; background: none; color: var(--mm-coral); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }

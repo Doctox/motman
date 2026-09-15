@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "MotMan",
+  "short_name": "MotMan",
+  "description": "Mots fléchés en duel : défi du jour, amis, classement.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "./?source=installation",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffaf0",
+  "theme_color": "#073f36",
+  "categories": ["games", "education", "entertainment"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
