@@ -16,6 +16,15 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         /*
+         * Mode tablette (src/tabletViewport.ts) : en portrait, la page annonce
+         * "width=640" et la WebView l'agrandit pour remplir l'écran. Sans ces
+         * deux réglages, la WebView ignore la largeur annoncée. Sur téléphone
+         * la page reste en "width=device-width" : rien ne change.
+         */
+        getBridge().getWebView().getSettings().setUseWideViewPort(true);
+        getBridge().getWebView().getSettings().setLoadWithOverviewMode(true);
+
+        /*
          * Android 15+ draws applications behind the status and navigation bars.
          * Shrink the interactive WebView viewport so MotMan controls never sit
          * below the system UI, with gesture and three-button navigation alike.

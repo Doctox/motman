@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './tokens.css'
 import './base.css'
+import './tablet.css'
 import { isNativeRuntime } from './nativeRuntime'
 import { AppErrorBoundary } from './AppErrorBoundary'
 import { LaunchScreen } from './LaunchScreen'
@@ -9,6 +10,7 @@ import { downloadStalled, UPDATE_CHECK_LIMIT_MS, type LaunchStage } from './laun
 import type { LiveUpdateManifest } from './liveUpdateManifest'
 import { installPressFeedback } from './pressFeedback'
 import { installStaleDeployRecovery } from './staleDeployRecovery'
+import { installTabletViewport } from './tabletViewport'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
 // de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
@@ -16,6 +18,8 @@ installStaleDeployRecovery()
 // Retour d'appui immediat : sur Android, `:active` arrive apres l'heuristique
 // de defilement de Chrome, et le flash natif est desactive. Voir pressFeedback.ts.
 installPressFeedback()
+// Tablette en portrait : la page s'agrandit jusqu'à la taille de l'écran. Voir tabletViewport.ts.
+installTabletViewport()
 
 // Le thème AVANT la première image : l'écran de lancement doit déjà être sombre
 // pour qui a choisi le sombre. Le menu le repose ensuite, avec la même règle.

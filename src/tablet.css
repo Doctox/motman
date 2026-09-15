@@ -1,0 +1,38 @@
+/* ── Mode tablette (tabletViewport.ts) ────────────────────────────────────────
+   En portrait, le navigateur agrandit la page jusqu'à l'écran : ici, les
+   colonnes dessinées pour 430 px prennent toute la largeur annoncée. Pas en
+   paysage : la page y garde la largeur de l'écran, une colonne étirée sur
+   1 024 px ne ressemblerait plus à rien. La grille, elle, se règle déjà
+   sur la hauteur libre (game-actions.css) et grandit sans rien de plus.
+   `html.is-tablet.is-tablet` : ces règles sont chargées AVANT les feuilles du
+   jeu et du menu, elles doivent donc gagner par la spécificité. */
+html.is-tablet:not(.is-tablet-landscape) .app-shell,
+html.is-tablet:not(.is-tablet-landscape) .mm-shell,
+html.is-tablet:not(.is-tablet-landscape) .mm-settings,
+html.is-tablet:not(.is-tablet-landscape) .mm-friends-panel,
+html.is-tablet:not(.is-tablet-landscape) .app-loading,
+html.is-tablet:not(.is-tablet-landscape) .app-update-required { width: 100%; }
+
+/* Les définitions : la case est plus grande, le texte peut l'être aussi. Le
+   plafond de 14 px est pensé pour un téléphone tenu près des yeux ; une
+   tablette posée sur la table se lit de plus loin. clueAutoFit réduit ensuite
+   ce qui ne tient pas. */
+html.is-tablet:not(.is-tablet-landscape) .multiplayer-shell:not(.is-finished) > .board-wrap > .board .clue {
+  font-size: clamp(11px, calc(var(--cell-w) * .24), 18px) !important;
+}
+
+/* Paysage sur tablette : pas de mise en page, on demande de tourner l'appareil,
+   comme sur téléphone (styles.css). */
+html.is-tablet-landscape .multiplayer-shell > *:not(.mm-rotate-hint) { display: none !important; }
+html.is-tablet-landscape .multiplayer-shell::after {
+  content: "Tournez votre tablette à la verticale pour jouer.";
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 24px;
+  background: var(--mm-paper, #fffaf0);
+  color: var(--mm-ink, #073f36);
+  font: 700 1.25rem/1.5 "DM Sans", system-ui, sans-serif;
+  text-align: center;
+}

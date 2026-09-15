@@ -653,6 +653,53 @@ test('page défilée (iPhone, site), la lettre portée reste sous le pointeur', 
   }
 })
 
+test('tablette en portrait : la page s’agrandit, tient dans l’écran, et la lettre tombe au doigt', async ({ browser, browserName, request }) => {
+  test.skip(browserName !== 'chromium', 'La balise viewport et les contacts tactiles passent par l’émulation mobile de Chromium.')
+  // Mode tablette (tabletViewport.ts), pour l'EHPAD : Galaxy Tab 800×1280.
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Tablette')
+  const initial = await loadMatch(request, first.playerId, matchId)
+  const actor = initial.currentPlayerId === first.playerId ? first : second
+  const placement = playablePlacements(initial)[0]
+  const context = await browser.newContext({ viewport: { width: 800, height: 1232 }, screen: { width: 800, height: 1280 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 })
+  await context.addInitScript(storedIdentity => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, actor)
+  const page = await context.newPage()
+  try {
+    await page.goto(`/#partie=${encodeURIComponent(matchId)}`)
+    await expect(page.locator('.board')).toBeVisible()
+    await expect(page.locator('.turn-ready-flash')).toBeHidden()
+    const mise = await page.evaluate(() => ({
+      classe: document.documentElement.classList.contains('is-tablet'),
+      largeur: innerWidth,
+      defilement: document.documentElement.scrollHeight - innerHeight,
+    }))
+    expect(mise).toEqual({ classe: true, largeur: 587, defilement: 0 })
+    // La grille prend la largeur d'un grand téléphone et plus (370 px en 390).
+    expect((await page.locator('.board').boundingBox())!.width).toBeGreaterThan(420)
+
+    const cdp = await context.newCDPSession(page)
+    const toucher = (type: string, x: number, y: number) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: Math.round(x), y: Math.round(y), id: 1 }] })
+    const lettre = (await page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]`).first().boundingBox())!
+    const cellule = (await page.locator(`[data-cell="${placement.cellIndex}"]`).boundingBox())!
+    const doigt = { x: cellule.x + cellule.width / 2, y: cellule.y + cellule.height / 2 + 34 }
+    await toucher('touchStart', lettre.x + lettre.width / 2, lettre.y + lettre.height / 2)
+    for (let pas = 1; pas <= 6; pas += 1) await toucher('touchMove', lettre.x + (doigt.x - lettre.x) * pas / 6, lettre.y + (doigt.y - lettre.y) * pas / 6)
+    // Le fantôme suit le doigt une fois par image : on attend qu'il ait rejoint le point visé.
+    await expect.poll(async () => {
+      const fantome = await page.locator('.drag-ghost').boundingBox()
+      return fantome !== null
+        && Math.abs(fantome.x + fantome.width / 2 - doigt.x) <= 10
+        && Math.abs(fantome.y + fantome.height / 2 - (doigt.y - 34)) <= 10
+    }).toBe(true)
+    await toucher('touchEnd', doigt.x, doigt.y)
+    await expect(page.locator(`[data-cell="${placement.cellIndex}"]`)).toContainText(placement.letter)
+  } finally {
+    await context.close()
+  }
+})
+
 test('après un tour manqué, « Tu es toujours là ? » remplace les étiquettes 1/3', async ({ browser, browserName, request }) => {
   test.skip(browserName !== 'chromium', 'La fenêtre est la même sur WebKit ; le chronométrage serveur est coûteux.')
   test.setTimeout(90_000)
