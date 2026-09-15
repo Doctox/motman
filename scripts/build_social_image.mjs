@@ -58,7 +58,7 @@ p{margin:22px 0 0;font-size:30px;line-height:1.3;color:#24594f;max-width:520px}
     <img class="logo" alt="" src="data:image/png;base64,${logo}">
     <h1>Mots fléchés<br>en duel</h1>
     <p>Une grille, deux joueurs. Et chaque jour, un défi à thème.</p>
-    <div class="puces"><span>Gratuit</span><span>Sans publicité</span><span>Entre amis</span></div>
+    <div class="puces"><span>Gratuit</span><span>Défi du jour</span><span>Entre amis</span></div>
   </div>
   <div class="jeu">
     <div class="scores"><span class="vous">Vous · 12</span><span class="adv">Adversaire · 9</span></div>
