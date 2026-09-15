@@ -91,4 +91,8 @@ export function installTabletViewport(win: Window = window): void {
   appliquer()
   paysage.addEventListener?.('change', appliquer)
   win.addEventListener('orientationchange', appliquer)
+  // Écran partagé sur Android, ou appareil changé dans l'émulation de Chrome :
+  // sans cela il fallait recharger la page. Sans risque de sautiller quand la
+  // barre de Safari se replie : l'écran ne change pas, la balise non plus.
+  win.addEventListener('resize', appliquer)
 }
