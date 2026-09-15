@@ -17,10 +17,16 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // 2026-09-13 soir : premier lot de grilles normales de l'Éditeur (10 grilles,
 // 30 images) — 106 grilles, 596 Ko (148 Ko compressés). Seuils relevés pour
 // laisser place au thème « Corps humain » et à quelques lots de plus.
+//
+// 2026-09-15 : relecture complète (v28) — 66 emoji écrits en texte deviennent de
+// vrais dessins Twemoji, pour être les mêmes sur tous les téléphones et ne plus
+// porter la réponse. 614 → 758 Ko, 153 → 222 Ko compressés ; les images font
+// désormais 65 % du fichier. Seuil compressé relevé à 260 Ko. Piste si ça
+// continue : servir les pictogrammes par leur fichier plutôt qu'en data: URI.
 const limits = {
   entryJavaScript: 20_000,
   runtimeCatalog: 850_000,
-  runtimeCatalogGzip: 210_000,
+  runtimeCatalogGzip: 260_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,
