@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Check, Flame, Gamepad2, Image as ImageIcon, LightbulbOff, ListChecks,
+  Check, Feather, Flame, Gamepad2, Image as ImageIcon, LightbulbOff, ListChecks,
   Snowflake, Sparkles, SpellCheck2, Type, X,
 } from 'lucide-react'
 import { claimQuest, type ClaimedQuestReward } from '../auth'
+import { loadPlayerCosmetics } from '../cosmetics'
+import { loadPlayerIdentity } from '../playerIdentity'
 import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, type QuestCounter, type QuestView } from '../quests'
 import { useQuestBoard } from '../questBoardState'
 import { useDialogFocus } from '../useDialogFocus'
@@ -12,13 +14,15 @@ import { useDailyCountdown } from './DailyChallenge'
 import './menu-quests.css'
 
 // Les quêtes (décidées le 16/09/2026). Trois par jour, réalisables dans UNE
-// partie, plus une par semaine. La récompense ne tombe pas toute seule : c'est
-// « Récupérer » qui paie — le geste est le plaisir, et la pastille du bouton
-// donne une raison d'ouvrir l'application.
+// partie, plus une par semaine. La récompense ne tombe pas toute seule : le
+// joueur touche « Récupérer », et ce geste doit être le moment agréable —
+// la bourse grimpe en haut du panneau, la carte s'illumine, les gains jaillissent.
 //
 // L'écran n'invente rien : la progression et les cibles viennent du serveur
 // (src/quests.ts, compté par match-api), et le montant affiché après coup est
 // celui que le serveur a réellement crédité.
+
+const nombreFrancais = new Intl.NumberFormat('fr-FR')
 
 /** Une icône par nature de quête : on reconnaît l'objectif avant de le lire. */
 const ICONES: Record<QuestCounter, ReactNode> = {
@@ -51,6 +55,38 @@ export function QuestsChip() {
   </>
 }
 
+/**
+ * La bourse qui grimpe. C'est le vrai plaisir d'une récompense : voir le nombre
+ * monter, pas lire « +60 ». Le compte se fait en 800 ms, arrondi à l'entier, et
+ * saute directement au total si le joueur a demandé moins d'animations.
+ */
+function useBourseAnimee(cible: number): number {
+  const [affiche, setAffiche] = useState(cible)
+  const depart = useRef(cible)
+  useEffect(() => {
+    const reduit = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+    if (reduit || depart.current === cible) {
+      depart.current = cible
+      setAffiche(cible)
+      return
+    }
+    const de = depart.current
+    const debut = performance.now()
+    let image = 0
+    const avancer = (maintenant: number) => {
+      const part = Math.min(1, (maintenant - debut) / 800)
+      // Départ vif, fin douce : le nombre semble « atterrir ».
+      const adouci = 1 - (1 - part) ** 3
+      setAffiche(Math.round(de + (cible - de) * adouci))
+      if (part < 1) image = requestAnimationFrame(avancer)
+      else depart.current = cible
+    }
+    image = requestAnimationFrame(avancer)
+    return () => cancelAnimationFrame(image)
+  }, [cible])
+  return affiche
+}
+
 function QuestsPanel({ close }: { close: () => void }) {
   const board = useQuestBoard()
   const dialogRef = useDialogFocus<HTMLElement>(close)
@@ -58,6 +94,11 @@ function QuestsPanel({ close }: { close: () => void }) {
   const [enCours, setEnCours] = useState('')
   const [erreur, setErreur] = useState('')
   const [gagnees, setGagnees] = useState<Record<string, ClaimedQuestReward>>({})
+  const [bourse, setBourse] = useState(() => {
+    try { return loadPlayerCosmetics(loadPlayerIdentity().playerId).plumes } catch { return 0 }
+  })
+  const [gain, setGain] = useState<{ cle: number; plumes: number; xp: number; gels: number } | null>(null)
+  const bourseAffichee = useBourseAnimee(bourse)
 
   const recuperer = async (quest: QuestView, scope: 'day' | 'week') => {
     if (enCours) return
@@ -65,7 +106,12 @@ function QuestsPanel({ close }: { close: () => void }) {
     setErreur('')
     try {
       const reponse = await claimQuest(quest.id, scope)
-      if (reponse.questReward) setGagnees(precedentes => ({ ...precedentes, [quest.id]: reponse.questReward! }))
+      const recompense = reponse.questReward
+      if (recompense) {
+        setGagnees(precedentes => ({ ...precedentes, [quest.id]: recompense }))
+        setBourse(recompense.feathers)
+        setGain({ cle: Date.now(), plumes: recompense.plumes, xp: recompense.xp, gels: recompense.freezes })
+      }
     } catch (raison) {
       setErreur(raison instanceof Error ? raison.message : 'Récupération impossible.')
     } finally {
@@ -83,6 +129,12 @@ function QuestsPanel({ close }: { close: () => void }) {
             <strong>Quêtes du jour</strong>
             <small>{board ? `${finies}/${board.day.length} faites · nouvelles dans ${countdown}` : 'Chargement…'}</small>
           </div>
+          <span className="mm-quests-purse" aria-label={`${nombreFrancais.format(bourseAffichee)} plumes`}>
+            <Feather aria-hidden="true" /><b>{nombreFrancais.format(bourseAffichee)}</b>
+            {gain ? <i key={gain.cle} className="mm-quests-gain" aria-hidden="true">
+              {gain.plumes > 0 ? `+${gain.plumes}` : gain.gels > 0 ? '+1 gel' : `+${gain.xp} XP`}
+            </i> : null}
+          </span>
           <button type="button" className="mm-quests-close" aria-label="Fermer" data-dialog-autofocus onClick={close}><X /></button>
         </header>
 
@@ -128,7 +180,7 @@ function QuestRow({ quest, reward, eyebrow, gagnee, enCours, recuperer }: {
   const prise = Boolean(gagnee) || quest.claimed
   const pourcentage = Math.round(100 * Math.min(1, quest.progress / quest.target))
 
-  return <li className={`mm-quest ${prise ? 'is-claimed' : quest.done ? 'is-done' : ''}`}>
+  return <li className={`mm-quest ${prise ? 'is-claimed' : quest.done ? 'is-done' : ''} ${gagnee ? 'is-won' : ''}`}>
     <span className="mm-quest-icon" aria-hidden="true">{prise ? <Check /> : ICONES[quest.counter]}</span>
 
     <div className="mm-quest-copy">
@@ -145,10 +197,9 @@ function QuestRow({ quest, reward, eyebrow, gagnee, enCours, recuperer }: {
     </div>}
 
     {gagnee ? <p className="mm-quest-gagnee" role="status">
-      <Sparkles aria-hidden="true" />
-      {gagnee.plumes > 0 ? <b>+{gagnee.plumes} plumes</b> : null}
-      {gagnee.xp > 0 ? <b>+{gagnee.xp} XP</b> : null}
-      {gagnee.freezes > 0 ? <b><Snowflake aria-hidden="true" />+{gagnee.freezes} gel</b> : null}
+      {gagnee.plumes > 0 ? <b style={{ animationDelay: '60ms' }}><Feather aria-hidden="true" />+{gagnee.plumes} plumes</b> : null}
+      {gagnee.xp > 0 ? <b style={{ animationDelay: '180ms' }}><Sparkles aria-hidden="true" />+{gagnee.xp} XP</b> : null}
+      {gagnee.freezes > 0 ? <b style={{ animationDelay: '60ms' }}><Snowflake aria-hidden="true" />+{gagnee.freezes} gel de série</b> : null}
     </p> : quest.claimed ? <p className="mm-quest-prise">Récompense prise</p>
       : quest.done ? <button type="button" className="mm-quest-claim" disabled={enCours} onClick={recuperer}>
         {enCours ? 'Un instant…' : 'Récupérer'}

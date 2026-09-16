@@ -44,7 +44,31 @@
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
   padding-bottom: 12px; border-bottom: 1px solid var(--mm-line);
 }
+.mm-quests-head > div { flex: 1 1 auto; min-width: 0; }
 .mm-quests-head strong { display: block; font: 700 1.5rem/1.1 'Playfair Display', Georgia, serif; }
+.mm-quests-purse {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 3px; padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mm-gold) 22%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.mm-quests-purse svg { width: 15px; height: 15px; color: var(--mm-ink); }
+.mm-quests-purse b { font-size: .9375rem; }
+.mm-quests-gain {
+  /* Au-DESSUS de la bourse, jamais par-dessus le nombre : on doit voir les deux. */
+  position: absolute; left: 50%; bottom: 100%;
+  font-style: normal; font-weight: 800; font-size: .9375rem; color: var(--mm-coral);
+  white-space: nowrap; text-shadow: 0 1px 0 var(--mm-paper);
+  animation: mmQuestGain 1.5s ease-out forwards;
+}
+@keyframes mmQuestGain {
+  0% { opacity: 0; transform: translate(-50%, 14px) scale(.7); }
+  25% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
+  65% { opacity: 1; transform: translate(-50%, -8px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -26px) scale(.95); }
+}
 .mm-quests-head small { display: block; margin-top: 3px; color: var(--mm-muted); font-size: .8125rem; }
 .mm-quests-close {
   flex: 0 0 auto;
@@ -136,12 +160,36 @@
 .mm-quest-gagnee {
   grid-column: 2 / -1;
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0;
-  font-size: .8125rem;
-  animation: mmQuestWon .45s ease-out;
+  font-size: .875rem;
 }
-.mm-quest-gagnee b { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--mm-gold) 26%, transparent); }
-.mm-quest-gagnee > svg { width: 16px; height: 16px; color: var(--mm-coral); }
-@keyframes mmQuestWon { from { opacity: 0; transform: translateY(6px) scale(.96); } to { opacity: 1; transform: none; } }
+.mm-quest-gagnee b {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 999px;
+  background: color-mix(in srgb, var(--mm-gold) 34%, transparent);
+  box-shadow: 0 4px 12px #17372b1f;
+  animation: mmQuestPop .62s cubic-bezier(.18, 1.5, .4, 1) both;
+}
+.mm-quest-gagnee svg { width: 15px; height: 15px; color: var(--mm-coral); }
+/* Jaillir, pas apparaître : c'est CE moment qui récompense le geste. */
+@keyframes mmQuestPop {
+  0% { opacity: 0; transform: translateY(14px) scale(.4); }
+  55% { opacity: 1; transform: translateY(-4px) scale(1.14); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* L'éclat qui traverse la carte au moment où la récompense tombe. */
+.mm-quest.is-won { position: relative; overflow: hidden; animation: mmQuestShake .5s ease-out; }
+.mm-quest.is-won::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 12%, color-mix(in srgb, var(--mm-gold) 75%, transparent) 48%, color-mix(in srgb, #fff 60%, transparent) 56%, transparent 88%);
+  animation: mmQuestSweep 1.25s cubic-bezier(.3, 0, .2, 1) forwards;
+  pointer-events: none;
+}
+@keyframes mmQuestSweep { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+@keyframes mmQuestShake { 0%, 100% { transform: none; } 30% { transform: scale(1.02); } 60% { transform: scale(.995); } }
+.mm-quest.is-won .mm-quest-icon { animation: mmQuestCheck .7s cubic-bezier(.18, 1.5, .4, 1) both; color: var(--mm-coral); }
+@keyframes mmQuestCheck { 0% { transform: scale(.5) rotate(-12deg); } 60% { transform: scale(1.18) rotate(4deg); } 100% { transform: none; } }
 
 /* ── La quête de la semaine ── */
 .mm-quests-week { margin-top: 14px; }
@@ -155,6 +203,8 @@
 .mm-quests-erreur { margin: 12px 0 0; color: var(--mm-coral); font-size: .8125rem; text-align: center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mm-quests-badge, .mm-quest-claim, .mm-quest-gagnee { animation: none; }
+  .mm-quests-badge, .mm-quest-claim, .mm-quests-gain { animation: none; }
+  .mm-quest-gagnee b, .mm-quest.is-won, .mm-quest.is-won::after, .mm-quest.is-won .mm-quest-icon { animation: none; }
+  .mm-quest.is-won::after { display: none; }
   .mm-quest-bar i { transition: none; }
 }
