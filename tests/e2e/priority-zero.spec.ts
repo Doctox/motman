@@ -436,6 +436,18 @@ test('l’accueil permet de reprendre chacune des trois parties illimitées', as
     const cards = page.locator('.mm-current-match-card')
     await expect(cards).toHaveCount(3)
     await expect(page.getByLabel('3 parties en cours')).toBeVisible()
+
+    // Le 16/09/2026, la pastille « Reprendre » débordait de sa carte : la carte
+    // est une grille dont la troisième colonne valait 20 px, taillée pour
+    // l'ancien chevron. Le texte s'écrivait par-dessus la bordure. Le test
+    // portait sur le comportement du bouton, jamais sur sa tenue à l'écran.
+    const pastille = cards.first().locator('.mm-current-match-go')
+    await expect(pastille).toBeVisible()
+    const carteBoite = await cards.first().boundingBox()
+    const pastilleBoite = await pastille.boundingBox()
+    if (!carteBoite || !pastilleBoite) throw new Error('Carte ou pastille « Reprendre » sans géométrie')
+    expect(pastilleBoite.x + pastilleBoite.width).toBeLessThanOrEqual(carteBoite.x + carteBoite.width)
+    expect(await pastille.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
     for (const { opponent } of matches) await expect(page.getByRole('button', { name: new RegExp(opponent.displayName) })).toBeVisible()
 
     const chosen = matches[1]
