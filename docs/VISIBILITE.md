@@ -84,18 +84,27 @@ du propriétaire, voir la note « Plan de revenus » du 14/09).
 
 ## 4. Mesure — le trou actuel
 
-**Il n'existe aujourd'hui aucune mesure du trafic web.** *Vérifié* : aucun script
-d'analyse dans `index.html` ni dans la page de présentation.
+**Cloudflare Web Analytics est actif depuis le 17/09** — gratuit, sans cookie,
+sans bandeau de consentement, injecté automatiquement par Cloudflare sans une
+ligne de code. *Vérifié en ligne* : le beacon est présent sur le jeu et sur la
+page de présentation.
 
-Ce qui existe déjà sans le savoir : le domaine est passé sur **Cloudflare** le
-15/09, avec `www` en proxy. Le tableau de bord Cloudflare compte donc les
-requêtes **depuis cette date, rétroactivement** (Analytics & Logs).
+Deux pièges rencontrés à l'activation, à connaître si la mesure retombe en
+panne :
 
-**Recommandation faite au propriétaire le 17/09** : activer **Cloudflare Web
-Analytics** — gratuit, sans cookie, sans bandeau de consentement, activable sans
-toucher au code. Il donne les visites, les pages vues et **les sources de
-trafic**, ce que les statistiques de requêtes ne disent pas. *Action en attente
-du propriétaire* (l'activation se fait dans son tableau de bord).
+1. L'option **« Enable, excluding visitor data in the EU »** avait été choisie
+   d'abord. Elle n'injecte rien pour les visiteurs européens — c'est-à-dire
+   pour la totalité du public visé. La mesure affichait « activée » et ne
+   comptait personne. Il faut l'option **« Enable »** tout court.
+2. Cloudflare **n'injecte le script que pour les vrais navigateurs**. Un `curl`
+   sans en-tête de navigateur ne le voit pas : ce n'est pas une preuve de panne.
+   Vérifier avec un `User-Agent` de navigateur.
+
+**Les chiffres démarrent au 17/09** : Web Analytics ne mesure rien
+rétroactivement. En revanche, **Analytics & Logs** (statistiques de requêtes
+brutes) couvre la période **depuis le 15/09**, date de la bascule sur
+Cloudflare : c'est le seul point de comparaison disponible avant la mise en
+production.
 
 Google Analytics a été écarté : cookies, bandeau obligatoire, données hors UE.
 
@@ -106,8 +115,8 @@ Google Analytics a été écarté : cookies, bandeau obligatoire, données hors 
 | Question | Réponse aujourd'hui |
 |---|---|
 | Combien de joueurs actifs ? | **7 par jour** (relevé du 14/09, base Supabase) |
-| Combien de visiteurs sur le site ? | **Inconnu** — mesure non activée ; données Cloudflare brutes disponibles depuis le 15/09 |
-| D'où viennent-ils ? | **Inconnu** — c'est ce que Web Analytics répondra |
+| Combien de visiteurs sur le site ? | **Mesure active depuis le 17/09** ; requêtes brutes disponibles depuis le 15/09 |
+| D'où viennent-ils ? | **Réponse à partir du 17/09** (sources de trafic dans Web Analytics) |
 | Combien d'installations Android ? | **Aucune en production** ; seulement les testeurs recrutés à la main |
 | Le jeu est-il indexé par Google ? | **Pas encore confirmé** ; à revérifier vers le 23/09 |
 
@@ -125,8 +134,10 @@ Google Analytics a été écarté : cookies, bandeau obligatoire, données hors 
    jeunesse et orthophonie (voir « Étude de marché des grilles », 14/09) se
    vendent par contact direct, pas par visibilité grand public. Elles restent
    jouables indépendamment du calendrier Play Store.
-4. **Rien ne pourra être conclu des chiffres avant d'avoir activé la mesure.**
-   C'est la première dépense de temps à faire, elle coûte deux minutes.
+4. **La mesure est en place depuis le 17/09, mais elle part de zéro.** Aucun
+   historique de trafic n'existe avant cette date, en dehors des requêtes brutes
+   depuis le 15/09. Le premier relevé utile sera celui du week-end de mise en
+   production.
 
 ---
 
@@ -134,7 +145,7 @@ Google Analytics a été écarté : cookies, bandeau obligatoire, données hors 
 
 | Quand | Quoi | Qui |
 |---|---|---|
-| Dès que possible | Activer Cloudflare Web Analytics | Propriétaire |
+| ~~Fait le 17/09~~ | ~~Activer Cloudflare Web Analytics~~ | ~~Propriétaire~~ |
 | Dimanche 20/09 | Passage en production sur Google Play | Propriétaire |
 | ≈ 23/09 | Contrôle Search Console (pages indexées, sitemap, position sur « MotMan mots fléchés ») | À faire ensemble |
 | Après la production | Premier relevé : visites, sources, installations, joueurs actifs | À faire ensemble |
