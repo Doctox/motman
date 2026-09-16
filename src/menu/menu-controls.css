@@ -158,6 +158,12 @@
 }
 [data-theme="dark"] .mm-difficulty-choice button,[data-theme="dark"] .mm-solo-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}
 [data-theme="dark"] .mm-difficulty-choice button.active,[data-theme="dark"] .mm-solo-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
+/* Les bascules à deux volets (classement, Épicerie) gardaient l'ivoire en mode
+   sombre : deux pavés blancs au milieu d'un écran noir. Le volet inactif prend
+   la teinte des cartes, comme le reste du menu. */
+[data-theme="dark"] .mm-segmented,[data-theme="dark"] .mm-shop-tabs{background:#1c2a25!important;border-color:#3d5048!important;box-shadow:0 4px 12px #0006}
+[data-theme="dark"] .mm-segmented button,[data-theme="dark"] .mm-shop-tabs button{color:var(--mm-muted)}
+[data-theme="dark"] .mm-segmented button.active,[data-theme="dark"] .mm-shop-tabs button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;color:#f3eee1!important;box-shadow:inset 0 1px 0 #ffffff1a,0 5px 12px #0007!important}
 
 
 html[data-motion="off"] .mm-shell button{transition:none!important}
