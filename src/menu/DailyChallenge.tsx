@@ -140,8 +140,14 @@ export function DailyStreakChip() {
 }
 
 /**
- * Carte héro « Défi du jour », en tête de la zone mm-attention de l'Accueil.
- * Trois états rejouables : à faire / perdu (invitation, jamais sanction) / gagné.
+ * Carte « Grille du jour », en tête de l'Accueil. Maquette validée le
+ * 16/09/2026 : sur-titre du thème, titre, la série en puce, et UN bouton plein
+ * — le chevron sur toute la carte ne disait pas assez fort ce qu'il y avait à
+ * faire. Trois états rejouables : à faire / perdu (invitation, jamais
+ * sanction) / gagné, où le bouton devient le partage.
+ *
+ * UNE seule flamme, dans le coin haut droit, et c'est elle qui ouvre le
+ * calendrier de série (place demandée par le propriétaire le 16/09/2026).
  */
 export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
   const { day, status, streak, freezes, attempts, theme } = useDailyChallenge()
@@ -152,62 +158,38 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
   if (status === 'won') {
     return (
       <section className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
-        <div className="mm-daily-hero-play">
-          <span className="mm-daily-hero-badge" aria-hidden="true"><Check /></span>
-          <div className="mm-daily-hero-copy">
-            <small>{libelle}</small>
-            <strong>Défi réussi</strong>
-            <span className="mm-daily-hero-meta">
-              <Flame aria-hidden="true" />{streakLabel(streak)}
-              <span className="mm-daily-countdown">nouvelle grille dans {countdown}</span>
-            </span>
-          </div>
-        </div>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
-        {/* Le partage en bas à droite : à côté de la flamme, les deux boutons
-            mangeaient la largeur du texte, et « nouvelle grille dans 16 h 57 »
-            se coupait en deux. */}
-        <div className="mm-daily-hero-share"><DailyShareHero day={day} /></div>
+        <small className="mm-daily-eyebrow">{libelle}</small>
+        <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
+        <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
+        <DailyShareHero day={day} />
       </section>
     )
   }
 
-  // La carte n'est plus UN bouton : elle en contient un, plus la puce de série
-  // dans le coin (un bouton dans un bouton n'existe pas en HTML). C'est aussi ce
-  // qui répare l'imbrication du bouton de partage dans l'état « réussi ».
   if (status === 'lost') {
     return (
       <section className="mm-daily-hero is-lost">
-        <button type="button" className="mm-daily-hero-play" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}. Vous avez jusqu'à minuit.`}>
-          <span className="mm-daily-hero-badge" aria-hidden="true"><RotateCcw /></span>
-          <div className="mm-daily-hero-copy">
-            <small>{libelle} · tentative {attempts}</small>
-            <strong>Pas cette fois — on retente ?</strong>
-            <span className="mm-daily-hero-meta">Tu as jusqu'à minuit pour le battre</span>
-          </div>
-          <ChevronRight aria-hidden="true" />
-        </button>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+        <small className="mm-daily-eyebrow">{libelle} · tentative {attempts}</small>
+        <h2 className="mm-daily-title">Pas cette fois — on retente ?</h2>
+        <p className="mm-daily-note">Vous avez jusqu’à minuit pour le battre</p>
+        <button type="button" className="mm-daily-cta" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}`}>
+          <RotateCcw aria-hidden="true" />Réessayer <ChevronRight aria-hidden="true" />
+        </button>
       </section>
     )
   }
 
   return (
     <section className="mm-daily-hero">
-      <button type="button" className="mm-daily-hero-play" onClick={onPlay} aria-label={`Jouer le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
-        {/* Une seule flamme sur la carte, celle du coin : trois, c'était trop. */}
-        <span className="mm-daily-hero-badge" aria-hidden="true"><Grid2x2Check /></span>
-        <div className="mm-daily-hero-copy">
-          <small>{libelle}</small>
-          <strong>Jouer la grille du jour</strong>
-          <span className="mm-daily-hero-meta">
-            {streakLabel(streak)}
-            {freezes > 0 ? <><span className="mm-daily-dot" aria-hidden="true">·</span><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''}</> : null}
-          </span>
-        </div>
-        <ChevronRight aria-hidden="true" />
-      </button>
       <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+      <small className="mm-daily-eyebrow">{libelle}</small>
+      <h2 className="mm-daily-title">Grille du jour</h2>
+      {freezes > 0 ? <p className="mm-daily-note"><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} de série en réserve</p> : null}
+      <button type="button" className="mm-daily-cta" onClick={onPlay} aria-label={`Jouer la grille du jour${pourLecteur}. ${streakLabel(streak)}.`}>
+        <Grid2x2Check aria-hidden="true" />Jouer la grille <ChevronRight aria-hidden="true" />
+      </button>
     </section>
   )
 }

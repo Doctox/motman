@@ -74,10 +74,9 @@
 .mm-progress small{margin-bottom:7px;font-size:0.5625rem;letter-spacing:.015em}
 .mm-progress i,.mm-level>i{height:5px;background:color-mix(in srgb,var(--mm-line-strong) 70%,var(--mm-sage))}
 .mm-attention h2:after{background:linear-gradient(90deg,var(--mm-gold),transparent 86%);opacity:.7}
-.mm-empty-home-card{border-color:var(--mm-line);
-}
+
 .mm-empty-home-icon{border-color:var(--mm-line);background:var(--mm-surface)}
-.mm-empty-home-card button:hover{box-shadow:0 7px 16px color-mix(in srgb,var(--mm-ink) 23%,transparent)}
+
 .mm-home-friends>header button{height:31px;border-color:var(--mm-line)}
 .mm-home-friend{padding:7px 11px;border-color:color-mix(in srgb,var(--mm-line) 82%,transparent);
 }
@@ -170,7 +169,7 @@
   .mm-header{grid-template-rows:43px 38px;row-gap:7px}
   .mm-play-accordion .mm-panel-heading{grid-template-columns:66px 1fr 38px}
   .mm-play-accordion .mm-dark-icon{width:41px;height:41px;margin-left:11px}
-  .mm-empty-home-card{min-height:118px;padding:14px}
+
 }
 @media(max-width:360px){
   .mm-bottom-nav{margin-inline:9px}

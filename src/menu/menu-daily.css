@@ -37,65 +37,32 @@
 }
 /* La carte contient un bouton « jouer » et, dans le coin, la puce de série (et
    le partage quand le défi est réussi) : un bouton dans un bouton n'existe pas. */
-.mm-daily-hero-play {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 14px 58px 14px 16px;
-  border: 0;
-  border-radius: 18px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-button.mm-daily-hero-play { cursor: pointer; }
-.mm-daily-hero:has(button.mm-daily-hero-play:hover) { transform: translateY(-1px); }
-.mm-daily-hero:has(button.mm-daily-hero-play:active) { transform: translateY(0); }
-.mm-daily-hero-corner {
-  position: absolute; top: 8px; right: 8px;
-  display: inline-flex; align-items: center; gap: 4px;
-}
-.mm-daily-hero-corner .mm-streak-chip { min-width: 34px; height: 34px; padding: 0 8px; }
-.mm-daily-hero-corner .mm-streak-chip svg { width: 15px; height: 15px; }
+
+
+
+
+
+
+
 /* Le partage dans le coin opposé, dans la bande de 58 px que le bouton « jouer »
    laisse libre à droite : il ne rogne donc jamais le texte. */
-.mm-daily-hero-share { position: absolute; right: 8px; bottom: 8px; }
+
 /* De quoi loger la flamme en haut et le partage en bas sans qu'ils se touchent. */
 .mm-daily-hero.is-done { min-height: 96px; }
 
-.mm-daily-hero-badge {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--mm-coral) 15%, var(--mm-surface));
-  color: var(--mm-coral);
-}
-.mm-daily-hero-badge svg { width: 24px; height: 24px; }
-.mm-daily-hero.is-done .mm-daily-hero-badge { background: color-mix(in srgb, var(--mm-ink) 12%, var(--mm-surface)); color: var(--mm-ink); }
+
+
 
 /* État « perdu » — invitation, jamais sanction : accent terracotta doux, pas de rouge. */
 .mm-daily-hero.is-lost { border-color: color-mix(in srgb, var(--mm-coral) 38%, var(--mm-line)); }
-.mm-daily-hero.is-lost .mm-daily-hero-badge { background: color-mix(in srgb, var(--mm-coral) 14%, var(--mm-surface)); color: var(--mm-coral); }
 
-.mm-daily-hero-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
-.mm-daily-hero-copy small { font-size:0.75rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mm-muted); }
-.mm-daily-hero-copy strong { font-family: 'Playfair Display', Georgia, serif; font-size:1.125rem; font-weight: 700; }
-.mm-daily-hero-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  font-size:0.8125rem;
-  color: var(--mm-ink-soft);
-}
-.mm-daily-hero-meta svg { width: 15px; height: 15px; color: var(--mm-coral); }
-.mm-daily-hero-meta .mm-daily-dot { color: var(--mm-line-strong); }
-.mm-daily-hero-play > svg:last-child { flex: 0 0 auto; width: 20px; height: 20px; color: var(--mm-muted); }
+
+
+
+
+
+
+
 
 /* ── Ligne de série dans la séquence de récompense de fin de partie ── */
 .mm-daily-reward {
@@ -248,9 +215,9 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
    Le haut ne porte plus que la flamme, donc le texte récupère la place que
    prenait le second bouton — « nouvelle grille dans 16 h 57 » tenait sur deux
    lignes à cause de ces 96 px. */
-.mm-daily-hero.is-done .mm-daily-hero-play { padding-right: 58px; }
+
 /* Le compte à rebours a sa propre ligne : un « · » restait seul en bout de ligne. */
-.mm-daily-countdown { flex-basis: 100%; }
+
 .mm-daily-share.is-compact { margin: 0; }
 .mm-daily-share.is-compact button {
   width: 36px; min-height: 36px; height: 36px; padding: 0; border-radius: 50%;
@@ -262,3 +229,26 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-share p.mm-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .mm-streak-freeze-note { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #8fb8d0 16%, var(--mm-surface)); color: var(--mm-ink); font-size: 0.75rem; line-height: 1.4; text-align: left; }
 .mm-streak-freeze-note svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; color: #4f89ad; }
+
+/* ── La carte « Grille du jour » (maquette du 16/09/2026) ────────────────────
+   Sur-titre du thème, titre, la série en puce cliquable, puis UN bouton plein.
+   Le chevron sur toute la carte ne disait pas assez fort ce qu'il y avait à
+   faire, et la série se lisait deux fois. */
+.mm-daily-hero{display:grid;justify-items:start;gap:9px;padding:14px 15px 15px}
+.mm-daily-eyebrow{color:var(--mm-coral);font-size:0.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.mm-daily-title{margin:0;font:600 1.5rem/1.05 'Playfair Display',serif;text-wrap:balance}
+.mm-daily-hero .mm-streak-chip{height:34px;padding:0 12px;font-size:0.8125rem}
+.mm-daily-note{display:flex;align-items:center;gap:6px;margin:0;color:var(--mm-muted);font-size:0.8125rem}
+.mm-daily-note svg{width:15px;height:15px;color:#4f89ad}
+.mm-shell .mm-daily-cta{width:100%;min-height:50px;margin-top:2px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:16px;background:linear-gradient(color-mix(in srgb,var(--mm-coral) 92%,#fff),var(--mm-coral));color:#fffaf0;display:flex;align-items:center;justify-content:center;gap:9px;font:800 1.0625rem 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 #ffffff38,0 6px 16px color-mix(in srgb,var(--mm-coral) 26%,transparent);cursor:pointer}
+.mm-shell .mm-daily-cta svg{width:19px;height:19px}
+/* Défi réussi : la carte se calme, et le partage devient l'action principale. */
+.mm-daily-hero.is-done{border-color:color-mix(in srgb,var(--mm-ink) 26%,var(--mm-line));background:radial-gradient(120% 140% at 0% 0%,var(--mm-sage) 0%,var(--mm-surface) 62%)}
+.mm-daily-hero.is-done .mm-daily-eyebrow{color:var(--mm-ink)}
+.mm-daily-hero.is-done .mm-daily-share{width:100%;margin:2px 0 0}
+.mm-shell .mm-daily-hero.is-done .mm-daily-share button{width:100%;min-height:48px;border:1.5px solid color-mix(in srgb,var(--mm-ink) 34%,var(--mm-line));border-radius:16px;background:var(--mm-surface);color:var(--mm-ink);box-shadow:none;font:800 1rem 'DM Sans',sans-serif}
+
+/* La flamme dans le coin haut droit : même place sur les trois états, et le
+   texte lui réserve sa bande pour ne jamais passer dessous. */
+.mm-daily-hero-corner{position:absolute;top:10px;right:10px}
+.mm-daily-hero .mm-daily-eyebrow,.mm-daily-hero .mm-daily-title{padding-right:62px}

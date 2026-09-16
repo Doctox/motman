@@ -496,7 +496,7 @@ test('un résultat illimité reste affiché jusqu’à sa validation par le joue
 
     await page.reload()
     await expect(page.locator('.game-result-screen')).toBeHidden()
-    await expect(page.getByRole('heading', { name: 'Partie en cours' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Partie', exact: true })).toBeVisible()
     await expect(page.locator('.mm-current-match-card')).toHaveCount(1)
   } finally {
     await context.close()

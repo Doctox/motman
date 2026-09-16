@@ -5,7 +5,7 @@ import type { PlayerCosmetics } from '../cosmetics'
 import type { MatchLobbyState, MatchState } from '../matches'
 import { playerInitials, type GuestIdentity, shortPlayerId } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
-import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
+import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero, DailyRankTeaser } from './DailyChallenge'
@@ -67,26 +67,31 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       const rightTurn = right.currentPlayerId === identity.playerId ? 0 : 1
       return leftTurn - rightTurn || new Date(left.turnEndsAt).getTime() - new Date(right.turnEndsAt).getTime()
     })
+  // Accueil refondu le 16/09/2026 (maquette validée). La grosse carte de profil
+  // a laissé place à une barre compacte : elle disait la même chose en prenant
+  // le tiers de l'écran, au détriment du défi du jour et des parties qui
+  // attendent — les deux seules choses sur lesquelles le joueur peut agir.
   return <div className="mm-page mm-home-page">
-    <section className="mm-home-profile-card">
+    <section className="mm-home-account" aria-label="Votre compte">
       <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Votre avatar" />
-      <div className="mm-home-profile-copy">
-        <div className="mm-home-profile-heading">
+      <div className="mm-home-account-copy">
+        <div className="mm-home-account-line">
           <h1>{identity.displayName}</h1>
           <span className="mm-home-feathers" aria-label={`${frenchNumber.format(cosmetics.plumes)} plumes`}><Feather aria-hidden="true" /><b>{frenchNumber.format(cosmetics.plumes)}</b></span>
         </div>
-        <span>Niveau {progress.level}</span><small>Rang actuel</small>
-        <strong className="mm-home-rank"><img src={rankImage(currentRank)} alt="" />{currentRank.label}</strong>
-        {progress.rankedMatches < 5 ? <em>{rankedPlacementLabel(progress.rankedMatches)}</em> : null}
+        <i className="mm-home-account-xp" aria-hidden="true"><b style={{ width: `${xpPercent}%` }} /></i>
+        <div className="mm-home-account-line">
+          <small>Niveau {progress.level}{progress.level >= MAX_PLAYER_LEVEL ? '' : ` · ${progress.xp} / ${xpGoal} XP`}</small>
+          <strong className="mm-home-rank"><img src={rankImage(currentRank)} alt="" />{currentRank.label}</strong>
+        </div>
       </div>
-      <div className="mm-home-xp"><span>{progress.level >= MAX_PLAYER_LEVEL ? 'Niveau max' : `${progress.xp} / ${xpGoal} XP`}</span><i><b style={{ width: `${xpPercent}%` }} /></i></div>
     </section>
     <section className="mm-attention">
       <DailyChallengeHero onPlay={playDaily} />
       <DailyRankTeaser onOpenRanking={openRanking} />
       <header className="mm-attention-heading">
-        <h2>{currentMatches.length > 1 ? 'Parties en cours' : 'Partie en cours'}</h2>
-        {currentMatches.length ? <span aria-label={`${currentMatches.length} parties en cours`}>{currentMatches.length}</span> : null}
+        <h2>Partie</h2>
+        {currentMatches.length ? <span aria-label={`${currentMatches.length} partie${currentMatches.length > 1 ? 's' : ''} en cours`}>{currentMatches.length} en cours</span> : null}
       </header>
       {currentMatches.length ? <div className="mm-home-active-match-list">
         {currentMatches.map(match => {
@@ -95,30 +100,37 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
           return <button type="button" className={`mm-current-match-card ${myTurn ? 'is-my-turn' : ''}`} onClick={() => resumeMatch(match.id)} key={match.id}>
             <Avatar label={playerInitials(opponentName)} small />
             <span>
-              <strong>{opponentName}</strong>
-              <small>{myTurn ? 'À vous de jouer' : 'Tour adverse'} · {asyncTimeLeft(match)}</small>
-              <em>{activeMatchLabel(match)}</em>
+              <strong>{opponentName} · {myTurn ? 'à vous' : 'en attente'}</strong>
+              <small>{activeMatchLabel(match)} · {asyncTimeLeft(match)}</small>
             </span>
-            <ChevronRight />
+            {myTurn ? <em className="mm-current-match-go">Reprendre</em> : <ChevronRight />}
           </button>
         })}
-      </div> : <div className="mm-empty-home-card">
-        <span className="mm-empty-home-icon"><Gamepad2 /></span>
-        <div><strong>Aucune partie en cours</strong><p>Votre prochaine partie apparaîtra ici.</p></div>
-        <button type="button" onClick={play}>Jouer <ChevronRight /></button>
-      </div>}
+      </div> : null}
+      {/* « Nouvelle partie » ne s'affiche QUE sans partie en cours (demande du
+          propriétaire) : tant qu'une partie attend, on la reprend, on n'en
+          ouvre pas une autre à côté. */}
+      {currentMatches.length ? null : <button type="button" className="mm-home-new-match" onClick={play}>
+        <Gamepad2 aria-hidden="true" />Nouvelle partie <ChevronRight />
+      </button>}
     </section>
-    {firstRequest ? <button type="button" className="mm-home-friend-request" onClick={openFriends}>
-      <SocialPortrait user={firstRequest.user} small />
-      <span><strong>{firstRequest.user.displayName}</strong><small>vous envoie une demande d’ami</small></span>
-      <b>{social.incoming.length}</b><ChevronRight />
-    </button> : null}
     <section className="mm-home-friends">
       <header><h2>Amis</h2><button type="button" onClick={openFriends}><UserPlus />Ajouter</button></header>
-      {visibleFriends.length ? <div className="mm-home-friend-list">{visibleFriends.map(friend => <div className="mm-home-friend" key={friend.playerId}>
-        <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
-        <span><strong>{friend.displayName}</strong><small>{presenceLabel(friend.activity)}</small></span>
-      </div>)}</div> : <>
+      {firstRequest ? <button type="button" className="mm-home-friend-request" onClick={openFriends}>
+        <SocialPortrait user={firstRequest.user} small />
+        <span><strong>{firstRequest.user.displayName}</strong><small>vous envoie une demande d’ami</small></span>
+        <b>{social.incoming.length}</b><ChevronRight />
+      </button> : null}
+      {/* Une rangée de visages plutôt qu'une liste : on vient y lire qui est là,
+          pas des lignes de texte. Pas de tuile « Ajouter » ici — le bouton de
+          l'en-tête fait déjà cela, et à trois amis les noms se couperaient. */}
+      {visibleFriends.length ? <div className="mm-home-friend-row">
+        {visibleFriends.map(friend => <div className="mm-home-friend" key={friend.playerId}>
+          <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
+          <strong>{friend.displayName}</strong>
+          <small>{presenceLabel(friend.activity)}</small>
+        </div>)}
+      </div> : <>
         <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter votre premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>
         {/* Un joueur sans aucun ami doit pouvoir DONNER son code, pas seulement
             en saisir un : jusqu'ici il fallait ouvrir les paramètres pour le

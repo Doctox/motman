@@ -201,46 +201,41 @@ test('L’Épicerie ne monte que les animations visibles', async ({ page }, test
   await page.screenshot({ path: `output/quality/p4-shop-${testInfo.project.name}.png`, fullPage: false })
 })
 
-test('les derniers matchs libèrent la place quand un mode de jeu est ouvert', async ({ page }) => {
+test('les derniers matchs restent visibles quel que soit le mode choisi', async ({ page }) => {
+  // C'est ce qui a décidé le passage aux onglets (maquette du 16/09/2026) : les
+  // accordéons faisaient disparaître l'historique dès qu'on ouvrait un mode.
   await page.goto('/#jouer')
 
   const history = page.getByLabel('Historique des cinq derniers matchs')
-  const historyShell = page.locator('.mm-recent-history')
-  // Trois modes depuis le 16/09/2026, tous au premier niveau : le Solo a quitté
-  // l'écran et « Multijoueur » n'avait plus de contraire.
-  const normal = page.locator('#mm-normal-accordion > .mm-panel-heading')
-  const amis = page.locator('#mm-friends-accordion > .mm-panel-heading')
-
   await expect(history).toBeVisible()
-  await normal.click()
-  await expect(historyShell).toHaveAttribute('aria-hidden', 'true')
-  await expect(historyShell).toHaveCSS('opacity', '0')
-  await normal.click()
-  await expect(history).toBeVisible()
-  await amis.click()
-  await expect(historyShell).toHaveAttribute('aria-hidden', 'true')
-  await expect(historyShell).toHaveCSS('opacity', '0')
+  for (const mode of ['Classé', 'Amis', 'Normal']) {
+    await page.getByRole('tab', { name: mode, exact: true }).click()
+    await expect(history).toBeVisible()
+  }
 })
 
 test('l’écran Jouer ne propose plus que Normal, Classé et Amis', async ({ page }) => {
   // Le mode Solo séparait les joueurs en deux files pour rien : la file normale
   // sert déjà un bot, à leur niveau, quand personne ne répond en quinze secondes.
   await page.goto('/#jouer')
-  await expect(page.locator('.mm-play-accordion')).toHaveCount(3)
+  await expect(page.getByRole('tab')).toHaveCount(3)
   await expect(page.locator('#mm-solo-accordion')).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Normal', exact: true })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'Normal' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Classé' })).toBeVisible()
+  // Une seule carte à la fois, celle de l'onglet choisi.
+  await page.getByRole('tab', { name: 'Amis', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Amis' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Normal' })).toHaveCount(0)
 })
 
 test('le mode classé affiche son emblème et explique la recherche en arrière-plan', async ({ page }, testInfo) => {
   await page.goto('/#jouer')
-  await page.locator('#mm-ranked-accordion > .mm-panel-heading').click()
+  await page.getByRole('tab', { name: 'Classé', exact: true }).click()
 
-  const ranked = page.locator('.mm-ranked-mode')
+  const ranked = page.locator('.mm-play-card.is-gold')
   await expect(ranked).toBeVisible()
   await expect(ranked.locator('.mm-ranked-status img')).toHaveAttribute('src', /assets\/ranks\/rank-unranked\.png/)
-  await expect(ranked.getByRole('button', { name: /Lancer la recherche/ })).toBeVisible()
+  await expect(ranked.getByRole('button', { name: /Jouer une partie classée/ })).toBeVisible()
   await expect(ranked).toContainText('45 s par tour')
   await expect(ranked).toContainText('La recherche continue en arrière-plan')
 

@@ -19,7 +19,6 @@
 /* Primary actions */
 .mm-shell :is(
   .mm-save-guest,
-  .mm-empty-home-card>button,
   .mm-add-friend button,
   .mm-match-invite-actions button:not(.secondary),
   .mm-pause>button:not(.secondary):not(.danger),
@@ -33,7 +32,6 @@
 }
 .mm-shell :is(
   .mm-save-guest,
-  .mm-empty-home-card>button,
   .mm-add-friend button,
   .mm-match-invite-actions button:not(.secondary),
   .mm-pause>button:not(.secondary):not(.danger),
@@ -41,14 +39,12 @@
 ):hover{filter:brightness(1.045);transform:translateY(-1px);box-shadow:inset 0 1px 0 #ffffff35,0 9px 21px #073f3628}
 .mm-shell :is(
   .mm-save-guest,
-  .mm-empty-home-card>button,
   .mm-add-friend button,
   .mm-match-invite-actions button:not(.secondary),
   .mm-pause>button:not(.secondary):not(.danger),
   .mm-shop-item>button:not(:disabled)
 ):active{transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff24,0 4px 10px #073f3619}
 
-.mm-empty-home-card>button{height:42px!important;border-radius:999px!important}
 .mm-add-friend button{padding-inline:16px;gap:7px}
 .mm-shop-item>button:not(:disabled){height:36px;min-height:36px;margin-top:10px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.625rem}
 .mm-shop-item>button:disabled{height:36px;border-radius:999px;box-shadow:inset 0 1px 0 #ffffff85}
