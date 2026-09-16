@@ -132,7 +132,9 @@
 [data-theme="dark"] .reroll-button{background:linear-gradient(145deg,#26715f,#0c4c40);border-color:#4f8b79;color:#fff4dc;box-shadow:0 4px 9px #0006}
 @media(max-width:360px){.rack{grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}.turn-actions{grid-template-columns:minmax(94px,.82fr) minmax(0,1.35fr);gap:7px}}
 @media(max-width:360px){.rack-bonus-rule{gap:2px;padding:2px 4px;font-size:0.375rem}.rack-bonus-rule svg{width:8px;height:8px}.rack-heading>span{font-size:0.5rem}}
-@media(prefers-reduced-motion:reduce){.rack.is-rerolling .rack-slot{animation:none!important}.reroll-button svg{transition:none}.rack-completion-reward{animation:none!important}}
+html[data-motion="off"] .rack.is-rerolling .rack-slot{animation:none!important}
+html[data-motion="off"] .reroll-button svg{transition:none}
+html[data-motion="off"] .rack-completion-reward{animation:none!important}
 .player-turn-marker{
   display:block;margin-top:4px;padding:2px 5px;border-radius:999px;background:#e5f1e8;color:#0d654c;
   font:800 0.375rem/1 'DM Sans',sans-serif;font-style:normal;letter-spacing:.08em;text-align:center;white-space:nowrap;
@@ -264,9 +266,7 @@
 .slot.confirmed-player{background:#f1faf4}
 [data-theme="dark"] .slot.confirmed-player{background:#193c33}
 
-@media(prefers-reduced-motion:reduce){
-  .board-effects-layer>.reward-bubble{animation:none!important;opacity:1!important;filter:none!important}
-}
+html[data-motion="off"] .board-effects-layer>.reward-bubble{animation:none!important;opacity:1!important;filter:none!important}
 
 /* End-of-game experience: compact, readable and shared by Solo and duels. */
 .experience-reward{
@@ -300,7 +300,8 @@
 [data-theme="dark"] .experience-breakdown{border-color:#4d5c55}
 [data-theme="dark"] .experience-reward-heading>span,[data-theme="dark"] .experience-breakdown b{color:#8ad6b4}
 [data-theme="dark"] .experience-reward-heading>strong,[data-theme="dark"] .experience-level strong{color:#ff9b73}
-@media(prefers-reduced-motion:reduce){.experience-reward{animation:none!important}.experience-progress b{transition:none!important}}
+html[data-motion="off"] .experience-reward{animation:none!important}
+html[data-motion="off"] .experience-progress b{transition:none!important}
 
 /* Asynchronous duel uses the same board with a calmer, readable clock. */
 .turn.async-turn .turn-timer{font-size:1.3125rem;letter-spacing:0;translate:0 0;text-indent:.06em}
@@ -332,11 +333,9 @@
 
 /* Essential feedback stays visible when Apple/desktop disables motion. */
 .board,.rack,.rack-letter,.letter-only{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-@media(prefers-reduced-motion:reduce){
-  .board-word-highlight{animation:none!important;opacity:1!important}
-  .turn-ready-flash{animation:turnReadyFlashReduced 1.8s linear forwards!important;transform:none!important}
-  .turn-ready-flash span{animation:turnReadyHeartbeatReduced 1.8s linear forwards!important;transform:none!important}
-}
+html[data-motion="off"] .board-word-highlight{animation:none!important;opacity:1!important}
+html[data-motion="off"] .turn-ready-flash{animation:turnReadyFlashReduced 1.8s linear forwards!important;transform:none!important}
+html[data-motion="off"] .turn-ready-flash span{animation:turnReadyHeartbeatReduced 1.8s linear forwards!important;transform:none!important}
 @keyframes turnReadyFlashReduced{0%{opacity:0}10%,78%{opacity:1}100%{opacity:0}}
 @keyframes turnReadyHeartbeatReduced{0%{opacity:.45}10%{opacity:1}22%{opacity:.72}38%{opacity:1}51%,78%{opacity:.88}100%{opacity:0}}
 

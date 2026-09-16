@@ -202,9 +202,7 @@
 .mm-quests-attente { margin: 22px 0 6px; text-align: center; color: var(--mm-muted); font-size: .875rem; }
 .mm-quests-erreur { margin: 12px 0 0; color: var(--mm-coral); font-size: .8125rem; text-align: center; }
 
-@media (prefers-reduced-motion: reduce) {
-  .mm-quests-badge, .mm-quest-claim, .mm-quests-gain { animation: none; }
-  .mm-quest-gagnee b, .mm-quest.is-won, .mm-quest.is-won::after, .mm-quest.is-won .mm-quest-icon { animation: none; }
-  .mm-quest.is-won::after { display: none; }
-  .mm-quest-bar i { transition: none; }
-}
+html[data-motion="off"] .mm-quests-badge,html[data-motion="off"] .mm-quest-claim,html[data-motion="off"] .mm-quests-gain{animation: none;}
+html[data-motion="off"] .mm-quest-gagnee b,html[data-motion="off"] .mm-quest.is-won,html[data-motion="off"] .mm-quest.is-won::after,html[data-motion="off"] .mm-quest.is-won .mm-quest-icon{animation: none;}
+html[data-motion="off"] .mm-quest.is-won::after{display: none;}
+html[data-motion="off"] .mm-quest-bar i{transition: none;}

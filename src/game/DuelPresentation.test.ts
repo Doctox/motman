@@ -16,7 +16,7 @@ vi.mock('../social', () => ({ sendFriendRequestToPlayer: social.demander, loadSo
 const classement = vi.hoisted(() => ({ lire: vi.fn() }))
 vi.mock('../dailyLeaderboard', () => ({ loadDailyLeaderboard: classement.lire }))
 vi.mock('../CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
-vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn() }))
+vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn(), motionReduced: () => false }))
 vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { children: ReactNode }) => createElement('div', null, children) }))
 
 import { dailyDateKey } from '../dailyDate'

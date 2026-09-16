@@ -65,4 +65,5 @@
 .mm-pause button{width:100%;min-height:45px;margin-top:8px;border:0;border-radius:999px;background:var(--mm-coral);color:#fff;font-weight:700;cursor:pointer}
 .mm-pause button.secondary{border:1px solid var(--mm-line);background:transparent;color:var(--mm-ink)}
 @keyframes gameOptionsIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.mm-settings,.mm-pause{animation:none}.mm-settings button{transition:none}}
+html[data-motion="off"] .mm-settings,html[data-motion="off"] .mm-pause{animation:none}
+html[data-motion="off"] .mm-settings button{transition:none}

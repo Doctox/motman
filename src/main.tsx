@@ -12,6 +12,7 @@ import { installPressFeedback } from './pressFeedback'
 import { installStaleDeployRecovery } from './staleDeployRecovery'
 import { installTabletViewport } from './tabletViewport'
 import { installInstallPromptCapture } from './installApp'
+import { installMotionAttribute } from './sensoryPreferences'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
 // de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
@@ -23,6 +24,9 @@ installPressFeedback()
 installTabletViewport()
 // L'annonce d'installation du navigateur arrive tôt et une seule fois : on la garde. Voir installApp.ts.
 installInstallPromptCapture()
+// Animations : c'est MOTMAN qui décide (paramètre « Animations »), pas l'appareil.
+// Tout le CSS d'animation est accroché à `data-motion`. Voir sensoryPreferences.ts.
+installMotionAttribute()
 
 // Le thème AVANT la première image : l'écran de lancement doit déjà être sombre
 // pour qui a choisi le sombre. Le menu le repose ensuite, avec la même règle.

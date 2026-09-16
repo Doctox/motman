@@ -63,6 +63,4 @@
    L'animation d'avatar, elle, n'est pas une animation CSS mais un fichier
    anime ; aucune regle de duree ne l'atteint. C'est `CosmeticPortrait.tsx` qui
    la gouverne, en ne lui substituant plus d'affiche fixe. */
-@media(prefers-reduced-motion:reduce){
-  .cosmetic-frame>.cosmetic-frame-art{animation-duration:var(--mm-cadre-duree)!important}
-}
+html[data-motion="off"] .cosmetic-frame>.cosmetic-frame-art{animation-duration:var(--mm-cadre-duree)!important}

@@ -112,32 +112,18 @@
      • les entrées d'écran et de panneau, qui parcourent une distance ;
      • tout ce qui boucle ou pulse (déjà traité dans les autres feuilles).
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: reduce) {
-  /* Ce qui se déplace s'arrête. */
-  .mm-page,
-  .mm-replay-layer,
-  .mm-replay-panel {
-    animation: none !important;
-  }
-
-  /* Ce qui répond au doigt continue de répondre. Cette déclaration ANNULE le
+html[data-motion="off"] /* Ce qui se déplace s'arrête. */
+  .mm-page,html[data-motion="off"] .mm-replay-layer,html[data-motion="off"] .mm-replay-panel{animation: none !important;}
+html[data-motion="off"] /* Ce qui répond au doigt continue de répondre. Cette déclaration ANNULE le
      `transition:none!important` posé par `menu-layout.css` et
-     `menu-controls.css` — d'où le `!important`, et d'où la position de ce
+     `menu-controls.css` — d'où le `!important`,html[data-motion="off"] et d'où la position de ce
      fichier en dernier dans `menu.css`. */
-  .mm-shell button {
-    transition:
+  .mm-shell button{transition:
       transform var(--mm-t-quick) var(--mm-ease-out),
       background-color var(--mm-t-quick) ease,
       border-color var(--mm-t-quick) ease,
       color var(--mm-t-quick) ease,
-      opacity var(--mm-t-quick) ease !important;
-  }
-  .mm-shell button:not(:disabled):active,
-  .mm-shell button:not(:disabled).is-pressed {
-    transition-duration: var(--mm-t-tap) !important;
-  }
-  /* L'apparence de l'appui aussi : sans elle, le bouton ne dirait plus rien. */
-  .mm-shell button:not(:disabled).is-pressed {
-    transform: translateY(1px) scale(.985) !important;
-  }
-}
+      opacity var(--mm-t-quick) ease !important;}
+html[data-motion="off"] .mm-shell button:not(:disabled):active,html[data-motion="off"] .mm-shell button:not(:disabled).is-pressed{transition-duration: var(--mm-t-tap) !important;}
+html[data-motion="off"] /* L'apparence de l'appui aussi : sans elle,html[data-motion="off"] le bouton ne dirait plus rien. */
+  .mm-shell button:not(:disabled).is-pressed{transform: translateY(1px) scale(.985) !important;}

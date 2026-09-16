@@ -42,9 +42,19 @@ const compteursQuetes = new Map<string, Record<string, number>>()
 const cleQuetes = (userId: string, scope: string, period: string) => `${userId}:${scope}:${period}`
 const jourQuetes = () => new Date().toISOString().slice(0, 10)
 
+// Démonstration : avec MOTMAN_QUETES_DEMO=1, toute session neuve arrive avec ses
+// quêtes déjà finies. Sert à regarder l'écran et son animation sans jouer six
+// parties. Serveur de test uniquement — la production compte les vraies parties.
+const DEMO_QUETES = process.env.MOTMAN_QUETES_DEMO === '1'
+const COMPTEURS_DEMO = { lettres: 12, chevalet: 1, partie: 1, 'sans-indice': 1, mots: 5, images: 3, defi: 4 }
+
 function questBoardFor(userId: string) {
   const jour = jourQuetes()
   const semaine = weekKey(jour)
+  if (DEMO_QUETES) {
+    if (!compteursQuetes.has(cleQuetes(userId, 'day', jour))) compteursQuetes.set(cleQuetes(userId, 'day', jour), { ...COMPTEURS_DEMO })
+    if (!compteursQuetes.has(cleQuetes(userId, 'week', semaine))) compteursQuetes.set(cleQuetes(userId, 'week', semaine), { ...COMPTEURS_DEMO })
+  }
   return {
     dayKey: jour,
     weekKey: semaine,

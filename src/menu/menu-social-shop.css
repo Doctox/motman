@@ -94,11 +94,9 @@
   .mm-settings>header button:hover,.mm-friends-panel>header button:hover,.mm-quick-menu>header button:hover{background:var(--mm-sage)}
 }
 
-@media(prefers-reduced-motion:reduce){
-  .mm-page{scroll-behavior:auto}
-  .mm-accordion-body,.mm-panel-heading,.mm-accordion-chevron,.mm-bottom-nav button svg,.mm-bottom-nav button span{transition:none!important}
-  .mm-bottom-nav button.active svg{animation:none!important}
-}
+html[data-motion="off"] .mm-page{scroll-behavior:auto}
+html[data-motion="off"] .mm-accordion-body,html[data-motion="off"] .mm-panel-heading,html[data-motion="off"] .mm-accordion-chevron,html[data-motion="off"] .mm-bottom-nav button svg,html[data-motion="off"] .mm-bottom-nav button span{transition:none!important}
+html[data-motion="off"] .mm-bottom-nav button.active svg{animation:none!important}
 
 /* Non-blocking lobby activity ------------------------------------------------
    A search or sent invitation stays visible without freezing the menu. */
@@ -161,9 +159,7 @@
   .mm-live-activity>button{padding-inline:8px}
 }
 @media(max-height:760px){.mm-live-activities{bottom:calc(67px + env(safe-area-inset-bottom))}}
-@media(prefers-reduced-motion:reduce){
-  .mm-live-activity,.mm-live-activity-dots i{animation:none!important}
-}
+html[data-motion="off"] .mm-live-activity,html[data-motion="off"] .mm-live-activity-dots i{animation:none!important}
 
 /* Profile collection and L’Épicerie --------------------------------------- */
 .cosmetic-frame--cadre-ivoire{border-color:#c7a258!important;box-shadow:0 0 0 3px var(--mm-surface),0 4px 13px var(--mm-shadow)}
@@ -190,7 +186,8 @@
 [data-theme="dark"] .mm-shop-toolbar>b{background:#413a26;border-color:#6f613b;color:#ead188}[data-theme="dark"] .mm-shop-item>button{background:#21302b}[data-theme="dark"] .mm-shop-item>button:disabled{background:#244235;color:#9de0bd}[data-theme="dark"] .mm-basket-card{border-color:#665c45;background:linear-gradient(160deg,#26342e,#17231f 58%,#302a1c)}[data-theme="dark"] .mm-basket-halo{opacity:.35}[data-theme="dark"] .mm-basket-reward>span{border-color:#665d47;background:#202a26ee}
 [data-theme="dark"] .mm-home-feathers{background:#413a26;border-color:#6f613b;color:#ead188;box-shadow:inset 0 1px 0 #fff1}
 @media(max-width:360px){.mm-shop-page{padding-inline:18px}.mm-shop-grid{gap:8px}.mm-shop-item{padding-inline:7px}.mm-shop-item .mm-portrait{width:72px;height:72px;flex-basis:72px}.mm-basket-stage{height:286px}.mm-basket-picture{width:232px}.mm-basket-reward{top:68px}}
-@media(prefers-reduced-motion:reduce){.mm-basket-picture.is-opening .mm-basket-picture-closed,.mm-basket-picture.is-opening .mm-basket-picture-open,.mm-basket-card.is-revealed .mm-basket-reward{animation-duration:.01ms!important;animation-delay:0s!important}.mm-feather-cloud{display:none}}
+html[data-motion="off"] .mm-basket-picture.is-opening .mm-basket-picture-closed,html[data-motion="off"] .mm-basket-picture.is-opening .mm-basket-picture-open,html[data-motion="off"] .mm-basket-card.is-revealed .mm-basket-reward{animation-duration:.01ms!important;animation-delay:0s!important}
+html[data-motion="off"] .mm-feather-cloud{display:none}
 
 /* Progression: titles and transparent basket odds. */
 .mm-equipped-title{display:block;margin:4px 0 7px;color:#9a6532;font:600 0.625rem/1.2 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase}
@@ -331,7 +328,8 @@
 .mm-basket-reward.rarity-legendaire>span{border-color:#d8b84d;box-shadow:0 0 0 1px #f0d99055,0 7px 22px #c5a23f55}
 @keyframes mmBasketShake{0%,100%{rotate:0deg;translate:0 0}12%{rotate:-4deg}24%{rotate:4deg}36%{rotate:-5deg;translate:0 -3px}48%{rotate:5deg}60%{rotate:-3deg}72%{rotate:3deg;translate:0 -2px}86%{rotate:-1deg}}
 @keyframes mmBasketBurst{0%{opacity:0;transform:scale(.3) rotate(0deg)}25%{opacity:1}100%{opacity:0;transform:scale(var(--burst-scale)) rotate(40deg)}}
-@media(prefers-reduced-motion:reduce){.mm-basket-picture.is-opening{animation:none}.mm-basket-burst{display:none}}
+html[data-motion="off"] .mm-basket-picture.is-opening{animation:none}
+html[data-motion="off"] .mm-basket-burst{display:none}
 
 /* Pastille de l'onglet Épicerie : assez de plumes pour ouvrir un panier. */
 .mm-nav-badge{position:absolute;top:7px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--mm-coral);box-shadow:0 0 0 2px var(--mm-paper)}

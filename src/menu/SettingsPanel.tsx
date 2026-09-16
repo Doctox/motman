@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BookOpen, ChevronRight, FileText, LogIn, Moon, Settings, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
+import { BookOpen, ChevronRight, FileText, LogIn, Moon, Settings, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
 import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
 import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
 import { isNativeRuntime } from '../nativeRuntime'
@@ -35,8 +35,14 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
     <section ref={dialogRef} className="mm-settings" role="dialog" aria-modal="true" aria-label="Paramètres" tabIndex={-1}>
       <header><h2>Paramètres</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
       <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button><button type="button" className={theme === 'system' ? 'active' : ''} aria-pressed={theme === 'system'} onClick={() => setTheme('system')}><Settings />Système</button></div>
+      {/* Les trois réglages de confort, ensemble. « Animations » est arrivé le
+          16/09/2026 : tout le CSS suivait jusque-là le réglage de l'appareil,
+          et un joueur qui avait coupé les animations dans Windows ne pouvait
+          plus les rallumer dans le jeu. */}
+      <h3 className="mm-settings-heading">Système</h3>
       <ToggleRow icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
       <ToggleRow icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => setPreference('vibration', value)} />
+      <ToggleRow icon={<Sparkles />} label="Animations" checked={preferences.animations} setChecked={value => setPreference('animations', value)} />
       <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Règles et modes de jeu · 5 étapes</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder votre progression'}</small></span><ChevronRight /></button>

@@ -139,11 +139,7 @@
   .game-result-art{height:112px}
   .game-result-hero h2{font-size:2.25rem}.game-result-hero p{margin-top:6px}.game-result-screen{gap:12px}
 }
-@media(prefers-reduced-motion:reduce){
-  .game-result-screen,.game-result-art,.game-result-emblem,.game-result-hero h2,.game-result-hero p,.game-result-score,
-  .game-result-screen .experience-reward,.game-result-screen .experience-pending,
-  .game-result-screen .end-game-actions,.game-result-screen .experience-progress b{animation:none!important}
-}
+html[data-motion="off"] .game-result-screen,html[data-motion="off"] .game-result-art,html[data-motion="off"] .game-result-emblem,html[data-motion="off"] .game-result-hero h2,html[data-motion="off"] .game-result-hero p,html[data-motion="off"] .game-result-score,html[data-motion="off"] .game-result-screen .experience-reward,html[data-motion="off"] .game-result-screen .experience-pending,html[data-motion="off"] .game-result-screen .end-game-actions,html[data-motion="off"] .game-result-screen .experience-progress b{animation:none!important}
 
 /* Les cadres de portrait illustres vivaient ici EN DOUBLE, recopies de
    `src/cosmetic-portrait.css`. Les deux copies avaient deja diverge : celle-ci

@@ -7,6 +7,7 @@ import {
 import { claimQuest, type ClaimedQuestReward } from '../auth'
 import { loadPlayerCosmetics } from '../cosmetics'
 import { loadPlayerIdentity } from '../playerIdentity'
+import { motionReduced } from '../sensoryPreferences'
 import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, type QuestCounter, type QuestView } from '../quests'
 import { useQuestBoard } from '../questBoardState'
 import { useDialogFocus } from '../useDialogFocus'
@@ -64,7 +65,7 @@ function useBourseAnimee(cible: number): number {
   const [affiche, setAffiche] = useState(cible)
   const depart = useRef(cible)
   useEffect(() => {
-    const reduit = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+    const reduit = motionReduced()
     if (reduit || depart.current === cible) {
       depart.current = cible
       setAffiche(cible)

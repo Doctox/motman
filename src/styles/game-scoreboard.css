@@ -96,11 +96,9 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .clue-popover{animation-duration:.36s}
 .clue-zoom-backdrop{animation-duration:.24s}
 
-@media(prefers-reduced-motion:reduce){
-  .score-value,.provisional-letter,.confirmed-board-letter.provisional-effect,.feedback-panel,.multiplayer-result{animation:none!important}
-  .turn.urgent .turn-timer{animation:none!important}
-  .validate:after,.new-game:after{display:none!important}
-}
+html[data-motion="off"] .score-value,html[data-motion="off"] .provisional-letter,html[data-motion="off"] .confirmed-board-letter.provisional-effect,html[data-motion="off"] .feedback-panel,html[data-motion="off"] .multiplayer-result{animation:none!important}
+html[data-motion="off"] .turn.urgent .turn-timer{animation:none!important}
+html[data-motion="off"] .validate:after,html[data-motion="off"] .new-game:after{display:none!important}
 
 /* Confirmed opponent letters are amber; failed attempts are unmistakably red.
    La couleur s'applique à la COUCHE STABLE uniquement (`.confirmed-board-letter`).

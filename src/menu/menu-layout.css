@@ -177,8 +177,6 @@
   .mm-profile-hero{gap:16px}.mm-profile-hero .mm-avatar{width:77px;height:77px;flex-basis:77px;font-size:2.3125rem}
   .mm-profile-hero h1{font-size:1.75rem}
 }
-@media(prefers-reduced-motion:reduce){
-  .mm-page,.mm-modal-layer,.mm-settings,.mm-friends-panel,.mm-guest-editor,.mm-match-invite,.mm-pause{animation:none!important}
-  .mm-shell button{transition:none!important}
-}
+html[data-motion="off"] .mm-page,html[data-motion="off"] .mm-modal-layer,html[data-motion="off"] .mm-settings,html[data-motion="off"] .mm-friends-panel,html[data-motion="off"] .mm-guest-editor,html[data-motion="off"] .mm-match-invite,html[data-motion="off"] .mm-pause{animation:none!important}
+html[data-motion="off"] .mm-shell button{transition:none!important}
 

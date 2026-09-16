@@ -4,13 +4,22 @@ import type { TurnStep } from './game/turnChoreography'
 export type SensoryPreferences = {
   effects: boolean
   vibration: boolean
+  /** Les animations du jeu. Voir `installMotionAttribute` plus bas. */
+  animations: boolean
 }
 
 export type GameEffect = 'pick' | 'place' | 'score' | 'word' | 'error' | 'turn' | 'reroll'
 
 const STORAGE_KEY = 'motman-sensory-preferences-v1'
 const CHANGE_EVENT = 'motman:sensory-preferences'
-const DEFAULTS: SensoryPreferences = { effects: true, vibration: true }
+// ⚠️ ANIMATIONS À `true` PAR DÉFAUT, MÊME SI L'APPAREIL DEMANDE MOINS
+// D'ANIMATIONS (16/09/2026, décision du propriétaire). Avant, tout le CSS
+// dépendait directement de `prefers-reduced-motion` : un joueur qui avait coupé
+// les animations dans Windows — ce qui arrive sans le vouloir sur beaucoup de
+// machines — jouait à un MotMan sans vie, sans aucun moyen de les rallumer. Le
+// jeu décide donc lui-même, et ce réglage rend la main à celui que le mouvement
+// dérange.
+const DEFAULTS: SensoryPreferences = { effects: true, vibration: true, animations: true }
 
 let audioContext: AudioContext | null = null
 
@@ -20,6 +29,7 @@ export function loadSensoryPreferences(): SensoryPreferences {
     return {
       effects: typeof stored.effects === 'boolean' ? stored.effects : DEFAULTS.effects,
       vibration: typeof stored.vibration === 'boolean' ? stored.vibration : DEFAULTS.vibration,
+      animations: typeof stored.animations === 'boolean' ? stored.animations : DEFAULTS.animations,
     }
   } catch {
     return { ...DEFAULTS }
@@ -47,6 +57,27 @@ export function useSensoryPreferences() {
   }, [])
 
   return { preferences, setPreference }
+}
+
+/**
+ * Les animations sont-elles coupées ? Une seule réponse pour le CSS
+ * (`html[data-motion="off"]`) et pour le JavaScript, qui raccourcit alors ses
+ * comptes à rebours et ses défilements.
+ */
+export function motionReduced(): boolean {
+  return !loadSensoryPreferences().animations
+}
+
+/**
+ * Pose `data-motion` sur la page, et le tient à jour. À appeler au démarrage
+ * (main.tsx) : tout le CSS d'animation est accroché à cet attribut.
+ */
+export function installMotionAttribute(win: Window = window): void {
+  const appliquer = () => {
+    win.document.documentElement.dataset.motion = loadSensoryPreferences().animations ? 'on' : 'off'
+  }
+  appliquer()
+  win.addEventListener(CHANGE_EVENT, appliquer)
 }
 
 export function haptic(pattern: number | number[]): void {

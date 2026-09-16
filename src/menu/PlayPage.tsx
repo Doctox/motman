@@ -10,6 +10,7 @@ import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { asyncTimeLeft, matchOpponent } from './HomePage'
+import { motionReduced } from '../sensoryPreferences'
 
 function MatchmakingRow({ icon, title, subtitle, searching, disabled, start, cancel }: { icon: ReactNode; title: string; subtitle: string; searching: boolean; disabled: boolean; start: () => void; cancel: () => void }) {
   return <div className={`mm-matchmaking-row ${searching ? 'is-searching' : ''}`}>
@@ -137,7 +138,7 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
     if (!next) return
     window.requestAnimationFrame(() => {
       document.getElementById(`mm-${id}-accordion`)?.scrollIntoView({
-        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        behavior: motionReduced() ? 'auto' : 'smooth',
         block: 'nearest',
       })
     })

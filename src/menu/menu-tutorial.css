@@ -352,8 +352,6 @@
   .mm-tutorial-visual{min-height:190px}
   .mm-tutorial-rack-visual .target-row,.mm-tutorial-rack-visual .mini-rack{grid-template-columns:repeat(4,43px)}
 }
-@media(prefers-reduced-motion:reduce){
-  .mm-tutorial{animation:none}
-  .mm-tutorial-progress i{transition:none}
-  .mm-tutorial-rack-visual .mini-rack .selected{transform:none}
-}
+html[data-motion="off"] .mm-tutorial{animation:none}
+html[data-motion="off"] .mm-tutorial-progress i{transition:none}
+html[data-motion="off"] .mm-tutorial-rack-visual .mini-rack .selected{transform:none}

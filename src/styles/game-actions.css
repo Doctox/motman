@@ -80,7 +80,7 @@
 [data-theme="dark"] .hint-button,[data-theme="dark"] .end-game-home,[data-theme="dark"] .clue-popover-close{background:var(--game-button-secondary)!important;border-color:var(--game-button-secondary-border)!important;color:#e8f3ec!important}
 
 @media(max-width:360px){.turn-actions{gap:8px}}
-@media(prefers-reduced-motion:reduce){.hint-button,.validate,.new-game,.end-game-home,.reroll-button{transition:none!important}}
+html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data-motion="off"] .new-game,html[data-motion="off"] .end-game-home,html[data-motion="off"] .reroll-button{transition:none!important}
 
 /* Native gameplay owns one Android viewport. Capacitor first removes the real
    system-bar insets from the WebView; this layout then uses the remaining

@@ -28,29 +28,11 @@
    de `transition`, jamais d'`animation`.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@media (prefers-reduced-motion: reduce) {
-  .app-shell button:not(:disabled),
-  .hint-button,
-  .validate,
-  .new-game,
-  .end-game-home,
-  .reroll-button,
-  .feedback-actions button,
-  .reasons button {
-    transition:
+html[data-motion="off"] .app-shell button:not(:disabled),html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data-motion="off"] .new-game,html[data-motion="off"] .end-game-home,html[data-motion="off"] .reroll-button,html[data-motion="off"] .feedback-actions button,html[data-motion="off"] .reasons button{transition:
       transform var(--mm-t-quick, 180ms) var(--mm-ease-out, ease),
       background-color var(--mm-t-quick, 180ms) ease,
       border-color var(--mm-t-quick, 180ms) ease,
       color var(--mm-t-quick, 180ms) ease,
-      opacity var(--mm-t-quick, 180ms) ease !important;
-  }
-
-  /* L'enfoncement suit le doigt ; le relâchement prend son temps. */
-  .app-shell button:not(:disabled):active,
-  .hint-button:not(:disabled):active,
-  .validate:not(:disabled):active,
-  .new-game:not(:disabled):active,
-  .reroll-button:not(:disabled):active {
-    transition-duration: var(--mm-t-tap, 70ms) !important;
-  }
-}
+      opacity var(--mm-t-quick, 180ms) ease !important;}
+html[data-motion="off"] /* L'enfoncement suit le doigt ; le relâchement prend son temps. */
+  .app-shell button:not(:disabled):active,html[data-motion="off"] .hint-button:not(:disabled):active,html[data-motion="off"] .validate:not(:disabled):active,html[data-motion="off"] .new-game:not(:disabled):active,html[data-motion="off"] .reroll-button:not(:disabled):active{transition-duration: var(--mm-t-tap, 70ms) !important;}

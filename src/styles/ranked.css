@@ -9,4 +9,4 @@
 .ranked-match-paused{position:fixed;inset:0;z-index:1050;display:grid;place-items:center;padding:20px;background:#062d28d9;backdrop-filter:blur(5px)}.ranked-match-paused>section{width:min(390px,100%);padding:25px;border:1px solid #d5bb75;border-radius:20px;background:var(--paper,#fffdf7);text-align:center;color:#083f37;box-shadow:0 20px 60px #001a17a0}.ranked-match-paused svg{width:42px;height:42px;color:#c9502e}.ranked-match-paused h2{margin:8px 0;font:700 1.75rem "Playfair Display",serif}.ranked-match-paused p{margin:0;line-height:1.5}.ranked-match-paused strong{display:block;margin-top:14px;font-size:0.8125rem;color:#59706a}
 @keyframes ranked-ready-pulse{to{transform:scale(1.06)}}
 @media(max-width:430px){.ranked-ready-dialog{padding:21px 17px}.ranked-ready-emblems{height:88px}.ranked-ready-emblems>img,.ranked-ready-emblems>span{width:75px;height:75px}.ranked-ready-dialog h2{font-size:1.6875rem}}
-@media(prefers-reduced-motion:reduce){.ranked-ready-countdown.urgent{animation:none}}
+html[data-motion="off"] .ranked-ready-countdown.urgent{animation:none}

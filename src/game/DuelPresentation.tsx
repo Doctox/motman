@@ -16,7 +16,7 @@ import {
 } from '../matches'
 import type { ExperienceAward } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
-import { haptic, playEffect } from '../sensoryPreferences'
+import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
 import { useCountUp } from './countUp'
 import { loadSocialState, sendFriendRequestToPlayer } from '../social'
 import './duel-friend.css'
@@ -71,7 +71,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     }).catch(() => undefined)
     haptic(won ? [18, 32, 18, 55, 28] : 24)
     playEffect(won ? 'word' : 'score')
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduceMotion = motionReduced()
     window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
     return () => { active = false }
   }, [match.id, won])
@@ -261,7 +261,7 @@ export function PendingResultPanel({
     }).catch(() => undefined)
     haptic(won ? [18, 32, 18, 55, 28] : 24)
     playEffect(won ? 'word' : 'score')
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduceMotion = motionReduced()
     window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
     return () => { active = false }
   }, [result.id, result.matchId, won])
