@@ -275,9 +275,9 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
    dans ce fichier : une animation de `box-shadow` serait perdue d'avance — un
    `!important` d'auteur l'emporte sur une déclaration d'animation.
 
-   `prefers-reduced-motion` : la règle générale de `game-foundation.css` éteint
-   toutes les animations de la page. Celle-ci s'éteindrait AVEC son anneau à
-   peine visible ; on le rallume donc en grand, fixe. Ce qui devait se voir se
+   ANIMATIONS COUPÉES (paramètre « Animations » de MotMan, html[data-motion="off"]) :
+   la règle générale éteindrait l'anneau au creux de sa respiration, donc à
+   moitié visible. On le rallume ici en grand, fixe. Ce qui devait se voir se
    voit toujours, ce qui pouvait donner le vertige ne bouge plus. */
 .hint-button[data-idle-cue],.reroll-button[data-idle-cue]{position:relative}
 .hint-button[data-idle-cue]::after,.reroll-button[data-idle-cue]::after{
@@ -291,6 +291,4 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
    exactement le défaut qu'on répare. */
 @keyframes idleAssistRing{0%,100%{opacity:.45}50%{opacity:1}}
 [data-theme="dark"] .hint-button[data-idle-cue]::after,[data-theme="dark"] .reroll-button[data-idle-cue]::after{border-color:#f0c766;box-shadow:0 0 12px #f0c76659}
-@media(prefers-reduced-motion:reduce){
-  .hint-button[data-idle-cue]::after,.reroll-button[data-idle-cue]::after{animation:none!important;opacity:1}
-}
+html[data-motion="off"] .hint-button[data-idle-cue]::after,html[data-motion="off"] .reroll-button[data-idle-cue]::after{animation:none!important;opacity:1}

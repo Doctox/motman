@@ -200,14 +200,34 @@ async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
   await expect(lettre).toBeEnabled()
 }
 
+/**
+ * Rend la main à l'observé avec un tour ENTIER devant lui.
+ *
+ * Le serveur de test raccourcit le tour illimité à six secondes
+ * (`MOTMAN_ASYNC_TURN_DURATION_MS`). Ouvrir la page sur son propre tour en
+ * mange déjà la moitié — chargement, session, grille —, et le reste ne suffit
+ * plus aux gestes lents (attendre l'éclair, viser une case). On ouvre donc la
+ * page pendant le tour de l'ADVERSAIRE, on laisse ce tour expirer, et l'observé
+ * hérite d'un tour neuf qui commence sous ses yeux.
+ */
+async function rendreLaMainA(request: APIRequestContext, matchId: string, joueur: Identity, enCours: MatchState): Promise<MatchState> {
+  const attente = new Date(enCours.turnEndsAt).getTime() + 25 - Date.now()
+  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
+  await submitTurn(request, enCours, [], true)
+  const apres = await loadMatch(request, joueur.playerId, matchId)
+  expect(apres.currentPlayerId).toBe(joueur.playerId)
+  return apres
+}
+
 test('un indice évite une lettre déjà posée mais pas encore validée', async ({ browser, request }, testInfo) => {
   const { first, second, matchId } = await createNormalMatch(request, 'async', 'Indice utile')
   const initial = await loadMatch(request, first.playerId, matchId)
-  const placement = playablePlacements(initial)[0]
-  expect(placement).toBeTruthy()
-  const actor = initial.currentPlayerId === first.playerId ? first : second
+  const actor = initial.currentPlayerId === first.playerId ? second : first
   const { context, page } = await openGame(browser, actor, matchId, { width: 390, height: 844 })
   try {
+    const aJouer = await rendreLaMainA(request, matchId, actor, initial)
+    const placement = playablePlacements(aJouer)[0]
+    expect(placement).toBeTruthy()
     const lettre = page.getByRole('button', { name: `Lettre ${placement.letter}` }).first()
     await attendreTourJouable(page, lettre)
     await lettre.click({ force: true })
@@ -266,20 +286,26 @@ test('après une attente, l’indice et le mélange se signalent — et se taise
     await expect(melange).toHaveAttribute('data-idle-cue', 'true')
     await page.screenshot({ path: `output/quality/idle-assist-cue-${testInfo.project.name}.png`, fullPage: false })
 
-    // `prefers-reduced-motion` : `game-foundation.css` éteint TOUTES les
-    // animations de la page. L'anneau doit rester allumé, fixe — et non
-    // disparaître avec la respiration qui le portait.
+    // Animations coupées dans MotMan (Menu → Paramètres → Animations, qui pose
+    // `data-motion="off"` et éteint TOUTES les animations de la page) : l'anneau
+    // doit rester allumé, fixe — et non disparaître avec la respiration qui le
+    // portait. Le réglage de l'appareil, lui, ne décide plus de rien.
     const anneau = async () => indice.evaluate(element => {
       const style = getComputedStyle(element, '::after')
       return { animation: style.animationName, opacity: Number(style.opacity), bord: parseFloat(style.borderTopWidth) }
     })
     expect((await anneau()).animation).toBe('idleAssistRing')
-    await page.emulateMedia({ reducedMotion: 'reduce' })
+    const reglerAnimations = (actives: boolean) => page.evaluate(valeur => {
+      const preferences = { effects: true, vibration: true, animations: valeur }
+      localStorage.setItem('motman-sensory-preferences-v1', JSON.stringify(preferences))
+      window.dispatchEvent(new CustomEvent('motman:sensory-preferences', { detail: preferences }))
+    }, actives)
+    await reglerAnimations(false)
     const immobile = await anneau()
     expect(immobile.animation).toBe('none')
     expect(immobile.opacity).toBe(1)
     expect(immobile.bord).toBeGreaterThan(1)
-    await page.emulateMedia({ reducedMotion: null })
+    await reglerAnimations(true)
 
     // Le premier geste les éteint toutes les deux — ici, choisir une lettre.
     await page.locator('.rack-letter').first().click({ force: true })
