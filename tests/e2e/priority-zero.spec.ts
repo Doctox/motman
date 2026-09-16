@@ -708,7 +708,14 @@ test('ordinateur portable : la partie tient dans l’écran, grille à gauche, l
   const placement = playablePlacements(initial)[0]
   const { context, page } = await openGame(browser, actor, matchId, { width: 1366, height: 657 })
   try {
-    await expect(page.locator('.turn-ready-flash')).toBeHidden()
+    // L'écran est prêt quand LE CHEVALET S'ACTIVE, pas quand l'éclair « À vous ! »
+    // a disparu. `toBeHidden` tient un éclair pas encore monté pour déjà parti :
+    // il rendait la main une seconde trop tôt, le geste tombait sur une lettre
+    // encore désactivée (`canAct` est faux tant que l'éclair passe), et rien ne
+    // se posait. WebKit en CI, deux nuits de suite ; ici une fois sur dix.
+    const lettre = page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]:not([disabled])`).first()
+    await expect(lettre).toBeVisible()
+
     expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBe(0)
     const plateau = (await page.locator('.board').boundingBox())!
     const chevalet = (await page.locator('.rack-area').boundingBox())!
@@ -717,13 +724,19 @@ test('ordinateur portable : la partie tient dans l’écran, grille à gauche, l
     expect(chevalet.x).toBeGreaterThan(plateau.x + plateau.width)
     expect(valider.y + valider.height).toBeLessThanOrEqual(657)
 
-    const lettre = (await page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]`).first().boundingBox())!
-    const cellule = (await page.locator(`[data-cell="${placement.cellIndex}"]`).boundingBox())!
-    await page.mouse.move(lettre.x + lettre.width / 2, lettre.y + lettre.height / 2)
+    const cible = page.locator(`[data-cell="${placement.cellIndex}"]`)
+    const prise = (await lettre.boundingBox())!
+    const cellule = (await cible.boundingBox())!
+    await page.mouse.move(prise.x + prise.width / 2, prise.y + prise.height / 2)
     await page.mouse.down()
+    // Deux repères avant le lâcher : la lettre est bien PRISE, puis la case est
+    // bien VISÉE. Sans eux, un échec ne dit pas laquelle des trois étapes —
+    // prise, visée, pose — a manqué, et c'est ce qui a coûté les deux relances.
+    await expect(page.locator('.drag-ghost')).toBeVisible()
     await page.mouse.move(cellule.x + cellule.width / 2, cellule.y + cellule.height / 2, { steps: 10 })
+    await expect(cible).toHaveClass(/drop-target/)
     await page.mouse.up()
-    await expect(page.locator(`[data-cell="${placement.cellIndex}"]`)).toContainText(placement.letter)
+    await expect(cible).toContainText(placement.letter)
   } finally {
     await context.close()
   }
