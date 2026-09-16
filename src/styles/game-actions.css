@@ -261,3 +261,36 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
   .multiplayer-shell:not(.is-finished) .board .clue .clue-image{width:min(92%,46px);height:min(92%,46px)}
   .multiplayer-shell:not(.is-finished) .board .clue.double-clue .clue-image{width:min(74%,28px);height:min(74%,28px)}
 }
+
+/* ── L'AIDE QU'ON FINIT PAR VOIR (16/09/2026, demande du propriétaire) ────────
+   Relevé en base : l'indice sert dans 10 % des parties solo, la relance du
+   chevalet dans 5 %, et dans aucune partie multijoueur. Après vingt-cinq
+   secondes sans un geste, le bouton encore disponible se signale de lui-même —
+   l'horloge et le choix du bouton vivent dans `game/idleAssist.ts`.
+
+   UN ANNEAU, PAS UN CLIGNOTEMENT. Il respire en deux secondes autour du bouton,
+   qui ne bouge pas d'un pixel : rien ne se déplace sous le pouce qui vise, et
+   la mise en page reste la même (l'anneau est un pseudo-élément, hors flux).
+   Il est DEHORS parce que l'ombre des deux boutons est posée en `!important`
+   dans ce fichier : une animation de `box-shadow` serait perdue d'avance — un
+   `!important` d'auteur l'emporte sur une déclaration d'animation.
+
+   `prefers-reduced-motion` : la règle générale de `game-foundation.css` éteint
+   toutes les animations de la page. Celle-ci s'éteindrait AVEC son anneau à
+   peine visible ; on le rallume donc en grand, fixe. Ce qui devait se voir se
+   voit toujours, ce qui pouvait donner le vertige ne bouge plus. */
+.hint-button[data-idle-cue],.reroll-button[data-idle-cue]{position:relative}
+.hint-button[data-idle-cue]::after,.reroll-button[data-idle-cue]::after{
+  content:'';position:absolute;inset:-4px;pointer-events:none;
+  border:2.5px solid #d99a1f;border-radius:999px;box-shadow:0 0 12px #d99a1f66;
+  animation:idleAssistRing 1.9s ease-in-out infinite;
+}
+.reroll-button[data-idle-cue]::after{inset:-3px;border-radius:19px}
+/* Le creux de la respiration reste FRANCHEMENT visible : un anneau qui
+   s'efface à moitié du temps ne se remarque qu'en le cherchant, ce qui est
+   exactement le défaut qu'on répare. */
+@keyframes idleAssistRing{0%,100%{opacity:.45}50%{opacity:1}}
+[data-theme="dark"] .hint-button[data-idle-cue]::after,[data-theme="dark"] .reroll-button[data-idle-cue]::after{border-color:#f0c766;box-shadow:0 0 12px #f0c76659}
+@media(prefers-reduced-motion:reduce){
+  .hint-button[data-idle-cue]::after,.reroll-button[data-idle-cue]::after{animation:none!important;opacity:1}
+}

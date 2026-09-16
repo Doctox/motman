@@ -44,6 +44,11 @@ export default defineConfig({
       MOTMAN_REALTIME_BOT_DELAY_MS: '60000',
       MOTMAN_ASYNC_BOT_DELAY_MS: '60000',
       VITE_MOTMAN_LOCAL_TEST_SERVER: 'true',
+      // Les vingt-cinq secondes d'inactivité qui mettent l'indice et le mélange
+      // en valeur (src/game/idleAssist.ts). Trois secondes ici : elles doivent
+      // tenir dans un tour illimité raccourci à six. Lu par le client, donc
+      // préfixé VITE_, et seulement derrière VITE_MOTMAN_LOCAL_TEST_SERVER.
+      VITE_MOTMAN_IDLE_ASSIST_MS: '3000',
     },
   },
 })

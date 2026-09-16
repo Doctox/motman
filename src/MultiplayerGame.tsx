@@ -37,6 +37,7 @@ import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTa
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
+import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
 import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
 import { StillThereDialog } from './game/StillThereDialog'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
@@ -115,6 +116,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const [error, setError] = useState<string | null>(null)
   const [displayedScores, setDisplayedScores] = useState<Record<string, number>>({})
   const [turnAlert, setTurnAlert] = useState(false)
+  // Le joueur immobile : `activite` avance d'un cran à chaque geste et relance
+  // l'attente, `inactif` s'allume quand elle arrive au bout. Voir game/idleAssist.ts.
+  const [activite, setActivite] = useState(0)
+  const [inactif, setInactif] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [expandedClue, setExpandedClue] = useState<ClueEntry | null>(null)
@@ -208,6 +213,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     if (animationTimer.current !== null) window.clearTimeout(animationTimer.current)
     animationTimer.current = null
   }
+
+  // Tout geste de jeu remet l'horloge d'inactivité à zéro : choisir une lettre,
+  // l'attraper, la poser, la reprendre, agrandir une définition, demander une
+  // aide. Ce que le joueur regarde sans y toucher, lui, ne compte pas.
+  const noterActivite = () => { setInactif(false); setActivite(compte => compte + 1) }
 
   const updateProvisional = (updater: (current: Record<number, Tile>) => Record<number, Tile>) => {
     setProvisional(current => {
@@ -432,6 +442,20 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     setStatus(match.status === 'finished' ? 'Partie terminée' : match.pause ? 'Partie en pause' : isMyTurn ? 'À vous de jouer' : `Au tour de ${opponentName}`)
   }, [isMyTurn, match?.status, match?.turnNumber, match?.pause, opponentName, resolving])
 
+  // L'attente court dès que le tour APPARTIENT au joueur, ce qui lui donne ses
+  // deux origines sans que cet écran ait à les distinguer : le début du tour en
+  // temps limité, l'arrivée sur la partie en temps illimité (game/idleAssist.ts).
+  // Elle n'attend pas `canAct` : les 1,8 s du « À vous ! » ne sont pas une
+  // action du joueur, elles font partie de son attente. Le voile empêche
+  // seulement la mise en valeur de s'AFFICHER, c'est `idleAssistCue` qui s'en
+  // charge à partir de `canAct`.
+  useEffect(() => {
+    setInactif(false)
+    if (!isMyTurn || resolving) return
+    const attente = window.setTimeout(() => setInactif(true), IDLE_ASSIST_DELAY_MS)
+    return () => window.clearTimeout(attente)
+  }, [activite, isMyTurn, match?.id, match?.turnNumber, resolving])
+
   const placeTile = (tile: Tile, cellIndex: number, origin: 'rack' | number = 'rack') => {
     if (!canAct || resolving || !grid || match?.board[cellIndex] || grid.cells[cellIndex].kind !== 'letter') return
     updateProvisional(current => {
@@ -442,12 +466,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
       if (displaced && typeof origin === 'number' && origin !== cellIndex) next[origin] = displaced
       return next
     })
-    setSelected(null); setStatus('À valider'); haptic(10); playEffect('place')
+    setSelected(null); setStatus('À valider'); haptic(10); playEffect('place'); noterActivite()
   }
 
   const returnTile = (cellIndex: number) => {
     updateProvisional(current => { const next = { ...current }; delete next[cellIndex]; return next })
-    setStatus('Lettre reprise')
+    setStatus('Lettre reprise'); noterActivite()
   }
 
   // ── LA VISÉE ────────────────────────────────────────────────────────────
@@ -484,7 +508,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     setDrag({ tile, origin, pointerId: event.pointerId, x: depart.x, y: depart.y })
     // Un retour dès la PRISE, pas seulement à la pose : le doigt sait que la
     // lettre est attrapée avant même d'avoir bougé.
-    haptic(8); playEffect('pick')
+    haptic(8); playEffect('pick'); noterActivite()
     moveGhost(depart.x, depart.y)
   }
   const pointerMove = (event: React.PointerEvent) => {
@@ -565,6 +589,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
 
   const requestHint = async () => {
     if (!match || !canAct || resolving || hintRequestingRef.current) return
+    noterActivite()
     const sourceRects = new Map<string, DOMRect>()
     rack.forEach(tile => {
       const provisionalOrigin = Object.entries(provisionalRef.current).find(([, placed]) => placed.letter === tile.letter)?.[0]
@@ -635,6 +660,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
       hintActive: currentMatch.hint?.playerId === playerId && currentMatch.hint.turnNumber === currentMatch.turnNumber,
     })
     if (!rerollAllowed) return
+    noterActivite()
     setRerollRequesting(true)
     setError(null)
     try {
@@ -672,6 +698,19 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const opponentScore = displayedScores[opponentId] ?? match.scores[opponentId] ?? 0
   const myInactivity = match.inactivity[playerId] ?? 0
   const hiddenStableLetterCell = hintFlight?.cellIndex ?? (hintRequesting && match.hint?.playerId === playerId ? match.hint.cellIndex : null)
+  const idleCue = idleAssistCue({
+    idle: inactif,
+    canAct,
+    resolving,
+    turnUrgent: turnPhase.urgent,
+    hint: { used: hintUsedInMatch, requesting: hintRequesting },
+    reroll: {
+      used: rerollUsedInMatch,
+      requesting: rerollRequesting,
+      pendingPlacements: Object.keys(provisional).length,
+      hintActive: Boolean(hint),
+    },
+  })
   const presentationPhase = matchPresentationPhase(match.status, resolving)
   const showGame = presentationPhase === 'game'
   const stillThere = showGame && !turnAlert && !leaveOpen && !optionsOpen && !reportOpen
@@ -704,7 +743,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
           if (!entries.length && index !== 0) return <div className="cell blocked" key={index} aria-hidden="true" />
           const row = Math.floor(index / grid.columns)
           const column = index % grid.columns
-          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={() => setExpandedClue(entry)}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : compactClue(entry.text)}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
+          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={() => { noterActivite(); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : compactClue(entry.text)}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
         }
         const confirmed = match.board[index]
         const localTile = provisional[index]
@@ -723,11 +762,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn ? 'duel-rack-waiting' : ''}`}><div className="rack-heading"><strong>{isMyTurn ? 'Vos lettres' : `${opponentName} joue…`}{isMyTurn ? <span className="rack-bonus-info" title="Posez correctement les 5 lettres du chevalet sans indice pendant ce tour pour gagner 5 points" aria-label="Bonus: 5 lettres correctes sans indice pour +5 points">i</span> : null}</strong><span>{isMyTurn ? '' : 'Préparez votre prochain coup'}</span></div><div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
-        {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => setSelected(current => current?.id === tile.id ? null : tile)} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
+        {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
-        <button className="reroll-button" type="button" onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
+        <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
-      <div className="turn-actions"><button className="hint-button" type="button" onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Indice déjà utilisé pendant cette partie' : 'Utiliser un indice'}><Lightbulb />Indice</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : votre tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
+      <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Indice déjà utilisé pendant cette partie' : 'Utiliser un indice'}><Lightbulb />Indice</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : votre tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} />}
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}

@@ -230,6 +230,68 @@ test('un indice évite une lettre déjà posée mais pas encore validée', async
   }
 })
 
+test('après une attente, l’indice et le mélange se signalent — et se taisent au premier geste', async ({ browser, request }, testInfo) => {
+  // Relevé en base le 16/09/2026 : l'indice sert dans 10 % des parties solo, le
+  // mélange dans 5 %, et dans aucune partie multijoueur. Les deux boutons se
+  // mettent maintenant en valeur après une attente sans le moindre geste
+  // (src/game/idleAssist.ts ; 25 s en production, 3 s sur ce serveur de test).
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Aide visible')
+  const initial = await loadMatch(request, first.playerId, matchId)
+  // On observe celui qui ATTEND son tour : son tour commencera à un instant que
+  // ce test choisit, et il aura alors les six secondes entières du serveur de
+  // test devant lui. Ouvrir directement sur un tour déjà entamé ne laisserait
+  // que ce qu'en aurait laissé le chargement de la page.
+  const spectateur = initial.currentPlayerId === first.playerId ? second : first
+  const { context, page } = await openGame(browser, spectateur, matchId, { width: 390, height: 844 })
+  const indice = page.getByRole('button', { name: 'Indice' })
+  const melange = page.getByRole('button', { name: 'Relancer les lettres' })
+
+  try {
+    // Pendant le tour de l'adversaire, aucune aide ne se signale : elles ne
+    // servent à rien tant qu'on ne peut pas jouer.
+    await expect(indice).not.toHaveAttribute('data-idle-cue')
+    await expect(melange).not.toHaveAttribute('data-idle-cue')
+
+    // L'adversaire laisse filer son tour ; celui du joueur observé démarre ici.
+    const apresEcheance = new Date(initial.turnEndsAt).getTime() + 250 - Date.now()
+    if (apresEcheance > 0) await page.waitForTimeout(apresEcheance)
+    await submitTurn(request, initial, [], true)
+
+    // Le « À vous ! » n'est pas une action : l'attente court déjà sous lui.
+    await expect(page.locator('.turn-ready-flash')).toBeVisible()
+    await expect(page.locator('.turn-ready-flash')).toBeHidden()
+    await expect(indice).not.toHaveAttribute('data-idle-cue')
+
+    await expect(indice).toHaveAttribute('data-idle-cue', 'true')
+    await expect(melange).toHaveAttribute('data-idle-cue', 'true')
+    await page.screenshot({ path: `output/quality/idle-assist-cue-${testInfo.project.name}.png`, fullPage: false })
+
+    // `prefers-reduced-motion` : `game-foundation.css` éteint TOUTES les
+    // animations de la page. L'anneau doit rester allumé, fixe — et non
+    // disparaître avec la respiration qui le portait.
+    const anneau = async () => indice.evaluate(element => {
+      const style = getComputedStyle(element, '::after')
+      return { animation: style.animationName, opacity: Number(style.opacity), bord: parseFloat(style.borderTopWidth) }
+    })
+    expect((await anneau()).animation).toBe('idleAssistRing')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    const immobile = await anneau()
+    expect(immobile.animation).toBe('none')
+    expect(immobile.opacity).toBe(1)
+    expect(immobile.bord).toBeGreaterThan(1)
+    await page.emulateMedia({ reducedMotion: null })
+
+    // Le premier geste les éteint toutes les deux — ici, choisir une lettre.
+    await page.locator('.rack-letter').first().click({ force: true })
+    await expect(indice).not.toHaveAttribute('data-idle-cue')
+    await expect(melange).not.toHaveAttribute('data-idle-cue')
+    // Éteintes par le GESTE, pas par un tour qui se serait terminé entre-temps.
+    await expect(indice).toBeEnabled()
+  } finally {
+    await context.close()
+  }
+})
+
 test('la partie native reste cadrée au-dessus des commandes système Android', async ({ browser, browserName, request }) => {
   test.skip(browserName !== 'chromium', 'Le mode natif Android utilise Chromium WebView.')
   const { first, matchId } = await createNormalMatch(request, 'async', 'Cadre natif')
