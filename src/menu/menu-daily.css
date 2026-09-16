@@ -172,7 +172,9 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
   background: color-mix(in srgb, var(--mm-gold) 20%, transparent); color: var(--mm-coral);
 }
 .mm-streak-calendar-flame svg { width: 26px; height: 26px; }
-.mm-streak-calendar-head strong { margin-top: 4px; font: 700 1.6rem/1 'Playfair Display', Georgia, serif; }
+.mm-streak-calendar-head strong { margin-top: 4px; font: 700 1.6rem/1.15 'Playfair Display', Georgia, serif; }
+.mm-streak-calendar-gels { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+.mm-streak-calendar-gels svg { width: 15px; height: 15px; color: var(--mm-ink-soft, var(--mm-ink)); }
 .mm-streak-calendar-head small { display: inline-flex; align-items: center; gap: 4px; color: var(--mm-muted); font-size: .8125rem; }
 .mm-streak-calendar-head small svg { width: 13px; height: 13px; color: #5b8fb0; }
 

@@ -49,7 +49,8 @@
 .mm-quests-purse {
   position: relative;
   display: inline-flex; align-items: center; gap: 6px;
-  margin-top: 3px; padding: 6px 12px;
+  /* Descendue sous le titre : le « +60 » s'envole au-dessus d'elle et a besoin de place. */
+  margin-top: 17px; padding: 6px 12px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--mm-gold) 22%, transparent);
   font-variant-numeric: tabular-nums;
@@ -183,7 +184,7 @@
   content: '';
   position: absolute; inset: 0;
   background: linear-gradient(105deg, transparent 12%, color-mix(in srgb, var(--mm-gold) 75%, transparent) 48%, color-mix(in srgb, #fff 60%, transparent) 56%, transparent 88%);
-  animation: mmQuestSweep 1.25s cubic-bezier(.3, 0, .2, 1) forwards;
+  animation: mmQuestSweep 1.9s cubic-bezier(.35, 0, .25, 1) forwards;
   pointer-events: none;
 }
 @keyframes mmQuestSweep { from { transform: translateX(-120%); } to { transform: translateX(120%); } }

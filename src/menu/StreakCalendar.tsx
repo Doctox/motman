@@ -76,8 +76,12 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
           l'en-tête du jeu (grille à 3 colonnes) s'appliquait aussi ici. */}
       <div className="mm-streak-calendar-head">
         <span className="mm-streak-calendar-flame" aria-hidden="true"><Flame /></span>
-        <strong>{streak} victoire{streak > 1 ? 's' : ''}</strong>
-        <small>de série · <Snowflake aria-hidden="true" />{freezes}/{MAX_STREAK_FREEZES} gel{freezes > 1 ? 's' : ''}</small>
+        {/* Une phrase d'un seul tenant, puis les gels en dessous : mélanger deux
+            typographies sur la même ligne se voyait comme un défaut d'alignement. */}
+        <strong>{streak} victoire{streak > 1 ? 's' : ''} de série</strong>
+        <small className="mm-streak-calendar-gels" aria-label={`${freezes} gel${freezes > 1 ? 's' : ''} sur ${MAX_STREAK_FREEZES} en poche`}>
+          <Snowflake aria-hidden="true" /><span aria-hidden="true">{freezes}/{MAX_STREAK_FREEZES}</span>
+        </small>
       </div>
 
       <div className="mm-streak-goal" role="group" aria-label="Objectif de série">

@@ -232,6 +232,15 @@ async function handleAuthRequest(request: IncomingMessage, response: ServerRespo
   let body: Record<string, unknown>
   try { body = await readJsonBody(request) } catch { return sendJson(response, 400, { error: 'Requête invalide.' }) }
 
+  if (route === 'bootstrap' && DEMO_QUETES) {
+    // Démonstration : chaque ouverture de page rend les quêtes à récupérer, pour
+    // pouvoir revoir l'animation autant de fois qu'on veut.
+    const session = authenticatedUser(request)
+    if (session) for (const cle of [...compteursQuetes.keys()]) {
+      if (cle.startsWith(`${session.id}:`)) compteursQuetes.delete(cle)
+    }
+  }
+
   if (route === 'bootstrap') {
     const existingSession = authenticatedUser(request)
     if (existingSession) return sendJson(response, 200, sessionPayload(existingSession))
