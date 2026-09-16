@@ -238,3 +238,48 @@ test('sur iPhone, les paramètres expliquent comment installer, et préviennent 
     await context.close()
   }
 })
+
+test('les quêtes du jour se suivent, se récupèrent une fois, et la pastille s’éteint', async ({ page }) => {
+  await page.goto('/')
+  // L'ouverture passe par le réseau (session, compte, quêtes) : on attend le
+  // menu lui-même avant de chercher un bouton, sinon un démarrage à froid du
+  // serveur de test fait échouer le premier `expect` sans rien dire d'utile.
+  await expect(page.locator('.mm-shell')).toBeVisible({ timeout: 45_000 })
+  const bouton = page.getByRole('button', { name: /^Quêtes/ })
+  await expect(bouton).toBeVisible()
+
+  // Trois quêtes, aucune finie : pas de pastille, pas de bouton « Récupérer ».
+  await bouton.click()
+  const panneau = page.getByRole('dialog', { name: 'Quêtes' })
+  await expect(panneau.locator('.mm-quest')).toHaveCount(4) // 3 du jour + celle de la semaine
+  await expect(panneau.getByRole('button', { name: 'Récupérer' })).toHaveCount(0)
+  await panneau.getByRole('button', { name: 'Fermer' }).click()
+  await expect(bouton).toHaveAccessibleName('Quêtes')
+
+  // Le serveur de test remplit les compteurs : toutes les quêtes du jour tombent.
+  await page.evaluate(async () => {
+    await fetch('/api/auth/quest-progress', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope: 'day', increments: { lettres: 12, mots: 5, images: 3, chevalet: 1, partie: 1, 'sans-indice': 1 } }),
+    })
+  })
+  await page.reload()
+  await expect(page.locator('.mm-shell')).toBeVisible({ timeout: 45_000 })
+
+  await expect(bouton).toHaveAccessibleName('Quêtes, une récompense vous attend')
+  await bouton.click()
+  const ouvert = page.getByRole('dialog', { name: 'Quêtes' })
+  await expect(ouvert.getByRole('button', { name: 'Récupérer' })).toHaveCount(3)
+
+  await ouvert.getByRole('button', { name: 'Récupérer' }).first().click()
+  await expect(ouvert.getByText('+60 plumes')).toBeVisible()
+  await expect(ouvert.getByText('+30 XP')).toBeVisible()
+  await expect(ouvert.getByRole('button', { name: 'Récupérer' })).toHaveCount(2)
+
+  // Rouvrir ne rend pas la récompense une seconde fois.
+  await ouvert.getByRole('button', { name: 'Fermer' }).click()
+  await bouton.click()
+  const rouvert = page.getByRole('dialog', { name: 'Quêtes' })
+  await expect(rouvert.getByText('Récompense prise')).toHaveCount(1)
+  await expect(rouvert.getByRole('button', { name: 'Récupérer' })).toHaveCount(2)
+})

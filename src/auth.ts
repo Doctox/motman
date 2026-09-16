@@ -4,6 +4,7 @@ import {
 } from './dailyChallenge'
 import { loadPlayerIdentity, savePlayerIdentity, type GuestIdentity } from './playerIdentity'
 import { savePlayerProgress, type PlayerProgress } from './playerProgress'
+import { saveQuestBoard, type QuestBoard } from './questBoardState'
 import { supabase, supabaseConfigured } from './supabaseClient'
 import { invokeSupabaseFunction } from './supabaseFunctions'
 import { isNativeRuntime, NATIVE_AUTH_REDIRECT, openNativeAuthentication } from './nativeRuntime'
@@ -23,16 +24,29 @@ if (supabaseConfigured) {
   })
 }
 
+/** Ce qu'une récupération de quête a réellement crédité, dit par le serveur. */
+export type ClaimedQuestReward = {
+  applied: boolean
+  plumes: number
+  xp: number
+  freezes: number
+  feathers: number
+  streakFreezes: number
+}
+
 export type AuthResponse = {
   identity: GuestIdentity
   progress?: PlayerProgress
   cosmetics?: PlayerCosmetics
   /** Série du défi du jour recalculée par le serveur depuis `daily_wins`. */
   daily?: ServerDailyStreak
+  /** Quêtes du jour et de la semaine, telles que le serveur les compte (src/quests.ts). */
+  quests?: QuestBoard
   emailConfirmationRequired?: boolean
 }
 
 function store(payload: AuthResponse): AuthResponse {
+  if (payload.quests) saveQuestBoard(payload.quests)
   if (payload.progress) savePlayerProgress(payload.progress)
   if (payload.cosmetics) savePlayerCosmetics(payload.cosmetics)
   // La série du défi du jour n'est PAS écrasée comme le portefeuille : on garde
@@ -63,6 +77,18 @@ function clearPlayerDataFromDevice(): void {
 }
 
 async function accountAction(action: string, body: Record<string, unknown> = {}): Promise<AuthResponse> {
+  // Serveur de test local (npm run dev avec VITE_MOTMAN_LOCAL_TEST_SERVER) :
+  // les actions de compte passent par ses routes plutôt que par Supabase, qui
+  // n'y est pas configuré. Sans ça, « Récupérer » une quête ne pouvait pas être
+  // éprouvé hors production.
+  if (localTestServer) {
+    const response = await fetch(`/api/auth/${action}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const payload = await response.json().catch(() => ({})) as AuthResponse & { error?: string }
+    if (!response.ok) throw new Error(payload.error ?? 'Action impossible sur le serveur de test.')
+    return store(payload)
+  }
   return store(await invokeSupabaseFunction<AuthResponse>('account-api', { action, ...body }))
 }
 
@@ -231,6 +257,15 @@ export function equipServerCosmetic(kind: CosmeticKind, id: string): Promise<Aut
 
 export function purchaseServerCosmetic(kind: CosmeticKind, id: string, idempotencyKey = crypto.randomUUID()): Promise<AuthResponse> {
   return accountAction('purchase-cosmetic', { kind, id, idempotencyKey })
+}
+
+/**
+ * Récupère une quête finie. Le montant n'est PAS envoyé : le serveur relit la
+ * progression et le barème (src/quests.ts), paie une seule fois, et rend ce
+ * qu'il a réellement crédité.
+ */
+export function claimQuest(questId: string, scope: 'day' | 'week'): Promise<AuthResponse & { questReward?: ClaimedQuestReward }> {
+  return accountAction('claim-quest', { questId, scope }) as Promise<AuthResponse & { questReward?: ClaimedQuestReward }>
 }
 
 /** Achète un gel de série : 500 plumes, 3 en poche au plus (server_buy_streak_freeze). */

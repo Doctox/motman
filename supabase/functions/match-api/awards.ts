@@ -17,6 +17,8 @@ import { STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../../../src/da
 import { encodeBoardSnapshot } from '../../../src/matchBoardSnapshot.ts'
 import { dailyNote } from '../../../src/dailyScore.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
+import { weekKey } from '../../../src/quests.ts'
+import { questIncrements } from './questProgress.ts'
 import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import { logServerError } from '../_shared/http.ts'
 import { loadPublicProfile, loadPublicProfiles, type PublicPlayerProfile } from '../_shared/publicProfiles.ts'
@@ -207,6 +209,26 @@ export async function recordDailyWinAndMilestones(
   if (error) logServerError('match-api', error, { action: 'daily-streak-reward', userId: playerId })
 }
 
+/**
+ * Les compteurs de quêtes de la partie (voir questProgress.ts et src/quests.ts).
+ * Rien n'est versé ici : le joueur touchera « Récupérer » dans la fenêtre des
+ * quêtes, et c'est account-api qui paiera. Un échec ne fait pas échouer la
+ * clôture — une quête manquée vaut mieux qu'un résultat perdu.
+ */
+async function recordQuestProgress(admin: AdminClient, row: MatchRow, playerId: string, outcome: string) {
+  const increments = questIncrements(row, playerId, outcome)
+  if (!Object.keys(increments).length) return
+  const jour = row.state.dailyDate ?? parisDateKey()
+  const { error } = await admin.rpc('server_record_quest_progress', {
+    p_user_id: playerId,
+    p_idempotency_key: `quest:${row.id}:${playerId}`,
+    p_day: jour,
+    p_week: weekKey(jour),
+    p_increments: increments,
+  })
+  if (error) logServerError('match-api', error, { action: 'quest-progress', userId: playerId, matchId: row.id })
+}
+
 export async function awardFinished(admin: AdminClient, row: MatchRow) {
   if (row.status !== 'finished') return
   const humanPlayerIds = row.state.playerIds.filter(playerId => playerId !== row.state.bot?.playerId)
@@ -286,6 +308,7 @@ export async function awardFinished(admin: AdminClient, row: MatchRow) {
         const bonusApplied = Boolean((dailyAward as { applied?: unknown } | null)?.applied)
         await recordDailyWinAndMilestones(admin, playerId, row.state.dailyDate, row.id, bonusApplied)
       }
+      await recordQuestProgress(admin, row, playerId, outcome)
     })()
     await Promise.all([history, rewards])
   }))

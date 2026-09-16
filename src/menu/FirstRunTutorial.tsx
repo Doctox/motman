@@ -134,7 +134,7 @@ const STEPS: TutorialStep[] = [
     title: 'Le défi du jour et votre série',
     description: 'Une grille à thème, la même pour tout le monde, jusqu’à minuit. Gagnez-la chaque jour pour faire grimper votre série : toutes les 7 victoires, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
     visual: <StreakVisual />,
-    note: <><Flame /> Touchez la flamme en haut à gauche pour voir votre semaine.</>,
+    note: <><Flame /> Touchez la flamme sur la carte du défi pour voir votre semaine.</>,
   },
   {
     eyebrow: 'Votre identité',

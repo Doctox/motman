@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Flame, Gift, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { Check, ChevronRight, Flame, Gift, Grid2x2Check, Medal, RotateCcw, Snowflake } from 'lucide-react'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
 import { loadDailyShare } from '../dailyShare'
@@ -98,7 +98,7 @@ function countdownLabel(remainingMs: number): string {
 }
 
 /** Compte à rebours vivant, réveillé aussi au retour de veille (usage mobile). */
-function useDailyCountdown(): string {
+export function useDailyCountdown(): string {
   const [remainingMs, setRemainingMs] = useState(() => msUntilNextDailyGrid(Date.now()))
   useEffect(() => {
     const refresh = () => setRemainingMs(msUntilNextDailyGrid(Date.now()))
@@ -152,47 +152,62 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
   if (status === 'won') {
     return (
       <section className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
-        <span className="mm-daily-hero-badge" aria-hidden="true"><Check /></span>
-        <div className="mm-daily-hero-copy">
-          <small>{libelle}</small>
-          <strong>Défi réussi</strong>
-          <span className="mm-daily-hero-meta">
-            <Flame aria-hidden="true" />{streakLabel(streak)}
-            <span className="mm-daily-countdown">nouvelle grille dans {countdown}</span>
-          </span>
+        <div className="mm-daily-hero-play">
+          <span className="mm-daily-hero-badge" aria-hidden="true"><Check /></span>
+          <div className="mm-daily-hero-copy">
+            <small>{libelle}</small>
+            <strong>Défi réussi</strong>
+            <span className="mm-daily-hero-meta">
+              <Flame aria-hidden="true" />{streakLabel(streak)}
+              <span className="mm-daily-countdown">nouvelle grille dans {countdown}</span>
+            </span>
+          </div>
         </div>
-        <DailyShareHero day={day} />
+        <div className="mm-daily-hero-corner">
+          <DailyShareHero day={day} />
+          <DailyStreakChip />
+        </div>
       </section>
     )
   }
 
+  // La carte n'est plus UN bouton : elle en contient un, plus la puce de série
+  // dans le coin (un bouton dans un bouton n'existe pas en HTML). C'est aussi ce
+  // qui répare l'imbrication du bouton de partage dans l'état « réussi ».
   if (status === 'lost') {
     return (
-      <button type="button" className="mm-daily-hero is-lost" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}. Vous avez jusqu'à minuit.`}>
-        <span className="mm-daily-hero-badge" aria-hidden="true"><RotateCcw /></span>
-        <div className="mm-daily-hero-copy">
-          <small>{libelle} · tentative {attempts}</small>
-          <strong>Pas cette fois — on retente ?</strong>
-          <span className="mm-daily-hero-meta">Tu as jusqu'à minuit pour le battre</span>
-        </div>
-        <ChevronRight aria-hidden="true" />
-      </button>
+      <section className="mm-daily-hero is-lost">
+        <button type="button" className="mm-daily-hero-play" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}. Vous avez jusqu'à minuit.`}>
+          <span className="mm-daily-hero-badge" aria-hidden="true"><RotateCcw /></span>
+          <div className="mm-daily-hero-copy">
+            <small>{libelle} · tentative {attempts}</small>
+            <strong>Pas cette fois — on retente ?</strong>
+            <span className="mm-daily-hero-meta">Tu as jusqu'à minuit pour le battre</span>
+          </div>
+          <ChevronRight aria-hidden="true" />
+        </button>
+        <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+      </section>
     )
   }
 
   return (
-    <button type="button" className="mm-daily-hero" onClick={onPlay} aria-label={`Jouer le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
-      <span className="mm-daily-hero-badge" aria-hidden="true"><Flame /></span>
-      <div className="mm-daily-hero-copy">
-        <small>{libelle}</small>
-        <strong>Jouer la grille du jour</strong>
-        <span className="mm-daily-hero-meta">
-          <Flame aria-hidden="true" />{streakLabel(streak)}
-          {freezes > 0 ? <><span className="mm-daily-dot" aria-hidden="true">·</span><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''}</> : null}
-        </span>
-      </div>
-      <ChevronRight aria-hidden="true" />
-    </button>
+    <section className="mm-daily-hero">
+      <button type="button" className="mm-daily-hero-play" onClick={onPlay} aria-label={`Jouer le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
+        {/* Une seule flamme sur la carte, celle du coin : trois, c'était trop. */}
+        <span className="mm-daily-hero-badge" aria-hidden="true"><Grid2x2Check /></span>
+        <div className="mm-daily-hero-copy">
+          <small>{libelle}</small>
+          <strong>Jouer la grille du jour</strong>
+          <span className="mm-daily-hero-meta">
+            {streakLabel(streak)}
+            {freezes > 0 ? <><span className="mm-daily-dot" aria-hidden="true">·</span><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''}</> : null}
+          </span>
+        </div>
+        <ChevronRight aria-hidden="true" />
+      </button>
+      <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+    </section>
   )
 }
 

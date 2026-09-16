@@ -1,6 +1,7 @@
 import { validatePlayerName } from '../../../src/playerNamePolicy.ts'
 import { experienceGoalForLevel } from '../../../src/experienceCurve.ts'
 import { basketRarityProbabilities, type RewardRarity } from '../../../src/progressionRewards.ts'
+import { WEEKLY_QUEST, dailyQuests, questBoard, questReward, weekKey, type QuestCounters } from '../../../src/quests.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
@@ -70,6 +71,7 @@ async function accountState(admin: AdminClient, userId: string) {
     { data: dailyBonusRows },
     { data: titleCatalog }, { data: ownedTitles }, { data: cosmeticCatalog },
     { data: dailyStreak }, { data: dailyWinRows }, { data: frozenDayRows },
+    { data: questCounterRows }, { data: questClaimRows },
   ] = await Promise.all([
     admin.from('profiles').select('*').eq('id', userId).single(),
     admin.from('player_progress').select('*').eq('user_id', userId).single(),
@@ -108,6 +110,13 @@ async function accountState(admin: AdminClient, userId: string) {
     admin.from('daily_wins').select('day').eq('user_id', userId).order('day', { ascending: true }).limit(1000),
     // Les jours couverts par un gel de série (migration 20260914220000).
     admin.from('daily_frozen_days').select('day').eq('user_id', userId).order('day', { ascending: true }).limit(1000),
+    // Quêtes (src/quests.ts) : les compteurs du jour et de la semaine, et ce qui
+    // a déjà été récupéré. DANS le Promise.all, pour la même raison que la série
+    // ci-dessus : en parallèle, ces deux lectures ne coûtent aucun aller-retour.
+    admin.from('player_quest_counters').select('scope,period,counter,value').eq('user_id', userId)
+      .in('period', [parisDateKey(), weekKey(parisDateKey())]),
+    admin.from('player_quest_claims').select('scope,period,quest_id').eq('user_id', userId)
+      .in('period', [parisDateKey(), weekKey(parisDateKey())]),
   ])
   if (!profile || !progress || !wallet) throw new Error('Profil serveur incomplet.')
   const items = inventory ?? []
@@ -142,11 +151,36 @@ async function accountState(admin: AdminClient, userId: string) {
     const key = typeof idempotencyKey === 'string' ? idempotencyKey : ''
     return key.startsWith('match:') ? dailyBonusByMatch.get(key.slice('match:'.length)) ?? 0 : 0
   }
+  // Les compteurs deviennent l'état affiché : les cibles et les montants sont
+  // dans src/quests.ts, jamais en base.
+  const jourQuetes = parisDateKey()
+  const semaineQuetes = weekKey(jourQuetes)
+  const compteurs = (portee: 'day' | 'week', periode: string): QuestCounters => {
+    const total: QuestCounters = {}
+    for (const ligne of questCounterRows ?? []) {
+      if (ligne.scope === portee && ligne.period === periode) {
+        total[ligne.counter as keyof QuestCounters] = Math.max(0, Number(ligne.value) || 0)
+      }
+    }
+    return total
+  }
+  const recuperees = (portee: 'day' | 'week', periode: string) => (questClaimRows ?? [])
+    .filter(ligne => ligne.scope === portee && ligne.period === periode)
+    .map(ligne => String(ligne.quest_id))
+  const quetes = questBoard({
+    dayKey: jourQuetes,
+    dayCounters: compteurs('day', jourQuetes),
+    weekCounters: compteurs('week', semaineQuetes),
+    dayClaimed: recuperees('day', jourQuetes),
+    weekClaimed: recuperees('week', semaineQuetes),
+  })
+
   const daily = dailyStreak && typeof dailyStreak === 'object'
     ? dailyStreak as { streak?: number; best?: number; freezes?: number; lastWin?: string | null }
     : null
 
   return {
+    quests: { day: quetes.day, week: quetes.week, dayKey: jourQuetes, weekKey: semaineQuetes },
     daily: {
       streak: Math.max(0, Number(daily?.streak) || 0),
       best: Math.max(0, Number(daily?.best) || 0),
@@ -337,6 +371,28 @@ Deno.serve(async request => {
       })
       if (error) throw error
       return json(200, { ...(await accountState(admin, user.id)), reward })
+    } else if (action === 'claim-quest') {
+      // Récupérer une quête : c'est le SERVEUR qui relit la progression et le
+      // barème (src/quests.ts). Le client n'annonce jamais ce qu'il a gagné.
+      const scope = body.scope === 'week' ? 'week' : 'day'
+      const questId = typeof body.questId === 'string' ? body.questId : ''
+      const jour = parisDateKey()
+      const periode = scope === 'day' ? jour : weekKey(jour)
+      const quete = scope === 'day'
+        ? dailyQuests(jour).find(candidate => candidate.id === questId)
+        : WEEKLY_QUEST.id === questId ? WEEKLY_QUEST : undefined
+      if (!quete) return json(400, { error: 'Quête inconnue.' })
+      const { data: compteur } = await admin.from('player_quest_counters').select('value')
+        .eq('user_id', user.id).eq('scope', scope).eq('period', periode).eq('counter', quete.counter).maybeSingle()
+      if ((Number(compteur?.value) || 0) < quete.target) return json(403, { error: 'Cette quête n’est pas terminée.' })
+      const { data: portefeuille } = await admin.from('player_wallets').select('streak_freezes').eq('user_id', user.id).single()
+      const recompense = questReward(scope, Math.max(0, Number(portefeuille?.streak_freezes) || 0))
+      const { data: paye, error } = await admin.rpc('server_claim_quest', {
+        p_user_id: user.id, p_scope: scope, p_period: periode, p_quest_id: quete.id,
+        p_plumes: recompense.plumes, p_xp: recompense.xp, p_freezes: recompense.freezes,
+      })
+      if (error) throw error
+      return json(200, { ...(await accountState(admin, user.id)), questReward: paye })
     } else if (action !== 'state') return json(404, { error: 'Action inconnue.' })
     return json(200, await accountState(admin, user.id))
   } catch (error) {

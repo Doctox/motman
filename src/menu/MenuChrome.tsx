@@ -7,7 +7,7 @@ import type { PlayerProgress } from '../playerProgress'
 import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
 import type { SocialUser } from '../social'
 import type { MenuPage } from './types'
-import { DailyStreakChip } from './DailyChallenge'
+import { QuestsChip } from './QuestsPanel'
 
 function Brand() {
   return <div className="mm-brand"><img src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /></div>
@@ -28,7 +28,7 @@ export function presenceLabel(activity: 'offline' | 'online' | 'playing'): strin
 
 export function AppHeader({ onSettings }: { onMenu?: () => void; onSettings: () => void }) {
   return <header className="mm-header">
-    <DailyStreakChip />
+    <QuestsChip />
     <Brand />
     <button className="mm-icon-button" type="button" aria-label="Paramètres" onClick={onSettings}><Settings /></button>
   </header>

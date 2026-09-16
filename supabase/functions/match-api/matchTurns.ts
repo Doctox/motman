@@ -51,6 +51,19 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
   ensureFinalSprintRacks(rules, state)
   state.scores[playerId] = (state.scores[playerId] ?? 0) + evaluated.scoreGained
   if (evaluated.productive) state.productiveTurns[playerId] = (state.productiveTurns[playerId] ?? 0) + 1
+  // Quêtes (src/quests.ts) : un mot est à celui qui pose sa DERNIÈRE lettre —
+  // c'est déjà la règle du bonus de mot. Compté ici, où la vérité se décide, et
+  // jamais recalculé ailleurs : le plateau final ne dit pas qui a fini quoi.
+  if (evaluated.wordBonuses.length) {
+    state.wordsCompleted ??= {}
+    state.wordsCompleted[playerId] = (state.wordsCompleted[playerId] ?? 0) + evaluated.wordBonuses.length
+    const enImage = evaluated.wordBonuses.filter(bonus => grid.words.some(mot =>
+      (bonus.id ? mot.wordId === bonus.id : mot.answer === bonus.answer) && mot.image)).length
+    if (enImage) {
+      state.imageWordsCompleted ??= {}
+      state.imageWordsCompleted[playerId] = (state.imageWordsCompleted[playerId] ?? 0) + enImage
+    }
+  }
   if (evaluated.rackBonus) {
     state.rackCompletions ??= {}
     state.rackCompletions[playerId] = (state.rackCompletions[playerId] ?? 0) + 1

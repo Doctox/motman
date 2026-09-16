@@ -1,0 +1,160 @@
+/* Quêtes (QuestsPanel.tsx) — même grammaire que le reste du menu : papier
+   vivant, vert pin, terracotta pour ce qui appelle l'attention, or pour ce qui
+   est gagné. Aucune information par la seule couleur : une quête finie porte son
+   bouton, une quête prise porte sa coche. */
+
+/* ── Le bouton, dans l'en-tête, là où vivait la flamme ── */
+.mm-quests-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mm-gold) 16%, transparent);
+  color: var(--mm-ink);
+  cursor: pointer;
+}
+.mm-quests-chip svg { width: 19px; height: 19px; }
+.mm-quests-chip:focus-visible { outline: 2px solid var(--mm-gold); outline-offset: 2px; }
+.mm-quests-chip.is-ready { background: color-mix(in srgb, var(--mm-coral) 18%, transparent); }
+.mm-quests-badge {
+  position: absolute; top: 5px; right: 5px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--mm-coral); box-shadow: 0 0 0 2px var(--mm-paper);
+  animation: mmQuestBadge 2.4s ease-in-out infinite;
+}
+@keyframes mmQuestBadge { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.4); } }
+
+/* ── Le panneau ── */
+.mm-quests {
+  position: relative;
+  width: min(94%, 420px);
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 16px 16px 18px;
+  border-radius: 22px;
+  background: var(--mm-paper);
+  color: var(--mm-ink);
+  box-shadow: 0 18px 44px #0b2a2238;
+}
+.mm-quests-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--mm-line);
+}
+.mm-quests-head strong { display: block; font: 700 1.5rem/1.1 'Playfair Display', Georgia, serif; }
+.mm-quests-head small { display: block; margin-top: 3px; color: var(--mm-muted); font-size: .8125rem; }
+.mm-quests-close {
+  flex: 0 0 auto;
+  display: grid; place-items: center; width: 34px; height: 34px;
+  border: 0; border-radius: 50%; background: transparent; color: var(--mm-muted); cursor: pointer;
+}
+.mm-quests-close svg { width: 18px; height: 18px; }
+
+.mm-quests-list { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+
+/* ── Une quête : icône, texte, compteur, barre, récompense ── */
+.mm-quest {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--mm-line);
+  border-radius: 18px;
+  background: var(--mm-surface);
+  box-shadow: var(--mm-shadow-raised, 0 6px 16px #17372b0f);
+}
+.mm-quest-icon {
+  grid-row: 1;
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--mm-ink) 8%, var(--mm-surface));
+  color: var(--mm-ink-soft, var(--mm-ink));
+}
+.mm-quest-icon svg { width: 21px; height: 21px; }
+.mm-quest-copy { min-width: 0; }
+.mm-quest-copy em {
+  display: block; margin-bottom: 1px;
+  font: 700 .6875rem/1 'DM Sans', sans-serif; font-style: normal;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--mm-coral);
+}
+.mm-quest-copy strong { display: block; font: 700 1.0625rem/1.2 'Playfair Display', Georgia, serif; }
+.mm-quest-copy small { display: block; margin-top: 2px; color: var(--mm-muted); font-size: .75rem; line-height: 1.35; }
+.mm-quest-count { font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mm-muted); }
+
+.mm-quest-bar {
+  grid-column: 2 / -1;
+  height: 7px; margin: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mm-ink) 9%, transparent);
+  overflow: hidden;
+}
+.mm-quest-bar i { display: block; height: 100%; border-radius: 999px; background: var(--mm-ink-soft, var(--mm-ink)); transition: width .4s ease; }
+
+.mm-quest-reward {
+  grid-column: 2 / -1;
+  display: flex; align-items: center; gap: 6px; margin: 0;
+  color: var(--mm-muted); font-size: .8125rem;
+}
+.mm-quest-reward b { color: var(--mm-ink); }
+.mm-quest-reward svg { width: 14px; height: 14px; color: var(--mm-ink-soft, var(--mm-ink)); }
+.mm-quest-reward span { color: var(--mm-line-strong, var(--mm-line)); }
+
+/* ── Finie : la carte s'allume et le bouton appelle ── */
+.mm-quest.is-done {
+  border-color: color-mix(in srgb, var(--mm-coral) 45%, var(--mm-line));
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--mm-gold) 14%, var(--mm-surface)) 0%, var(--mm-surface) 65%);
+}
+.mm-quest.is-done .mm-quest-icon { background: color-mix(in srgb, var(--mm-coral) 14%, var(--mm-surface)); color: var(--mm-coral); }
+.mm-quest.is-done .mm-quest-bar i { background: var(--mm-coral); }
+.mm-quest-claim {
+  grid-column: 2 / -1;
+  justify-self: start;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--mm-coral);
+  color: #fff;
+  font: 700 .875rem/1 'DM Sans', sans-serif;
+  cursor: pointer;
+  animation: mmQuestReady 2.6s ease-in-out infinite;
+}
+.mm-quest-claim:disabled { opacity: .7; cursor: default; animation: none; }
+@keyframes mmQuestReady { 0%, 74%, 100% { transform: scale(1); } 86% { transform: scale(1.05); } }
+
+/* ── Prise : plus rien à faire, la carte se retire ── */
+.mm-quest.is-claimed { border-style: dashed; background: transparent; box-shadow: none; }
+.mm-quest.is-claimed .mm-quest-icon { background: color-mix(in srgb, var(--mm-ink) 10%, transparent); color: var(--mm-ink-soft, var(--mm-ink)); }
+.mm-quest.is-claimed .mm-quest-copy strong { text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--mm-line-strong, var(--mm-line)); }
+.mm-quest-prise { grid-column: 2 / -1; margin: 0; color: var(--mm-muted); font-size: .75rem; font-weight: 700; }
+
+.mm-quest-gagnee {
+  grid-column: 2 / -1;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0;
+  font-size: .8125rem;
+  animation: mmQuestWon .45s ease-out;
+}
+.mm-quest-gagnee b { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--mm-gold) 26%, transparent); }
+.mm-quest-gagnee > svg { width: 16px; height: 16px; color: var(--mm-coral); }
+@keyframes mmQuestWon { from { opacity: 0; transform: translateY(6px) scale(.96); } to { opacity: 1; transform: none; } }
+
+/* ── La quête de la semaine ── */
+.mm-quests-week { margin-top: 14px; }
+.mm-quests-week .mm-quest {
+  border-color: color-mix(in srgb, var(--mm-ink) 30%, var(--mm-line));
+  background: radial-gradient(130% 150% at 100% 0%, color-mix(in srgb, var(--mm-ink) 9%, var(--mm-surface)) 0%, var(--mm-surface) 70%);
+}
+.mm-quests-week .mm-quest-icon { background: color-mix(in srgb, var(--mm-ink) 12%, var(--mm-surface)); }
+
+.mm-quests-attente { margin: 22px 0 6px; text-align: center; color: var(--mm-muted); font-size: .875rem; }
+.mm-quests-erreur { margin: 12px 0 0; color: var(--mm-coral); font-size: .8125rem; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-quests-badge, .mm-quest-claim, .mm-quest-gagnee { animation: none; }
+  .mm-quest-bar i { transition: none; }
+}

@@ -18,6 +18,7 @@
     "src/gridCatalogPolicy.ts",
     "src/gridDimensions.ts",
     "src/publicClue.ts",
+    "src/quests.ts",
     "src/gameRules.ts",
     "src/botOpponents.ts",
     "src/playerNamePolicy.ts",

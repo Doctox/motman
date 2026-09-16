@@ -34,6 +34,8 @@ export type State = {
   board: Record<string, { letter: string; playerId: string }>; racks: Record<string, string[]>; letterBag?: string[]; scores: Record<string, number>;
   productiveTurns: Record<string, number>; inactivity: Record<string, number>;
   rackCompletions: Record<string, number>;
+  /** Quêtes : mots terminés par chacun, et parmi eux ceux dont la définition est une image. */
+  wordsCompleted?: Record<string, number>; imageWordsCompleted?: Record<string, number>;
   hint: { playerId: string; cellIndex: number; letter: string; turnNumber: number } | null;
   hintUsed: Record<string, boolean | number>; rerollUsed: Record<string, boolean | number>; lastTurn: Turn | null;
   // Défi du jour — posés PAR LE SERVEUR à la création (action 'daily'), jamais

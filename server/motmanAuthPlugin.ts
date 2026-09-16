@@ -3,6 +3,7 @@ import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSa
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
 import { validatePlayerName } from '../src/playerNamePolicy'
+import { WEEKLY_QUEST, dailyQuests, questBoard, questReward, weekKey } from '../src/quests'
 import {
   authenticatedUser, clearSessionCookie, createSession, database, nowIso, readJsonBody,
   requestHasSameOrigin, revokeSession, sendJson, type DatabaseUser,
@@ -33,9 +34,36 @@ function identityFor(user: DatabaseUser): ClientIdentity {
   }
 }
 
+// ── Quêtes, version serveur de test ──────────────────────────────────────────
+// La production compte dans `player_quest_counters` (match-api). Ici, une carte
+// en mémoire suffit : elle sert aux essais locaux et aux tests de bout en bout,
+// qui la remplissent par /api/account/quest-progress.
+const compteursQuetes = new Map<string, Record<string, number>>()
+const cleQuetes = (userId: string, scope: string, period: string) => `${userId}:${scope}:${period}`
+const jourQuetes = () => new Date().toISOString().slice(0, 10)
+
+function questBoardFor(userId: string) {
+  const jour = jourQuetes()
+  const semaine = weekKey(jour)
+  return {
+    dayKey: jour,
+    weekKey: semaine,
+    ...questBoard({
+      dayKey: jour,
+      dayCounters: compteursQuetes.get(cleQuetes(userId, 'day', jour)) ?? {},
+      weekCounters: compteursQuetes.get(cleQuetes(userId, 'week', semaine)) ?? {},
+      dayClaimed: [...(compteursQuetes.get(cleQuetes(userId, 'claimed-day', jour))
+        ? Object.keys(compteursQuetes.get(cleQuetes(userId, 'claimed-day', jour))!) : [])],
+      weekClaimed: [...(compteursQuetes.get(cleQuetes(userId, 'claimed-week', semaine))
+        ? Object.keys(compteursQuetes.get(cleQuetes(userId, 'claimed-week', semaine))!) : [])],
+    }),
+  }
+}
+
 function accountStateFor(user: DatabaseUser) {
   const items = database.prepare('SELECT kind, item_id FROM inventory WHERE user_id = ? ORDER BY acquired_at').all(user.id) as Array<{ kind: 'avatar' | 'frame' | 'animation'; item_id: string }>
   return {
+    quests: questBoardFor(user.id),
     progress: {
       version: 4,
       playerId: user.id,
@@ -208,6 +236,47 @@ async function handleAuthRequest(request: IncomingMessage, response: ServerRespo
     user = database.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as DatabaseUser
     createSession(request, response, user.id)
     return sendJson(response, 200, sessionPayload(user))
+  }
+
+  if (route === 'quest-progress') {
+    // Route DE TEST : elle n'existe pas en production. Elle remplit les
+    // compteurs pour pouvoir éprouver l'écran des quêtes de bout en bout.
+    const user = currentUser(request, response)
+    if (!user) return
+    const scope = body.scope === 'week' ? 'week' : 'day'
+    const periode = scope === 'day' ? jourQuetes() : weekKey(jourQuetes())
+    const cle = cleQuetes(user.id, scope, periode)
+    const actuels = compteursQuetes.get(cle) ?? {}
+    for (const [compteur, valeur] of Object.entries(body.increments && typeof body.increments === 'object' ? body.increments as Record<string, number> : {})) {
+      actuels[compteur] = (actuels[compteur] ?? 0) + Math.max(0, Math.floor(Number(valeur) || 0))
+    }
+    compteursQuetes.set(cle, actuels)
+    return sendJson(response, 200, sessionPayload(user))
+  }
+
+  if (route === 'claim-quest') {
+    const user = currentUser(request, response)
+    if (!user) return
+    const scope = body.scope === 'week' ? 'week' : 'day'
+    const questId = typeof body.questId === 'string' ? body.questId : ''
+    const jour = jourQuetes()
+    const periode = scope === 'day' ? jour : weekKey(jour)
+    const quete = scope === 'day' ? dailyQuests(jour).find(candidate => candidate.id === questId) : WEEKLY_QUEST.id === questId ? WEEKLY_QUEST : undefined
+    if (!quete) return sendJson(response, 400, { error: 'Quête inconnue.' })
+    const compteurs = compteursQuetes.get(cleQuetes(user.id, scope, periode)) ?? {}
+    if ((compteurs[quete.counter] ?? 0) < quete.target) return sendJson(response, 403, { error: 'Cette quête n’est pas terminée.' })
+    const clePrises = cleQuetes(user.id, scope === 'day' ? 'claimed-day' : 'claimed-week', periode)
+    const prises = compteursQuetes.get(clePrises) ?? {}
+    if (prises[quete.id]) return sendJson(response, 200, sessionPayload(user))
+    prises[quete.id] = 1
+    compteursQuetes.set(clePrises, prises)
+    const recompense = questReward(scope, 0)
+    database.prepare('UPDATE users SET feathers = feathers + ?, lifetime_xp = lifetime_xp + ?, updated_at = ? WHERE id = ?')
+      .run(recompense.plumes, recompense.xp, nowIso(), user.id)
+    const apres = database.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as DatabaseUser
+    return sendJson(response, 200, sessionPayload(apres, {
+      questReward: { applied: true, plumes: recompense.plumes, xp: recompense.xp, freezes: recompense.freezes, feathers: apres.feathers, streakFreezes: 0 },
+    }))
   }
 
   if (route === 'register') {
