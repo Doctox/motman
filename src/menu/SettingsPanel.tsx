@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BookOpen, ChevronRight, FileText, LogIn, Moon, Settings, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, FileText, LogIn, Moon, Settings, SlidersHorizontal, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
 import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
 import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
 import { isNativeRuntime } from '../nativeRuntime'
@@ -16,6 +16,9 @@ function ToggleRow({ icon, label, checked, setChecked }: { icon: ReactNode; labe
 
 export function SettingsPanel({ identity, close, openAccount, openFriends, openLegal, openTutorial, theme, setTheme }: { identity: GuestIdentity; close: () => void; openAccount: () => void; openFriends: () => void; openLegal: () => void; openTutorial: () => void; theme: Theme; setTheme: (theme: Theme) => void }) {
   const { preferences, setPreference } = useSensoryPreferences()
+  // « Système » s'ouvre comme une page à part : les réglages de confort y
+  // tiennent au chaud, et l'écran des paramètres reste court.
+  const [systemeOuvert, setSystemeOuvert] = useState(false)
   const [serverVersion, setServerVersion] = useState(readCachedServerAppVersion)
   const dialogRef = useDialogFocus<HTMLElement>(close)
   useEffect(() => {
@@ -33,16 +36,23 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
     : `Révision serveur ${serverVersion?.revision}, ${appVersionDisplay.accessibleLabel}`
   return <div className="mm-modal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
     <section ref={dialogRef} className="mm-settings" role="dialog" aria-modal="true" aria-label="Paramètres" tabIndex={-1}>
+      {systemeOuvert ? <>
+        <header>
+          <button type="button" onClick={() => setSystemeOuvert(false)} aria-label="Retour aux paramètres"><ArrowLeft /></button>
+          <h2>Système</h2>
+          <button type="button" onClick={close} aria-label="Fermer"><X /></button>
+        </header>
+        <ToggleRow icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
+        <ToggleRow icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => setPreference('vibration', value)} />
+        {/* « Animations » est arrivé le 16/09/2026 : tout le CSS suivait jusque-là
+            le réglage de l'appareil, et un joueur qui avait coupé les animations
+            dans Windows ne pouvait plus les rallumer dans le jeu. */}
+        <ToggleRow icon={<Sparkles />} label="Animations" checked={preferences.animations} setChecked={value => setPreference('animations', value)} />
+        <p className="mm-settings-note">Les animations sont actives même si votre appareil demande à les réduire. Coupez-les ici si le mouvement vous gêne.</p>
+      </> : <>
       <header><h2>Paramètres</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
       <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button><button type="button" className={theme === 'system' ? 'active' : ''} aria-pressed={theme === 'system'} onClick={() => setTheme('system')}><Settings />Système</button></div>
-      {/* Les trois réglages de confort, ensemble. « Animations » est arrivé le
-          16/09/2026 : tout le CSS suivait jusque-là le réglage de l'appareil,
-          et un joueur qui avait coupé les animations dans Windows ne pouvait
-          plus les rallumer dans le jeu. */}
-      <h3 className="mm-settings-heading">Système</h3>
-      <ToggleRow icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
-      <ToggleRow icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => setPreference('vibration', value)} />
-      <ToggleRow icon={<Sparkles />} label="Animations" checked={preferences.animations} setChecked={value => setPreference('animations', value)} />
+      <button className="mm-settings-link" type="button" onClick={() => setSystemeOuvert(true)}><SlidersHorizontal /><span>Système<small>Effets · vibrations · animations</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Règles et modes de jeu · 5 étapes</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder votre progression'}</small></span><ChevronRight /></button>
@@ -57,6 +67,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
           ? <small>{liveUpdateStatusLabel(readLiveUpdateStatus())}</small>
           : null}
       </footer>
+      </>}
     </section>
   </div>
 }

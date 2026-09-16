@@ -69,3 +69,5 @@ html[data-motion="off"] .mm-play-accordion,html[data-motion="off"] .mm-dark-icon
 .mm-replay-cell.blocked{background:var(--mm-ink)}
 /* Titre de section dans les Paramètres (« Système » : effets, vibrations, animations). */
 .mm-settings-heading{margin:14px 0 2px;font:700 .75rem/1 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mm-muted)}
+/* Note sous les réglages de la page Système. */
+.mm-settings-note{margin:10px 2px 0;color:var(--mm-muted);font-size:.75rem;line-height:1.45}
