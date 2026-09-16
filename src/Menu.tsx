@@ -26,6 +26,7 @@ import { MatchInvitationPanel, MatchWaitingPanel, NormalSearchPanel } from './me
 import { PlayPage } from './menu/PlayPage'
 import { EditGuestPanel, ProfilePage, QuickMenu, RankingPage } from './menu/ProfilePanels'
 import { SettingsPanel } from './menu/SettingsPanel'
+import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
 import { completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
 
@@ -37,16 +38,7 @@ const LazyLegalPanel = lazy(() => import('./LegalPanel').then(module => ({ defau
 function useResolvedTheme(theme: Theme) {
   useEffect(() => {
     localStorage.setItem('motman-theme', theme)
-    const systemTheme = matchMedia('(prefers-color-scheme: dark)')
-    const applyTheme = () => {
-      document.documentElement.dataset.theme = theme === 'system'
-        ? (systemTheme.matches ? 'dark' : 'light')
-        : theme
-    }
-    applyTheme()
-    if (theme !== 'system') return
-    systemTheme.addEventListener('change', applyTheme)
-    return () => systemTheme.removeEventListener('change', applyTheme)
+    document.documentElement.dataset.theme = theme
   }, [theme])
 }
 
@@ -84,7 +76,7 @@ export function MenuApp({
   const [matchBusy, setMatchBusy] = useState(false)
   const [pendingSearch, setPendingSearch] = useState<MatchPace | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('motman-theme') as Theme | null) ?? 'light')
+  const [theme, setTheme] = useState<Theme>(lireThemeChoisi)
   const toastTimer = useRef<number | null>(null)
   const openingMatch = useRef<string | null>(null)
   const socialPolling = useRef<AdaptivePollingController | null>(null)

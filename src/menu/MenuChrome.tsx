@@ -30,7 +30,7 @@ export function AppHeader({ onSettings }: { onMenu?: () => void; onSettings: () 
   return <header className="mm-header">
     <QuestsChip />
     <Brand />
-    <button className="mm-icon-button" type="button" aria-label="Paramètres" onClick={onSettings}><Settings /></button>
+    <button className="mm-icon-button" type="button" aria-label="Menu" onClick={onSettings}><Settings /></button>
   </header>
 }
 

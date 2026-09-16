@@ -16,9 +16,9 @@ function ToggleRow({ icon, label, checked, setChecked }: { icon: ReactNode; labe
 
 export function SettingsPanel({ identity, close, openAccount, openFriends, openLegal, openTutorial, theme, setTheme }: { identity: GuestIdentity; close: () => void; openAccount: () => void; openFriends: () => void; openLegal: () => void; openTutorial: () => void; theme: Theme; setTheme: (theme: Theme) => void }) {
   const { preferences, setPreference } = useSensoryPreferences()
-  // « Système » s'ouvre comme une page à part : les réglages de confort y
-  // tiennent au chaud, et l'écran des paramètres reste court.
-  const [systemeOuvert, setSystemeOuvert] = useState(false)
+  // Le panneau s'appelle « Menu » : il mène partout. Les réglages de confort
+  // (sons, vibrations, animations) tiennent dans leur propre page, « Paramètres ».
+  const [reglagesOuverts, setReglagesOuverts] = useState(false)
   const [serverVersion, setServerVersion] = useState(readCachedServerAppVersion)
   const dialogRef = useDialogFocus<HTMLElement>(close)
   useEffect(() => {
@@ -35,11 +35,11 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
     ? appVersionDisplay.accessibleLabel
     : `Révision serveur ${serverVersion?.revision}, ${appVersionDisplay.accessibleLabel}`
   return <div className="mm-modal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
-    <section ref={dialogRef} className="mm-settings" role="dialog" aria-modal="true" aria-label="Paramètres" tabIndex={-1}>
-      {systemeOuvert ? <>
+    <section ref={dialogRef} className="mm-settings" role="dialog" aria-modal="true" aria-label="Menu" tabIndex={-1}>
+      {reglagesOuverts ? <>
         <header>
-          <button type="button" onClick={() => setSystemeOuvert(false)} aria-label="Retour aux paramètres"><ArrowLeft /></button>
-          <h2>Système</h2>
+          <button type="button" onClick={() => setReglagesOuverts(false)} aria-label="Retour au menu"><ArrowLeft /></button>
+          <h2>Paramètres</h2>
           <button type="button" onClick={close} aria-label="Fermer"><X /></button>
         </header>
         <ToggleRow icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
@@ -48,11 +48,10 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
             le réglage de l'appareil, et un joueur qui avait coupé les animations
             dans Windows ne pouvait plus les rallumer dans le jeu. */}
         <ToggleRow icon={<Sparkles />} label="Animations" checked={preferences.animations} setChecked={value => setPreference('animations', value)} />
-        <p className="mm-settings-note">Les animations sont actives même si votre appareil demande à les réduire. Coupez-les ici si le mouvement vous gêne.</p>
       </> : <>
-      <header><h2>Paramètres</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
-      <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button><button type="button" className={theme === 'system' ? 'active' : ''} aria-pressed={theme === 'system'} onClick={() => setTheme('system')}><Settings />Système</button></div>
-      <button className="mm-settings-link" type="button" onClick={() => setSystemeOuvert(true)}><SlidersHorizontal /><span>Système<small>Effets · vibrations · animations</small></span><ChevronRight /></button>
+      <header><h2>Menu</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
+      <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button></div>
+      <button className="mm-settings-link" type="button" onClick={() => setReglagesOuverts(true)}><SlidersHorizontal /><span>Paramètres<small>Sons · vibrations · animations</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Règles et modes de jeu · 5 étapes</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder votre progression'}</small></span><ChevronRight /></button>

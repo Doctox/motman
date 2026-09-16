@@ -4,21 +4,12 @@ import { useSensoryPreferences } from './sensoryPreferences'
 import { useDialogFocus } from './useDialogFocus'
 import './game-options.css'
 
-type Theme = 'light' | 'dark' | 'system'
+import { lireThemeChoisi, type Theme } from './menu/types'
 
 function useGameTheme(theme: Theme) {
   useEffect(() => {
     localStorage.setItem('motman-theme', theme)
-    const systemTheme = matchMedia('(prefers-color-scheme: dark)')
-    const applyTheme = () => {
-      document.documentElement.dataset.theme = theme === 'system'
-        ? (systemTheme.matches ? 'dark' : 'light')
-        : theme
-    }
-    applyTheme()
-    if (theme !== 'system') return
-    systemTheme.addEventListener('change', applyTheme)
-    return () => systemTheme.removeEventListener('change', applyTheme)
+    document.documentElement.dataset.theme = theme
   }, [theme])
 }
 
@@ -32,7 +23,7 @@ function Toggle({ icon, label, checked, setChecked }: {
 }
 
 export function GameOptionsOverlay({ close, newGrid, report, leaveMatch }: { close: () => void; newGrid?: () => void; report?: () => void; leaveMatch?: () => void }) {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('motman-theme') as Theme | null) ?? 'light')
+  const [theme, setTheme] = useState<Theme>(lireThemeChoisi)
   const { preferences, setPreference } = useSensoryPreferences()
   const dialogRef = useDialogFocus<HTMLElement>(close)
   useGameTheme(theme)
@@ -40,7 +31,7 @@ export function GameOptionsOverlay({ close, newGrid, report, leaveMatch }: { clo
   return <div className="mm-modal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
     <section ref={dialogRef} className="mm-settings mm-game-options" role="dialog" aria-modal="true" aria-label="Paramètres de la partie" tabIndex={-1}>
       <header><h2>Paramètres</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
-      <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button><button type="button" className={theme === 'system' ? 'active' : ''} aria-pressed={theme === 'system'} onClick={() => setTheme('system')}><Settings />Système</button></div>
+      <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button></div>
       <Toggle icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
       <Toggle icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => setPreference('vibration', value)} />
       {newGrid ? <button className="mm-settings-link" type="button" onClick={() => { newGrid(); close() }}><RefreshCw /><span>Nouvelle grille<small>Recommencer une partie</small></span><ChevronRight /></button> : null}

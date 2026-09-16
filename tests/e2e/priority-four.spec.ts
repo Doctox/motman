@@ -48,7 +48,7 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
 
   await page.reload()
   await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeHidden()
-  await page.getByRole('button', { name: 'Paramètres' }).click()
+  await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Revoir le tutoriel/ }).click()
   await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeVisible()
   await page.getByRole('button', { name: 'Passer' }).click()
@@ -80,7 +80,7 @@ test('la navigation native reste entièrement au-dessus de la barre système And
 test('les informations légales restent lisibles sur mobile', async ({ page }, testInfo) => {
   await page.goto('/')
   await expect(page.locator('.mm-bottom-nav')).toBeVisible()
-  await page.getByRole('button', { name: 'Paramètres' }).click()
+  await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Informations/ }).click()
 
   const panel = page.getByRole('dialog', { name: 'Informations légales' })
@@ -101,7 +101,7 @@ test('les informations légales restent lisibles sur mobile', async ({ page }, t
 test('la suppression de compte est visible, confirmée et disponible hors de l’app', async ({ page }, testInfo) => {
   await page.goto('/')
   await expect(page.locator('.mm-bottom-nav')).toBeVisible()
-  await page.getByRole('button', { name: 'Paramètres' }).click()
+  await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Créer ou retrouver un compte|Compte synchronisé/ }).click()
 
   const account = page.getByRole('dialog', { name: 'Compte MotMan' })
@@ -229,7 +229,7 @@ test('sur iPhone, les paramètres expliquent comment installer, et préviennent 
   const page = await context.newPage()
   try {
     await page.goto('/')
-    await page.getByRole('button', { name: 'Paramètres' }).first().click()
+    await page.getByRole('button', { name: 'Menu' }).first().click()
     await page.getByRole('button', { name: /Installer MotMan/ }).click()
     await expect(page.locator('.mm-install-steps')).toContainText('Sur l’écran d’accueil')
     await expect(page.locator('.mm-install-warning')).toContainText('repart de zéro')
