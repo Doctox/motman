@@ -27,7 +27,7 @@ function activeMatchLabel(match: MatchState): string {
   // Le défi du jour porte le mode `solo` en base ; le mot a quitté l'interface
   // le 16/09/2026, il ne doit plus apparaître ici.
   if (match.isDaily) return 'Défi du jour'
-  if (match.mode === 'solo') return `Partie contre un bot ${match.difficulty === 'easy' ? 'facile' : match.difficulty === 'hard' ? 'difficile' : 'normal'}`
+  if (match.mode === 'solo') return 'Entraînement'
   if (match.mode === 'friend') return 'Duel ami'
   return 'Match normal'
 }

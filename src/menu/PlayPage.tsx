@@ -64,10 +64,10 @@ function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
       {matches.length ? <div className="mm-recent-match-list">
         {matches.slice(0, 5).map(match => {
           const tone = matchHistoryTone(match.outcome)
-          const opponentName = match.opponentName ?? (match.mode === 'solo' ? 'Un bot' : 'Adversaire')
+          const opponentName = match.opponentName ?? 'Adversaire'
           // « Solo » a quitté l'interface : une partie de ce mode est un défi du
-          // jour (il en porte la date) ou une vieille partie contre un bot.
-          const modeLabel = match.dailyDate ? 'Défi du jour' : match.mode === 'solo' ? 'Contre un bot' : 'Multijoueur'
+          // jour (il en porte la date) ou une partie d'entraînement d'avant.
+          const modeLabel = match.dailyDate ? 'Défi du jour' : match.mode === 'solo' ? 'Entraînement' : 'Multijoueur'
           const relisible = Boolean(match.board)
           const contenu = <>
             <span className={`mm-recent-outcome ${tone}`}>{tone === 'won' ? 'V' : tone === 'drawn' ? 'N' : 'D'}</span>
@@ -188,7 +188,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
           titre="Recherche d’un adversaire…"
-          detail={asyncSearching ? 'Vous pouvez revenir plus tard' : 'Un bot de votre niveau prendra la place au bout de 15 s'}
+          detail={asyncSearching ? 'Vous pouvez revenir plus tard' : 'Un adversaire de votre niveau vous sera proposé'}
           disabled={searchBusy !== null}
           annuler={() => void arreterRecherche(asyncSearching ? 'async' : 'realtime')}
         />

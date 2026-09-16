@@ -186,7 +186,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Choisir un mode',
     title: 'À chacun sa façon de jouer',
-    description: 'Normal cherche quelqu’un ; si personne ne répond en quinze secondes, un bot de votre niveau prend la place. Amis se joue sur invitation. Le Classé vous oppose à un rang proche et fait évoluer vos points.',
+    description: 'Normal vous trouve un adversaire de votre niveau, sans rien risquer au classement. Amis se joue sur invitation. Le Classé vous oppose à un rang proche et fait évoluer vos points.',
     visual: <ModesVisual />,
   },
   {
