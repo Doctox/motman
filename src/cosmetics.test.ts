@@ -122,3 +122,55 @@ describe('avatars supprimés', () => {
     expect(getAvatar('moka').id).toBe('plume-motman')
   })
 })
+
+describe('chances du panier', () => {
+  /** La DERNIÈRE migration qui redéfinit server_open_basket fait foi. */
+  async function dernierOuvrePanier(): Promise<string> {
+    const { readdirSync, readFileSync } = await import('node:fs')
+    const dossier = 'supabase/migrations'
+    return readdirSync(dossier).sort().reverse()
+      .map(nom => readFileSync(`${dossier}/${nom}`, 'utf8'))
+      .find(sql => sql.includes('function public.server_open_basket'))!
+  }
+
+  it('pèse les raretés exactement comme le serveur', async () => {
+    const { RARITY_ORDER, basketRarityWeights, BASKET_PITY_MAX } = await import('./progressionRewards')
+    // L'Épicerie affiche des chances calculées en TypeScript ; c'est le serveur
+    // qui tire, avec sa propre copie de la formule. Si l'une des deux bouge
+    // seule, l'écran ment au joueur sans que rien ne casse.
+    const bloc = /case rarity\s+([\s\S]*?)\s+end as weight/.exec(await dernierOuvrePanier())?.[1]
+    expect(bloc).toBeTruthy()
+
+    const formules = new Map<string, string>()
+    for (const [, rarete, expression] of bloc!.matchAll(/when '([a-z]+)' then (.+)/g)) {
+      formules.set(rarete, expression.trim())
+    }
+    // La branche `else` couvre la dernière rareté de l'ordre.
+    formules.set(RARITY_ORDER[RARITY_ORDER.length - 1], /else (.+)/.exec(bloc!)![1].trim())
+    expect([...formules.keys()].sort()).toEqual([...RARITY_ORDER].sort())
+
+    const evaluer = (expression: string, pity: number) => Function(
+      'v_pity',
+      `"use strict"; const greatest = Math.max; return ${expression}`,
+    )(pity) as number
+
+    for (const pity of [0, 1, 7, BASKET_PITY_MAX]) {
+      const attendu = basketRarityWeights(pity)
+      for (const rarete of RARITY_ORDER) {
+        expect(`${rarete}@${pity}=${evaluer(formules.get(rarete)!, pity).toFixed(6)}`)
+          .toBe(`${rarete}@${pity}=${attendu[rarete].toFixed(6)}`)
+      }
+    }
+  })
+
+  it('plafonne la malchance au même palier des deux côtés', async () => {
+    const { BASKET_PITY_MAX } = await import('./progressionRewards')
+    const sql = await dernierOuvrePanier()
+    expect(Number(/least\((\d+),\s*basket_pity\+1\)/.exec(sql)?.[1])).toBe(BASKET_PITY_MAX)
+    // Le compteur repart à zéro dès qu'une trouvaille dépasse le « singulier ».
+    const { RARITY_ORDER } = await import('./progressionRewards')
+    const remise = /v_rarity in \(([^)]*)\)/.exec(sql)?.[1]
+      .split(',').map(morceau => morceau.trim().replace(/'/g, ''))
+    expect(remise).toEqual(RARITY_ORDER.slice(RARITY_ORDER.indexOf('rare')))
+  })
+})

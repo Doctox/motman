@@ -1,5 +1,5 @@
 import avatarCatalogData from './data/avatar.catalog.json'
-import { basketRarityProbabilities } from './progressionRewards'
+import { BASKET_PITY_MAX, basketRarityProbabilities } from './progressionRewards'
 
 export type CosmeticRarity = 'commun' | 'singulier' | 'rare' | 'precieux' | 'exceptionnel' | 'legendaire'
 export type CosmeticKind = 'avatar' | 'frame' | 'animation'
@@ -238,7 +238,7 @@ function migratePlayerCosmetics(value: unknown, playerId: string): PlayerCosmeti
     openedBaskets: Math.max(0, Math.floor(candidate.openedBaskets ?? 0)),
     freeBaskets: Math.max(0, Math.floor(candidate.freeBaskets ?? 0)),
     streakFreezes: Math.max(0, Math.floor(candidate.streakFreezes ?? 0)),
-    basketPity: Math.max(0, Math.min(20, Math.floor(candidate.basketPity ?? 0))),
+    basketPity: Math.max(0, Math.min(BASKET_PITY_MAX, Math.floor(candidate.basketPity ?? 0))),
     basketOdds: candidate.basketOdds ?? basketRarityProbabilities(candidate.basketPity ?? 0),
     transactions: isStringArray(candidate.transactions) ? candidate.transactions.slice(-300) : [],
   }

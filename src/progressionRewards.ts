@@ -69,8 +69,20 @@ export function basketDuplicateRefund(pricePlumes: number): number {
   return Math.floor(Math.max(0, pricePlumes) * BASKET_DUPLICATE_REFUND_PERCENT / 100)
 }
 
+/**
+ * Le compteur de malchance s'arrête ici. Écrit aussi en SQL dans
+ * `server_open_basket` (`least(20,basket_pity+1)`) — cosmetics.test.ts vérifie
+ * que les deux plafonds restent d'accord.
+ */
+export const BASKET_PITY_MAX = 20
+
+/**
+ * Le poids de chaque rareté dans un panier. L'Épicerie affiche ces chances, mais
+ * c'est `server_open_basket` qui tire, avec sa propre copie de la formule —
+ * cosmetics.test.ts compare les deux, palier par palier.
+ */
 export function basketRarityWeights(pity: number): Record<RewardRarity, number> {
-  const step = Math.max(0, Math.min(20, Math.floor(pity)))
+  const step = Math.max(0, Math.min(BASKET_PITY_MAX, Math.floor(pity)))
   return {
     commun: Math.max(12, 50 - step * 2.4),
     singulier: Math.max(14, 28 - step * 0.7),
