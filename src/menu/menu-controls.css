@@ -18,7 +18,6 @@
 
 /* Primary actions */
 .mm-shell :is(
-  .mm-start-solo,
   .mm-save-guest,
   .mm-empty-home-card>button,
   .mm-add-friend button,
@@ -33,7 +32,6 @@
   transition:transform .18s var(--mm-ease),box-shadow .18s ease,filter .18s ease,background .18s ease;
 }
 .mm-shell :is(
-  .mm-start-solo,
   .mm-save-guest,
   .mm-empty-home-card>button,
   .mm-add-friend button,
@@ -42,7 +40,6 @@
   .mm-shop-item>button:not(:disabled)
 ):hover{filter:brightness(1.045);transform:translateY(-1px);box-shadow:inset 0 1px 0 #ffffff35,0 9px 21px #073f3628}
 .mm-shell :is(
-  .mm-start-solo,
   .mm-save-guest,
   .mm-empty-home-card>button,
   .mm-add-friend button,
@@ -51,7 +48,6 @@
   .mm-shop-item>button:not(:disabled)
 ):active{transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff24,0 4px 10px #073f3619}
 
-.mm-shell .mm-start-solo{height:48px!important;border-radius:999px!important;font-size:0.9375rem}
 .mm-empty-home-card>button{height:42px!important;border-radius:999px!important}
 .mm-add-friend button{padding-inline:16px;gap:7px}
 .mm-shop-item>button:not(:disabled){height:36px;min-height:36px;margin-top:10px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.625rem}
@@ -107,21 +103,18 @@
 .mm-friend-actions button{border-radius:7px!important;transition:background .16s ease,color .16s ease}
 .mm-friend-actions button:hover{background:var(--mm-sage-soft)}
 
-/* Selectors: tactile, calm and unmistakable once active. */
-.mm-difficulty-choice button,.mm-pace-choice>button,.mm-theme-choice button{
+/* Selectors: tactile, calm and unmistakable once active. */.mm-pace-choice>button,.mm-theme-choice button{
   border-color:#d8ccb4!important;background:linear-gradient(180deg,#fffdf8,#fbf6ec)!important;
   box-shadow:0 3px 9px #49391f0a!important;
 }
-.mm-difficulty-choice button{border-radius:999px!important}
-.mm-pace-choice>button,.mm-theme-choice button{border-radius:14px!important}
-.mm-difficulty-choice button:hover,.mm-pace-choice>button:hover,.mm-theme-choice button:hover{
+
+.mm-pace-choice>button,.mm-theme-choice button{border-radius:14px!important}.mm-pace-choice>button:hover,.mm-theme-choice button:hover{
   transform:translateY(-1px);border-color:#bba86f!important;background:#fffdf8!important;box-shadow:0 6px 14px #49391f12!important;
-}
-.mm-difficulty-choice button.active,.mm-pace-choice>button.active,.mm-theme-choice button.active{
+}.mm-pace-choice>button.active,.mm-theme-choice button.active{
   border-color:#5b8d77!important;background:linear-gradient(180deg,#f1f7ee,#e7f1e7)!important;color:#114d40!important;
   box-shadow:inset 0 0 0 1px #3f8065,0 5px 13px #2e695113!important;
 }
-.mm-difficulty-choice button.active:before{content:'';width:5px;height:5px;margin-right:5px;border-radius:50%;display:inline-block;background:#b8872f;box-shadow:0 0 0 3px #e8d8a566}
+
 
 .mm-segmented,.mm-shop-tabs{border-color:#d8c9aa!important;background:#fffaf0!important;box-shadow:0 4px 12px #49391f0d}
 .mm-segmented button,.mm-shop-tabs button{transition:transform .18s var(--mm-ease),background .18s ease,color .18s ease,box-shadow .18s ease}
@@ -155,9 +148,7 @@
 [data-theme="dark"] .mm-shell{
   --mm-button-secondary:#22322d;--mm-button-secondary-border:#74694c;
   --mm-button-danger:#3b2923;--mm-button-danger-border:#835844;
-}
-[data-theme="dark"] .mm-difficulty-choice button,[data-theme="dark"] .mm-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}
-[data-theme="dark"] .mm-difficulty-choice button.active,[data-theme="dark"] .mm-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
+}[data-theme="dark"] .mm-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}[data-theme="dark"] .mm-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
 /* Les bascules à deux volets (classement, Épicerie) gardaient l'ivoire en mode
    sombre : deux pavés blancs au milieu d'un écran noir. Le volet inactif prend
    la teinte des cartes, comme le reste du menu. */

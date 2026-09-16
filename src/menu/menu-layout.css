@@ -93,11 +93,11 @@
 }
 .mm-play-accordion .mm-panel-options{margin-right:12px;margin-left:12px;border-color:var(--mm-line)}
 .mm-play-accordion.is-open .mm-panel-options{margin-bottom:12px}
-.mm-solo-options>span{margin-bottom:12px}
-.mm-difficulty-choice{gap:8px}
-.mm-difficulty-choice button{border-color:var(--mm-line);background:var(--mm-surface)}
-.mm-difficulty-choice button.active{border-color:var(--mm-ink);background:var(--mm-sage);box-shadow:inset 0 0 0 1px var(--mm-ink)}
-.mm-shell .mm-start-solo{margin-top:14px;background:var(--mm-ink);box-shadow:0 4px 12px color-mix(in srgb,var(--mm-ink) 20%,transparent)}
+
+
+
+
+
 .mm-mode-row{padding-inline:11px}
 .mm-mode-row:hover{background:color-mix(in srgb,var(--mm-sage) 55%,var(--mm-surface))}
 .mm-mode-icon{border-color:var(--mm-line)}
