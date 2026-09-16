@@ -1,4 +1,4 @@
-import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from '@playwright/test'
+import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -178,6 +178,28 @@ async function openGame(browser: Browser, identity: Identity, matchId: string, v
   return { context, page }
 }
 
+/**
+ * Attend que l'écran de partie soit RÉELLEMENT jouable.
+ *
+ * L'éclair « À vous ! » se monte un instant APRÈS le plateau, et il désactive le
+ * chevalet le temps de son passage (`canAct` est faux tant qu'il est là). Or un
+ * bouton `disabled` n'accepte rien : ni clic forcé, ni événement pointeur, ni
+ * contact tactile. Deux pièges en découlent, et les deux ont fait relancer la CI :
+ *
+ *   • `toBeHidden()` sur l'éclair passe tant qu'il n'est PAS ENCORE MONTÉ ;
+ *   • un chevalet actif ne prouve rien non plus — il l'est aussi dans la fenêtre
+ *     qui sépare l'effet React de son rendu, juste AVANT l'éclair.
+ *
+ * Seul l'éclair VU PUIS PARTI tranche : il ne revient plus pour ce tour. On exige
+ * ensuite le chevalet actif, qui est la condition dont le geste a besoin.
+ */
+async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
+  const eclair = page.locator('.turn-ready-flash')
+  await expect(eclair).toBeVisible()
+  await expect(eclair).toBeHidden()
+  await expect(lettre).toBeEnabled()
+}
+
 test('un indice évite une lettre déjà posée mais pas encore validée', async ({ browser, request }, testInfo) => {
   const { first, second, matchId } = await createNormalMatch(request, 'async', 'Indice utile')
   const initial = await loadMatch(request, first.playerId, matchId)
@@ -186,8 +208,9 @@ test('un indice évite une lettre déjà posée mais pas encore validée', async
   const actor = initial.currentPlayerId === first.playerId ? first : second
   const { context, page } = await openGame(browser, actor, matchId, { width: 390, height: 844 })
   try {
-    await expect(page.locator('.turn-ready-flash')).toBeHidden()
-    await page.getByRole('button', { name: `Lettre ${placement.letter}` }).first().click({ force: true })
+    const lettre = page.getByRole('button', { name: `Lettre ${placement.letter}` }).first()
+    await attendreTourJouable(page, lettre)
+    await lettre.click({ force: true })
     const provisionalCell = page.locator(`[data-cell="${placement.cellIndex}"]`)
     await provisionalCell.click({ force: true })
     await expect(provisionalCell).toContainText(placement.letter)
@@ -576,8 +599,8 @@ test('au doigt, la lettre portée reste au-dessus du même doigt, même quand un
   const actor = initial.currentPlayerId === first.playerId ? first : second
   const { context, page } = await openGame(browser, actor, matchId, { width: 390, height: 844 })
   try {
-    await expect(page.locator('.turn-ready-flash')).toBeHidden()
     const lettres = page.locator('.rack-letter:not([disabled])')
+    await attendreTourJouable(page, lettres.first())
     await expect(lettres.nth(1)).toBeVisible()
     const prise = (await lettres.nth(0).boundingBox())!
     const autre = (await lettres.nth(1).boundingBox())!
@@ -633,8 +656,8 @@ test('page défilée (iPhone, site), la lettre portée reste sous le pointeur', 
   const actor = initial.currentPlayerId === first.playerId ? first : second
   const { context, page } = await openGame(browser, actor, matchId, { width: 375, height: 560 })
   try {
-    await expect(page.locator('.turn-ready-flash')).toBeHidden()
     const lettre = page.locator('.rack-letter:not([disabled])').first()
+    await attendreTourJouable(page, lettre)
     await lettre.scrollIntoViewIfNeeded()
     expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(40)
     const prise = (await lettre.boundingBox())!
@@ -669,7 +692,8 @@ test('tablette en portrait : la page s’agrandit, tient dans l’écran, et la 
   try {
     await page.goto(`/#partie=${encodeURIComponent(matchId)}`)
     await expect(page.locator('.board')).toBeVisible()
-    await expect(page.locator('.turn-ready-flash')).toBeHidden()
+    const lettre = page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]:not([disabled])`).first()
+    await attendreTourJouable(page, lettre)
     const mise = await page.evaluate(() => ({
       classe: document.documentElement.classList.contains('is-tablet'),
       largeur: innerWidth,
@@ -681,11 +705,11 @@ test('tablette en portrait : la page s’agrandit, tient dans l’écran, et la 
 
     const cdp = await context.newCDPSession(page)
     const toucher = (type: string, x: number, y: number) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: Math.round(x), y: Math.round(y), id: 1 }] })
-    const lettre = (await page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]`).first().boundingBox())!
+    const prise = (await lettre.boundingBox())!
     const cellule = (await page.locator(`[data-cell="${placement.cellIndex}"]`).boundingBox())!
     const doigt = { x: cellule.x + cellule.width / 2, y: cellule.y + cellule.height / 2 + 34 }
-    await toucher('touchStart', lettre.x + lettre.width / 2, lettre.y + lettre.height / 2)
-    for (let pas = 1; pas <= 6; pas += 1) await toucher('touchMove', lettre.x + (doigt.x - lettre.x) * pas / 6, lettre.y + (doigt.y - lettre.y) * pas / 6)
+    await toucher('touchStart', prise.x + prise.width / 2, prise.y + prise.height / 2)
+    for (let pas = 1; pas <= 6; pas += 1) await toucher('touchMove', prise.x + (doigt.x - prise.x) * pas / 6, prise.y + (doigt.y - prise.y) * pas / 6)
     // Le fantôme suit le doigt une fois par image : on attend qu'il ait rejoint le point visé.
     await expect.poll(async () => {
       const fantome = await page.locator('.drag-ghost').boundingBox()
@@ -708,13 +732,8 @@ test('ordinateur portable : la partie tient dans l’écran, grille à gauche, l
   const placement = playablePlacements(initial)[0]
   const { context, page } = await openGame(browser, actor, matchId, { width: 1366, height: 657 })
   try {
-    // L'écran est prêt quand LE CHEVALET S'ACTIVE, pas quand l'éclair « À vous ! »
-    // a disparu. `toBeHidden` tient un éclair pas encore monté pour déjà parti :
-    // il rendait la main une seconde trop tôt, le geste tombait sur une lettre
-    // encore désactivée (`canAct` est faux tant que l'éclair passe), et rien ne
-    // se posait. WebKit en CI, deux nuits de suite ; ici une fois sur dix.
     const lettre = page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]:not([disabled])`).first()
-    await expect(lettre).toBeVisible()
+    await attendreTourJouable(page, lettre)
 
     expect(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBe(0)
     const plateau = (await page.locator('.board').boundingBox())!
