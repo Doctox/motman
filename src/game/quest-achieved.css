@@ -1,0 +1,35 @@
+/* « Quête accomplie » pendant la partie (QuestAchieved.tsx).
+   Une notification qui DESCEND PAR-DESSUS le jeu et s'efface : elle ne prend
+   aucune place dans la page, et ne décale donc jamais le plateau au moment où le
+   joueur y regarde tomber ses lettres. */
+.mm-quest-achieved {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 9px 16px;
+  max-width: min(92vw, 420px);
+  border-radius: 999px;
+  background: var(--green, #073f36);
+  color: #fffaf0;
+  box-shadow: 0 10px 26px #17372b40, inset 0 0 0 1px #c59b4566;
+  font: 600 .875rem/1.25 'DM Sans', sans-serif;
+  pointer-events: none;
+  animation: mmQuestAchieved 3.2s cubic-bezier(.2, .9, .3, 1) both;
+}
+.mm-quest-achieved svg { width: 18px; height: 18px; flex: 0 0 auto; color: #e8c877; }
+.mm-quest-achieved b { display: block; font-weight: 800; }
+.mm-quest-achieved span { text-align: left; }
+
+@keyframes mmQuestAchieved {
+  0% { opacity: 0; transform: translate(-50%, -140%); }
+  10% { opacity: 1; transform: translate(-50%, 0); }
+  86% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -140%); }
+}
+
+html[data-motion="off"] .mm-quest-achieved { animation: none; transform: translate(-50%, 0); }

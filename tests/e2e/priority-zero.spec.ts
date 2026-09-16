@@ -785,3 +785,55 @@ test('en temps illimité, « Tu es toujours là ? » attend le retour dans la pa
     await context.close()
   }
 })
+
+test('une quête finie pendant la partie s’annonce au coup qui la termine', async ({ browser, request }) => {
+  // Les trois quêtes du jour sont tirées de la date (src/quests.ts) : certaines
+  // ne peuvent se terminer qu'à la clôture (« sans indice »), d'autres sont hors
+  // de portée du client (les mots en image). Le test ne joue donc que sur une
+  // quête réellement suivie en cours de partie, et se saute sinon — plutôt que
+  // de devenir un test qui échoue un jour sur deux.
+  const { dailyQuests } = await import('../../src/quests')
+  const { dailyDateKey } = await import('../../src/dailyDate')
+  const suivie = dailyQuests(dailyDateKey(Date.now())).find(quest => quest.counter === 'lettres' || quest.counter === 'mots')
+  test.skip(!suivie, 'Aucune quête suivie en cours de partie aujourd’hui.')
+
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Quete')
+  const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 844 })
+  try {
+    // La quête est amenée à une unité de la fin par le serveur de test.
+    await page.evaluate(async compteur => {
+      await fetch('/api/auth/quest-progress', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'day', increments: { [compteur.counter]: compteur.target - 1 } }),
+      })
+    }, { counter: suivie!.counter, target: suivie!.target })
+    await page.reload()
+    await expect(page.locator('.board')).toBeVisible()
+
+    const bandeau = page.locator('.mm-quest-achieved')
+    for (let tour = 0; tour < 14 && !(await bandeau.isVisible()); tour += 1) {
+      const etat = await loadMatch(request, first.playerId, matchId)
+      if (etat.status !== 'active') break
+      const aMoi = etat.currentPlayerId === first.playerId
+      const joue = await submitTurn(request, etat, playablePlacements(etat))
+      // Attendre que le CLIENT ait vu ce coup avant d'en jouer un autre : c'est
+      // lui qui annonce la quête, et un sondage qui saute un tour ne l'annonce
+      // jamais. On attend son score affiché, pas une durée au hasard.
+      if (aMoi) {
+        const score = String(joue.match.scores[first.playerId] ?? 0)
+        await expect.poll(async () => (await page.locator('.scoreboard').innerText()).includes(score), { timeout: 15_000 }).toBe(true)
+      } else {
+        await page.waitForTimeout(600)
+      }
+    }
+
+    await expect(bandeau).toBeVisible()
+    await expect(bandeau).toContainText('Quête accomplie')
+    await expect(bandeau).toContainText(suivie!.title)
+    // Le bandeau s'efface tout seul : il ne doit pas rester sur le plateau.
+    await expect(bandeau).toBeHidden({ timeout: 8_000 })
+  } finally {
+    await context.close()
+    void second
+  }
+})

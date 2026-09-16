@@ -127,3 +127,9 @@ html[data-motion="off"] /* Ce qui répond au doigt continue de répondre. Cette 
 html[data-motion="off"] .mm-shell button:not(:disabled):active,html[data-motion="off"] .mm-shell button:not(:disabled).is-pressed{transition-duration: var(--mm-t-tap) !important;}
 html[data-motion="off"] /* L'apparence de l'appui aussi : sans elle,html[data-motion="off"] le bouton ne dirait plus rien. */
   .mm-shell button:not(:disabled).is-pressed{transform: translateY(1px) scale(.985) !important;}
+
+/* Pastille « quelque chose vous attend » : Épicerie (panier abordable) et Quêtes
+   (récompense à récupérer) battent du même cœur. Coupée par le réglage
+   « Animations » via html[data-motion="off"]. */
+@keyframes mmBadgePulse { 0%, 70%, 100% { transform: scale(1); } 80% { transform: scale(1.4); } }
+html[data-motion="off"] .mm-nav-badge { animation: none; }

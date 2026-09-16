@@ -187,7 +187,9 @@ function QuestRow({ quest, reward, eyebrow, gagnee, enCours, recuperer }: {
     <div className="mm-quest-copy">
       {eyebrow ? <em>{eyebrow}</em> : null}
       <strong>{quest.title}</strong>
-      <small>{quest.hint}</small>
+      {/* L'astuce n'aide que tant qu'il reste à faire : une fois la quête finie,
+          elle ne sert qu'à pousser le panneau hors de l'écran. */}
+      {quest.done ? null : <small>{quest.hint}</small>}
     </div>
 
     <span className="mm-quest-count" aria-hidden="true">{quest.progress}/{quest.target}</span>

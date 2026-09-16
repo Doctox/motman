@@ -3,6 +3,9 @@ import { ArrowLeft, Check, Lightbulb, Settings, Shuffle, Sparkles, Wifi } from '
 import './styles.css'
 import { startAdaptivePolling, type AdaptivePollingController } from './adaptivePolling'
 import { assetUrl } from './assetUrl'
+import { addCounters, countersFromTurn, questsJustCompleted, type LiveCounters } from './questLiveProgress'
+import { loadQuestBoard } from './questBoardState'
+import { QuestAchieved } from './game/QuestAchieved'
 import { BoardScoreEffects } from './BoardScoreEffects'
 import { BoardWordHighlight, type BoardWordHighlightState } from './BoardWordHighlight'
 import { ClueZoom } from './ClueZoom'
@@ -119,6 +122,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   // joueur, et le tour auquel il a ouvert la partie (voir game/stillThere.ts).
   const [stillThereAck, setStillThereAck] = useState(0)
   const openingTurn = useRef<{ matchId: string; turnNumber: number } | null>(null)
+  // « Quête accomplie » : annoncé au coup qui la termine, jamais payé ici.
+  // Voir questLiveProgress.ts — le serveur reste seul à compter pour de vrai.
+  const questsDuJour = useRef(loadQuestBoard()?.day ?? [])
+  const questCounters = useRef<LiveCounters>({})
+  const [questDone, setQuestDone] = useState<{ cle: number; titre: string } | null>(null)
+
   const seenTurn = useRef<string | null>(null)
   const animationTimer = useRef<number | null>(null)
   const hintFlightTimer = useRef<number | null>(null)
@@ -311,6 +320,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     setError(null)
     if (next.lastTurn && next.lastTurn.id !== seenTurn.current) {
       seenTurn.current = next.lastTurn.id
+      if (next.lastTurn.playerId === playerId) {
+        const avant = questCounters.current
+        const apres = addCounters(avant, countersFromTurn(next.lastTurn))
+        questCounters.current = apres
+        const finies = questsJustCompleted(questsDuJour.current, avant, apres)
+        if (finies.length) setQuestDone({ cle: Date.now(), titre: finies[0].title })
+      }
       animateTurn(next.lastTurn, next.lastTurn.playerId === playerId ? 'player' : 'bot', next.scores, next.status === 'active' ? new Date(next.turnStartedAt).getTime() : null)
     } else if (!resolvingRef.current) {
       setDisplayedScores(current => sameNumberRecord(current, next.scores) ? current : next.scores)
@@ -673,6 +689,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     <header><button type="button" disabled={match.status === 'finished'} aria-label={match.status === 'active' && isAsync ? 'Retour à toutes les parties' : match.status === 'active' ? 'Options de sortie' : resolving ? 'Résultats en cours' : 'Validez le résultat ci-dessous'} onClick={() => match.status === 'active' && isAsync ? onHome() : match.status === 'active' ? setLeaveOpen(true) : undefined}><ArrowLeft /></button><img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
     {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={match.bot ? `Niv. ${match.bot.level}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revealingPlayerId ? revealingPlayerId === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`} aria-live="polite"><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined}>{status}</strong></div><DuelPlayer name="Vous" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revealingPlayerId ? revealingPlayerId === playerId : isMyTurn)} player /></section>
     </> : null}
+    {questDone ? <QuestAchieved key={questDone.cle} titre={questDone.titre} close={() => setQuestDone(null)} /> : null}
     {error ? <p className="duel-error" role="alert">{error}</p> : null}
     {showGame ? <section className="board-wrap" aria-label="Grille multijoueur" data-bot-level={match.bot ? match.difficulty : undefined} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows } as CSSProperties}><div ref={fitBoardRef} className={`board ${focusedWordCells.size ? 'has-clue-focus' : ''}`} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows, '--board-aspect': `${grid.columns} / ${grid.rows}` } as CSSProperties}>
       {grid.cells.map((cell, index) => {

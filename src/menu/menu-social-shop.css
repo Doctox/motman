@@ -332,7 +332,7 @@ html[data-motion="off"] .mm-basket-picture.is-opening{animation:none}
 html[data-motion="off"] .mm-basket-burst{display:none}
 
 /* Pastille de l'onglet Épicerie : assez de plumes pour ouvrir un panier. */
-.mm-nav-badge{position:absolute;top:7px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--mm-coral);box-shadow:0 0 0 2px var(--mm-paper)}
+.mm-nav-badge{position:absolute;top:7px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--mm-coral);box-shadow:0 0 0 2px var(--mm-paper);animation:mmBadgePulse 2.4s ease-in-out infinite}
 
 /* ── Modifier le profil : tout centré ──
    Les choix étaient en grille à 3 colonnes calée à gauche : une ligne
