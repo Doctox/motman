@@ -245,7 +245,7 @@ export function PendingResultPanel({
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null>(null)
   const won = result.outcome === 'win' || result.outcome === 'opponent-abandoned'
   const draw = result.outcome === 'draw'
-  const opponentName = result.opponentName ?? (result.mode === 'solo' ? 'Adversaire solo' : 'Votre adversaire')
+  const opponentName = result.opponentName ?? (result.mode === 'solo' ? 'Un bot' : 'Votre adversaire')
   const title = draw ? 'Égalité !' : won ? 'Victoire !' : 'Partie terminée'
   const detail = result.finishReason === 'timeout'
     ? won ? `${opponentName} n’a pas réagi pendant trois de ses tours.` : 'Vous avez laissé expirer trois de vos tours.'

@@ -59,6 +59,11 @@ button.mm-daily-hero-play { cursor: pointer; }
 }
 .mm-daily-hero-corner .mm-streak-chip { min-width: 34px; height: 34px; padding: 0 8px; }
 .mm-daily-hero-corner .mm-streak-chip svg { width: 15px; height: 15px; }
+/* Le partage dans le coin opposé, dans la bande de 58 px que le bouton « jouer »
+   laisse libre à droite : il ne rogne donc jamais le texte. */
+.mm-daily-hero-share { position: absolute; right: 8px; bottom: 8px; }
+/* De quoi loger la flamme en haut et le partage en bas sans qu'ils se touchent. */
+.mm-daily-hero.is-done { min-height: 96px; }
 
 .mm-daily-hero-badge {
   display: grid;
@@ -239,9 +244,11 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-share button svg { width: 18px; height: 18px; }
 .mm-daily-share p { min-height: 1.2em; margin: 0; color: var(--mm-muted); font-size: 0.8125rem; text-align: center; }
 .mm-daily-share p:empty { display: none; }
-/* Accueil : une petite icône dans le coin haut droit de la carte « Défi réussi ». */
-/* Le coin porte désormais partage ET série : c'est lui qui se place, pas la carte. */
-.mm-daily-hero.is-done .mm-daily-hero-play { padding-right: 96px; }
+/* Accueil : une petite icône dans le coin bas droit de la carte « Défi réussi ».
+   Le haut ne porte plus que la flamme, donc le texte récupère la place que
+   prenait le second bouton — « nouvelle grille dans 16 h 57 » tenait sur deux
+   lignes à cause de ces 96 px. */
+.mm-daily-hero.is-done .mm-daily-hero-play { padding-right: 58px; }
 /* Le compte à rebours a sa propre ligne : un « · » restait seul en bout de ligne. */
 .mm-daily-countdown { flex-basis: 100%; }
 .mm-daily-share.is-compact { margin: 0; }

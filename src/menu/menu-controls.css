@@ -108,16 +108,16 @@
 .mm-friend-actions button:hover{background:var(--mm-sage-soft)}
 
 /* Selectors: tactile, calm and unmistakable once active. */
-.mm-difficulty-choice button,.mm-solo-pace-choice>button,.mm-theme-choice button{
+.mm-difficulty-choice button,.mm-pace-choice>button,.mm-theme-choice button{
   border-color:#d8ccb4!important;background:linear-gradient(180deg,#fffdf8,#fbf6ec)!important;
   box-shadow:0 3px 9px #49391f0a!important;
 }
 .mm-difficulty-choice button{border-radius:999px!important}
-.mm-solo-pace-choice>button,.mm-theme-choice button{border-radius:14px!important}
-.mm-difficulty-choice button:hover,.mm-solo-pace-choice>button:hover,.mm-theme-choice button:hover{
+.mm-pace-choice>button,.mm-theme-choice button{border-radius:14px!important}
+.mm-difficulty-choice button:hover,.mm-pace-choice>button:hover,.mm-theme-choice button:hover{
   transform:translateY(-1px);border-color:#bba86f!important;background:#fffdf8!important;box-shadow:0 6px 14px #49391f12!important;
 }
-.mm-difficulty-choice button.active,.mm-solo-pace-choice>button.active,.mm-theme-choice button.active{
+.mm-difficulty-choice button.active,.mm-pace-choice>button.active,.mm-theme-choice button.active{
   border-color:#5b8d77!important;background:linear-gradient(180deg,#f1f7ee,#e7f1e7)!important;color:#114d40!important;
   box-shadow:inset 0 0 0 1px #3f8065,0 5px 13px #2e695113!important;
 }
@@ -156,8 +156,8 @@
   --mm-button-secondary:#22322d;--mm-button-secondary-border:#74694c;
   --mm-button-danger:#3b2923;--mm-button-danger-border:#835844;
 }
-[data-theme="dark"] .mm-difficulty-choice button,[data-theme="dark"] .mm-solo-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}
-[data-theme="dark"] .mm-difficulty-choice button.active,[data-theme="dark"] .mm-solo-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
+[data-theme="dark"] .mm-difficulty-choice button,[data-theme="dark"] .mm-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}
+[data-theme="dark"] .mm-difficulty-choice button.active,[data-theme="dark"] .mm-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
 /* Les bascules à deux volets (classement, Épicerie) gardaient l'ivoire en mode
    sombre : deux pavés blancs au milieu d'un écran noir. Le volet inactif prend
    la teinte des cartes, comme le reste du menu. */

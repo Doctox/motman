@@ -40,7 +40,7 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
   const cases = decodeBoardSnapshot(match.board)
   const lettres = new Map(cases.map(item => [item.cellIndex, item]))
   const posees = cases.filter(item => item.mine).length
-  const adversaire = match.opponentName ?? (match.mode === 'solo' ? 'Adversaire solo' : 'Adversaire')
+  const adversaire = match.opponentName ?? (match.mode === 'solo' ? 'Un bot' : 'Adversaire')
 
   return <div className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`}>
     <section className="mm-replay-panel">

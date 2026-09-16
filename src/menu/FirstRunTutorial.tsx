@@ -6,21 +6,25 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Feather,
   Gift,
   Flame,
   Frame,
   Gamepad2,
   Hourglass,
   Lightbulb,
+  ListChecks,
   MousePointer2,
   Pencil,
   Snowflake,
   Sparkles,
   Swords,
   Trophy,
+  Type,
   User,
   Users,
 } from 'lucide-react'
+import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP } from '../quests'
 import { useDialogFocus } from '../useDialogFocus'
 
 type TutorialStep = {
@@ -29,6 +33,8 @@ type TutorialStep = {
   description: string
   visual: ReactNode
   note?: ReactNode
+  /** Version du tutoriel où l'étape est apparue. Voir `tutorialProgress.ts`. */
+  sinceVersion?: number
 }
 
 function DuelVisual() {
@@ -76,6 +82,30 @@ function StreakVisual() {
   </div>
 }
 
+function QuestsVisual() {
+  return <div className="mm-tutorial-quests" aria-hidden="true">
+    <div className="head">
+      <span className="chip"><ListChecks /><i /></span>
+      <strong>Quêtes du jour</strong>
+      <span className="purse"><Feather />1 240</span>
+    </div>
+    <div className="row is-done">
+      <i className="pic"><Sparkles /></i>
+      <span className="what"><strong>Réussir un chevalet complet</strong><b>1/1</b></span>
+      <em>Récupérer</em>
+    </div>
+    <div className="row">
+      <i className="pic"><Type /></i>
+      <span className="what"><strong>Poser 12 lettres justes</strong><b>7/12</b><u><s style={{ width: '58%' }} /></u></span>
+    </div>
+    <span className="reward">
+      <Feather /><strong>+{DAILY_QUEST_PLUMES}</strong> plumes
+      <Sparkles /><strong>+{DAILY_QUEST_XP}</strong> XP
+      <small>par quête</small>
+    </span>
+  </div>
+}
+
 function ProfileVisual() {
   return <div className="mm-tutorial-profile" aria-hidden="true">
     <div className="card">
@@ -92,10 +122,11 @@ function ProfileVisual() {
   </div>
 }
 
+// Trois modes depuis le 16/09/2026 : le Solo a quitté l'écran Jouer pour que
+// tout le monde se retrouve dans la même file.
 function ModesVisual() {
-  return <div className="mm-tutorial-modes" aria-hidden="true">
-    <span><Gamepad2 /><strong>Solo</strong><small>Contre un bot<br />Pas de classement</small></span>
-    <span><Swords /><strong>Normal</strong><small>Adversaire aléatoire<br />Pas de classement</small></span>
+  return <div className="mm-tutorial-modes is-trois" aria-hidden="true">
+    <span><Swords /><strong>Normal</strong><small>Adversaire au hasard<br />Pas de classement</small></span>
     <span><Trophy /><strong>Classé</strong><small>Rang proche<br />Points gagnés ou perdus</small></span>
     <span><Users /><strong>Amis</strong><small>Invitez un contact<br />Pas de classement</small></span>
   </div>
@@ -104,7 +135,7 @@ function ModesVisual() {
 function PaceVisual() {
   return <div className="mm-tutorial-paces" aria-hidden="true">
     <span><Clock3 /><strong>Temps limité</strong><b>45 s par tour</b><small>Une partie rapide. Disponible partout, et obligatoire en Classé.</small></span>
-    <span><Hourglass /><strong>Temps illimité</strong><b>24 h par tour</b><small>Revenez plus tard depuis l’accueil. Disponible en Solo, Normal et entre amis.</small></span>
+    <span><Hourglass /><strong>Temps illimité</strong><b>24 h par tour</b><small>Revenez plus tard depuis l’accueil. Disponible en Normal et entre amis.</small></span>
   </div>
 }
 
@@ -137,6 +168,16 @@ const STEPS: TutorialStep[] = [
     note: <><Flame /> Touchez la flamme sur la carte du défi pour voir votre semaine.</>,
   },
   {
+    eyebrow: 'Trois par jour',
+    title: 'Les quêtes remplissent la bourse',
+    // Les montants viennent de `src/quests.ts` : le tutoriel ne doit jamais
+    // promettre autre chose que ce que le serveur verse.
+    description: `Trois quêtes chaque jour, toutes faisables dans une seule partie : ${DAILY_QUEST_PLUMES} plumes et ${DAILY_QUEST_XP} XP chacune. Une quatrième court sur la semaine et offre un gel de série. La récompense ne tombe pas toute seule : ouvrez les Quêtes et touchez Récupérer.`,
+    visual: <QuestsVisual />,
+    note: <><ListChecks /> Une pastille sur le bouton Quêtes prévient qu’une récompense attend.</>,
+    sinceVersion: 2,
+  },
+  {
     eyebrow: 'Votre identité',
     title: 'Un profil à votre image',
     description: 'Dans Profil, touchez Modifier pour choisir votre pseudo, votre avatar, votre cadre, votre animation et votre titre. Vos plumes se dépensent à l’Épicerie.',
@@ -145,7 +186,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Choisir un mode',
     title: 'À chacun sa façon de jouer',
-    description: 'Solo sert à s’entraîner. Normal et Amis sont sans enjeu de classement. Le Classé se joue contre un rang proche et fait évoluer vos points.',
+    description: 'Normal cherche quelqu’un ; si personne ne répond en quinze secondes, un bot de votre niveau prend la place. Amis se joue sur invitation. Le Classé vous oppose à un rang proche et fait évoluer vos points.',
     visual: <ModesVisual />,
   },
   {
@@ -157,14 +198,29 @@ const STEPS: TutorialStep[] = [
   },
 ]
 
+/** Le nombre d'étapes, pour que le menu n'ait pas à le recompter à la main. */
+export const TUTORIAL_STEP_COUNT = STEPS.length
+
+/**
+ * La première étape que ce joueur n'a pas encore lue. Un nouveau venu
+ * (`seenVersion` 0) commence au début ; celui qui avait fini la version
+ * précédente arrive directement sur la nouveauté, sans refaire tout le tour.
+ */
+function premiereEtapeNouvelle(seenVersion: number): number {
+  const index = STEPS.findIndex(step => (step.sinceVersion ?? 1) > seenVersion)
+  return index < 0 ? 0 : index
+}
+
 export function FirstRunTutorial({
   finish,
   skip,
+  seenVersion = 0,
 }: {
   finish: () => void
   skip: () => void
+  seenVersion?: number
 }) {
-  const [stepIndex, setStepIndex] = useState(0)
+  const [stepIndex, setStepIndex] = useState(() => premiereEtapeNouvelle(seenVersion))
   const dialogRef = useDialogFocus<HTMLElement>(skip)
   const step = STEPS[stepIndex]
   const isLast = stepIndex === STEPS.length - 1

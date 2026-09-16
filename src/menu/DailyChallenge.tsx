@@ -163,10 +163,11 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
             </span>
           </div>
         </div>
-        <div className="mm-daily-hero-corner">
-          <DailyShareHero day={day} />
-          <DailyStreakChip />
-        </div>
+        <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+        {/* Le partage en bas à droite : à côté de la flamme, les deux boutons
+            mangeaient la largeur du texte, et « nouvelle grille dans 16 h 57 »
+            se coupait en deux. */}
+        <div className="mm-daily-hero-share"><DailyShareHero day={day} /></div>
       </section>
     )
   }

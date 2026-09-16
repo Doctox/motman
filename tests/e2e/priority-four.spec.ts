@@ -1,11 +1,17 @@
 import { expect, request as playwrightRequest, test } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 
+// Le serveur de test, au port choisi par playwright.config.ts (MOTMAN_E2E_PORT).
+const SERVEUR_TEST = `http://127.0.0.1:${process.env.MOTMAN_E2E_PORT ?? '4175'}`
+
+// Le tutoriel hors du chemin, sauf pour les tests qui le visent. La version 99
+// vaut « déjà vu, quelle que soit la version publiée » : sans cela, chaque
+// nouvelle étape du tutoriel ferait tomber toute la suite.
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.title.includes('tutoriel')) return
   await page.addInitScript(() => {
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({
-      version: 1,
+      version: 99,
       completedAt: '2026-07-30T12:00:00.000Z',
     }))
   })
@@ -27,12 +33,16 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   await expect(tutorial).toContainText('1 panier offert')
   await page.screenshot({ path: `output/quality/first-run-tutorial-serie-${testInfo.project.name}.png`, fullPage: false })
   await tutorial.getByRole('button', { name: 'Suivant' }).click()
+  await expect(page.getByRole('heading', { name: 'Les quêtes remplissent la bourse' })).toBeVisible()
+  await expect(tutorial).toContainText('60 plumes et 30 XP')
+  await expect(tutorial).toContainText('Récupérer')
+  await page.screenshot({ path: `output/quality/first-run-tutorial-quetes-${testInfo.project.name}.png`, fullPage: false })
+  await tutorial.getByRole('button', { name: 'Suivant' }).click()
   await expect(page.getByRole('heading', { name: 'Un profil à votre image' })).toBeVisible()
   await expect(tutorial).toContainText('Modifier')
   await page.screenshot({ path: `output/quality/first-run-tutorial-profil-${testInfo.project.name}.png`, fullPage: false })
   await tutorial.getByRole('button', { name: 'Suivant' }).click()
   await expect(page.getByRole('heading', { name: 'À chacun sa façon de jouer' })).toBeVisible()
-  await expect(tutorial).toContainText('Solo')
   await expect(tutorial).toContainText('Normal')
   await expect(tutorial).toContainText('Classé')
   await expect(tutorial).toContainText('Amis')
@@ -51,7 +61,30 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Revoir le tutoriel/ }).click()
   await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeVisible()
+  // Relancé à la main, il repart du début : on veut tout revoir.
+  await expect(page.getByRole('heading', { name: 'Le mot fléché devient un duel' })).toBeVisible()
   await page.getByRole('button', { name: 'Passer' }).click()
+})
+
+test('le tutoriel rouvert par une nouveauté commence sur l’étape nouvelle', async ({ page }) => {
+  // Un joueur qui avait fini la version 1 : il connaît le duel, la grille et la
+  // série. Lui refaire les sept étapes pour lui montrer les quêtes serait une
+  // punition — le tutoriel doit s'ouvrir sur ce qu'il n'a pas vu.
+  await page.addInitScript(() => {
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
+  })
+  await page.goto('/')
+
+  const tutorial = page.getByRole('dialog', { name: 'Tutoriel MotMan' })
+  await expect(tutorial).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Les quêtes remplissent la bourse' })).toBeVisible()
+  // Le retour reste possible pour qui veut relire le reste.
+  await expect(tutorial.getByRole('button', { name: 'Retour' })).toBeVisible()
+
+  await tutorial.getByRole('button', { name: 'Passer' }).click()
+  await expect(tutorial).toBeHidden()
+  await page.reload()
+  await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeHidden()
 })
 
 test('la navigation native reste entièrement au-dessus de la barre système Android', async ({ page, browserName }) => {
@@ -131,8 +164,8 @@ test('la suppression de compte est visible, confirmée et disponible hors de l�
 
 test('l’API locale supprime le profil et révoque sa session', async () => {
   const api = await playwrightRequest.newContext({
-    baseURL: 'http://127.0.0.1:4175',
-    extraHTTPHeaders: { Origin: 'http://127.0.0.1:4175' },
+    baseURL: SERVEUR_TEST,
+    extraHTTPHeaders: { Origin: SERVEUR_TEST },
   })
   const playerId = `guest_${randomUUID()}`
   const bootstrap = await api.post('/api/auth/bootstrap', { data: { identity: { playerId, displayName: 'Suppression QA' } } })
@@ -173,23 +206,35 @@ test('les derniers matchs libèrent la place quand un mode de jeu est ouvert', a
 
   const history = page.getByLabel('Historique des cinq derniers matchs')
   const historyShell = page.locator('.mm-recent-history')
-  const solo = page.locator('#mm-solo-accordion > .mm-panel-heading')
-  const multiplayer = page.locator('#mm-multiplayer-accordion > .mm-panel-heading')
+  // Trois modes depuis le 16/09/2026, tous au premier niveau : le Solo a quitté
+  // l'écran et « Multijoueur » n'avait plus de contraire.
+  const normal = page.locator('#mm-normal-accordion > .mm-panel-heading')
+  const amis = page.locator('#mm-friends-accordion > .mm-panel-heading')
 
   await expect(history).toBeVisible()
-  await solo.click()
+  await normal.click()
   await expect(historyShell).toHaveAttribute('aria-hidden', 'true')
   await expect(historyShell).toHaveCSS('opacity', '0')
-  await solo.click()
+  await normal.click()
   await expect(history).toBeVisible()
-  await multiplayer.click()
+  await amis.click()
   await expect(historyShell).toHaveAttribute('aria-hidden', 'true')
   await expect(historyShell).toHaveCSS('opacity', '0')
 })
 
+test('l’écran Jouer ne propose plus que Normal, Classé et Amis', async ({ page }) => {
+  // Le mode Solo séparait les joueurs en deux files pour rien : la file normale
+  // sert déjà un bot, à leur niveau, quand personne ne répond en quinze secondes.
+  await page.goto('/#jouer')
+  await expect(page.locator('.mm-play-accordion')).toHaveCount(3)
+  await expect(page.locator('#mm-solo-accordion')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Normal' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Classé' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Amis' })).toBeVisible()
+})
+
 test('le mode classé affiche son emblème et explique la recherche en arrière-plan', async ({ page }, testInfo) => {
   await page.goto('/#jouer')
-  await page.locator('#mm-multiplayer-accordion > .mm-panel-heading').click()
   await page.locator('#mm-ranked-accordion > .mm-panel-heading').click()
 
   const ranked = page.locator('.mm-ranked-mode')
@@ -225,7 +270,7 @@ test('sur iPhone, les paramètres expliquent comment installer, et préviennent 
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   })
-  await context.addInitScript(() => localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' })))
+  await context.addInitScript(() => localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' })))
   const page = await context.newPage()
   try {
     await page.goto('/')

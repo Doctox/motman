@@ -52,7 +52,7 @@ describe('la réserve du défi du jour', () => {
   })
 
   it('affiche le thème à côté du défi, et rien un jour sans thème', () => {
-    expect(dailyChallengeLabel('Animaux')).toBe('Défi du jour · Animaux')
+    expect(dailyChallengeLabel('Animaux')).toBe('Animaux')
     expect(dailyChallengeLabel(null)).toBe('Défi du jour')
     expect(dailyChallengeLabel('  ')).toBe('Défi du jour')
   })

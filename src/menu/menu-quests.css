@@ -39,20 +39,29 @@
   color: var(--mm-ink);
   box-shadow: 0 18px 44px #0b2a2238;
 }
+/* Deux colonnes, deux lignes : le texte à gauche sur toute sa hauteur, la croix
+   en haut à droite, la bourse dessous. En rangée simple, un compte à rebours à
+   deux chiffres d'heures (« nouvelles dans 16 h 59 ») passait à la ligne et
+   sortait sous le trait, pendant qu'une bourse à cinq chiffres se coupait en
+   deux dans sa pastille. */
 .mm-quests-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start; column-gap: 12px;
   padding-bottom: 10px; border-bottom: 1px solid var(--mm-line);
 }
-.mm-quests-head > div { flex: 1 1 auto; min-width: 0; }
+.mm-quests-head > div { grid-column: 1; grid-row: 1 / span 2; min-width: 0; }
 .mm-quests-head strong { display: block; font: 700 1.375rem/1.1 'Playfair Display', Georgia, serif; }
 .mm-quests-purse {
   position: relative;
+  /* Sous la croix : le « +60 » s'envole au-dessus d'elle et a besoin de place. */
+  grid-column: 2; grid-row: 2; justify-self: end;
   display: inline-flex; align-items: center; gap: 6px;
-  /* Descendue sous le titre : le « +60 » s'envole au-dessus d'elle et a besoin de place. */
-  margin-top: 17px; padding: 6px 12px;
+  margin-top: 4px; padding: 6px 12px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--mm-gold) 22%, transparent);
   font-variant-numeric: tabular-nums;
+  /* Une bourse à cinq chiffres ne se coupe pas en deux. */
+  white-space: nowrap;
 }
 .mm-quests-purse svg { width: 15px; height: 15px; color: var(--mm-ink); }
 .mm-quests-purse b { font-size: .9375rem; }
@@ -71,7 +80,7 @@
 }
 .mm-quests-head small { display: block; margin-top: 3px; color: var(--mm-muted); font-size: .8125rem; }
 .mm-quests-close {
-  flex: 0 0 auto;
+  grid-column: 2; grid-row: 1; justify-self: end;
   display: grid; place-items: center; width: 34px; height: 34px;
   border: 0; border-radius: 50%; background: transparent; color: var(--mm-muted); cursor: pointer;
 }

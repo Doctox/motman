@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  completedTutorialVersion,
   completeFirstRunTutorial,
   FIRST_RUN_TUTORIAL_STORAGE_KEY,
   FIRST_RUN_TUTORIAL_VERSION,
@@ -22,6 +23,16 @@ describe('tutoriel de première ouverture', () => {
     expect(hasCompletedFirstRunTutorial(memoryStorage())).toBe(false)
     expect(hasCompletedFirstRunTutorial(memoryStorage('{"version":0,"completedAt":"2026-07-30T12:00:00.000Z"}'))).toBe(false)
     expect(hasCompletedFirstRunTutorial(memoryStorage('invalide'))).toBe(false)
+  })
+
+  it('rouvre le tutoriel quand une version plus récente est publiée', () => {
+    const ancien = memoryStorage('{"version":1,"completedAt":"2026-07-30T12:00:00.000Z"}')
+    expect(completedTutorialVersion(ancien)).toBe(1)
+    // Tant que la version courante dépasse celle lue, le tutoriel revient — et
+    // `seenVersion` fait sauter les étapes déjà connues.
+    expect(hasCompletedFirstRunTutorial(ancien)).toBe(FIRST_RUN_TUTORIAL_VERSION <= 1)
+    expect(completedTutorialVersion(memoryStorage())).toBe(0)
+    expect(completedTutorialVersion(memoryStorage('invalide'))).toBe(0)
   })
 
   it('mémorise une complétion versionnée et datée', () => {

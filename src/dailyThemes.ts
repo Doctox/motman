@@ -38,10 +38,14 @@ export function normalRotationGrids<T extends { dailyOnly?: boolean }>(grids: re
   return grids.filter(grid => !isDailyOnlyGrid(grid))
 }
 
-/** « Défi du jour · Animaux », ou « Défi du jour » un jour sans thème. */
+/**
+ * Le sur-titre de la carte du jour : « Animaux ». Le mot « Défi du jour » n'y
+ * est plus — il répétait le titre juste en dessous (« Jouer la grille du
+ * jour »). Il ne reste que les jours sans thème, pour ne pas laisser la ligne
+ * vide.
+ */
 export function dailyChallengeLabel(theme: string | null | undefined): string {
-  const libelle = theme?.trim()
-  return libelle ? `Défi du jour · ${libelle}` : 'Défi du jour'
+  return theme?.trim() || 'Défi du jour'
 }
 
 // ── Le calendrier ────────────────────────────────────────────────────────────

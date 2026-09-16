@@ -48,6 +48,24 @@ export function botThinkingDelayMs(seed: string): number {
   return BOT_THINKING_MIN_MS + hash(`${seed}:thinking`) % (BOT_THINKING_MAX_MS - BOT_THINKING_MIN_MS + 1)
 }
 
+/**
+ * La force d'un bot d'après le NIVEAU du joueur qu'il affronte. Décidée côté
+ * serveur : le client ne la propose jamais.
+ *
+ * Elle vit ici, collée aux plages de niveau de `createBotPersona` juste en
+ * dessous (débutant 6-17, normal 18-34, expert 35-48) : les bornes 17 et 34
+ * doivent leur correspondre, sans quoi un bot annoncerait « niveau 35 » en
+ * jouant comme un débutant.
+ *
+ * Sert au défi du jour et, depuis le 16/09/2026, au bot qui prend la place d'un
+ * humain absent dans la file normale — sa force y était tirée au sort.
+ */
+export function botSkillForLevel(level: number): BotSkill {
+  if (level <= 17) return 'beginner'
+  if (level <= 34) return 'regular'
+  return 'expert'
+}
+
 export function createBotPersona(seed: string, preferredSkill?: BotSkill): BotPersona {
   const skillRoll = hash(`${seed}:skill`) % 100
   const skill: BotSkill = preferredSkill ?? (skillRoll < 35 ? 'beginner' : skillRoll < 85 ? 'regular' : 'expert')

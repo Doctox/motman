@@ -24,7 +24,10 @@ export function asyncTimeLeft(match: MatchState): string {
 }
 
 function activeMatchLabel(match: MatchState): string {
-  if (match.mode === 'solo') return `Solo · Bot ${match.difficulty === 'easy' ? 'facile' : match.difficulty === 'hard' ? 'difficile' : 'normal'}`
+  // Le défi du jour porte le mode `solo` en base ; le mot a quitté l'interface
+  // le 16/09/2026, il ne doit plus apparaître ici.
+  if (match.isDaily) return 'Défi du jour'
+  if (match.mode === 'solo') return `Partie contre un bot ${match.difficulty === 'easy' ? 'facile' : match.difficulty === 'hard' ? 'difficile' : 'normal'}`
   if (match.mode === 'friend') return 'Duel ami'
   return 'Match normal'
 }

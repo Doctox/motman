@@ -1,4 +1,3 @@
-import type { GridDifficulty } from '../generator'
 import type { MatchPace } from '../matches'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 
@@ -22,7 +21,6 @@ export function lireThemeChoisi(): Theme {
 }
 
 export type MenuAppProps = {
-  onStartSolo: (difficulty: GridDifficulty, pace: MatchPace) => Promise<void>
   onStartMatch: (matchId: string) => void
   ranked: RankedMatchmakingState
   rankedBusy: boolean

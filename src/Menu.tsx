@@ -28,7 +28,7 @@ import { EditGuestPanel, ProfilePage, QuickMenu, RankingPage } from './menu/Prof
 import { SettingsPanel } from './menu/SettingsPanel'
 import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
-import { completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
+import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
 
 export type { MenuPage } from './menu/types'
 
@@ -47,7 +47,6 @@ function sameState<T>(left: T, right: T): boolean {
 }
 
 export function MenuApp({
-  onStartSolo,
   onStartMatch,
   ranked,
   rankedBusy,
@@ -68,6 +67,9 @@ export function MenuApp({
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [editingGuest, setEditingGuest] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(() => !hasCompletedFirstRunTutorial())
+  // Ce que ce joueur a déjà lu : le tutoriel s'ouvre alors sur la première étape
+  // nouvelle pour lui. Remis à 0 quand il demande lui-même à le revoir.
+  const [tutorialSeenVersion, setTutorialSeenVersion] = useState(completedTutorialVersion)
   const [identity, setIdentity] = useState<GuestIdentity>(loadPlayerIdentity)
   const [progress, setProgress] = useState<PlayerProgress>(() => loadPlayerProgress(identity.playerId))
   const [cosmetics, setCosmetics] = useState<PlayerCosmetics>(() => loadPlayerCosmetics(identity.playerId))
@@ -366,13 +368,13 @@ export function MenuApp({
   return <main className="mm-shell">
     <AppHeader onMenu={() => setQuickMenu(true)} onSettings={() => setSettings(true)} />
     {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
-    {page === 'play' ? <PlayPage identity={identity} onStartSolo={onStartSolo} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
+    {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de L’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
     {quickMenu ? <QuickMenu page={page} navigate={navigate} close={() => setQuickMenu(false)} /> : null}
-    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
+    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
     {legalOpen ? <Suspense fallback={null}><LazyLegalPanel close={() => setLegalOpen(false)} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}
@@ -383,7 +385,7 @@ export function MenuApp({
       {realtimeSearch ? <NormalSearchPanel busy={matchBusy} since={realtimeSearch.createdAt} cancel={() => void stopNormalSearch('realtime')} /> : null}
     </div> : null}
     {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
-      ? <FirstRunTutorial skip={() => closeTutorial()} finish={() => closeTutorial(true)} />
+      ? <FirstRunTutorial seenVersion={tutorialSeenVersion} skip={() => closeTutorial()} finish={() => closeTutorial(true)} />
       : null}
     {toast ? <div className="mm-toast" role="status">{toast}</div> : null}
   </main>

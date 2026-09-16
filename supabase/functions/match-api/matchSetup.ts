@@ -134,17 +134,12 @@ export async function chooseGrid(
 }
 
 /**
- * Force du bot du défi du jour, d'après le NIVEAU du joueur. Décidé côté serveur :
- * le client ne propose jamais de difficulté pour le défi.
- * Bornes calées sur les plages de persona de src/botOpponents.ts (beginner 6-17,
- * regular 18-34, expert 35-48) pour que le niveau AFFICHÉ du bot reste cohérent
- * avec sa force réelle.
+ * Force du bot d'après le NIVEAU du joueur — défi du jour ET file normale.
+ * La règle vit dans src/botOpponents.ts, à côté des plages de niveau qu'elle
+ * doit respecter ; elle est réexportée ici parce que tout le serveur l'appelle
+ * par ce module.
  */
-export function botSkillForLevel(level: number): BotSkill {
-  if (level <= 17) return 'beginner'
-  if (level <= 34) return 'regular'
-  return 'expert'
-}
+export { botSkillForLevel } from '../../../src/botOpponents.ts'
 
 /** Niveau du joueur lu en base, borné 1-50. Jamais sur déclaration du client. */
 export async function playerLevel(admin: AdminClient, userId: string): Promise<number> {

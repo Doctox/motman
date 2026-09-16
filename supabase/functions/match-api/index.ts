@@ -151,7 +151,7 @@ Deno.serve(async request => {
         admin.from('server_match_invitations').select('*').eq('host_id', user.id).eq('status', 'pending').gt('expires_at', nowIso()),
         admin.from('server_match_searches').select('*').eq('user_id', user.id),
         admin.from('grid_player_history')
-          .select('id,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board')
+          .select('id,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board,daily_date')
           .eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5),
         admin.from('grid_player_history')
           .select('id,play_key,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,finish_reason,feedback')
@@ -192,6 +192,10 @@ Deno.serve(async request => {
         score: item.score, opponentScore: item.opponent_score,
         opponentName: item.opponent_name, completedAt: item.completed_at,
         board: item.final_board ?? null,
+        // Le défi du jour est enregistré en mode `solo` : sans cette date, son
+        // résultat s'affichait « Solo » dans l'historique, un mot que l'écran
+        // Jouer ne propose plus depuis le 16/09/2026.
+        dailyDate: item.daily_date ?? null,
       }))
       const pendingResults = (pendingRows ?? []).map(item => ({
         id: item.id,
@@ -228,8 +232,16 @@ Deno.serve(async request => {
         logServerError('match-api:refresh-searches', refreshError)
         ;({ data: searches } = await admin.from('server_match_searches').select('*').eq('user_id', user.id))
       }
-      for (const search of (searches ?? []) as { id: string; pace: string; created_at: string }[]) if (Date.now() - new Date(search.created_at).getTime() >= BOT_SEARCH_MS) {
-        const bot = createBot(`${user.id}:${search.id}`)
+      // Le bot qui prend la place d'un humain absent joue AU NIVEAU DU JOUEUR,
+      // comme celui du défi du jour. Sans cette calibration, sa force était
+      // tirée au sort : un joueur de niveau 8 pouvait tomber sur un expert,
+      // exactement dans la partie qu'il croyait jouer contre quelqu'un.
+      // Le niveau est lu une fois, pas une fois par recherche.
+      const enAttente = (searches ?? []) as { id: string; pace: string; created_at: string }[]
+      const aBasculer = enAttente.filter(search => Date.now() - new Date(search.created_at).getTime() >= BOT_SEARCH_MS)
+      const forceBot = aBasculer.length ? botSkillForLevel(await playerLevel(admin, user.id)) : undefined
+      for (const search of aBasculer) {
+        const bot = createBot(`${user.id}:${search.id}`, forceBot)
         const pace = search.pace as Pace
         const prepared = await prepareAtomicMatch(admin, user.id, bot.playerId, pace, null, bot)
         const result = await atomicResult(admin.rpc('server_create_bot_match_atomic', {

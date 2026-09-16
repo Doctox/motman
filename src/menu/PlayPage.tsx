@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, Clock3, History, Hourglass, Play, Swords, Trophy, UserPlus, Users } from 'lucide-react'
-import type { GridDifficulty } from '../generator'
+import { BarChart3, ChevronRight, Clock3, History, Hourglass, Trophy, UserPlus, Users } from 'lucide-react'
 import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
 import type { MatchHistoryEntry, MatchLobbyState, MatchPace } from '../matches'
 import { MatchReplay } from './MatchReplay'
@@ -23,7 +22,7 @@ function MatchmakingRow({ icon, title, subtitle, searching, disabled, start, can
   </div>
 }
 
-type PlaySectionId = 'solo' | 'multiplayer' | 'normal' | 'ranked' | 'friends'
+type PlaySectionId = 'normal' | 'ranked' | 'friends'
 
 function PlayAccordion({ id, icon, title, open, toggle, children }: {
   id: PlaySectionId
@@ -51,12 +50,6 @@ function PlayAccordion({ id, icon, title, open, toggle, children }: {
   </section>
 }
 
-const SOLO_LEVELS: Array<{ id: GridDifficulty; label: string; available: boolean }> = [
-  { id: 'easy', label: 'Facile', available: true },
-  { id: 'normal', label: 'Normal', available: true },
-  { id: 'hard', label: 'Difficile', available: true },
-]
-
 function RecentMatchHistory({ matches, visible }: { matches: MatchHistoryEntry[]; visible: boolean }) {
   // Partie ouverte en relecture. Seules celles dont le plateau a survecu sont
   // cliquables : avant la colonne `final_board`, il n'existe plus nulle part.
@@ -67,11 +60,14 @@ function RecentMatchHistory({ matches, visible }: { matches: MatchHistoryEntry[]
       {matches.length ? <div className="mm-recent-match-list">
         {matches.slice(0, 5).map(match => {
           const tone = matchHistoryTone(match.outcome)
-          const opponentName = match.opponentName ?? (match.mode === 'solo' ? 'Adversaire solo' : 'Adversaire')
+          const opponentName = match.opponentName ?? (match.mode === 'solo' ? 'Un bot' : 'Adversaire')
+          // « Solo » a quitté l'interface : une partie de ce mode est un défi du
+          // jour (il en porte la date) ou une vieille partie contre un bot.
+          const modeLabel = match.dailyDate ? 'Défi du jour' : match.mode === 'solo' ? 'Contre un bot' : 'Multijoueur'
           const relisible = Boolean(match.board)
           const contenu = <>
             <span className={`mm-recent-outcome ${tone}`}>{tone === 'won' ? 'V' : tone === 'drawn' ? 'N' : 'D'}</span>
-            <span className="mm-recent-match-copy"><strong>{opponentName}</strong><small>{matchHistoryResultLabel(match.outcome)} · {match.mode === 'solo' ? 'Solo' : 'Multijoueur'} · {match.pace === 'async' ? 'Illimité' : 'Limité'}</small></span>
+            <span className="mm-recent-match-copy"><strong>{opponentName}</strong><small>{matchHistoryResultLabel(match.outcome)} · {modeLabel} · {match.pace === 'async' ? 'Illimité' : 'Limité'}</small></span>
             <span className="mm-recent-match-score"><b>{match.score}<i>–</i>{match.opponentScore}</b><small>{matchHistoryDateLabel(match.completedAt)}</small></span>
           </>
           return relisible
@@ -84,9 +80,8 @@ function RecentMatchHistory({ matches, visible }: { matches: MatchHistoryEntry[]
   </div>
 }
 
-export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked }: {
+export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked }: {
   identity: GuestIdentity
-  onStartSolo: (difficulty: GridDifficulty, pace: MatchPace) => Promise<void>
   social: SocialState
   lobby: MatchLobbyState
   invite: (friendId: string, pace: MatchPace) => Promise<void>
@@ -103,17 +98,11 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
   startRanked: () => Promise<void>
   cancelRanked: () => Promise<void>
 }) {
-  const [difficulty, setDifficulty] = useState<GridDifficulty | null>(null)
-  const [soloPace, setSoloPace] = useState<MatchPace | null>(null)
   const [friendPace, setFriendPace] = useState<MatchPace>('realtime')
   const [openSection, setOpenSection] = useState<PlaySectionId | null>(null)
-  const [openMultiplayerSection, setOpenMultiplayerSection] = useState<PlaySectionId | null>(null)
   const [matchBusy, setMatchBusy] = useState<string | null>(null)
   const [searchBusy, setSearchBusy] = useState<MatchPace | null>(null)
   const [showActiveMatches, setShowActiveMatches] = useState(false)
-  const [soloBusy, setSoloBusy] = useState(false)
-  const [soloError, setSoloError] = useState<string | null>(null)
-  const selectedLevel = SOLO_LEVELS.find(level => level.id === difficulty)
   const realtimeSearching = lobby.searches.some(search => search.pace === 'realtime')
   const asyncSearching = lobby.searches.some(search => search.pace === 'async')
   const asyncMatches = lobby.active.filter(match => match.mode === 'normal' && match.pace === 'async')
@@ -133,8 +122,6 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
   const toggleSection = (id: PlaySectionId) => {
     const next = openSection === id ? null : id
     setOpenSection(next)
-    if (next === 'solo') setOpenMultiplayerSection(null)
-    if (id === 'multiplayer') setOpenMultiplayerSection(null)
     if (!next) return
     window.requestAnimationFrame(() => {
       document.getElementById(`mm-${id}-accordion`)?.scrollIntoView({
@@ -144,37 +131,12 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
     })
   }
 
-  const toggleMultiplayerSection = (id: PlaySectionId) => {
-    setOpenMultiplayerSection(current => current === id ? null : id)
-    setOpenSection('multiplayer')
-  }
-
+  // Trois modes, tous multijoueur. Le mode Solo a quitté cet écran le
+  // 16/09/2026 : il séparait les joueurs en deux files alors que la file normale
+  // sert déjà un bot — à son niveau — quand personne ne répond en quinze
+  // secondes. Le défi du jour, lui, reste sur l'accueil.
   return <div className="mm-page mm-play-page">
-    <PlayAccordion id="solo" icon={<Play />} title="Solo" open={openSection === 'solo'} toggle={toggleSection}>
-      <div className="mm-solo-options">
-        <span>Niveau du bot</span>
-        <div className="mm-difficulty-choice" role="group" aria-label="Choisir le niveau du bot">
-          {SOLO_LEVELS.map(level => <button type="button" className={difficulty === level.id ? 'active' : ''} aria-pressed={difficulty === level.id} aria-label={level.label} disabled={!level.available} onClick={() => setDifficulty(level.id)} key={level.id}>{level.label}</button>)}
-        </div>
-        {difficulty ? <div className="mm-solo-pace-step">
-          <span>Rythme</span>
-          <div className="mm-solo-pace-choice" role="group" aria-label="Choisir le rythme de la partie solo">
-            <button type="button" className={soloPace === 'realtime' ? 'active' : ''} aria-label="Temps limité, 45 secondes par tour" aria-pressed={soloPace === 'realtime'} onClick={() => setSoloPace('realtime')}><Clock3 /><span><strong>Temps limité</strong><small>45 s par tour</small></span></button>
-            <button type="button" className={soloPace === 'async' ? 'active' : ''} aria-label="Temps illimité, 24 heures par tour" aria-pressed={soloPace === 'async'} onClick={() => setSoloPace('async')}><Hourglass /><span><strong>Temps illimité</strong><small>24 h par tour</small></span></button>
-          </div>
-        </div> : null}
-        {soloError ? <p className="mm-social-error" role="alert">{soloError}</p> : null}
-        <button type="button" className="mm-start-solo" disabled={!selectedLevel?.available || !soloPace || soloBusy} onClick={() => {
-          if (!difficulty || !soloPace || soloBusy) return
-          setSoloBusy(true); setSoloError(null)
-          void onStartSolo(difficulty, soloPace).catch(reason => setSoloError(reason instanceof Error ? reason.message : 'Partie indisponible.')).finally(() => setSoloBusy(false))
-        }}>{soloBusy ? 'Préparation…' : 'Jouer'} <ChevronRight /></button>
-      </div>
-    </PlayAccordion>
-
-    <PlayAccordion id="multiplayer" icon={<Swords />} title="Multijoueur" open={openSection === 'multiplayer'} toggle={toggleSection}>
-      <div className="mm-multiplayer-menu">
-    <PlayAccordion id="normal" icon={<Trophy />} title="Normal" open={openMultiplayerSection === 'normal'} toggle={toggleMultiplayerSection}>
+    <PlayAccordion id="normal" icon={<Trophy />} title="Normal" open={openSection === 'normal'} toggle={toggleSection}>
       <MatchmakingRow icon={<Clock3 />} title="Temps limité" subtitle={realtimeSearching ? 'Un adversaire est recherché…' : '45 s par tour'} searching={realtimeSearching} disabled={searchBusy !== null} start={() => void beginSearch('realtime')} cancel={() => void stopSearch('realtime')} />
       <MatchmakingRow icon={<Hourglass />} title="Temps illimité" subtitle={asyncSearching ? 'Vous pouvez revenir plus tard' : '24 h par tour'} searching={asyncSearching} disabled={searchBusy !== null} start={() => void beginSearch('async')} cancel={() => void stopSearch('async')} />
       <button type="button" className="mm-mode-row" aria-expanded={showActiveMatches} onClick={() => setShowActiveMatches(current => !current)}><span className="mm-mode-icon"><Users /></span><span><strong>Parties en cours</strong><small>Reprenez quand vous voulez</small></span><b className="mm-count">{asyncMatches.length}</b></button>
@@ -186,7 +148,7 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
         </button>) : <p className="mm-no-active-match">Aucune partie en temps illimité en cours.</p>}
       </div> : null}
     </PlayAccordion>
-    <PlayAccordion id="ranked" icon={<BarChart3 />} title="Classé" open={openMultiplayerSection === 'ranked'} toggle={toggleMultiplayerSection}>
+    <PlayAccordion id="ranked" icon={<BarChart3 />} title="Classé" open={openSection === 'ranked'} toggle={toggleSection}>
       <div className="mm-ranked-mode">
         <div className="mm-ranked-status">
           <img src={rankImage(currentRank)} alt="" />
@@ -208,10 +170,10 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </div>
     </PlayAccordion>
-    <PlayAccordion id="friends" icon={<Users />} title="Amis" open={openMultiplayerSection === 'friends'} toggle={toggleMultiplayerSection}>
+    <PlayAccordion id="friends" icon={<Users />} title="Amis" open={openSection === 'friends'} toggle={toggleSection}>
       <div className="mm-friend-pace-step">
         <span>Rythme de la partie</span>
-        <div className="mm-solo-pace-choice mm-friend-pace-choice" role="group" aria-label="Choisir le rythme de la partie entre amis">
+        <div className="mm-pace-choice mm-friend-pace-choice" role="group" aria-label="Choisir le rythme de la partie entre amis">
           <button type="button" className={friendPace === 'realtime' ? 'active' : ''} aria-label="Amis, temps limité, 45 secondes par tour" aria-pressed={friendPace === 'realtime'} onClick={() => setFriendPace('realtime')}><Clock3 /><span><strong>Temps limité</strong><small>45 s par tour</small></span></button>
           <button type="button" className={friendPace === 'async' ? 'active' : ''} aria-label="Amis, temps illimité, 24 heures par tour" aria-pressed={friendPace === 'async'} onClick={() => setFriendPace('async')}><Hourglass /><span><strong>Temps illimité</strong><small>24 h par tour</small></span></button>
         </div>
@@ -229,8 +191,6 @@ export function PlayPage({ identity, onStartSolo, social, lobby, invite, cancelI
           <button type="button" disabled={friendPace === 'realtime' && (!friend.online || friend.activity === 'playing') || alreadyInvited || matchBusy !== null} onClick={async () => { setMatchBusy(friend.playerId); await invite(friend.playerId, friendPace); setMatchBusy(null) }}>{alreadyInvited ? 'Envoyée' : friendPace === 'realtime' && friend.activity === 'playing' ? 'En jeu' : 'Inviter'}</button>
         </div>
           }) : <button type="button" className="mm-match-add-friend" onClick={openFriends}><UserPlus /><span><strong>Ajouter un ami</strong><small>Ajoutez un joueur avec son code ami.</small></span><ChevronRight /></button>}
-        </PlayAccordion>
-      </div>
     </PlayAccordion>
     <RecentMatchHistory matches={lobby.recent} visible={openSection === null} />
   </div>

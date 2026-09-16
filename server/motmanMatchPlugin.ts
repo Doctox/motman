@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
-import { botThinkingDelayMs, createBotPersona, planBotMove } from '../src/botOpponents'
+import { botSkillForLevel, botThinkingDelayMs, createBotPersona, planBotMove, type BotSkill } from '../src/botOpponents'
 import {
   canUseHint,
   canUseReroll,
@@ -257,8 +257,14 @@ function applyPlayedTurn(match: StoredMatch, playerId: string, sanitized: Array<
   return turn
 }
 
-function createBotProfile(sourceId: string): BotProfile {
-  return { playerId: `bot_${randomUUID()}`, ...createBotPersona(sourceId) }
+function createBotProfile(sourceId: string, preferredSkill?: BotSkill): BotProfile {
+  return { playerId: `bot_${randomUUID()}`, ...createBotPersona(sourceId, preferredSkill) }
+}
+
+/** Le niveau du joueur, pour calibrer le bot comme le fait la production. */
+function niveauJoueur(playerId: string): number {
+  const user = accountDatabase.prepare('SELECT level FROM users WHERE id = ?').get(playerId) as { level?: number } | undefined
+  return Math.min(50, Math.max(1, Number(user?.level ?? 1)))
 }
 
 function botPlacements(match: StoredMatch): Array<{ cellIndex: number; letter: string }> {
@@ -341,7 +347,9 @@ function resolveBotFallback(playerId: string): void {
   if (humanCandidate) return
   if (search.pace === 'realtime' && activeMatches(playerId, 'realtime').length) return
   if (search.pace === 'async' && activeMatches(playerId, 'async').length >= MAX_ASYNC_MATCHES) return
-  const bot = createBotProfile(search.id)
+  // Même règle que la production : le bot qui remplace un humain absent joue au
+  // niveau du joueur (src/botOpponents.ts).
+  const bot = createBotProfile(search.id, botSkillForLevel(niveauJoueur(playerId)))
   const match = createMatch(playerId, bot.playerId, 'normal', search.pace, search.id, null, bot)
   database.matches.push(match)
   database.searches = database.searches.filter(candidate => candidate.id !== search.id)

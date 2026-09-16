@@ -17,6 +17,8 @@ export type MatchHistoryEntry = {
   opponentScore: number
   opponentName: string | null
   completedAt: string
+  /** Jour du défi quand la partie en était un — il porte le mode `solo` en base. */
+  dailyDate?: string | null
   /**
    * Plateau final, pour relire la partie. `null` pour toutes celles jouées
    * avant la colonne `final_board` : leur plateau a été purgé avec le match et
@@ -171,9 +173,9 @@ export async function cancelNormalSearch(playerId: string, pace: MatchPace): Pro
   return (await supabaseMatch<{ lobby: MatchLobbyState }>('search-cancel', { pace })).lobby
 }
 
-export async function createSoloMatch(difficulty: 'easy' | 'normal' | 'hard', pace: MatchPace): Promise<MatchState> {
-  return (await supabaseMatch<{ match: MatchState }>('solo', { difficulty, pace })).match
-}
+// `createSoloMatch` a disparu le 16/09/2026 avec le bouton Solo. L'action 'solo'
+// reste servie par match-api : les APK déjà installés l'appellent encore tant
+// qu'ils n'ont pas pris la mise à jour embarquée.
 
 // Défi du jour. Le client n'envoie RIEN : le SERVEUR dérive la dateKey (horloge
 // serveur), choisit la grille (calendrier du jour), le niveau du bot (d'après

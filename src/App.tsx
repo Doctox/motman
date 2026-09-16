@@ -1,9 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { startAdaptivePolling } from './adaptivePolling'
-import type { GridDifficulty } from './generator'
 import { subscribeToMenuUpdates, type MenuRealtimeStatus, type MenuWakeupScope } from './menuRealtime'
-import { createSoloMatch, forfeitMatch, type MatchPace } from './matches'
+import { forfeitMatch, type MatchPace } from './matches'
 import { loadPlayerIdentity, type GuestIdentity } from './playerIdentity'
 import { RankedReadyOverlay } from './RankedReadyOverlay'
 import { RequiredAppUpdateScreen } from './RequiredAppUpdate'
@@ -80,11 +79,6 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
     history.replaceState(null, '', '#accueil')
     setMatchId(null)
   }, [])
-  const startSolo = useCallback(async (difficulty: GridDifficulty, pace: MatchPace) => {
-    const match = await createSoloMatch(difficulty, pace)
-    openMatch(match.id)
-  }, [openMatch])
-
   // Entrée dans un match classé : on solde la partie sacrifiée.
   // Sans ça elle restait `active` et mourait par timeout trois tours plus tard —
   // le joueur voyait une défaite surgir sans comprendre d'où elle venait. Le
@@ -235,7 +229,6 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
       <MultiplayerGameScreen matchId={matchId} onExit={exitMatch} onHome={returnHome} onPaceChange={setOpenMatchPace} />
     </Suspense> : <Suspense fallback={<AppLoading />}>
       <MenuApp
-        onStartSolo={startSolo}
         onStartMatch={openMatch}
         ranked={ranked}
         rankedBusy={rankedBusy}

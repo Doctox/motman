@@ -7,6 +7,7 @@ import type { GuestIdentity } from '../playerIdentity'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
 import { useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
+import { TUTORIAL_STEP_COUNT } from './FirstRunTutorial'
 import { InstallAppRow } from './InstallAppRow'
 import type { Theme } from './types'
 
@@ -52,7 +53,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
       <header><h2>Menu</h2><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
       <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button></div>
       <button className="mm-settings-link" type="button" onClick={() => setReglagesOuverts(true)}><SlidersHorizontal /><span>Paramètres<small>Sons · vibrations · animations</small></span><ChevronRight /></button>
-      <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Règles et modes de jeu · 5 étapes</small></span><ChevronRight /></button>
+      <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Règles et modes de jeu · {TUTORIAL_STEP_COUNT} étapes</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder votre progression'}</small></span><ChevronRight /></button>
       <InstallAppRow invite={identity.accountType !== 'account'} openAccount={openAccount} />

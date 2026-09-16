@@ -129,8 +129,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const openingTurn = useRef<{ matchId: string; turnNumber: number } | null>(null)
   // « Quête accomplie » : annoncé au coup qui la termine, jamais payé ici.
   // Voir questLiveProgress.ts — le serveur reste seul à compter pour de vrai.
-  const questsDuJour = useRef(loadQuestBoard()?.day ?? [])
   const questCounters = useRef<LiveCounters>({})
+  /** Les tours déjà comptés, pour n'en compter aucun deux fois. */
+  const questsComptes = useRef(new Set<string>())
   const [questDone, setQuestDone] = useState<{ cle: number; titre: string } | null>(null)
 
   const seenTurn = useRef<string | null>(null)
@@ -311,6 +312,25 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     }
   }
 
+  /**
+   * « Quête accomplie », sur MES coups, d'où qu'ils arrivent.
+   *
+   * Un coup que je viens de jouer revient par la réponse de `playMatchTurn`, pas
+   * par le sondage : tant que le compte ne se faisait qu'à la réception d'un
+   * instantané distant, le bandeau ne s'affichait jamais dans une partie
+   * ordinaire. Le tableau des quêtes est relu à chaque coup — au montage il peut
+   * encore être vide, et il change à minuit.
+   */
+  const annoncerQuetes = (tour: NonNullable<MatchState['lastTurn']>) => {
+    if (tour.playerId !== playerId || questsComptes.current.has(tour.id)) return
+    questsComptes.current.add(tour.id)
+    const avant = questCounters.current
+    const apres = addCounters(avant, countersFromTurn(tour))
+    questCounters.current = apres
+    const finies = questsJustCompleted(loadQuestBoard()?.day ?? [], avant, apres)
+    if (finies.length) setQuestDone({ cle: Date.now(), titre: finies[0].title })
+  }
+
   const acceptRemoteSnapshot = (next: MatchState) => {
     if (!alive.current) return
     // A new grid must arrive with its geometry. If the authoritative snapshot is
@@ -330,13 +350,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     setError(null)
     if (next.lastTurn && next.lastTurn.id !== seenTurn.current) {
       seenTurn.current = next.lastTurn.id
-      if (next.lastTurn.playerId === playerId) {
-        const avant = questCounters.current
-        const apres = addCounters(avant, countersFromTurn(next.lastTurn))
-        questCounters.current = apres
-        const finies = questsJustCompleted(questsDuJour.current, avant, apres)
-        if (finies.length) setQuestDone({ cle: Date.now(), titre: finies[0].title })
-      }
+      annoncerQuetes(next.lastTurn)
       animateTurn(next.lastTurn, next.lastTurn.playerId === playerId ? 'player' : 'bot', next.scores, next.status === 'active' ? new Date(next.turnStartedAt).getTime() : null)
     } else if (!resolvingRef.current) {
       setDisplayedScores(current => sameNumberRecord(current, next.scores) ? current : next.scores)
@@ -570,6 +584,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     try {
       const response = await playMatchTurn(playerId, currentMatch.id, currentMatch.turnNumber, Object.entries(provisionalRef.current).map(([cellIndex, tile]) => ({ cellIndex: Number(cellIndex), letter: tile.letter })), automatic, currentMatch.updatedAt)
       applyMatchState(response.match)
+      annoncerQuetes(response.result)
       if (seenTurn.current !== response.result.id) {
         seenTurn.current = response.result.id
         animateTurn(response.result, 'player', response.match.scores, response.match.status === 'active' ? new Date(response.match.turnStartedAt).getTime() : null)

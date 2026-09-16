@@ -3,6 +3,11 @@ import { resolve } from 'node:path'
 
 const stateDirectory = resolve('output/playwright/state')
 
+// Le port du serveur de test. Fixe par défaut, mais déplaçable : deux sessions
+// qui travaillent en parallèle sur 4175 se prêtent leur serveur (`reuseExisting`)
+// et finissent par tester le code de l'autre.
+const port = process.env.MOTMAN_E2E_PORT ?? '4175'
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -12,7 +17,7 @@ export default defineConfig({
   reporter: 'line',
   outputDir: 'output/playwright/results',
   use: {
-    baseURL: 'http://127.0.0.1:4175',
+    baseURL: `http://127.0.0.1:${port}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
@@ -22,8 +27,8 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['iPhone 13'] } },
   ],
   webServer: {
-    command: 'npm run dev -- --port 4175',
-    url: 'http://127.0.0.1:4175',
+    command: `npm run dev -- --port ${port} --strictPort`,
+    url: `http://127.0.0.1:${port}`,
     reuseExistingServer: true,
     timeout: 120_000,
     env: {

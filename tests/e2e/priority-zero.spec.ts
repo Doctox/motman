@@ -4,6 +4,11 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
 
+// Le serveur de test, au port choisi par playwright.config.ts. En dur, les
+// requêtes hors page (Origin, baseURL) visaient encore 4175 quand la suite
+// tournait ailleurs, et le serveur refusait l'origine.
+const SERVEUR_TEST = `http://127.0.0.1:${process.env.MOTMAN_E2E_PORT ?? '4175'}`
+
 type Identity = {
   version: 1
   playerId: string
@@ -66,8 +71,8 @@ function newIdentity(label: string): Identity {
 async function register(request: APIRequestContext, identity: Identity): Promise<void> {
   void request
   const isolated = await playwrightRequest.newContext({
-    baseURL: 'http://127.0.0.1:4175',
-    extraHTTPHeaders: { Origin: 'http://127.0.0.1:4175' },
+    baseURL: SERVEUR_TEST,
+    extraHTTPHeaders: { Origin: SERVEUR_TEST },
   })
   const bootstrap = await isolated.post('/api/auth/bootstrap', { data: { identity } })
   expect(bootstrap.ok()).toBe(true)
@@ -170,7 +175,7 @@ async function openGame(browser: Browser, identity: Identity, matchId: string, v
   const context = await browser.newContext({ viewport })
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
-    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
   }, identity)
   const page = await context.newPage()
   await page.goto(`/#partie=${encodeURIComponent(matchId)}`)
@@ -422,7 +427,7 @@ test('l’accueil permet de reprendre chacune des trois parties illimitées', as
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
-    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
   }, player)
   const page = await context.newPage()
 
@@ -458,7 +463,7 @@ test('un résultat illimité reste affiché jusqu’à sa validation par le joue
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
-    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
   }, player)
   const page = await context.newPage()
 
@@ -774,7 +779,7 @@ test('tablette en portrait : la page s’agrandit, tient dans l’écran, et la 
   const context = await browser.newContext({ viewport: { width: 800, height: 1232 }, screen: { width: 800, height: 1280 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 })
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
-    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
   }, actor)
   const page = await context.newPage()
   try {
@@ -907,6 +912,10 @@ test('en temps illimité, « Tu es toujours là ? » attend le retour dans la pa
 })
 
 test('une quête finie pendant la partie s’annonce au coup qui la termine', async ({ browser, request }) => {
+  // Une vraie partie, jouée tour par tour À L'ÉCRAN : chaque tour coûte l'éclair
+  // « À vous ! », deux clics par lettre et un aller-retour serveur. WebKit
+  // dépassait la minute par défaut.
+  test.setTimeout(150_000)
   // Les trois quêtes du jour sont tirées de la date (src/quests.ts) : certaines
   // ne peuvent se terminer qu'à la clôture (« sans indice »), d'autres sont hors
   // de portée du client (les mots en image). Le test ne joue donc que sur une
@@ -917,7 +926,10 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
   const suivie = dailyQuests(dailyDateKey(Date.now())).find(quest => quest.counter === 'lettres' || quest.counter === 'mots')
   test.skip(!suivie, 'Aucune quête suivie en cours de partie aujourd’hui.')
 
-  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Quete')
+  // Temps limité : douze secondes par tour ici, contre six en illimité. Les
+  // gestes à l'écran — attendre l'éclair, viser une case, valider — ne tiennent
+  // pas dans un tour de six secondes déjà entamé par le chargement de la page.
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Quete')
   const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 844 })
   try {
     // La quête est amenée à une unité de la fin par le serveur de test.
@@ -930,19 +942,36 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
     await page.reload()
     await expect(page.locator('.board')).toBeVisible()
 
+    // Si la page s'ouvre sur mon tour, il est déjà bien entamé : on le passe à
+    // vide (aucun compteur touché) pour repartir sur un tour entier.
+    const ouverture = await loadMatch(request, first.playerId, matchId)
+    if (ouverture.currentPlayerId === first.playerId) await submitTurn(request, ouverture, [])
+
     const bandeau = page.locator('.mm-quest-achieved')
     for (let tour = 0; tour < 14 && !(await bandeau.isVisible()); tour += 1) {
       const etat = await loadMatch(request, first.playerId, matchId)
       if (etat.status !== 'active') break
-      const aMoi = etat.currentPlayerId === first.playerId
-      const joue = await submitTurn(request, etat, playablePlacements(etat))
-      // Attendre que le CLIENT ait vu ce coup avant d'en jouer un autre : c'est
-      // lui qui annonce la quête, et un sondage qui saute un tour ne l'annonce
-      // jamais. On attend son score affiché, pas une durée au hasard.
-      if (aMoi) {
-        const score = String(joue.match.scores[first.playerId] ?? 0)
-        await expect.poll(async () => (await page.locator('.scoreboard').innerText()).includes(score), { timeout: 15_000 }).toBe(true)
+      if (etat.currentPlayerId === first.playerId) {
+        // MON tour se joue À L'ÉCRAN, jamais par l'API : un coup validé par le
+        // joueur revient par la réponse de la validation et non par le sondage.
+        // Tant que ce test posait aussi mes coups par l'API, il vérifiait un
+        // chemin que personne n'emprunte — et le bandeau ne s'affichait dans
+        // aucune vraie partie.
+        const placements = playablePlacements(etat).slice(0, 3)
+        expect(placements.length).toBeGreaterThan(0)
+        const premiere = page.locator(`.rack-letter[data-rack-letter="${placements[0].letter}"]:not([disabled])`).first()
+        await attendreTourJouable(page, premiere)
+        for (const placement of placements) {
+          await page.locator(`.rack-letter[data-rack-letter="${placement.letter}"]:not([disabled])`).first().click()
+          await page.locator(`[data-cell="${placement.cellIndex}"]`).click()
+        }
+        await page.getByRole('button', { name: 'Valider' }).click()
+        await expect.poll(
+          async () => (await loadMatch(request, first.playerId, matchId)).currentPlayerId !== first.playerId,
+          { timeout: 15_000 },
+        ).toBe(true)
       } else {
+        await submitTurn(request, etat, playablePlacements(etat))
         await page.waitForTimeout(600)
       }
     }
