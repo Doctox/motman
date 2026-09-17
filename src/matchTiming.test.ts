@@ -40,8 +40,8 @@ describe('la fenêtre de lecture du premier tour', () => {
   const lectureMs = nombre(reglage, /FIRST_TURN_READING_MS = ([\d_]+)/)
   const tourMs = nombre(modele, /REALTIME_TURN_MS = ([\d_]+)/)
 
-  it('dure dix secondes, et le tour garde ses quarante-cinq', () => {
-    expect(lectureMs).toBe(10_000)
+  it('dure quinze secondes, et le tour garde ses quarante-cinq', () => {
+    expect(lectureMs).toBe(15_000)
     expect(tourMs).toBe(45_000)
   })
 
