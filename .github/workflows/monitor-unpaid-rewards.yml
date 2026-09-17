@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout monitoring code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Audit rewards that are owed but unpaid
         id: rewards
@@ -44,7 +44,7 @@ jobs:
 
       - name: Open or update the monitoring failure
         if: steps.rewards.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner
@@ -76,7 +76,7 @@ jobs:
 
       - name: Open or update the unpaid rewards alert
         if: steps.rewards.outcome == 'success' && steps.rewards.outputs.has_pending == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs')
@@ -130,7 +130,7 @@ jobs:
 
       - name: Close the alert once everything owed has been paid
         if: steps.rewards.outcome == 'success' && steps.rewards.outputs.has_pending != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner

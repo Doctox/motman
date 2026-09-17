@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout monitoring code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Query Supabase Edge metrics
         id: edge
@@ -37,7 +37,7 @@ jobs:
 
       - name: Open or update the monitoring failure
         if: steps.edge.outcome == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner
@@ -67,7 +67,7 @@ jobs:
 
       - name: Open or update the Edge alert
         if: steps.edge.outcome == 'success' && steps.edge.outputs.has_alerts == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs')
@@ -125,7 +125,7 @@ jobs:
 
       - name: Close recovered Edge alerts
         if: steps.edge.outcome == 'success' && steps.edge.outputs.has_alerts == 'false'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner
