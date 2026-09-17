@@ -42,12 +42,14 @@ import { useCallback, useRef } from 'react'
    qui debordait encore -- « des vi-sage », « rière du cou », coupes en plein mot.
    Constate sur deux telephones le 17/09/2026, et reproduit a l'identique en
    montant ce plancher a 11 px sur un ecran normal.
-   On descend donc plus bas. Sur un telephone ordinaire ces valeurs ne servent
-   jamais : la boucle s'arrete des que le texte tient, bien au-dessus. Elles ne
-   servent qu'a ceux qui agrandissent, et leur rendent la taille AFFICHEE que les
-   autres ont deja. */
+   ABAISSER CE PLANCHER NE REGLE RIEN — mesure faite le 17/09/2026 sur le
+   telephone du proprietaire, par le pont de debogage USB : a 2,5 px, TOUTES ses
+   definitions tombaient au plancher, trois pixels de haut dans une case de
+   vingt-huit. Deux fois plus petites qu'avant, pour le meme texte coupe.
+   Le plancher n'est pas la cause : la cause est la LARGEUR disponible, qui
+   force la boucle a descendre jusqu'a ce qu'un mot long tienne sur une ligne. */
 /** Plancher absolu : en dessous, illisible. Reserve aux mots hors norme. */
-export const MIN_FONT_PX = 2.5
+export const MIN_FONT_PX = 5
 /** Plancher de la taille COMMUNE : on n'y descend pas pour un seul indice.
     Il NE bouge PAS : c'est lui qui empeche un mot hors norme de rendre tout le
     plateau minuscule. Un indice qui ne tient pas a cette taille commune retombe
