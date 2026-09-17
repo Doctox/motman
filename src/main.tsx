@@ -13,7 +13,6 @@ import { installStaleDeployRecovery } from './staleDeployRecovery'
 import { installTabletViewport } from './tabletViewport'
 import { installInstallPromptCapture } from './installApp'
 import { installMotionAttribute } from './sensoryPreferences'
-import { installerZoomTexte } from './textZoom'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
 // de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
@@ -51,10 +50,6 @@ if (nativeRuntime) {
   // Retour Android : fermer une fenêtre, revenir en arrière, ou demander avant de quitter.
   void import('./nativeBackButton').then(module => module.installNativeBackButton())
 }
-
-// L'agrandissement de texte du telephone, mesure avant le premier ecran : les
-// definitions de la grille s'y ajustent (textZoom.ts).
-installerZoomTexte()
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 

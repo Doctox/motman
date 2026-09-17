@@ -34,9 +34,25 @@ import { useCallback, useRef } from 'react'
      - On ne fait que REDUIRE, jamais agrandir au-dela de la valeur CSS.
 --------------------------------------------------------------------------- */
 
+/*
+   LES PLANCHERS SONT EN PIXELS CSS, ET ANDROID LES MULTIPLIE.
+   Quand le joueur a monte la taille de police dans ses reglages d'accessibilite,
+   le WebView agrandit tout le texte de la page : un plancher de 5 px CSS s'affiche
+   en 10 ou 11. La boucle ci-dessous butait dessus et rendait la main a un texte
+   qui debordait encore -- « des vi-sage », « rière du cou », coupes en plein mot.
+   Constate sur deux telephones le 17/09/2026, et reproduit a l'identique en
+   montant ce plancher a 11 px sur un ecran normal.
+   On descend donc plus bas. Sur un telephone ordinaire ces valeurs ne servent
+   jamais : la boucle s'arrete des que le texte tient, bien au-dessus. Elles ne
+   servent qu'a ceux qui agrandissent, et leur rendent la taille AFFICHEE que les
+   autres ont deja. */
 /** Plancher absolu : en dessous, illisible. Reserve aux mots hors norme. */
-export const MIN_FONT_PX = 5
-/** Plancher de la taille COMMUNE : on n'y descend pas pour un seul indice. */
+export const MIN_FONT_PX = 2.5
+/** Plancher de la taille COMMUNE : on n'y descend pas pour un seul indice.
+    Il NE bouge PAS : c'est lui qui empeche un mot hors norme de rendre tout le
+    plateau minuscule. Un indice qui ne tient pas a cette taille commune retombe
+    de toute facon sur la sienne, jusqu'a MIN_FONT_PX -- c'est par la que passent
+    les telephones qui agrandissent. */
 export const MIN_UNIFORM_FONT_PX = 6
 const EPS = 0.75           // marge anti-debordement d'un cheveu (sous-pixel)
 const PRECISION_PX = 0.1   // arret de la recherche par dichotomie

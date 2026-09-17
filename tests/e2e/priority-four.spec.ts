@@ -439,13 +439,3 @@ test('l’accueil montre huit amis, connectés en tête, sans les comprimer', as
   }
 })
 
-test('sans agrandissement système, la compensation ne laisse aucune trace', async ({ page }) => {
-  // La parade à l'agrandissement de texte (textZoom.ts) ne doit exister que sur
-  // les appareils qui agrandissent. Posée pour tout le monde, elle remplaçait la
-  // taille des définitions par un `calc()` : quelques centièmes de pixel, assez
-  // pour faire déborder la surface de jeu native, mesurée au pixel près.
-  await page.goto('/#accueil')
-  await expect(page.locator('.mm-home-page')).toBeVisible()
-  expect(await page.evaluate(() => document.documentElement.hasAttribute('data-text-zoom'))).toBe(false)
-  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--mm-text-zoom'))).toBe('')
-})
