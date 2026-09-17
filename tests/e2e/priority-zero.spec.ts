@@ -669,6 +669,12 @@ test('temps limité et illimité demandent trois absences avant la défaite', as
 })
 
 test('une grille complète atteint l’écran final', async ({ browser, request }) => {
+  // Quarante tours joués par l'API, plus la fenêtre de lecture du premier tour :
+  // seul, ce test prend 21 s, mais il a dépassé les 60 s réglementaires deux
+  // fois sur trois passages de la suite complète, machine chargée. `slow()`
+  // triple le délai plutôt que de raccourcir la fenêtre, qui doit rester
+  // observable pour le test qui la vise.
+  test.slow()
   const { first, matchId } = await createNormalMatch(request, 'realtime', 'Complète')
   let match = await loadMatch(request, first.playerId, matchId)
 
