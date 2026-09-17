@@ -25,7 +25,7 @@ installPressFeedback()
 installTabletViewport()
 
 // Police système agrandie : Android multiplie tout le texte, pas les boîtes.
-// On plafonne à 1,3x, sinon l'écran de jeu casse. Voir textZoom.ts.
+// On l'annule : MOTMAN rend son texte à sa taille, web et APK pareil. Voir textZoom.ts.
 installTextZoomCap()
 // L'annonce d'installation du navigateur arrive tôt et une seule fois : on la garde. Voir installApp.ts.
 installInstallPromptCapture()

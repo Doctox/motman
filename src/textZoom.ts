@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// LE ZOOM DE POLICE DU SYSTÈME, PLAFONNÉ.
+// LE ZOOM DE POLICE DU SYSTÈME, ANNULÉ.
 //
 // Android applique le réglage d'accessibilité « taille de police » en
 // MULTIPLIANT la taille calculée de tout le texte de la page. Le téléphone du
@@ -19,21 +19,34 @@
 // ramène donc d'un coup toutes les tailles en rem, c'est-à-dire presque tout
 // le style de l'application.
 //
-// On ne l'annule pas : on le PLAFONNE. Mesure du 17/09/2026 sur l'écran de
+// Combien en garder ? Mesure du 17/09/2026 sur l'écran de
 // jeu, débordements comptés à chaque plafond :
 //
 //     tel quel (x2)   35 debordements, chevalet 19 px sur les boutons
 //     x1,5            31              chevalet  2 px
-//     x1,3            28              chevalet  0      <- retenu
-//     x1              22 (le bruit de fond normal, invisible)
+//     x1,3            28              chevalet  0
+//     x1              22, soit le bruit de fond normal — invisible   <- retenu
 //
-// Le joueur qui a grossi sa police garde donc 30 % de texte en plus, et
-// l'écran tient. Dans un navigateur ordinaire le facteur vaut 1 : ce module
-// n'y touche à rien.
+// LE PROPRIÉTAIRE A TRANCHÉ POUR LE 1 POUR 1 : « faut annuler ce qu'Android
+// fait et rester en 1 pour 1 ». MOTMAN rend donc son texte à sa taille, quelle
+// que soit la police du système. C'est un choix assumé : l'écran de jeu est une
+// grille, sa géométrie ne se négocie pas, et un plateau cassé sert plus mal un
+// joueur malvoyant qu'un plateau lisible à taille normale.
+//
+// Tout tient dans `PLAFOND_ZOOM_TEXTE` ci-dessous : le remonter à 1,3 rendrait
+// 30 % de texte en plus sans rien casser, c'est la seule autre valeur mesurée
+// comme sûre. Dans un navigateur ordinaire le facteur vaut 1 : ce module n'y
+// touche à rien.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Au-delà, la géométrie figée de l'écran de jeu ne suit plus. */
-export const PLAFOND_ZOOM_TEXTE = 1.3
+/**
+ * L'agrandissement que MOTMAN accepte, quoi qu'en dise le système.
+ *
+ * À 1, le zoom du système est entièrement annulé (décision du propriétaire du
+ * 17/09/2026). 1,3 est l'autre valeur mesurée sans casse sur l'écran de jeu ;
+ * au-delà, le chevalet retombe sur les boutons de tour.
+ */
+export const PLAFOND_ZOOM_TEXTE = 1
 /** La taille de racine par défaut du navigateur, celle que valent les rem. */
 export const TAILLE_RACINE_PX = 16
 /** Marge de mesure : un facteur de 1,01 ne vaut pas qu'on touche à la racine. */
