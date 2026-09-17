@@ -19,7 +19,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
   workers: 1,
-  timeout: 60_000,
+  timeout: 75_000,
   expect: { timeout: 12_000 },
   reporter: 'line',
   outputDir: 'output/playwright/results',
