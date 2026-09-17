@@ -122,6 +122,11 @@ html[data-motion="off"] .slot.hint-auto-placed,html[data-motion="off"] .slot.hin
 .failed-reveal-letter{position:relative;z-index:9;color:#a92f24!important;-webkit-text-fill-color:#a92f24!important;font-weight:700;animation:failedLetterReveal 1.15s cubic-bezier(.2,.8,.2,1)}
 @keyframes failedLetterReveal{0%{opacity:0;transform:scale(.55) rotate(-4deg)}24%{opacity:1;transform:scale(1.17) rotate(2deg)}55%{transform:scale(.96)}100%{opacity:1;transform:scale(1)}}
 
+/* Le relevé d'affichage (temporaire, game/DiagnosticAffichage.tsx). */
+.diagnostic-affichage{position:fixed;z-index:3000;inset:8% 4% auto;max-height:84vh;overflow:auto;padding:14px;border-radius:14px;background:#0b2a24f5;color:#eaf4ee;box-shadow:0 18px 50px #0006}
+.diagnostic-affichage pre{margin:0 0 12px;white-space:pre-wrap;font:600 12px/1.45 ui-monospace,monospace}
+.diagnostic-affichage button{min-height:40px;padding:0 18px;border:0;border-radius:20px;background:#eaf4ee;color:#0b2a24;font:700 14px 'DM Sans',sans-serif}
+
 /* La sortie de secours de l'écran de chargement : sans elle, une partie qui
    n'existe plus est un cul-de-sac, et l'adresse y ramène à chaque actualisation. */
 .duel-loading-home{margin-top:14px;min-height:42px;padding:0 18px;border:1px solid #d9bc73;border-radius:21px;background:transparent;color:#123e37;font:700 0.9375rem 'DM Sans',sans-serif;cursor:pointer}
