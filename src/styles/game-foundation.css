@@ -317,7 +317,11 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 
 
 /* == Refonte in-game Lot 1 (valide JM) — surcharges additives == */
-.board .clue{font-family:'DM Sans',sans-serif!important;font-size:calc(0.6875rem / var(--mm-text-zoom,1))!important}
+.board .clue{font-family:'DM Sans',sans-serif!important;font-size:0.6875rem!important}
+/* Agrandissement systeme mesure (textZoom.ts) : la definition revient a sa
+   taille pour tenir dans sa case. La regle n'existe QUE dans ce cas -- sans
+   agrandissement, le CSS est celui d'avant, sans un calc() de plus. */
+html[data-text-zoom] .board .clue{font-size:calc(0.6875rem / var(--mm-text-zoom,1))!important}
 .board .clue .clue-entry{font-family:'DM Sans',sans-serif!important}
 [data-theme="dark"] .board .clue,[data-theme="dark"] .board .clue .clue-entry{font-family:'DM Sans',sans-serif!important}
 .corner-block{background:#fdfaf1 url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAgNTAgSDkwIFY3OCBBMTIgMTIgMCAwIDEgNzggOTAgSDUwIFoiIGZpbGw9IiNjOTRkMjkiLz48cmVjdCB4PSI3IiB5PSI3IiB3aWR0aD0iODYiIGhlaWdodD0iODYiIHJ4PSIxOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDczZjM2IiBzdHJva2Utd2lkdGg9IjguNSIvPjxwYXRoIGQ9Ik01MCA5IFY5MSBNOSA1MCBIOTEiIHN0cm9rZT0iIzA3M2YzNiIgc3Ryb2tlLXdpZHRoPSI4LjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==") center/80% no-repeat!important;box-shadow:inset 0 0 0 1px #efe6d0}

@@ -77,7 +77,18 @@ export function mesurerZoomTexte(): number {
 export function installerZoomTexte(): void {
   const poser = () => {
     const facteur = mesurerZoomTexte()
-    document.documentElement.style.setProperty(TEXT_ZOOM_VARIABLE, String(Math.round(facteur * 1000) / 1000))
+    const racine = document.documentElement
+    if (facteur <= 1) {
+      // Rien à compenser : on ne laisse AUCUNE trace. Les règles de police de la
+      // grille restent celles d'avant, au caractère près — un `calc()` posé pour
+      // tout le monde décalait le rendu d'une fraction de pixel, et la surface
+      // de jeu native se mesure au pixel près sur Android.
+      racine.removeAttribute('data-text-zoom')
+      racine.style.removeProperty(TEXT_ZOOM_VARIABLE)
+      return
+    }
+    racine.style.setProperty(TEXT_ZOOM_VARIABLE, String(Math.round(facteur * 1000) / 1000))
+    racine.setAttribute('data-text-zoom', 'compense')
   }
   poser()
   document.addEventListener('visibilitychange', () => {
