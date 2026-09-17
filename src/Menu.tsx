@@ -7,7 +7,7 @@ import type { GoogleAuthIssue } from './googleAuthCallback'
 import { startAdaptivePolling, type AdaptivePollingController } from './adaptivePolling'
 import { BASKETS, basketPriceFor, loadPlayerCosmetics, type PlayerCosmetics } from './cosmetics'
 import type { MenuRealtimeStatus, MenuWakeupScope } from './menuRealtime'
-import { lobbyMenuPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
+import { BOT_SEARCH_MS, BOT_SEARCH_WAKE_MARGIN_MS, lobbyMenuPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
 import {
   acknowledgeMatchResult, cancelMatchInvitation, cancelNormalSearch, createDailyMatch, createInstantMatch, EMPTY_MATCH_LOBBY, loadMatchLobby,
   respondToMatchInvitation, searchNormalMatch, type MatchLobbyState, type MatchPace,
@@ -212,6 +212,20 @@ export function MenuApp({
       polling.stop()
     }
   }, [identity.playerId, onStartMatch, pendingSearch])
+
+  // Un sondage placé JUSTE APRÈS la bascule sur un bot, plutôt que celui de la
+  // grille des 5 s qui tombe où il peut. C'est le serveur qui crée le bot, mais
+  // seulement quand l'app vient lire sa file : sans ce réveil, l'attente oscille
+  // entre 15 et 20 s au lieu de valoir 15.
+  useEffect(() => {
+    const plusAncienne = matchLobby.searches
+      .reduce<string | null>((depuis, search) => !depuis || search.createdAt < depuis ? search.createdAt : depuis, null)
+    if (!plusAncienne) return
+    const attente = new Date(plusAncienne).getTime() + BOT_SEARCH_MS + BOT_SEARCH_WAKE_MARGIN_MS - Date.now()
+    if (!Number.isFinite(attente) || attente <= 0) return
+    const reveil = window.setTimeout(() => lobbyPolling.current?.wake(), attente)
+    return () => window.clearTimeout(reveil)
+  }, [matchLobby.searches])
 
   const notify = useCallback((message: string) => {
     if (toastTimer.current !== null) window.clearTimeout(toastTimer.current)
