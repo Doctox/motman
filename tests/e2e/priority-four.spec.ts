@@ -417,18 +417,26 @@ test('l’accueil montre huit amis, connectés en tête, sans les comprimer', as
     await page.goto('/#accueil')
     const visages = page.locator('.mm-home-friend')
     await expect(visages.first()).toBeVisible()
-    await expect(visages).toHaveCount(8)
+    // Aucun nombre figé : la rangée montre ce que deux lignes acceptent.
+    await expect(visages).toHaveCount(10)
 
     // Et sans les écraser : la grille les comprimait pour tenir sur une ligne,
     // les visages se touchaient à six. Elle passe à la ligne désormais.
     const largeur = await visages.first().evaluate(element => element.getBoundingClientRect().width)
     expect(largeur).toBeGreaterThanOrEqual(70)
 
-    // Et sur DEUX lignes, quelle que soit la largeur : quatre colonnes fixes.
-    // En colonnes automatiques, un écran large les ramenait sur une seule ligne.
-    const lignes = await page.locator('.mm-home-friend-row').evaluate(rangee =>
-      new Set([...rangee.children].map(enfant => Math.round(enfant.getBoundingClientRect().top))).size)
-    expect(lignes).toBe(2)
+    // DEUX lignes, jamais trois : c'est la hauteur qui est tenue, pas le nombre
+    // de colonnes. Ce qui dépasse est rogné, et rien ne déborde sous la rangée.
+    const mesure = await page.locator('.mm-home-friend-row').evaluate(rangee => {
+      const hautDeLaRangee = rangee.getBoundingClientRect().top
+      const lignesVisibles = new Set([...rangee.children]
+        .map(enfant => enfant.getBoundingClientRect())
+        .filter(boite => boite.height > 0 && boite.bottom <= rangee.getBoundingClientRect().bottom + 1)
+        .map(boite => Math.round(boite.top - hautDeLaRangee)))
+      return { lignesVisibles: lignesVisibles.size, hauteur: Math.round(rangee.getBoundingClientRect().height) }
+    })
+    expect(mesure.lignesVisibles).toBe(2)
+    console.log('RANGEE=', JSON.stringify(mesure))
   } finally {
     await context.close()
   }

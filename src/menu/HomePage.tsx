@@ -56,12 +56,13 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
     }
   }
   const presenceWeight = { offline: 0, online: 1, playing: 2 }
-  // HUIT amis, déconnectés compris (demande du propriétaire, 17/09/2026) : la
-  // rangée n'en montrait que trois, et tous les absents disparaissaient. Les
+  // Tous les amis, déconnectés compris (demande du propriétaire, 17/09/2026) :
+  // la rangée n'en montrait que trois, et les absents disparaissaient. Les
   // connectés passent devant — ce sont ceux avec qui on peut jouer tout de
-  // suite. Huit et pas six : la rangée tient quatre visages sur un téléphone,
-  // donc huit remplissent deux lignes pleines, sans troisième ligne bancale.
-  const visibleFriends = [...social.friends].sort((left, right) => presenceWeight[right.activity] - presenceWeight[left.activity]).slice(0, 8)
+  // suite —, et c'est la RANGÉE qui décide combien tiennent : deux lignes, avec
+  // autant de visages par ligne que la largeur en accepte. Aucun nombre figé
+  // ici : un écran large en montre plus, sans qu'on ait à le prévoir.
+  const visibleFriends = [...social.friends].sort((left, right) => presenceWeight[right.activity] - presenceWeight[left.activity])
   const xpGoal = experienceGoalForLevel(progress.level)
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
   const currentRank = rankedDivision(progress.rankedPoints, progress.rankedMatches)
