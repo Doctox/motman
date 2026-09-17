@@ -200,28 +200,35 @@ async function openGame(browser: Browser, identity: Identity, matchId: string, v
  * ensuite le chevalet actif, qui est la condition dont le geste a besoin.
  */
 async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
-  // L'ÉCLAIR « À VOUS ! » SE LAISSE ATTENDRE, MAIS PAS INDÉFINIMENT.
+  // L'ÉCLAIR N'EST PAS UNE DÉCORATION : C'EST LE SIGNAL DU CHANGEMENT DE TOUR.
   //
-  // Il ne dure que 1,8 s. L'attendre avec un `expect` ordinaire revenait à
-  // parier que la mesure tombe dans cette fenêtre : sur une machine de CI
-  // chargée, elle la rate, et l'assertion attend alors ses douze secondes --
-  // c'est-à-dire LE TOUR ENTIER. Le joueur le laissait expirer ; trois fois de
-  // suite, la partie se terminait, et le test attendait jusqu'à épuisement un
-  // bandeau qui ne viendrait jamais. Quatre déploiements bloqués au hasard le
-  // 17/09/2026, toujours sur « une quête finie pendant la partie » ; la capture
-  // du CI disait « Vous avez laissé expirer trois de vos tours », 0 à 20.
+  // Deux tentatives pour le contourner ont échoué le 17/09/2026, chacune d'une
+  // façon différente. Elles sont notées ici pour qu'on ne les refasse pas.
   //
-  // Mais le supprimer ne marche pas non plus : cette attente laissait aussi au
-  // plateau le temps de se poser avant le premier clic. Sans elle, « un indice
-  // évite une lettre déjà posée » est passé de 3 succès sur 3 à 1 échec sur 3
-  // sur WebKit (mesuré le 17/09/2026, six passages).
+  // CE QUI NE VA PAS AUJOURD'HUI. L'éclair ne dure que 1,8 s. Quand une machine
+  // chargée rate cette fenêtre, `toBeVisible` attend ses douze secondes, soit
+  // le tour entier ; le joueur le laisse expirer, et après trois fois la partie
+  // se termine. Quatre déploiements bloqués au hasard dans la journée, toujours
+  // sur « une quête finie pendant la partie » — la capture du CI disait « Vous
+  // avez laissé expirer trois de vos tours », 0 à 20.
   //
-  // On la garde donc, BORNÉE : au pire deux secondes perdues sur douze au lieu
-  // de douze. L'éclair, lui, se vérifie là où il est le sujet du test :
-  // « après une attente, l'indice et le mélange se signalent ».
+  // TENTATIVE 1, SUPPRIMER L'ATTENTE. Elle servait aussi à laisser le plateau
+  // se poser : « un indice évite une lettre déjà posée » est passé de 3 succès
+  // sur 3 à 1 échec sur 3 sur WebKit.
+  //
+  // TENTATIVE 2, LA BORNER à deux secondes. Verte en local, elle a fait tomber
+  // DEUX tests WebKit au premier passage en CI. La trace le dit : la lettre
+  // restait désactivée douze secondes pendant que son `data-rack-id` passait de
+  // `duel-2` à `duel-4`. Les tours défilaient — parce que l'éclair n'était pas
+  // seulement une stabilisation, c'était le signal « le tour vient de passer à
+  // toi ». Le borner, c'est rendre la main avant que le tour ait tourné.
+  //
+  // CE QU'IL FAUDRAIT. Se synchroniser sur le TOUR (l'état serveur, que
+  // l'appelant connaît déjà) plutôt que sur son annonce à l'écran, puis
+  // n'attendre l'éclair que comme confirmation, sans lui laisser le tour.
   const eclair = page.locator('.turn-ready-flash')
-  await eclair.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {})
-  await eclair.waitFor({ state: 'hidden', timeout: 4_000 }).catch(() => {})
+  await expect(eclair).toBeVisible()
+  await expect(eclair).toBeHidden()
   await expect(lettre).toBeEnabled()
 }
 
