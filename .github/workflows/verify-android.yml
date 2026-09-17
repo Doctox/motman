@@ -39,8 +39,15 @@ jobs:
           java-version: 21
           cache: gradle
 
+      # `tools` est obsolete : Google l'a retire de son depot le 15/09/2026, et
+      # l'action l'installe par defaut (`tools platform-tools`). Elle echouait
+      # donc en 24 s, avant meme de compiler -- 32 fois d'affilee, sans que
+      # personne le voie. On ne lui demande que ce qui existe encore ; les
+      # plateformes et build-tools sont installees a l'etape suivante.
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install Android API 36
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
