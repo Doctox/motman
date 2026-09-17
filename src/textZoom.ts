@@ -85,10 +85,18 @@ export function mesurerZoomTexte(document_ = document): number {
 
 function appliquer(): void {
   try {
-    const taille = tailleRacinePlafonnee(mesurerZoomTexte())
+    const facteur = mesurerZoomTexte()
+    const taille = tailleRacinePlafonnee(facteur)
     const racine = document.documentElement
     if (taille === null) racine.style.removeProperty('font-size')
     else racine.style.fontSize = `${taille}px`
+    // LE PEU QUI ÉCHAPPE À LA RACINE. Diviser la racine reprend toutes les
+    // tailles en `rem`, mais rien de ce qui est écrit en px, en vw ou calculé
+    // sur la largeur d'une case : le moteur les multiplie aussi, et aucune
+    // n'est relative à la racine. Relevé du 17/09/2026 sur l'écran de jeu :
+    // les flèches des définitions et la police des cases, seules rescapées.
+    // Le CSS les divise par cette variable (chercher `--zoom-texte`).
+    racine.style.setProperty('--zoom-texte', String(facteur))
   } catch {
     // Purement cosmétique : jamais bloquant.
   }

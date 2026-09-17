@@ -60,6 +60,6 @@
     max-height: 100%;
   }
   html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .board-wrap > .board .clue {
-    font-size: clamp(11px, calc(var(--cell-w) * .22), 20px) !important;
+    font-size: calc(clamp(11px, calc(var(--cell-w) * .22), 20px) / var(--zoom-texte, 1)) !important;
   }
 }
