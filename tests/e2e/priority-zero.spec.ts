@@ -200,9 +200,28 @@ async function openGame(browser: Browser, identity: Identity, matchId: string, v
  * ensuite le chevalet actif, qui est la condition dont le geste a besoin.
  */
 async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
+  // L'ÉCLAIR « À VOUS ! » SE LAISSE ATTENDRE, MAIS PAS INDÉFINIMENT.
+  //
+  // Il ne dure que 1,8 s. L'attendre avec un `expect` ordinaire revenait à
+  // parier que la mesure tombe dans cette fenêtre : sur une machine de CI
+  // chargée, elle la rate, et l'assertion attend alors ses douze secondes --
+  // c'est-à-dire LE TOUR ENTIER. Le joueur le laissait expirer ; trois fois de
+  // suite, la partie se terminait, et le test attendait jusqu'à épuisement un
+  // bandeau qui ne viendrait jamais. Quatre déploiements bloqués au hasard le
+  // 17/09/2026, toujours sur « une quête finie pendant la partie » ; la capture
+  // du CI disait « Vous avez laissé expirer trois de vos tours », 0 à 20.
+  //
+  // Mais le supprimer ne marche pas non plus : cette attente laissait aussi au
+  // plateau le temps de se poser avant le premier clic. Sans elle, « un indice
+  // évite une lettre déjà posée » est passé de 3 succès sur 3 à 1 échec sur 3
+  // sur WebKit (mesuré le 17/09/2026, six passages).
+  //
+  // On la garde donc, BORNÉE : au pire deux secondes perdues sur douze au lieu
+  // de douze. L'éclair, lui, se vérifie là où il est le sujet du test :
+  // « après une attente, l'indice et le mélange se signalent ».
   const eclair = page.locator('.turn-ready-flash')
-  await expect(eclair).toBeVisible()
-  await expect(eclair).toBeHidden()
+  await eclair.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {})
+  await eclair.waitFor({ state: 'hidden', timeout: 4_000 }).catch(() => {})
   await expect(lettre).toBeEnabled()
 }
 
