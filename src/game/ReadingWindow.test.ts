@@ -79,16 +79,19 @@ describe('la fenêtre de lecture', () => {
     expect(monte(null).dernier()).toBeNull()
   })
 
-  it('affiche la consigne, et cache le décompte aux lecteurs d’écran', () => {
+  it('affiche la consigne, et laisse le décompte au cercle du jeu', () => {
     ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
     const hote = document.createElement('div')
     document.body.appendChild(hote)
-    act(() => { createRoot(hote).render(createElement(ReadingWindow, { secondes: 7 })) })
+    act(() => { createRoot(hote).render(createElement(ReadingWindow)) })
 
     expect(hote.textContent).toContain('Lisez la grille')
+    expect(hote.textContent).toContain('Touchez une définition')
     expect(hote.querySelector('[role="status"]')).not.toBeNull()
-    // Le chiffre change chaque seconde : annoncé, il ferait répéter la consigne.
-    expect(hote.querySelector('b')?.getAttribute('aria-hidden')).toBe('true')
-    expect(hote.querySelector('b')?.textContent).toBe('7')
+    // Aucun chiffre ici : il vit dans le cercle du jeu, là où le joueur regarde
+    // déjà le temps. Deux cadrans pour la même information, c'était un de trop —
+    // et un texte qui change chaque seconde dans une région `status` ferait
+    // répéter la consigne en boucle.
+    expect(hote.textContent).not.toMatch(/\d/)
   })
 })
