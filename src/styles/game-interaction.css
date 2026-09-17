@@ -45,7 +45,7 @@
 
 .board{border-radius:8px;box-shadow:0 5px 15px #3c352312}
 .board-wrap{margin-bottom:11px}
-.clue{font-weight:600}.clue:nth-child(4n+1){background:#f4ded5}.clue:nth-child(4n+2){background:#f5e9c4}.clue:nth-child(4n+3){background:#e9ece1}
+.clue{font-weight:700}.clue:nth-child(4n+1){background:#f4ded5}.clue:nth-child(4n+2){background:#f5e9c4}.clue:nth-child(4n+3){background:#e9ece1}
 .rack-area{position:relative;padding-top:9px}
 .rack-heading>strong{display:flex;align-items:center;gap:6px;min-width:0}
 .rack-bonus-rule{
