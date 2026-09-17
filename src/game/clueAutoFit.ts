@@ -184,6 +184,33 @@ export const HYPHENATE_CLASS = 'clue-hyphenate'
  * Coupe autorisée : c'est le navigateur qui place les traits d'union, on
  * mesure donc le vrai rendu (un mot qu'il ne sait pas couper déborde en largeur).
  */
+/**
+ * La boite du TEXTE de la case, en fractions de pixel.
+ *
+ * `scrollHeight` et `clientHeight` sont des ENTIERS. Sur un ecran a forte
+ * densite, la mise en page travaille en fractions : les deux s'arrondissent
+ * chacun de leur cote et different d'un pixel en permanence. La condition
+ * « ca tient » devenait alors fausse A TOUTE TAILLE, et la boucle renvoyait le
+ * plancher pour toutes les definitions du plateau.
+ *
+ * Mesure du 17/09/2026 sur le telephone du proprietaire (Galaxy S24, dpr 4,5),
+ * par le pont de debogage USB : `scrollHeight` 29 contre `clientHeight` 28, dans
+ * une case ou le texte de 2 px tenait evidemment. Toutes ses definitions etaient
+ * au plancher. Avec la mesure en fractions ci-dessous : 5,2 a 7,5 px.
+ *
+ * L'element lui-meme ne convient pas : la fleche de direction y est posee en
+ * absolu, et sa boite compte dans `scrollHeight`. On mesure donc les noeuds de
+ * TEXTE, et eux seuls.
+ */
+function boiteDuTexte(el: HTMLElement): DOMRect | null {
+  const noeuds = [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim())
+  if (!noeuds.length) return null
+  const plage = document.createRange()
+  plage.setStartBefore(noeuds[0])
+  plage.setEndAfter(noeuds[noeuds.length - 1])
+  return plage.getBoundingClientRect()
+}
+
 function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: number } | null {
   const text = directText(el)
   if (!text) return null
@@ -192,8 +219,10 @@ function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: nu
   if (!base) return null
   const weight = style.fontWeight || '700'
   const family = style.fontFamily || "'DM Sans', sans-serif"
-  const available = el.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - EPS
-  if (available <= 0) return null
+  const boite = el.getBoundingClientRect()
+  const available = boite.width - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - EPS
+  const disponibleHauteur = boite.height - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0)
+  if (available <= 0 || disponibleHauteur <= 0) return null
 
   // Unite insecable = un « mot » entre espaces ou traits d'union (le navigateur
   // peut couper apres un trait d'union).
@@ -202,7 +231,9 @@ function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: nu
     const font = `${weight} ${size}px ${family}`
     if (!hyphenate && tokens.some(token => measureWord(token, font) > available)) return false
     el.style.fontSize = `${size}px`
-    return el.scrollHeight <= el.clientHeight + 0.5 && (!hyphenate || el.scrollWidth <= el.clientWidth + 0.5)
+    const texte = boiteDuTexte(el)
+    if (!texte) return true
+    return texte.height <= disponibleHauteur + 0.5 && texte.width <= available + EPS + 0.5
   }
   const fit = largestFittingSize(base, MIN_FONT_PX, fits)
   el.style.fontSize = ''
