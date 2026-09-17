@@ -496,3 +496,43 @@ test('l’accueil tient quand le téléphone agrandit le texte', async ({ browse
     await context.close()
   }
 })
+
+test('sur un écran court, la barre de navigation reste visible', async ({ browser }) => {
+  // Mesuré le 17/09/2026 sur le téléphone du propriétaire : sa fenêtre faisait
+  // 560 px de haut (zoom du navigateur), la coque en imposait 680 par
+  // `min-height`, et la barre — dernière rangée — passait sous le pli, hors de
+  // l'`overflow:hidden` de la coque. Plus moyen de changer d'écran.
+  const identity = {
+    version: 1,
+    playerId: `guest_${randomUUID()}`,
+    displayName: 'Court QA',
+    accountType: 'guest',
+    friendCode: randomUUID().slice(0, 6).toUpperCase(),
+    createdAt: new Date().toISOString(),
+  }
+  const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+  expect((await api.post('/api/auth/bootstrap', { data: { identity } })).ok()).toBe(true)
+
+  const context = await browser.newContext({ viewport: { width: 320, height: 560 } })
+  await context.addInitScript(stored => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, identity)
+  const page = await context.newPage()
+
+  try {
+    await page.goto('/#accueil')
+    const barre = page.locator('.mm-bottom-nav')
+    await expect(barre).toBeVisible()
+    const mesure = await barre.evaluate(nav => ({
+      bas: nav.getBoundingClientRect().bottom,
+      fenetre: window.innerHeight,
+      contenuDefile: (() => { const p = document.querySelector('.mm-page'); return p ? p.scrollHeight > p.clientHeight : false })(),
+    }))
+    // Entièrement dans la fenêtre, et c'est le contenu qui cède la place.
+    expect(mesure.bas).toBeLessThanOrEqual(mesure.fenetre + 1)
+    expect(mesure.contenuDefile).toBe(true)
+  } finally {
+    await context.close()
+  }
+})
