@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
 import { Clock3, Hourglass, Swords, X } from 'lucide-react'
 import type { MatchInvitation } from '../matches'
 import { playerInitials } from '../playerIdentity'
 import { useDialogFocus } from '../useDialogFocus'
 import { Avatar } from './MenuChrome'
+import { useSecondesEcoulees } from './ChronoRecherche'
 
 export function MatchInvitationPanel({ invitation, busy, accept, decline }: {
   invitation: MatchInvitation
@@ -47,19 +47,11 @@ export function MatchWaitingPanel({ invitation, busy, cancel }: { invitation: Ma
  * et un compteur qui avance y répond, là où trois points qui clignotent non.
  */
 export function NormalSearchPanel({ busy, cancel, since }: { busy: boolean; cancel: () => void; since?: string }) {
-  const [maintenant, setMaintenant] = useState(() => Date.now())
-  useEffect(() => {
-    if (!since) return
-    const battement = setInterval(() => setMaintenant(Date.now()), 1000)
-    return () => clearInterval(battement)
-  }, [since])
-  const depuis = since ? Date.parse(since) : Number.NaN
-  const secondes = Number.isFinite(depuis) ? Math.max(0, Math.floor((maintenant - depuis) / 1000)) : null
+  const secondes = useSecondesEcoulees(since)
 
-  return <section className="mm-live-activity" role="region" aria-live="polite" aria-label="Recherche d’un adversaire">
+  return <section className="mm-live-activity is-search" role="region" aria-live="polite" aria-label="Recherche d’un adversaire">
     <span className="mm-live-activity-icon swords"><Swords /></span>
     <span className="mm-live-activity-copy"><small>Match normal</small><strong>Recherche en cours{secondes === null ? '' : ` · ${secondes} s`}</strong><em>Temps limité · 45 s</em></span>
-    <span className="mm-live-activity-dots" aria-hidden="true"><i /><i /><i /></span>
     <button type="button" disabled={busy} onClick={cancel}>{busy ? 'Annulation…' : 'Annuler'}</button>
   </section>
 }

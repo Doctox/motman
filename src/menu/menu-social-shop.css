@@ -129,6 +129,7 @@ html[data-motion="off"] .mm-bottom-nav button.active svg{animation:none!importan
   pointer-events:auto;
   animation:mmLiveActivityIn .42s var(--mm-ease) both;
 }
+.mm-live-activity.is-search{grid-template-columns:42px minmax(0,1fr) 63px}
 .mm-live-activity-icon{
   position:relative;
   width:39px;

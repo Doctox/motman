@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { BarChart3, ChevronRight, History, Trophy, UserPlus, Users } from 'lucide-react'
 import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
 import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState } from '../matches'
+import { ChronoRecherche } from './ChronoRecherche'
 import { MatchReplay } from './MatchReplay'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
@@ -97,9 +98,9 @@ function PaceChoice({ pace, setPace, label }: { pace: MatchPace; setPace: (pace:
 }
 
 /** Une recherche en cours : la carte se replie sur une seule ligne. */
-function SearchingCard({ titre, detail, annuler, disabled }: { titre: string; detail: string; annuler: () => void; disabled: boolean }) {
+function SearchingCard({ titre, detail, depuis, annuler, disabled }: { titre: string; detail: string; depuis: string | undefined; annuler: () => void; disabled: boolean }) {
   return <section className="mm-play-card is-searching" aria-live="polite">
-    <span className="mm-search-pulse" aria-hidden="true"><i /><i /><i /></span>
+    <ChronoRecherche depuis={depuis} />
     <span className="mm-play-searching-copy"><strong>{titre}</strong><small>{detail}</small></span>
     <button type="button" className="mm-search-cancel" disabled={disabled} onClick={annuler}>Annuler</button>
   </section>
@@ -129,8 +130,12 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   const [matchBusy, setMatchBusy] = useState<string | null>(null)
   const [searchBusy, setSearchBusy] = useState<MatchPace | null>(null)
 
-  const realtimeSearching = lobby.searches.some(search => search.pace === 'realtime')
-  const asyncSearching = lobby.searches.some(search => search.pace === 'async')
+  // `find` et non `some` : la carte affiche le temps d'attente, il lui faut donc
+  // la recherche elle-même et pas seulement son existence.
+  const realtimeSearch = lobby.searches.find(search => search.pace === 'realtime')
+  const asyncSearch = lobby.searches.find(search => search.pace === 'async')
+  const realtimeSearching = Boolean(realtimeSearch)
+  const asyncSearching = Boolean(asyncSearch)
   const normalSearching = realtimeSearching || asyncSearching
   const rankedSearching = ranked.status === 'searching' || ranked.status === 'ready' || ranked.status === 'accepted'
   const currentRank = rankedDivision(ranked.progress.points, ranked.progress.matches)
@@ -189,6 +194,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         ? <SearchingCard
           titre="Recherche d’un adversaire…"
           detail={asyncSearching ? 'Vous pouvez revenir plus tard' : 'Un adversaire de votre niveau vous sera proposé'}
+          depuis={(asyncSearch ?? realtimeSearch)?.createdAt}
           disabled={searchBusy !== null}
           annuler={() => void arreterRecherche(asyncSearching ? 'async' : 'realtime')}
         />
@@ -215,7 +221,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </div>
         {rankedSearching
           ? <div className="mm-play-searching-inline" aria-live="polite">
-            <span className="mm-search-pulse" aria-hidden="true"><i /><i /><i /></span>
+            <ChronoRecherche depuis={ranked.queuedAt} />
             <span>Recherche classée en cours</span>
             <button type="button" className="mm-search-cancel" disabled={rankedBusy || ranked.status === 'accepted'} onClick={() => void cancelRanked()}>Annuler</button>
           </div>

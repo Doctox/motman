@@ -323,3 +323,54 @@ test('les quêtes du jour se suivent, se récupèrent une fois, et la pastille s
   await expect(rouvert.getByText('Récompense prise')).toHaveCount(1)
   await expect(rouvert.getByRole('button', { name: 'Récupérer' })).toHaveCount(2)
 })
+
+test('la recherche d’un adversaire compte le temps d’attente, et le bandeau reste lisible', async ({ browser }) => {
+  // Le 17/09/2026, les trois points qui clignotaient ont laissé place à un
+  // chrono. Il MONTE : la question du joueur est « est-ce que c'est bloqué »,
+  // pas « combien de temps encore » — personne ne peut promettre une fin.
+  const api = await playwrightRequest.newContext({
+    baseURL: SERVEUR_TEST,
+    extraHTTPHeaders: { Origin: SERVEUR_TEST },
+  })
+  const identity = {
+    version: 1,
+    playerId: `guest_${randomUUID()}`,
+    displayName: `Chrono ${randomUUID().slice(0, 4)}`,
+    accountType: 'guest',
+    friendCode: 'CHRONOQA',
+    createdAt: new Date().toISOString(),
+  }
+  expect((await api.post('/api/auth/bootstrap', { data: { identity } })).ok()).toBe(true)
+  expect((await api.post('/api/matches/search', { data: { playerId: identity.playerId, pace: 'realtime' } })).ok()).toBe(true)
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  await context.addInitScript(stored => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, identity)
+  const page = await context.newPage()
+
+  try {
+    await page.goto('/#jouer')
+    const chrono = page.locator('.mm-play-card.is-searching .mm-search-timer')
+    await expect(chrono).toBeVisible()
+    const secondes = async () => Number((await chrono.textContent() ?? '').replace(/\D/g, ''))
+    const premier = await secondes()
+    await page.waitForTimeout(2500)
+    expect(await secondes()).toBeGreaterThan(premier)
+
+    // Le bandeau du bas dit la même attente. Ses trois points sont partis avec
+    // ceux de la carte : sa grille comptait une colonne pour eux, et la laisser
+    // vide rognait 72 px sur le texte, qui se faisait tronquer.
+    const titre = page.locator('.mm-live-activity.is-search .mm-live-activity-copy strong')
+    await expect(titre).toBeVisible()
+    await expect(titre).toContainText('Recherche en cours')
+    expect(await titre.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+  } finally {
+    await context.close()
+    // La file est partagée par toute la suite : une recherche laissée en plan
+    // s'apparie avec le projet suivant, qui ouvre alors une partie au lieu de
+    // la carte de recherche.
+    await api.post('/api/matches/search/cancel', { data: { playerId: identity.playerId, pace: 'realtime' } })
+  }
+})
