@@ -375,7 +375,7 @@ test('la recherche d’un adversaire compte le temps d’attente, et le bandeau 
   }
 })
 
-test('l’accueil montre six amis, connectés en tête, sans les comprimer', async ({ browser }) => {
+test('l’accueil montre huit amis, connectés en tête, sans les comprimer', async ({ browser }) => {
   // La rangée n'en montrait que trois, et les absents disparaissaient (demande
   // du propriétaire, 17/09/2026). Six désormais, déconnectés compris.
   function identite(nom: string) {
@@ -399,7 +399,7 @@ test('l’accueil montre six amis, connectés en tête, sans les comprimer', asy
   const apiMoi = await session(moi)
   // Deux demandes croisées valent une amitié : la seconde trouve la première et
   // les lie directement (motmanSocialPlugin, route `request`).
-  for (const nom of ['Clara', 'Theo', 'Naima', 'Hugo', 'Lena', 'Yanis', 'Sofia', 'Marius']) {
+  for (const nom of ['Clara', 'Theo', 'Naima', 'Hugo', 'Lena', 'Yanis', 'Sofia', 'Marius', 'Ines', 'Karim']) {
     const ami = identite(nom)
     const apiAmi = await session(ami)
     expect((await apiAmi.post('/api/social/request', { data: { targetId: moi.playerId } })).ok()).toBe(true)
@@ -417,12 +417,18 @@ test('l’accueil montre six amis, connectés en tête, sans les comprimer', asy
     await page.goto('/#accueil')
     const visages = page.locator('.mm-home-friend')
     await expect(visages.first()).toBeVisible()
-    await expect(visages).toHaveCount(6)
+    await expect(visages).toHaveCount(8)
 
     // Et sans les écraser : la grille les comprimait pour tenir sur une ligne,
     // les visages se touchaient à six. Elle passe à la ligne désormais.
     const largeur = await visages.first().evaluate(element => element.getBoundingClientRect().width)
     expect(largeur).toBeGreaterThanOrEqual(70)
+
+    // Et sur DEUX lignes, quelle que soit la largeur : quatre colonnes fixes.
+    // En colonnes automatiques, un écran large les ramenait sur une seule ligne.
+    const lignes = await page.locator('.mm-home-friend-row').evaluate(rangee =>
+      new Set([...rangee.children].map(enfant => Math.round(enfant.getBoundingClientRect().top))).size)
+    expect(lignes).toBe(2)
   } finally {
     await context.close()
   }
