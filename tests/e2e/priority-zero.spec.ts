@@ -1,5 +1,6 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { E2E_TURN_DURATION_MS } from '../../playwright.config'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
@@ -590,6 +591,19 @@ test('une validation automatique vide ne peut pas passer un nouveau tour avant 0
   const { first, matchId } = await createNormalMatch(request, 'realtime', 'Auto tôt')
   const match = await loadMatch(request, first.playerId, matchId)
 
+  // La grille s'ouvre d'abord sur sa fenêtre de lecture. Une validation envoyée
+  // là est refusée par une AUTRE garde — le tour n'a pas commencé —, et c'est
+  // tant mieux : sans elle, un client modifié clorait le premier tour avant que
+  // l'adversaire ait lu quoi que ce soit.
+  const pendantLaLecture = await request.post('/api/matches/turn', {
+    data: { playerId: match.currentPlayerId, matchId, turnNumber: match.turnNumber, placements: [], automatic: true },
+  })
+  expect(pendantLaLecture.status()).toBe(409)
+  expect(((await pendantLaLecture.json()) as { match: MatchState }).match.turnNumber).toBe(match.turnNumber)
+
+  // Le tour commence ; la garde visée ici est celle du tour EN COURS.
+  await new Promise(resolve => setTimeout(resolve, Math.max(0, new Date(match.turnStartedAt).getTime() - Date.now()) + 200))
+
   const response = await request.post('/api/matches/turn', {
     data: {
       playerId: match.currentPlayerId,
@@ -996,5 +1010,36 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
   } finally {
     await context.close()
     void second
+  }
+})
+
+test('la grille s’ouvre sur une fenêtre de lecture, et le premier tour part entier', async ({ browser, request }) => {
+  // Remarque d'un testeur, 17/09/2026 : le premier joueur découvrait la grille
+  // pendant que son chronomètre tournait, quand le second avait lu les
+  // définitions pendant le tour du premier. Le tour n°1 ne court donc plus pour
+  // personne tant que la fenêtre de lecture n'est pas écoulée.
+  const { first, matchId } = await createNormalMatch(request, 'realtime', 'Lecture')
+  const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 844 })
+
+  try {
+    const bandeau = page.locator('.turn-reading')
+    await expect(bandeau).toBeVisible()
+    await expect(bandeau).toContainText('Lisez la grille')
+    // Le chevalet reste fermé : personne ne pose de lettre pendant la lecture.
+    const lettre = page.locator('.rack-letter').first()
+    await expect(lettre).toBeDisabled()
+
+    await expect(bandeau).toBeHidden()
+    await attendreTourJouable(page, lettre)
+
+    // Et le tour dure ENTIER. C'est tout l'objet de la correction : la fenêtre
+    // s'AJOUTE au tour, elle ne se prend pas dessus. Mesuré sur les horodatages
+    // du serveur et non sur le chronomètre affiché : l'éclair « À vous ! » dure
+    // 1,8 s, si bien que l'écran montre déjà 10 quand la main revient.
+    const etat = await loadMatch(request, first.playerId, matchId)
+    const tour = new Date(etat.turnEndsAt).getTime() - new Date(etat.turnStartedAt).getTime()
+    expect(tour).toBe(E2E_TURN_DURATION_MS)
+  } finally {
+    await context.close()
   }
 })

@@ -45,6 +45,28 @@ export class MatchStateConflictError extends Error {
 
 export const READY_MS = 1_800
 
+/**
+ * LA FENÊTRE DE LECTURE, avant le tout premier tour d'une partie en temps
+ * limité.
+ *
+ * Le premier joueur découvre la grille en même temps que son chronomètre
+ * démarre ; le second, lui, a lu les définitions pendant le tour du premier.
+ * Remarque d'un testeur, le 17/09/2026, et elle est juste : le désavantage est
+ * structurel, pas une impression.
+ *
+ * Le tour n°1 ne court donc pour personne pendant ces dix secondes. Les deux
+ * joueurs lisent, puis le premier joue ses quarante-cinq secondes entières.
+ *
+ * Ce n'est pas un mécanisme neuf : c'est READY_MS, la fenêtre qui existait déjà
+ * avant chaque tour, allongée pour le premier. Le client sait depuis le
+ * 20/07/2026 qu'aucune lettre ne se pose avant `turn_started_at`.
+ *
+ * ⚠️ Écrite AUSSI dans `server/match/config.ts` (serveur de test) et dans la
+ * migration qui démarre les parties classées, en plpgsql. `matchTiming.test.ts`
+ * tient les trois d'accord.
+ */
+export const FIRST_TURN_READING_MS = 10_000
+
 export async function activeMatchesForPlayers(
   admin: AdminClient,
   playerIds: string[],
@@ -214,7 +236,7 @@ export async function createMatch(
     ? { ...state, isDaily: true, dailyDate: options.dailyDate }
     : state
   let grid = forcedGrid ?? await chooseGrid(admin, selectionSeed, humanPlayerIds)
-  const startedAt = new Date(Date.now() + READY_MS)
+  const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
   const endsAt = new Date(startedAt.getTime() + (pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
   let state = markDaily(initialMatchState(grid, hostId, guestId, invitationId, bot))
   const { data: insertedRow, error } = await admin.from('server_matches').insert({
@@ -273,7 +295,7 @@ export async function prepareAtomicMatch(
   const humanPlayerIds = [hostId, guestId].filter(id => id !== bot?.playerId)
   const selectionSeed = `${hostId}:${guestId}:${Date.now()}`
   const grid = await chooseGrid(admin, selectionSeed, humanPlayerIds)
-  const startedAt = new Date(Date.now() + READY_MS)
+  const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
   const endsAt = new Date(startedAt.getTime() + (pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
   const state = initialMatchState(grid, hostId, guestId, invitationId, bot)
   return { grid, state, startedAt, endsAt, selectionSeed, humanPlayerIds }

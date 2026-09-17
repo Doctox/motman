@@ -10,6 +10,11 @@ export const MATCH_DATABASE_PATH = resolve(process.env.MOTMAN_MATCH_DATABASE_PAT
 export const REALTIME_TURN_DURATION_MS = numericEnvironment('MOTMAN_TURN_DURATION_MS', 45_000, 250)
 export const ASYNC_TURN_DURATION_MS = numericEnvironment('MOTMAN_ASYNC_TURN_DURATION_MS', 24 * 60 * 60 * 1_000, 1_000)
 export const TURN_READY_DURATION_MS = numericEnvironment('MOTMAN_TURN_READY_DURATION_MS', 1_800, 0)
+// La fenêtre de LECTURE du premier tour d'une partie en temps limité : les deux
+// joueurs lisent la grille avant que le chronomètre du premier ne parte. Doit
+// valoir FIRST_TURN_READING_MS (supabase/functions/match-api/matchSetup.ts) ;
+// `matchTiming.test.ts` le vérifie.
+export const FIRST_TURN_READING_MS = numericEnvironment('MOTMAN_FIRST_TURN_READING_MS', 10_000, 0)
 
 // A short server grace period lets a phone submit the move displayed at 00:00
 // without a simultaneous polling request turning it into a timeout first.

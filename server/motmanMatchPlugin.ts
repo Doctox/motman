@@ -31,6 +31,7 @@ import {
   REALTIME_TURN_DURATION_MS,
   RECENT_GRID_HISTORY_LIMIT,
   REVEAL_STEP_MS,
+  FIRST_TURN_READING_MS,
   TURN_READY_DURATION_MS,
 } from './match/config'
 import { gridById, gridIds, gridSolution, grids, hash, publicGrid, ruleGrid, wordIndexes } from './match/gridCatalog'
@@ -416,6 +417,19 @@ function selectGridForPlayers(hostId: string, guestId: string, sourceId: string,
   return pool[hash(`${sourceId}:${now.toISOString()}:grid`) % pool.length]
 }
 
+/**
+ * Le délai avant que le tout premier tour ne commence. En temps limité, c'est
+ * la FENÊTRE DE LECTURE : les deux joueurs découvrent la grille avant que le
+ * chronomètre du premier ne parte (voir FIRST_TURN_READING_MS).
+ *
+ * Le serveur de test posait jusqu'ici `turnStartedAt = maintenant`, là où la
+ * production écrit `maintenant + READY_MS` : les e2e ne voyaient donc jamais la
+ * fenêtre que tout joueur traverse. Ils testent désormais le vrai chemin.
+ */
+function attenteAvantPremierTour(pace: MatchPace): number {
+  return pace === 'realtime' ? FIRST_TURN_READING_MS : TURN_READY_DURATION_MS
+}
+
 function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId: string | null = null, bot: BotProfile | null = null): StoredMatch {
   const now = new Date()
   const grid = selectGridForPlayers(hostId, guestId, sourceId, now)
@@ -423,7 +437,8 @@ function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: Mat
   const match: StoredMatch = {
     id: randomUUID(), invitationId, mode, pace, gridId: grid.id, difficulty,
     playerIds: [hostId, guestId], bot, currentPlayerId: hostId, turnNumber: 1,
-    turnStartedAt: now.toISOString(), turnEndsAt: new Date(now.getTime() + TURN_READY_DURATION_MS + (pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)).toISOString(),
+    turnStartedAt: new Date(now.getTime() + attenteAvantPremierTour(pace)).toISOString(),
+    turnEndsAt: new Date(now.getTime() + attenteAvantPremierTour(pace) + (pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)).toISOString(),
     board: {}, racks: {}, letterBag: [...gridSolution(grid).values()], scores: { [hostId]: 0, [guestId]: 0 },
     productiveTurns: { [hostId]: 0, [guestId]: 0 },
     inactivity: { [hostId]: 0, [guestId]: 0 }, hint: null,
