@@ -42,7 +42,20 @@ const LARGEUR_MAXIMALE = 680
 /** En dessous de ce plus petit côté, c'est un téléphone (même grand). */
 export const TABLET_MIN_SHORT_SIDE = 600
 
-const VIEWPORT_TELEPHONE = 'width=device-width,initial-scale=1,viewport-fit=cover'
+/*
+ * Sur téléphone, l'appareil ne redimensionne RIEN de lui-même.
+ *
+ * `maximum-scale=1,user-scalable=no` interdit le pincement : MOTMAN s'affiche à
+ * la taille où il est dessiné, comme le demande le propriétaire (17/09/2026,
+ * « bloque tous les zooms… que ça reste comme nous on a dit »). Avec
+ * `textZoom.ts`, qui annule l'agrandissement de police du système, plus rien
+ * d'extérieur ne déforme la mise en page.
+ *
+ * LA TABLETTE, ELLE, NE PORTE PAS CE VERROU : son mode (ci-dessus) compte
+ * justement sur l'appareil pour agrandir la page annoncée à 480-680 px. L'y
+ * ajouter rendrait l'interface EHPAD à sa taille de téléphone.
+ */
+export const VIEWPORT_TELEPHONE = 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover'
 
 /** La largeur de page qui donne ~880 px CSS de haut, bornée à [480, 680] et au côté court. */
 export function tabletLayoutWidth(court: number, long: number): number {
