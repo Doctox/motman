@@ -944,6 +944,12 @@ test('en temps illimité, « Tu es toujours là ? » attend le retour dans la pa
 })
 
 test('une quête finie pendant la partie s’annonce au coup qui la termine', async ({ browser, request }) => {
+  // Le test le plus lourd de la suite : il joue des tours a l'ecran, un par un,
+  // jusqu'a ce qu'une quete se termine. Il a depasse son budget trois fois sur la
+  // machine de CI -- 30 % plus lente que celle de developpement -- et fait
+  // echouer autant de deploiements. `slow()` triple le delai ; ce qu'il verifie
+  // ne change pas d'un iota.
+  test.slow()
   // Une vraie partie, jouée tour par tour À L'ÉCRAN : chaque tour coûte l'éclair
   // « À vous ! », deux clics par lettre et un aller-retour serveur. WebKit
   // dépassait la minute par défaut.
