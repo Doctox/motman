@@ -536,3 +536,37 @@ test('sur un écran court, la barre de navigation reste visible', async ({ brows
     await context.close()
   }
 })
+
+test('une partie qui n’existe plus ramène à l’accueil, au lieu de piéger le joueur', async ({ browser }) => {
+  // Signalé par le propriétaire : « des fois je fais actualiser et il me met
+  // partie introuvable, sauf qu'il me ramène jamais à l'accueil, faut que je
+  // retape l'URL ». L'adresse porte `#partie=<id>` : chaque actualisation
+  // renvoyait sur la même partie morte.
+  const identity = {
+    version: 1,
+    playerId: `guest_${randomUUID()}`,
+    displayName: 'Perdu QA',
+    accountType: 'guest',
+    friendCode: randomUUID().slice(0, 6).toUpperCase(),
+    createdAt: new Date().toISOString(),
+  }
+  const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+  expect((await api.post('/api/auth/bootstrap', { data: { identity } })).ok()).toBe(true)
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  await context.addInitScript(stored => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, identity)
+  const page = await context.newPage()
+
+  try {
+    await page.goto(`/#partie=${randomUUID()}`)
+    // L'accueil revient de lui-même, et l'adresse est nettoyée : une nouvelle
+    // actualisation ne peut plus y renvoyer.
+    await expect(page.locator('.mm-home-page')).toBeVisible({ timeout: 20_000 })
+    await expect(page).toHaveURL(/#accueil$/)
+  } finally {
+    await context.close()
+  }
+})

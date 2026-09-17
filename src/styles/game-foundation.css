@@ -122,6 +122,11 @@ html[data-motion="off"] .slot.hint-auto-placed,html[data-motion="off"] .slot.hin
 .failed-reveal-letter{position:relative;z-index:9;color:#a92f24!important;-webkit-text-fill-color:#a92f24!important;font-weight:700;animation:failedLetterReveal 1.15s cubic-bezier(.2,.8,.2,1)}
 @keyframes failedLetterReveal{0%{opacity:0;transform:scale(.55) rotate(-4deg)}24%{opacity:1;transform:scale(1.17) rotate(2deg)}55%{transform:scale(.96)}100%{opacity:1;transform:scale(1)}}
 
+/* La sortie de secours de l'écran de chargement : sans elle, une partie qui
+   n'existe plus est un cul-de-sac, et l'adresse y ramène à chaque actualisation. */
+.duel-loading-home{margin-top:14px;min-height:42px;padding:0 18px;border:1px solid #d9bc73;border-radius:21px;background:transparent;color:#123e37;font:700 0.9375rem 'DM Sans',sans-serif;cursor:pointer}
+[data-theme="dark"] .duel-loading-home{border-color:#6b5c33;color:#e8f3ec}
+
 /* La fenêtre de lecture : un bandeau, jamais un voile. La grille doit rester
    lisible — c'est tout l'objet de ces dix secondes. */
 .rack-area{position:relative}

@@ -360,6 +360,16 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     }
   }
 
+  /**
+   * La partie n'existe plus (404). Le serveur distant le dit par son statut, le
+   * serveur de test par son message — les deux comptent.
+   */
+  const partieIntrouvable = (reason: unknown): boolean => {
+    const statut = (reason as { status?: number } | null)?.status
+    if (statut === 404) return true
+    return reason instanceof Error && /introuvable/i.test(reason.message)
+  }
+
   const recoverConcurrentUpdate = (reason: unknown) => {
     const latest = matchStateFromConflict<MatchState>(reason)
     if (!latest) return false
@@ -386,6 +396,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
       } catch (reason) {
         if (recoverConcurrentUpdate(reason)) return
         syncFailuresRef.current += 1
+        // L'adresse porte `#partie=<id>`. Sur une partie qui n'existe plus, rester
+        // ici piege le joueur : chaque actualisation le ramene sur la meme partie
+        // morte, et il ne peut en sortir qu'en retapant l'adresse. On rentre donc
+        // a l'accueil, ce qui nettoie l'adresse au passage (App.returnHome).
+        if (alive.current && partieIntrouvable(reason) && !matchRef.current) { onHome(); return }
         if (alive.current) setError(reason instanceof Error ? reason.message : 'Connexion interrompue')
       }
     }
@@ -707,7 +722,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const missedByMe = match?.inactivity[playerId] ?? 0
   useEffect(() => { setStillThereAck(ack => acknowledgedAfter(ack, missedByMe)) }, [missedByMe])
 
-  if (!match || !grid) return <main className="app-shell duel-loading"><Wifi /><h2>Connexion à la partie…</h2>{error ? <p>{error}</p> : null}</main>
+  // Une sortie visible des qu'une erreur s'affiche : sans elle, l'ecran de
+  // chargement est un cul-de-sac, et l'adresse `#partie=<id>` y ramene a chaque
+  // actualisation.
+  if (!match || !grid) return <main className="app-shell duel-loading"><Wifi /><h2>Connexion à la partie…</h2>{error ? <>
+    <p>{error}</p>
+    <button type="button" className="duel-loading-home" onClick={onHome}>Retour à l’accueil</button>
+  </> : null}</main>
 
   const hint = match.hint?.playerId === playerId && match.hint.turnNumber === match.turnNumber ? match.hint : null
   const hintUsedInMatch = Boolean(match.hintUsed?.[playerId])
