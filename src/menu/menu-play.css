@@ -251,9 +251,9 @@ html[data-motion="off"] .mm-normal-search .mm-match-emblem{animation:none!import
 .mm-home-account{padding:11px 13px;display:flex;align-items:center;gap:12px;border:1px solid var(--mm-line);border-radius:18px;background:var(--mm-surface);box-shadow:0 4px 12px var(--mm-shadow)}
 .mm-home-account .mm-cosmetic-portrait,.mm-home-account>img{width:54px;height:54px;flex:0 0 54px}
 .mm-home-account-copy{flex:1;min-width:0;display:grid;gap:5px}
-.mm-home-account-line{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.mm-home-account-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;min-width:0}
 .mm-home-account-copy h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;font:600 1.3125rem/1.05 'Playfair Display',serif}
-.mm-home-account-copy small{color:var(--mm-muted);font-size:0.75rem;white-space:nowrap}
+.mm-home-account-copy small{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--mm-muted);font-size:0.75rem;white-space:nowrap}
 .mm-home-account-xp{display:block;height:6px;overflow:hidden;border-radius:6px;background:color-mix(in srgb,var(--mm-gold) 22%,transparent)}
 .mm-home-account-xp b{display:block;height:100%;border-radius:inherit;background:var(--mm-ink)}
 .mm-home-account .mm-home-rank{flex:0 0 auto;display:flex;align-items:center;gap:4px;font:600 0.8125rem 'Playfair Display',serif}

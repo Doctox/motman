@@ -439,3 +439,60 @@ test('l’accueil montre huit amis, connectés en tête, sans les comprimer', as
   }
 })
 
+test('l’accueil tient quand le téléphone agrandit le texte', async ({ browser }) => {
+  // Android multiplie la taille de CHAQUE texte quand le joueur a monté la
+  // police dans ses réglages d'accessibilité — les boîtes, elles, ne bougent
+  // pas. Le 17/09/2026, la carte de profil y perdait le pseudo (tronqué) et
+  // éjectait le rang HORS de la carte : « Niveau 9 · 111 / 220 XP » ne pouvait
+  // ni se couper ni se réduire. On reproduit le mécanisme, on mesure le résultat.
+  const identity = {
+    version: 1,
+    playerId: `guest_${randomUUID()}`,
+    displayName: 'Zoom QA',
+    accountType: 'guest',
+    friendCode: randomUUID().slice(0, 6).toUpperCase(),
+    createdAt: new Date().toISOString(),
+  }
+  const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+  expect((await api.post('/api/auth/bootstrap', { data: { identity } })).ok()).toBe(true)
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  await context.addInitScript(stored => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, identity)
+  const page = await context.newPage()
+
+  try {
+    await page.goto('/#accueil')
+    await expect(page.locator('.mm-home-account')).toBeVisible()
+
+    // Les tailles posées explicitement ne se cumulent pas par héritage.
+    await page.evaluate(facteur => {
+      const elements = [...document.querySelectorAll<HTMLElement>('body *')]
+      const tailles = elements.map(element => parseFloat(getComputedStyle(element).fontSize))
+      elements.forEach((element, index) => {
+        if (Number.isFinite(tailles[index])) element.style.fontSize = `${tailles[index] * facteur}px`
+      })
+    }, 1.6)
+    await page.waitForTimeout(300)
+
+    const debordements = await page.locator('.mm-home-account').evaluate(carte => {
+      const bord = carte.getBoundingClientRect()
+      return [...carte.querySelectorAll('*')]
+        .filter(enfant => enfant.children.length === 0 && (enfant.textContent ?? '').trim().length > 0)
+        .filter(enfant => {
+          const boite = enfant.getBoundingClientRect()
+          return boite.right > bord.right + 1 || boite.left < bord.left - 1
+        })
+        .map(enfant => (enfant.textContent ?? '').trim().slice(0, 24))
+    })
+    expect(debordements).toEqual([])
+
+    // Et le pseudo reste lisible en entier, au lieu d'être coupé.
+    const pseudo = page.locator('.mm-home-account-copy h1')
+    expect(await pseudo.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+  } finally {
+    await context.close()
+  }
+})
