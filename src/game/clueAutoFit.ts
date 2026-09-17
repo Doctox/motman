@@ -211,11 +211,35 @@ function boiteDuTexte(el: HTMLElement): DOMRect | null {
   return plage.getBoundingClientRect()
 }
 
+/**
+ * L'AGRANDISSEMENT DU WEBVIEW, MESURE SUR LA CASE ELLE-MEME.
+ *
+ * Android agrandit tout le texte d'une page quand le joueur a monte la taille de
+ * police dans ses reglages d'accessibilite, et `getComputedStyle` rend alors la
+ * taille AGRANDIE, pas celle qu'on a posee. Releve le 17/09/2026 dans l'APK du
+ * proprietaire : taille posee 5 px, taille calculee 8,64 px -- un facteur 1,728.
+ *
+ * Tout le code ci-dessous raisonne en pixels CSS. Sans ce facteur, le plancher
+ * de lisibilite en vaut 1,7 fois plus a l'ecran : la boucle s'y arretait en
+ * croyant proteger la lisibilite, et rendait un texte qui debordait encore.
+ * Dans un navigateur ordinaire le facteur vaut 1 et rien ne change.
+ */
+function facteurAgrandissement(el: HTMLElement): number {
+  const avant = el.style.fontSize
+  el.style.fontSize = '10px'
+  const rendu = parseFloat(getComputedStyle(el).fontSize)
+  el.style.fontSize = avant
+  return Number.isFinite(rendu) && rendu > 0 ? rendu / 10 : 1
+}
+
 function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: number } | null {
   const text = directText(el)
   if (!text) return null
   const style = getComputedStyle(el)
-  const base = parseFloat(style.fontSize)
+  const facteur = facteurAgrandissement(el)
+  // `style.fontSize` est deja agrandie : on la ramene en pixels CSS, l'unite
+  // dans laquelle la recherche pose ses tailles.
+  const base = parseFloat(style.fontSize) / facteur
   if (!base) return null
   const weight = style.fontWeight || '700'
   const family = style.fontFamily || "'DM Sans', sans-serif"
@@ -235,7 +259,8 @@ function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: nu
     if (!texte) return true
     return texte.height <= disponibleHauteur + 0.5 && texte.width <= available + EPS + 0.5
   }
-  const fit = largestFittingSize(base, MIN_FONT_PX, fits)
+  // Le plancher protege la taille AFFICHEE : on le convertit en pixels CSS.
+  const fit = largestFittingSize(base, MIN_FONT_PX / facteur, fits)
   el.style.fontSize = ''
   return { base, fit }
 }

@@ -8,6 +8,24 @@ def motmanReleaseSigningReady = motmanKeystorePath && motmanKeystorePassword && 
 def servicesJSON = file('google-services.json')
 def firebaseReady = servicesJSON.exists() && servicesJSON.length() > 0
 
+// UNE BUILD DE DEBOGAGE INSTALLABLE A COTE DE CELLE DU PLAY STORE.
+//
+// Le WebView n'accepte l'inspection a distance que dans une build DEBOGABLE :
+// c'est le seul moyen de mesurer ce que voit vraiment un joueur Android, et son
+// absence a coute trois tentatives a l'aveugle le 17/09/2026.
+//
+// L'identifiant ne prend le suffixe « .debug » que si google-services.json
+// declare ce paquet : le greffon Google Services echoue sinon. Tant que le
+// suffixe n'est pas declare dans Firebase, la build de debogage garde
+// l'identifiant de production -- installable, mais seulement apres avoir
+// desinstalle celle du Play Store (signatures differentes).
+// `npm run apk:debug` derive une configuration Firebase pour le paquet de
+// debogage dans src/debug/. Sans elle -- build lancee depuis Android Studio sans
+// passer par le script --, on garde l'identifiant de production plutot que
+// d'echouer : le greffon Google Services exige un client par identifiant.
+def debugServicesJSON = file('src/debug/google-services.json')
+def debugClientDeclared = !firebaseReady || debugServicesJSON.exists() || servicesJSON.text.contains('"com.motman.game.debug"')
+
 android {
     namespace "com.motman.game"
     compileSdk rootProject.ext.compileSdkVersion
@@ -35,6 +53,14 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // Capacitor active `setWebContentsDebuggingEnabled` des que l'appli
+            // est debogable : rien d'autre a poser ici.
+            if (debugClientDeclared) {
+                applicationIdSuffix '.debug'
+                versionNameSuffix '-debug'
+            }
+        }
         release {
             minifyEnabled false
             if (motmanReleaseSigningReady) {

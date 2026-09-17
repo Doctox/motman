@@ -45,6 +45,25 @@ function releve(): string[] {
     }
   } catch { lignes.push('dom/canvas : mesure impossible') }
 
+  // LA QUESTION QUI TRANCHE : notre taille en ligne est-elle AGRANDIE, ou
+  // IGNOREE ? On en pose deux, on lit ce que le moteur en fait.
+  //  - 10 -> 32 et 20 -> 64 : le WebView agrandit (facteur 3,2).
+  //  - 10 -> 16 et 20 -> 16 : la taille posee est ignoree, 16 est le defaut.
+  const premiere = document.querySelector('.clue-entry:not(.image-entry)') as HTMLElement | null
+  if (premiere) {
+    const avant = premiere.style.fontSize
+    premiere.style.fontSize = '10px'
+    const a = getComputedStyle(premiere).fontSize
+    premiere.style.fontSize = '20px'
+    const b = getComputedStyle(premiere).fontSize
+    premiere.style.setProperty('font-size', '10px', 'important')
+    const c = getComputedStyle(premiere).fontSize
+    premiere.style.removeProperty('font-size')
+    if (avant) premiere.style.fontSize = avant
+    const verdict = parseFloat(b) > parseFloat(a) * 1.5 ? 'AGRANDIT' : parseFloat(c) < parseFloat(a) ? 'IGNORE sauf !important' : 'IGNORE'
+    lignes.push(`sonde 10->${a} 20->${b} 10!->${c} = ${verdict}`)
+  }
+
   const entrees = [...document.querySelectorAll('.clue-entry:not(.image-entry)')]
   lignes.push(`definitions ${entrees.length}`)
   let deborde = 0

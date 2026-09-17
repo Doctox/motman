@@ -41,7 +41,8 @@
     "mobile:aab": "powershell -ExecutionPolicy Bypass -File scripts/build_android_bundle.ps1",
     "mobile:android": "npm run mobile:sync && cap open android",
     "mobile:ios": "npm run mobile:sync && cap open ios",
-    "mobile:doctor": "cap doctor"
+    "mobile:doctor": "cap doctor",
+    "apk:debug": "npm run build && npx cap sync android && node scripts/build_debug_apk.mjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.8",
