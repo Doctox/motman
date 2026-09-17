@@ -84,11 +84,29 @@ export type ClueFit = { group: string; fit: number }
  * a la taille commune.
  */
 export function uniformClueSizes(fits: readonly ClueFit[], uniformFloor = MIN_UNIFORM_FONT_PX): number[] {
-  const communes = new Map<string, number>()
+  const parGroupe = new Map<string, number[]>()
   for (const { group, fit } of fits) {
-    communes.set(group, Math.min(communes.get(group) ?? Number.POSITIVE_INFINITY, fit))
+    const valeurs = parGroupe.get(group)
+    if (valeurs) valeurs.push(fit)
+    else parGroupe.set(group, [fit])
   }
-  return fits.map(({ group, fit }) => Math.min(fit, Math.max(uniformFloor, communes.get(group) ?? fit)))
+
+  const communes = new Map<string, number>()
+  for (const [groupe, valeurs] of parGroupe) {
+    const triees = [...valeurs].sort((gauche, droite) => gauche - droite)
+    const mediane = triees[Math.floor(triees.length / 2)]
+    // LE PLANCHER NE DÉPASSE JAMAIS LA MÉDIANE. Il est là pour qu'un mot hors
+    // norme ne rende pas tout le plateau minuscule — pas pour tenir tête à un
+    // plateau qui, EN ENTIER, ne tient pas à cette taille. C'est le cas d'un
+    // téléphone qui agrandit le texte : toutes les définitions tombent sous le
+    // plancher, et chacune prenait alors sa propre taille. Les tailles sautaient
+    // d'une case à l'autre — le défaut même que la taille commune avait corrigé
+    // le 13/09/2026.
+    const plancher = Math.min(uniformFloor, mediane)
+    communes.set(groupe, Math.max(plancher, triees[0]))
+  }
+
+  return fits.map(({ group, fit }) => Math.min(fit, communes.get(group) ?? fit))
 }
 
 // ── LA COUPE CIBLÉE (14/09/2026) ────────────────────────────────────────────

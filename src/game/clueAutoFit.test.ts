@@ -55,6 +55,21 @@ describe('une seule taille par plateau', () => {
     expect(tailles.slice(0, -1).every(taille => taille === MIN_UNIFORM_FONT_PX)).toBe(true)
   })
 
+  it('garde UNE taille commune même quand tout le plateau passe sous le plancher', () => {
+    // Le cas du téléphone qui agrandit le texte : chaque définition ne tient
+    // plus qu'à 4 ou 5 px CSS, donc TOUTES passent sous le plancher commun.
+    // Le plancher ne doit pas s'y accrocher — sinon chacune reprend sa propre
+    // taille et les tailles se remettent à sauter d'une case à l'autre.
+    const petit = [4.2, 4.5, 4.6, 4.5, 4.7, 4.5].map(fit => ({ group: 'simple', fit }))
+    const tailles = uniformClueSizes(petit)
+    // Une seule taille pour tout le monde, sauf la case réellement plus étroite.
+    expect(new Set(tailles.filter(taille => taille > 4.2)).size).toBe(1)
+    expect(tailles.filter(taille => taille === 4.5).length).toBeGreaterThanOrEqual(4)
+    expect(tailles[0]).toBe(4.2)
+    // Et jamais au-dessus de ce que chaque case peut porter.
+    petit.forEach(({ fit }, index) => expect(tailles[index]).toBeLessThanOrEqual(fit))
+  })
+
   it('traite à part les cases à deux définitions', () => {
     // Chaque définition n'y a que la moitié de la hauteur : les aligner sur les
     // cases simples écraserait ces dernières.
