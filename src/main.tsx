@@ -13,6 +13,7 @@ import { installStaleDeployRecovery } from './staleDeployRecovery'
 import { installTabletViewport } from './tabletViewport'
 import { installInstallPromptCapture } from './installApp'
 import { installMotionAttribute } from './sensoryPreferences'
+import { installTextZoomCap } from './textZoom'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
 // de nom : on recharge au lieu de laisser un écran gris. Voir staleDeployRecovery.ts.
@@ -22,6 +23,10 @@ installStaleDeployRecovery()
 installPressFeedback()
 // Tablette en portrait : la page s'agrandit jusqu'à la taille de l'écran. Voir tabletViewport.ts.
 installTabletViewport()
+
+// Police système agrandie : Android multiplie tout le texte, pas les boîtes.
+// On plafonne à 1,3x, sinon l'écran de jeu casse. Voir textZoom.ts.
+installTextZoomCap()
 // L'annonce d'installation du navigateur arrive tôt et une seule fois : on la garde. Voir installApp.ts.
 installInstallPromptCapture()
 // Animations : c'est MOTMAN qui décide (paramètre « Animations »), pas l'appareil.
