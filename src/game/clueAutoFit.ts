@@ -48,6 +48,15 @@ import { useCallback, useRef } from 'react'
    vingt-huit. Deux fois plus petites qu'avant, pour le meme texte coupe.
    Le plancher n'est pas la cause : la cause est la LARGEUR disponible, qui
    force la boucle a descendre jusqu'a ce qu'un mot long tienne sur une ligne. */
+/* ET LE WEBVIEW A LE SIEN, QU'IL FAUT AVOIR LEVE.
+   Android refuse tout texte sous 8 px CSS dans un WebView (WebSettings, defaut
+   8) ; Chrome, lui, n'impose rien. Le 17/09/2026, taille posee 5 px, taille
+   rendue 16 px sur le telephone du proprietaire : le plancher, puis le zoom de
+   la police systeme. Les quatorze definitions du plateau debordaient, alors que
+   les memes tenaient dans Chrome sur le meme telephone.
+   `MainActivity.setMinimumFontSize(1)` le leve. Sans cette ligne cote natif, la
+   constante ci-dessous ne veut rien dire en dessous de 8 : la boucle croit poser
+   4 px et le moteur en affiche 8. */
 /** Plancher absolu : en dessous, illisible. Reserve aux mots hors norme. */
 export const MIN_FONT_PX = 5
 /** Plancher de la taille COMMUNE : on n'y descend pas pour un seul indice.

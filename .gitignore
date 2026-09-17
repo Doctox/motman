@@ -86,3 +86,4 @@ sauvegardes/
 
 # Construction du site pour la racine, zippee en mise a jour embarquee (CI).
 dist-app
+android/app/src/debug/google-services.json

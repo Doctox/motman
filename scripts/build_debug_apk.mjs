@@ -84,13 +84,18 @@ if (!jdk) {
 }
 console.log(`JDK : ${jdk}`)
 
+// Le chemin du depot contient des espaces (« Mot Fleche MultiJoueur ») : sur
+// Windows on passe donc par cmd avec la commande entierement citee, plutot que
+// par `shell: true` qui la decoupe sur les espaces.
 const gradlew = resolve(android, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew')
-const build = spawnSync(gradlew, ['assembleDebug'], {
-  cwd: android,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-  env: { ...process.env, JAVA_HOME: jdk },
-})
+const build = process.platform === 'win32'
+  ? spawnSync('cmd.exe', ['/d', '/s', '/c', `""${gradlew}" assembleDebug"`], {
+    cwd: android,
+    stdio: 'inherit',
+    windowsVerbatimArguments: true,
+    env: { ...process.env, JAVA_HOME: jdk },
+  })
+  : spawnSync(gradlew, ['assembleDebug'], { cwd: android, stdio: 'inherit', env: { ...process.env, JAVA_HOME: jdk } })
 if (build.status !== 0) process.exit(build.status ?? 1)
 
 const apk = resolve(android, 'app/build/outputs/apk/debug/app-debug.apk')
