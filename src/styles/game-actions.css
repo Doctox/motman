@@ -98,7 +98,6 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
 .native-runtime .multiplayer-shell:not(.is-finished)>header,
 .native-runtime .multiplayer-shell:not(.is-finished)>.scoreboard,
 .native-runtime .multiplayer-shell:not(.is-finished)>.instruction,
-.native-runtime .multiplayer-shell:not(.is-finished)>.duel-error,
 .native-runtime .multiplayer-shell:not(.is-finished)>.rack-area,
 .native-runtime .multiplayer-shell:not(.is-finished)>.turn-actions{
   flex:0 0 auto;

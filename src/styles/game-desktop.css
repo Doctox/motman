@@ -24,7 +24,7 @@
       "board  score"
       "board  rack"
       "board  actions"
-      "board  error"
+      "board  ."
       "board  .";
     justify-content: center;
     column-gap: clamp(24px, 3vw, 48px);
@@ -39,7 +39,6 @@
   html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .scoreboard { grid-area: score; margin-bottom: clamp(16px, 4dvh, 40px); }
   html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .rack-area { grid-area: rack; }
   html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .turn-actions { grid-area: actions; }
-  html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .duel-error { grid-area: error; }
 
   /* La grille se règle sur sa zone, comme sur téléphone (game-actions.css). */
   html:not(.native-runtime) .multiplayer-shell:not(.is-finished) > .board-wrap {
