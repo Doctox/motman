@@ -22,6 +22,13 @@
 .game-result-screen.result-loss{--result-accent:#9c4b34;--result-soft:#f6e4dd;--result-contrast:#9c4b34}
 .game-result-screen.result-draw{--result-accent:#496c62;--result-soft:#e8ece6;--result-contrast:#8a6b2b}
 .game-result-hero{
+  /* NE SE LAISSE PAS COMPRIMER. Ce cadre est un enfant de flex dans une colonne
+     a hauteur definie : par defaut il RETRECIT quand le contenu demande plus de
+     place, et son `overflow:hidden` -- la pour les decors en fond -- rognait
+     alors le titre. Quand le joueur a double la police de son telephone,
+     « Partie terminee » s'y lisait « Partie ». C'est le cadre de resultat qui
+     defile (voir priority-zero.spec.ts), pas le titre qui se coupe. */
+  flex:0 0 auto;
   position:relative;min-height:210px;padding:8px 18px 0;display:flex;flex-direction:column;align-items:center;
   justify-content:flex-start;overflow:hidden;
 }

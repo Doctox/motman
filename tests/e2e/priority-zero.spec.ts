@@ -408,6 +408,32 @@ test('seul le cadre de résultat natif défile pour rendre toutes les actions ac
     })
     expect(geometry.home.top).toBeGreaterThanOrEqual(geometry.result.top)
     expect(geometry.home.bottom).toBeLessThanOrEqual(geometry.result.bottom + 1)
+
+    // ── ET QUAND LE JOUEUR A AGRANDI LA POLICE DE SON TÉLÉPHONE ──
+    // Le WebView Android applique le réglage d'accessibilité en multipliant la
+    // taille calculée de TOUT le texte de la page : sur le téléphone du
+    // propriétaire, 16 px deviennent 32. Les boîtes, elles, ne bougent pas. On
+    // reproduit ici la même géométrie, faute de pouvoir régler le zoom depuis
+    // Playwright. Le titre du résultat vivait dans un cadre `overflow:hidden`
+    // qui le rognait : « Partie terminée » s'y lisait « Partie ».
+    await page.evaluate(() => {
+      const mesures = [...document.querySelectorAll<HTMLElement>('*')]
+        .map(node => [node, Number.parseFloat(getComputedStyle(node).fontSize)] as const)
+      for (const [node, taille] of mesures) {
+        if (Number.isFinite(taille)) node.style.fontSize = `${taille * 2}px`
+      }
+    })
+    const titreAgrandi = await page.evaluate(() => {
+      const cadre = document.querySelector<HTMLElement>('.game-result-hero')
+      const titre = document.querySelector<HTMLElement>('#game-result-title')
+      if (!cadre || !titre) throw new Error('Titre de résultat introuvable')
+      return {
+        depassement: titre.getBoundingClientRect().bottom - cadre.getBoundingClientRect().bottom,
+        texte: titre.textContent ?? '',
+      }
+    })
+    expect(titreAgrandi.texte.length).toBeGreaterThan(0)
+    expect(titreAgrandi.depassement).toBeLessThanOrEqual(1)
   } finally {
     await context.close()
   }
