@@ -374,3 +374,56 @@ test('la recherche d’un adversaire compte le temps d’attente, et le bandeau 
     await api.post('/api/matches/search/cancel', { data: { playerId: identity.playerId, pace: 'realtime' } })
   }
 })
+
+test('l’accueil montre six amis, connectés en tête, sans les comprimer', async ({ browser }) => {
+  // La rangée n'en montrait que trois, et les absents disparaissaient (demande
+  // du propriétaire, 17/09/2026). Six désormais, déconnectés compris.
+  function identite(nom: string) {
+    return {
+      version: 1,
+      playerId: `guest_${randomUUID()}`,
+      displayName: nom,
+      accountType: 'guest',
+      friendCode: randomUUID().slice(0, 6).toUpperCase(),
+      createdAt: new Date().toISOString(),
+    }
+  }
+  async function session(identity: ReturnType<typeof identite>) {
+    const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+    expect((await api.post('/api/auth/bootstrap', { data: { identity } })).ok()).toBe(true)
+    expect((await api.post('/api/social/register', { data: { displayName: identity.displayName } })).ok()).toBe(true)
+    return api
+  }
+
+  const moi = identite('Hote QA')
+  const apiMoi = await session(moi)
+  // Deux demandes croisées valent une amitié : la seconde trouve la première et
+  // les lie directement (motmanSocialPlugin, route `request`).
+  for (const nom of ['Clara', 'Theo', 'Naima', 'Hugo', 'Lena', 'Yanis', 'Sofia', 'Marius']) {
+    const ami = identite(nom)
+    const apiAmi = await session(ami)
+    expect((await apiAmi.post('/api/social/request', { data: { targetId: moi.playerId } })).ok()).toBe(true)
+    expect((await apiMoi.post('/api/social/request', { data: { targetId: ami.playerId } })).ok()).toBe(true)
+  }
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  await context.addInitScript(stored => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, moi)
+  const page = await context.newPage()
+
+  try {
+    await page.goto('/#accueil')
+    const visages = page.locator('.mm-home-friend')
+    await expect(visages.first()).toBeVisible()
+    await expect(visages).toHaveCount(6)
+
+    // Et sans les écraser : la grille les comprimait pour tenir sur une ligne,
+    // les visages se touchaient à six. Elle passe à la ligne désormais.
+    const largeur = await visages.first().evaluate(element => element.getBoundingClientRect().width)
+    expect(largeur).toBeGreaterThanOrEqual(70)
+  } finally {
+    await context.close()
+  }
+})

@@ -56,7 +56,11 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
     }
   }
   const presenceWeight = { offline: 0, online: 1, playing: 2 }
-  const visibleFriends = [...social.friends].sort((left, right) => presenceWeight[right.activity] - presenceWeight[left.activity]).slice(0, 3)
+  // SIX amis, déconnectés compris (demande du propriétaire, 17/09/2026) : la
+  // rangée n'en montrait que trois, et tous les absents disparaissaient. Les
+  // connectés passent devant — ce sont ceux avec qui on peut jouer tout de
+  // suite —, et la rangée passe à la ligne plutôt que de comprimer les visages.
+  const visibleFriends = [...social.friends].sort((left, right) => presenceWeight[right.activity] - presenceWeight[left.activity]).slice(0, 6)
   const xpGoal = experienceGoalForLevel(progress.level)
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
   const currentRank = rankedDivision(progress.rankedPoints, progress.rankedMatches)
