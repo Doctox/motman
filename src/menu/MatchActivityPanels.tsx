@@ -3,7 +3,6 @@ import type { MatchInvitation } from '../matches'
 import { playerInitials } from '../playerIdentity'
 import { useDialogFocus } from '../useDialogFocus'
 import { Avatar } from './MenuChrome'
-import { useSecondesEcoulees } from './ChronoRecherche'
 
 export function MatchInvitationPanel({ invitation, busy, accept, decline }: {
   invitation: MatchInvitation
@@ -35,23 +34,3 @@ export function MatchWaitingPanel({ invitation, busy, cancel }: { invitation: Ma
   </section>
 }
 
-/**
- * Recherche d'un adversaire normal, avec le temps écoulé.
- *
- * POURQUOI SEULEMENT L'ÉCOULÉ, ET AUCUNE ESTIMATION. Les testeurs demandaient
- * un temps d'attente « estimé » pour décider s'il faut patienter (suggestion
- * S-03, rapport 6766). Il n'y a rien à estimer : le serveur bascule sur un bot
- * au bout de quinze secondes (`BOT_SEARCH_MS`), donc l'attente est bornée par
- * construction et personne ne patiente jamais longtemps. La vraie question du
- * joueur n'est pas « combien de temps encore » mais « est-ce que c'est bloqué » —
- * et un compteur qui avance y répond, là où trois points qui clignotent non.
- */
-export function NormalSearchPanel({ busy, cancel, since }: { busy: boolean; cancel: () => void; since?: string }) {
-  const secondes = useSecondesEcoulees(since)
-
-  return <section className="mm-live-activity is-search" role="region" aria-live="polite" aria-label="Recherche d’un adversaire">
-    <span className="mm-live-activity-icon swords"><Swords /></span>
-    <span className="mm-live-activity-copy"><small>Match normal</small><strong>Recherche en cours{secondes === null ? '' : ` · ${secondes} s`}</strong><em>Temps limité · 45 s</em></span>
-    <button type="button" disabled={busy} onClick={cancel}>{busy ? 'Annulation…' : 'Annuler'}</button>
-  </section>
-}

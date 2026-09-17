@@ -324,7 +324,7 @@ test('les quêtes du jour se suivent, se récupèrent une fois, et la pastille s
   await expect(rouvert.getByRole('button', { name: 'Récupérer' })).toHaveCount(2)
 })
 
-test('la recherche d’un adversaire compte le temps d’attente, et le bandeau reste lisible', async ({ browser }) => {
+test('la recherche d’un adversaire compte son attente, et elle seule l’affiche', async ({ browser }) => {
   // Le 17/09/2026, les trois points qui clignotaient ont laissé place à un
   // chrono. Il MONTE : la question du joueur est « est-ce que c'est bloqué »,
   // pas « combien de temps encore » — personne ne peut promettre une fin.
@@ -359,13 +359,10 @@ test('la recherche d’un adversaire compte le temps d’attente, et le bandeau 
     await page.waitForTimeout(2500)
     expect(await secondes()).toBeGreaterThan(premier)
 
-    // Le bandeau du bas dit la même attente. Ses trois points sont partis avec
-    // ceux de la carte : sa grille comptait une colonne pour eux, et la laisser
-    // vide rognait 72 px sur le texte, qui se faisait tronquer.
-    const titre = page.locator('.mm-live-activity.is-search .mm-live-activity-copy strong')
-    await expect(titre).toBeVisible()
-    await expect(titre).toContainText('Recherche en cours')
-    expect(await titre.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+    // Le bandeau qui répétait cette attente sur tous les écrans est retiré
+    // (17/09/2026) : une recherche normale trouve en quinze secondes, et c'est
+    // ici qu'on la regarde. Il ne doit donc plus apparaître nulle part.
+    await expect(page.locator('.mm-live-activity')).toHaveCount(0)
   } finally {
     await context.close()
     // La file est partagée par toute la suite : une recherche laissée en plan

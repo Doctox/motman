@@ -47,19 +47,16 @@ export function useReadingWindow(match: MatchState | null): number | null {
 }
 
 /**
- * Le bandeau de lecture. Il ne recouvre RIEN : la grille doit rester lisible,
- * c'est tout l'objet de ces dix secondes.
+ * La consigne, en fenêtre flottante au-dessus du chevalet. Elle ne recouvre pas
+ * la grille : c'est elle qu'il faut lire pendant ces dix secondes.
  *
- * Le décompte est masqué aux lecteurs d'écran — la consigne, elle, est annoncée
- * une fois. Un chiffre qui change chaque seconde dans une région `status` ferait
- * répéter la consigne en boucle.
+ * Le décompte n'est PAS ici : il vit dans le cercle du jeu, là où le joueur
+ * regarde déjà le temps (TurnTiming.tsx). Un second cadran à côté du plateau
+ * aurait demandé d'apprendre deux endroits pour la même information.
  */
-export function ReadingWindow({ secondes }: { secondes: number }) {
+export function ReadingWindow() {
   return <div className="turn-reading" role="status">
-    <span>
-      <strong>Lisez la grille</strong>
-      <small>Touchez une définition pour l’agrandir.</small>
-    </span>
-    <b aria-hidden="true">{secondes}</b>
+    <strong>Lisez la grille</strong>
+    <small>Touchez une définition pour l’agrandir.</small>
   </div>
 }

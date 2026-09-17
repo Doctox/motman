@@ -22,7 +22,7 @@ import { AppHeader, BottomNav } from './menu/MenuChrome'
 import { FirstRunTutorial } from './menu/FirstRunTutorial'
 import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
-import { MatchInvitationPanel, MatchWaitingPanel, NormalSearchPanel } from './menu/MatchActivityPanels'
+import { MatchInvitationPanel, MatchWaitingPanel } from './menu/MatchActivityPanels'
 import { PlayPage } from './menu/PlayPage'
 import { EditGuestPanel, ProfilePage, QuickMenu, RankingPage } from './menu/ProfilePanels'
 import { SettingsPanel } from './menu/SettingsPanel'
@@ -363,9 +363,6 @@ export function MenuApp({
   }
 
   const outgoingInvitation = matchLobby.outgoing[0]
-  // `find` et non `some` : le panneau affiche desormais le temps ecoule, donc il
-  // lui faut la recherche elle-meme et pas seulement son existence.
-  const realtimeSearch = matchLobby.searches.find(search => search.pace === 'realtime')
   const pendingResult = matchLobby.pendingResults?.[0]
 
   const acknowledgePendingResult = async (resultId: string) => {
@@ -394,9 +391,8 @@ export function MenuApp({
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}
     {editingGuest ? <EditGuestPanel identity={identity} progress={progress} cosmetics={cosmetics} close={() => setEditingGuest(false)} save={saveGuestProfile} /> : null}
     {matchLobby.incoming[0] ? <MatchInvitationPanel invitation={matchLobby.incoming[0]} busy={matchBusy} accept={() => void answerInvitation(matchLobby.incoming[0].id, 'accept')} decline={() => void answerInvitation(matchLobby.incoming[0].id, 'decline')} /> : null}
-    {outgoingInvitation || realtimeSearch ? <div className="mm-live-activities">
-      {outgoingInvitation ? <MatchWaitingPanel invitation={outgoingInvitation} busy={matchBusy} cancel={() => void cancelInvitation(outgoingInvitation.id)} /> : null}
-      {realtimeSearch ? <NormalSearchPanel busy={matchBusy} since={realtimeSearch.createdAt} cancel={() => void stopNormalSearch('realtime')} /> : null}
+    {outgoingInvitation ? <div className="mm-live-activities">
+      <MatchWaitingPanel invitation={outgoingInvitation} busy={matchBusy} cancel={() => void cancelInvitation(outgoingInvitation.id)} />
     </div> : null}
     {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
       ? <FirstRunTutorial seenVersion={tutorialSeenVersion} skip={() => closeTutorial()} finish={() => closeTutorial(true)} />

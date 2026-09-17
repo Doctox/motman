@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { MatchState } from '../matches'
+import { useReadingWindow } from './ReadingWindow'
 import { serverNow } from '../serverClock'
 
 const ASYNC_TURN_DURATION_SECONDS = 24 * 60 * 60
@@ -56,7 +57,12 @@ export function useTurnPhase(match: MatchState | null): TurnPhase {
  * à une et aucun tour ne court encore.
  */
 export function TurnTimer({ match, resolving }: { match: MatchState; resolving: boolean }) {
+  // Pendant la fenêtre de lecture, c'est ELLE que le cercle décompte. Le jeu a
+  // déjà un décompte, à l'endroit où l'œil le cherche : en ajouter un second à
+  // côté du plateau, c'était demander au joueur d'apprendre un deuxième cadran.
+  const lectureRestante = useReadingWindow(match)
   const labelAt = () => {
+    if (lectureRestante !== null) return String(lectureRestante)
     if (match.status !== 'active' || resolving) return '—'
     const seconds = Math.max(0, Math.ceil((new Date(match.turnEndsAt).getTime() - serverNow()) / 1_000))
     return turnClockLabel(seconds, match.pace === 'async')
@@ -71,6 +77,6 @@ export function TurnTimer({ match, resolving }: { match: MatchState; resolving: 
     if (match.status !== 'active' || resolving) return
     const timer = window.setInterval(update, 250)
     return () => window.clearInterval(timer)
-  }, [match.pace, match.status, match.turnEndsAt, match.turnNumber, resolving])
+  }, [match.pace, match.status, match.turnEndsAt, match.turnNumber, resolving, lectureRestante])
   return <span className="turn-timer">{label}</span>
 }
