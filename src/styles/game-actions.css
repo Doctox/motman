@@ -240,7 +240,7 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
     max-width:100%;
     max-height:100%;
   }
-  html.native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap>.board .clue{font-size:clamp(11px, calc(var(--cell-w) * .24), 14px)!important}
+  html.native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap>.board .clue{font-size:calc(clamp(11px, calc(var(--cell-w) * .24), 14px) / var(--mm-text-zoom,1))!important}
 }
 @media (max-width:699px) and (min-height:700px){
   html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap>.board{
@@ -252,7 +252,7 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
     max-width:100%;
     max-height:100%;
   }
-  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap>.board .clue{font-size:clamp(11px, calc(var(--cell-w) * .24), 14px)!important}
+  html:not(.native-runtime) .multiplayer-shell:not(.is-finished)>.board-wrap>.board .clue{font-size:calc(clamp(11px, calc(var(--cell-w) * .24), 14px) / var(--mm-text-zoom,1))!important}
 }
 /* Les définitions en image grandissent avec leur case : elles plafonnaient à
    35 px (23 px en case double) et restaient petites dans des cases agrandies. */
