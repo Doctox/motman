@@ -236,7 +236,7 @@ async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
 /**
  * Rend la main à l'observé avec un tour ENTIER devant lui.
  *
- * Le serveur de test raccourcit le tour illimité à six secondes
+ * Le serveur de test raccourcit le tour illimité à vingt secondes
  * (`MOTMAN_ASYNC_TURN_DURATION_MS`). Ouvrir la page sur son propre tour en
  * mange déjà la moitié — chargement, session, grille —, et le reste ne suffit
  * plus aux gestes lents (attendre l'éclair, viser une case). On ouvre donc la
@@ -297,7 +297,7 @@ test('après une attente, l’indice et le mélange se signalent — et se taise
   const { first, second, matchId } = await createNormalMatch(request, 'async', 'Aide visible')
   const initial = await loadMatch(request, first.playerId, matchId)
   // On observe celui qui ATTEND son tour : son tour commencera à un instant que
-  // ce test choisit, et il aura alors les six secondes entières du serveur de
+  // ce test choisit, et il aura alors les vingt secondes entières du serveur de
   // test devant lui. Ouvrir directement sur un tour déjà entamé ne laisserait
   // que ce qu'en aurait laissé le chargement de la page.
   const spectateur = initial.currentPlayerId === first.playerId ? second : first
@@ -517,7 +517,11 @@ test('l’accueil permet de reprendre chacune des trois parties illimitées', as
     await expect(page.locator('.board')).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`#partie=${chosen.matchId}$`))
 
-    await page.getByRole('button', { name: 'Retour à toutes les parties' }).click()
+    // La flèche pose la question (18/09/2026) : accueil, ou abandon.
+    await page.getByRole('button', { name: 'Options de sortie' }).click()
+    const sortie = page.getByRole('dialog', { name: 'Quitter la partie ?' })
+    await expect(sortie.getByRole('button', { name: 'Abandonner la partie' })).toBeVisible()
+    await sortie.getByRole('button', { name: 'Retour à l’accueil' }).click()
     await expect(page).toHaveURL(/#accueil$/)
     await expect(page.locator('.mm-current-match-card')).toHaveCount(3)
     await expect(page.getByLabel('3 parties en cours')).toBeVisible()
@@ -555,7 +559,8 @@ test('un résultat illimité reste affiché jusqu’à sa validation par le joue
     await page.waitForTimeout(3_000)
     await expect(page).toHaveURL(new RegExp(`#partie=${currentMatch.matchId}$`))
     await expect(page.locator('.board')).toBeVisible()
-    await page.getByRole('button', { name: 'Retour à toutes les parties' }).click()
+    await page.getByRole('button', { name: 'Options de sortie' }).click()
+    await page.getByRole('dialog', { name: 'Quitter la partie ?' }).getByRole('button', { name: 'Retour à l’accueil' }).click()
 
     await expect(page.locator('.game-result-screen')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Victoire !' })).toBeVisible()
@@ -1028,9 +1033,9 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
   const suivie = dailyQuests(dailyDateKey(Date.now())).find(quest => quest.counter === 'lettres' || quest.counter === 'mots')
   test.skip(!suivie, 'Aucune quête suivie en cours de partie aujourd’hui.')
 
-  // Temps limité : douze secondes par tour ici, contre six en illimité. Les
-  // gestes à l'écran — attendre l'éclair, viser une case, valider — ne tiennent
-  // pas dans un tour de six secondes déjà entamé par le chargement de la page.
+  // Temps limité : douze secondes par tour ici. Les gestes à l'écran — attendre
+  // l'éclair, viser une case, valider — doivent tenir dans un tour déjà entamé
+  // par le chargement de la page.
   const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Quete')
   const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 844 })
   try {

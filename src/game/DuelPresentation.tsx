@@ -16,6 +16,7 @@ import {
 import type { ExperienceAward } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
+import { useDialogFocus } from '../useDialogFocus'
 import { useCountUp } from './countUp'
 import { recompenseDuMatch } from './matchRewardPrefetch'
 import { loadSocialState, sendFriendRequestToPlayer } from '../social'
@@ -303,7 +304,24 @@ export function PendingResultPanel({
   </GameResultScreen>
 }
 
+/**
+ * « Quitter la partie ? » — la flèche retour du jeu (et le bouton retour
+ * d'Android, qui la presse). En illimité, la flèche ramenait directement à
+ * l'accueil ; depuis le 18/09/2026 elle pose la question, comme en temps
+ * limité : accueil (la partie attend) ou abandon (demande du propriétaire).
+ * Une vraie fenêtre (aria-modal) : le retour d'Android la referme.
+ */
 export function LeaveMatchPanel({ opponentName, isAsync = false, cancel, continueLater, leave }: { opponentName: string; isAsync?: boolean; cancel: () => void; continueLater?: () => void; leave: () => void }) {
-  return <div className="mm-modal-layer mm-pause-layer"><section className="mm-pause duel-leave"><h2>Quitter la partie ?</h2><p>{isAsync ? 'Vous pouvez la reprendre plus tard ou l’abandonner définitivement.' : `${opponentName} remportera la partie par abandon.`}</p><button type="button" onClick={cancel}>Continuer à jouer</button>{isAsync && continueLater ? <button type="button" className="secondary" onClick={continueLater}>Reprendre plus tard</button> : null}<button type="button" className="danger" onClick={leave}>Abandonner la partie</button></section></div>
+  const dialogRef = useDialogFocus<HTMLElement>(cancel)
+  const accueil = isAsync && continueLater
+  return <div className="mm-modal-layer mm-pause-layer" role="presentation">
+    <section ref={dialogRef} className="mm-pause duel-leave" role="dialog" aria-modal="true" aria-labelledby="duel-leave-title" tabIndex={-1}>
+      <h2 id="duel-leave-title">Quitter la partie ?</h2>
+      <p>{isAsync ? 'Elle vous attend à l’accueil — ou abandonnez-la, et votre adversaire gagne.' : `${opponentName} remportera la partie par abandon.`}</p>
+      {accueil ? <button type="button" data-dialog-autofocus onClick={continueLater}>Retour à l’accueil</button> : null}
+      <button type="button" className={accueil ? 'secondary' : undefined} data-dialog-autofocus={accueil ? undefined : true} onClick={cancel}>Continuer à jouer</button>
+      <button type="button" className="danger" onClick={leave}>Abandonner la partie</button>
+    </section>
+  </div>
 }
 

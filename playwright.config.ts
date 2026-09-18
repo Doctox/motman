@@ -49,7 +49,10 @@ export default defineConfig({
       // 2 s / 1 s / 0 s boundary matrix practical on every test run.
       // Production remains at 45 seconds.
       MOTMAN_TURN_DURATION_MS: String(E2E_TURN_DURATION_MS),
-      MOTMAN_ASYNC_TURN_DURATION_MS: '6000',
+      // Vingt secondes, plus six : depuis le 18/09/2026, un tour illimité laissé
+      // passer est un abandon (src/gameRules.ts). À six secondes, un test qui
+      // gardait une partie ouverte un peu longtemps la perdait au hasard.
+      MOTMAN_ASYNC_TURN_DURATION_MS: '20000',
       // Long enough for Chromium/WebKit to observe the two-beat turn cue reliably.
       MOTMAN_TURN_READY_DURATION_MS: '350',
       // La fenêtre de lecture du premier tour vaut dix secondes en production.
