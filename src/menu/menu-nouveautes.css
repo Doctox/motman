@@ -1,0 +1,84 @@
+/* ── LES NOUVEAUTÉS ET LEUR PISTE DE PASTILLES ─────────────────────────────
+   Une même pastille à trois endroits : la roue crantée, l'enveloppe du menu,
+   l'entrée non lue. Même teinte et même battement que celle de l'Épicerie
+   (`.mm-nav-badge`), pour qu'un joueur la reconnaisse d'un coup d'œil. */
+
+.mm-pastille {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--mm-coral);
+  box-shadow: 0 0 0 2px var(--mm-paper);
+  animation: mmBadgePulse 2.4s ease-in-out infinite;
+}
+
+/* Sur une icône ronde, la pastille se pose en haut à droite, sans décaler
+   l'icône. */
+.mm-roue,
+.mm-nouveautes-bouton { position: relative; }
+.mm-roue > .mm-pastille,
+.mm-nouveautes-bouton > .mm-pastille { position: absolute; top: 4px; right: 4px; }
+
+/* ── La liste ── */
+.mm-nouveautes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.mm-nouveaute {
+  border: 1px solid var(--mm-line);
+  border-radius: 14px;
+  background: var(--mm-surface);
+  overflow: hidden;
+}
+.mm-nouveaute > button {
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--mm-ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.mm-nouveaute > button > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mm-nouveaute small {
+  color: var(--mm-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.mm-nouveaute strong {
+  font: 600 1rem/1.25 'Playfair Display', serif;
+}
+.mm-nouveaute > button > svg {
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--mm-muted);
+  transition: transform .2s ease;
+}
+.mm-nouveaute.is-open > button > svg { transform: rotate(180deg); }
+.mm-nouveaute > p {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: var(--mm-ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Animations coupées dans les réglages du jeu : la pastille ne bat plus. */
+html[data-motion="off"] .mm-pastille { animation: none; }
+html[data-motion="off"] .mm-nouveaute > button > svg { transition: none; }

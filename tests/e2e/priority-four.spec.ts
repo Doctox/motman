@@ -570,3 +570,57 @@ test('une partie qui n’existe plus ramène à l’accueil, au lieu de piéger 
     await context.close()
   }
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LES NOUVEAUTÉS : une piste de pastilles, de la roue crantée jusqu'à l'entrée.
+//
+// Le propriétaire l'a voulue ainsi le 18/09/2026 : pastille sur la roue, puis
+// sur l'enveloppe du menu, puis sur chaque mise à jour non lue — et c'est en
+// OUVRANT une entrée qu'elle s'éteint, pas en survolant la liste. Toute la
+// piste disparaît quand il n'en reste plus aucune à lire.
+// ─────────────────────────────────────────────────────────────────────────────
+test('les nouveautés se signalent de la roue jusqu’à l’entrée, et s’éteignent quand on l’ouvre', async ({ page }) => {
+  // Le tutoriel est déjà vu (beforeEach) : c'est un HABITUÉ, les entrées lui
+  // sont signalées. Un joueur tout neuf, lui, n'aurait aucune pastille.
+  await page.goto('/')
+  await expect(page.locator('.mm-bottom-nav')).toBeVisible()
+
+  const roue = page.locator('.mm-roue')
+  await expect(roue.locator('.mm-pastille')).toBeVisible()
+  await roue.click()
+
+  const enveloppe = page.locator('.mm-nouveautes-bouton')
+  await expect(enveloppe.locator('.mm-pastille')).toBeVisible()
+  await enveloppe.click()
+  await expect(page.getByRole('heading', { name: 'Nouveautés' })).toBeVisible()
+
+  const entrees = page.locator('.mm-nouveaute')
+  const total = await entrees.count()
+  expect(total).toBeGreaterThan(0)
+  await expect(page.locator('.mm-nouveaute .mm-pastille')).toHaveCount(total)
+
+  // Ouvrir la première : SA pastille s'éteint, son texte apparaît, les autres
+  // restent signalées.
+  await entrees.nth(0).getByRole('button').click()
+  await expect(entrees.nth(0).locator('.mm-pastille')).toHaveCount(0)
+  await expect(entrees.nth(0).locator('p')).toBeVisible()
+  await expect(page.locator('.mm-nouveaute .mm-pastille')).toHaveCount(total - 1)
+
+  // Tant qu'il en reste une à lire, l'enveloppe et la roue restent allumées.
+  await page.getByRole('button', { name: 'Retour au menu' }).click()
+  if (total > 1) await expect(enveloppe.locator('.mm-pastille')).toBeVisible()
+
+  // Tout lire éteint toute la piste.
+  await enveloppe.click()
+  for (let index = 1; index < total; index += 1) await entrees.nth(index).getByRole('button').click()
+  await expect(page.locator('.mm-nouveaute .mm-pastille')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Retour au menu' }).click()
+  await expect(enveloppe.locator('.mm-pastille')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Fermer' }).click()
+  await expect(roue.locator('.mm-pastille')).toHaveCount(0)
+
+  // Et ça tient au rechargement : l'état « lu » est retenu.
+  await page.reload()
+  await expect(page.locator('.mm-bottom-nav')).toBeVisible()
+  await expect(roue.locator('.mm-pastille')).toHaveCount(0)
+})

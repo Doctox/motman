@@ -1,3 +1,4 @@
+import { useNouveauteEnAttente } from '../nouveautes'
 import type { ReactNode } from 'react'
 import { BarChart3, Gamepad2, Home, Settings, ShoppingBasket, User } from 'lucide-react'
 import { assetUrl } from '../assetUrl'
@@ -8,6 +9,7 @@ import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RA
 import type { SocialUser } from '../social'
 import type { MenuPage } from './types'
 import { QuestsChip } from './QuestsPanel'
+import './menu-nouveautes.css'
 
 function Brand() {
   return <div className="mm-brand"><img src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /></div>
@@ -27,10 +29,15 @@ export function presenceLabel(activity: 'offline' | 'online' | 'playing'): strin
 }
 
 export function AppHeader({ onSettings }: { onMenu?: () => void; onSettings: () => void }) {
+  // Premier maillon de la piste de pastilles (src/nouveautes.ts) : une entrée
+  // non lue allume la roue crantée, puis l'enveloppe du menu, puis l'entrée.
+  const nouveauteEnAttente = useNouveauteEnAttente()
   return <header className="mm-header">
     <QuestsChip />
     <Brand />
-    <button className="mm-icon-button" type="button" aria-label="Menu" onClick={onSettings}><Settings /></button>
+    <button className="mm-icon-button mm-roue" type="button" aria-label={nouveauteEnAttente ? 'Menu · il y a du nouveau' : 'Menu'} onClick={onSettings}>
+      <Settings />{nouveauteEnAttente ? <i className="mm-pastille" aria-hidden="true" /> : null}
+    </button>
   </header>
 }
 
