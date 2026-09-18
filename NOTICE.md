@@ -22,6 +22,13 @@ Sources complémentaires étudiées, mais non encore fusionnées au catalogue :
 
 Les marques et interfaces d’autres jeux éventuellement étudiées comme références ne sont pas incluses dans le projet.
 
+Les typographies `DM Sans` et `Playfair Display`, embarquées dans
+`public/assets/fonts/`, sont distribuées sous SIL Open Font License 1.1. Le
+texte complet de chaque licence est livré à côté du fichier de police, comme
+l'OFL l'exige — `LICENSE-DM-Sans.txt` et `LICENSE-Playfair-Display.txt`.
+
+- SIL Open Font License 1.1 : https://openfontlicense.org/
+
 Les indices-images placés dans `public/assets/clues/twemoji` proviennent de
 Twemoji et sont distribués sous licence CC BY 4.0.
 
