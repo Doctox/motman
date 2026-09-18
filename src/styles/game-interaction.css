@@ -432,6 +432,14 @@ html[data-motion="off"] .turn-ready-flash span{animation:turnReadyHeartbeatReduc
 .board .clue.double-clue .clue-entry:not(.image-entry){padding:1px 3px 8px 1px}
 .board .clue .clue-entry:not(.image-entry) b{bottom:1px;font-size:calc(9px / var(--zoom-texte,1));line-height:1}
 .board .clue.double-clue .clue-entry:not(.image-entry) b{font-size:calc(8px / var(--zoom-texte,1));line-height:1}
+/* SUR LE SITE, les définitions étaient trop petites (19/09/2026, téléphone du
+   propriétaire, dans Chrome) : la barre d'adresse mange de la hauteur, le plateau
+   rétrécit, et une case de définition ne laissait au texte que 34 × 26 px sur
+   39 × 37. Marges réduites (le bas garde 5 px pour la flèche) et gras un cran
+   plus fort : 6,1 → 6,5 px, et nettement plus lisible. Essayé en direct sur son
+   écran et validé. L'app, où le plateau a plus de hauteur, n'est pas touchée. */
+html:not(.native-runtime) .board .clue .clue-entry:not(.image-entry){padding:1px 1px 5px 1px;font-weight:800}
+html:not(.native-runtime) .board .clue.double-clue .clue-entry:not(.image-entry){padding:1px 1px 4px 1px}
 
 /* Coupe française autorisée dans une définition qui bloque la taille du plateau
    (clueAutoFit.ts, planHyphenation). Mots d'au moins 8 lettres, 3 de chaque côté
