@@ -25,7 +25,7 @@ import { asyncTimeLeft, matchOpponent } from './HomePage'
 // téléphone à l'autre. Ils sont décoratifs, le libellé à côté porte le sens.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type PlayTabId = 'normal' | 'ranked' | 'friends'
+export type PlayTabId = 'normal' | 'ranked' | 'friends'
 
 const ONGLETS: Array<{ id: PlayTabId; icone: ReactNode; label: string }> = [
   { id: 'normal', icone: <Trophy />, label: 'Normal' },
@@ -106,7 +106,7 @@ function SearchingCard({ titre, detail, depuis, annuler, disabled }: { titre: st
   </section>
 }
 
-export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked }: {
+export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab }: {
   identity: GuestIdentity
   social: SocialState
   lobby: MatchLobbyState
@@ -123,8 +123,10 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   rankedError: string | null
   startRanked: () => Promise<void>
   cancelRanked: () => Promise<void>
+  /** L'onglet demandé par l'écran d'où l'on vient (un ami touché à l'accueil → Amis). */
+  initialTab?: PlayTabId
 }) {
-  const [onglet, setOnglet] = useState<PlayTabId>(lireDernierMode)
+  const [onglet, setOnglet] = useState<PlayTabId>(() => initialTab ?? lireDernierMode())
   const [normalPace, setNormalPace] = useState<MatchPace>('realtime')
   const [friendPace, setFriendPace] = useState<MatchPace>('realtime')
   const [matchBusy, setMatchBusy] = useState<string | null>(null)
@@ -245,7 +247,13 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </section>
 
         <div className="mm-play-friends">
-        {lobby.outgoing.map(invitation => <div className="mm-friend-line is-waiting" key={invitation.id}>
+        {/* UNE LIGNE PAR AMI. L'invitation envoyée avait sa propre ligne, avec
+            des initiales à la place du portrait, AU-DESSUS de celle de l'ami :
+            le même joueur apparaissait deux fois, comme deux profils (relevé
+            par le propriétaire le 18/09/2026). Elle vit maintenant dans la
+            ligne de l'ami. Seule une invitation vers quelqu'un qui n'est plus
+            dans la liste garde une ligne à elle, pour rester annulable. */}
+        {lobby.outgoing.filter(invitation => !social.friends.some(friend => friend.playerId === invitation.guestId)).map(invitation => <div className="mm-friend-line is-waiting" key={invitation.id}>
           <Avatar label={playerInitials(invitation.guest?.displayName ?? 'A')} small />
           <span className="mm-friend-line-copy">
             <strong>{invitation.guest?.displayName ?? 'Votre ami'}</strong>
@@ -255,20 +263,30 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </div>)}
 
         {social.friends.map(friend => {
-          const dejaInvite = lobby.outgoing.some(invitation => invitation.guestId === friend.playerId)
+          const invitation = lobby.outgoing.find(candidate => candidate.guestId === friend.playerId)
           const injoignable = friendPace === 'realtime' && (!friend.online || friend.activity === 'playing')
-          return <div className={`mm-friend-line ${friend.online ? '' : 'is-offline'}`} key={friend.playerId}>
+          return <div className={`mm-friend-line ${friend.online ? '' : 'is-offline'} ${invitation ? 'is-waiting' : ''}`} key={friend.playerId}>
             <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
             <span className="mm-friend-line-copy">
               <strong>{friend.displayName}</strong>
-              <small>{injoignable && !dejaInvite ? `${presenceLabel(friend.activity)} · invitation en illimité` : presenceLabel(friend.activity)}</small>
+              <small>{invitation
+                // L'essentiel d'abord : la ligne est étroite et se coupe à droite.
+                ? `Invitation envoyée · ${invitation.pace === 'async' ? 'temps illimité' : 'temps limité'}`
+                : injoignable ? `${presenceLabel(friend.activity)} · invitation en illimité` : presenceLabel(friend.activity)}</small>
             </span>
-            <button
-              type="button"
-              disabled={injoignable || dejaInvite || matchBusy !== null}
-              aria-label={`Inviter ${friend.displayName}`}
-              onClick={async () => { retenirMode('friends'); setMatchBusy(friend.playerId); await invite(friend.playerId, friendPace); setMatchBusy(null) }}
-            >{dejaInvite ? 'Envoyée' : friendPace === 'realtime' && friend.activity === 'playing' ? 'En jeu' : 'Inviter'}</button>
+            {invitation
+              ? <button
+                type="button"
+                disabled={matchBusy !== null}
+                aria-label={`Annuler l’invitation à ${friend.displayName}`}
+                onClick={async () => { setMatchBusy(invitation.id); await cancelInvite(invitation.id); setMatchBusy(null) }}
+              >Annuler</button>
+              : <button
+                type="button"
+                disabled={injoignable || matchBusy !== null}
+                aria-label={`Inviter ${friend.displayName}`}
+                onClick={async () => { retenirMode('friends'); setMatchBusy(friend.playerId); await invite(friend.playerId, friendPace); setMatchBusy(null) }}
+              >{friendPace === 'realtime' && friend.activity === 'playing' ? 'En jeu' : 'Inviter'}</button>}
           </div>
         })}
 

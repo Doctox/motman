@@ -267,6 +267,9 @@ html[data-motion="off"] .mm-normal-search .mm-match-emblem{animation:none!import
 /* Les amis : une rangée de visages, pas une liste de lignes. */
 .mm-home-friend-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));grid-template-rows:repeat(2,auto);grid-auto-rows:0;overflow:hidden;justify-content:start;column-gap:6px;row-gap:12px}
 .mm-shell .mm-home-friend{min-width:0;padding:4px 2px;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:4px;border:0;border-radius:0;background:transparent;box-shadow:none;text-align:center}
+/* Un visage se touche : il mène à Jouer, onglet Amis (18/09/2026). */
+.mm-shell button.mm-home-friend{width:100%;height:auto;min-height:0;cursor:pointer;border-radius:12px}
+.mm-shell button.mm-home-friend:hover,.mm-shell button.mm-home-friend:focus-visible{background:color-mix(in srgb,var(--mm-sage) 55%,transparent);outline:0}
 .mm-home-friend-row .mm-home-friend-avatar{width:46px;height:46px}
 .mm-home-friend-row .mm-home-friend-avatar>i{right:0;bottom:0;width:12px;height:12px}
 .mm-home-friend strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 0.8125rem 'Playfair Display',serif}

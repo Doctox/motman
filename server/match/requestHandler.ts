@@ -119,6 +119,19 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     if (pace === 'realtime' && !target.online) return sendJson(response, 409, { error: `${target.displayName} est hors ligne.` })
     if (pace === 'realtime' && (activeMatches(playerId, 'realtime').length || activeMatches(targetId, 'realtime').length))
       return sendJson(response, 409, { error: 'Un des joueurs est déjà en partie.' })
+    // L'ami m'a déjà invité au même rythme : l'inviter à mon tour, c'est accepter
+    // son invitation — une seule partie pour les deux. Même règle que match-api
+    // (supabase/functions/match-api/matchInvitations.ts), relevée le 18/09/2026.
+    const croisee = database.invitations.find(invitation => invitation.status === 'pending' &&
+      invitation.hostId === targetId && invitation.guestId === playerId && invitation.pace === pace)
+    if (croisee) {
+      const match = createMatch(croisee.hostId, croisee.guestId, 'friend', croisee.pace, croisee.id, croisee.id)
+      database.matches.push(match)
+      croisee.status = 'accepted'
+      croisee.matchId = match.id
+      saveDatabase()
+      return sendJson(response, 200, lobbyState(playerId))
+    }
     const existing = database.invitations.find(invitation => invitation.status === 'pending' &&
       ((invitation.hostId === playerId && invitation.guestId === targetId) || (invitation.hostId === targetId && invitation.guestId === playerId)))
     if (!existing) {

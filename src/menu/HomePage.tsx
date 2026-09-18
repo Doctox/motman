@@ -32,7 +32,7 @@ function activeMatchLabel(match: MatchState): string {
   return 'Match normal'
 }
 
-export function HomePage({ identity, progress, cosmetics, social, lobby, play, playDaily, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playDaily: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
+export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
   const firstRequest = social.incoming[0]
   const codeAmi = shortPlayerId(identity.playerId)
   // Partage natif quand l'appareil le propose, presse-papiers sinon. Les deux
@@ -131,11 +131,13 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
           pas des lignes de texte. Pas de tuile « Ajouter » ici — le bouton de
           l'en-tête fait déjà cela, et à trois amis les noms se couperaient. */}
       {visibleFriends.length ? <div className="mm-home-friend-row">
-        {visibleFriends.map(friend => <div className="mm-home-friend" key={friend.playerId}>
+        {/* Toucher un ami mène là où l'on joue avec lui : Jouer, onglet Amis
+            (demande du propriétaire, 18/09/2026). */}
+        {visibleFriends.map(friend => <button type="button" className="mm-home-friend" key={friend.playerId} onClick={playWithFriends} aria-label={`Jouer avec ${friend.displayName}, ${presenceLabel(friend.activity).toLowerCase()}`}>
           <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
           <strong>{friend.displayName}</strong>
           <small>{presenceLabel(friend.activity)}</small>
-        </div>)}
+        </button>)}
       </div> : <>
         <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter votre premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>
         {/* Un joueur sans aucun ami doit pouvoir DONNER son code, pas seulement

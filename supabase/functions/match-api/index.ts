@@ -35,6 +35,7 @@ import { atomicResult, botSkillForLevel, createBot, createMatch, MatchStateConfl
 import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
+import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchInvitations.ts'
 
 Deno.serve(async request => {
   const http = createHttpResponder(request, Deno.env.get('MOTMAN_ALLOWED_ORIGINS'))
@@ -366,29 +367,10 @@ Deno.serve(async request => {
       return json(200, { match: await view(admin, created.row, user.id, created.grid) })
     }
 
-    if (action === 'create') {
-      const targetId = typeof body.targetId === 'string' && UUID_PATTERN.test(body.targetId) ? body.targetId : ''
-      if (!targetId) return json(400, { error: 'Joueur invalide.' })
-      const pace: Pace = body.pace === 'async' ? 'async' : 'realtime'
-      const [left, right] = [user.id, targetId].sort()
-      if (await playersBlocked(admin, user.id, targetId)) return json(409, { error: 'Cette invitation ne peut pas être envoyée.' })
-      const { data: friendship } = await admin.from('friendships').select('left_user_id').eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
-      if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans vos amis.' })
-      const { data: invitation, error: invitationError } = await admin.from('server_match_invitations')
-        .insert({ host_id: user.id, guest_id: targetId, pace, expires_at: new Date(Date.now() + (pace === 'async' ? 7 * 86400000 : 120000)).toISOString() })
-        .select('id').single()
-      if (invitationError || !invitation) throw invitationError ?? new Error('Invitation non créée.')
-      const inviter = await profile(admin, user.id)
-      notifyFriendInvitation(admin, targetId, invitation.id, inviter?.displayName ?? 'Un ami', pace)
-      return json(200, await lobby())
-    }
-
-    if (action === 'respond') {
-      const invitationId = typeof body.invitationId === 'string' ? body.invitationId : ''
-      const { data: invitation } = await admin.from('server_match_invitations').select('*').eq('id', invitationId).eq('guest_id', user.id).maybeSingle()
-      if (!invitation) return json(404, { error: 'Invitation expirée.' })
-
-      const decision = body.decision === 'accept' ? 'accept' : 'decline'
+    // Répondre à une invitation reçue — depuis la carte d'invitation, ou depuis
+    // `create` quand l'ami m'avait déjà invité (voir matchInvitations.ts).
+    // Rend une réponse d'erreur, ou `null` si c'est réglé.
+    const repondreInvitation = async (invitation: InvitationRow, decision: 'accept' | 'decline'): Promise<Response | null> => {
       const prepared = decision === 'accept' && invitation.status === 'pending'
         ? await prepareAtomicMatch(admin, invitation.host_id, user.id, invitation.pace as Pace, invitation.id, null)
         : null
@@ -422,7 +404,43 @@ Deno.serve(async request => {
         if (result.status === 'invalid') throw new Error('Données de partie invalides.')
         return json(404, { error: 'Invitation expirée.' })
       }
+      return null
+    }
+
+    if (action === 'create') {
+      const targetId = typeof body.targetId === 'string' && UUID_PATTERN.test(body.targetId) ? body.targetId : ''
+      if (!targetId) return json(400, { error: 'Joueur invalide.' })
+      const pace: Pace = body.pace === 'async' ? 'async' : 'realtime'
+      const [left, right] = [user.id, targetId].sort()
+      if (await playersBlocked(admin, user.id, targetId)) return json(409, { error: 'Cette invitation ne peut pas être envoyée.' })
+      const { data: friendship } = await admin.from('friendships').select('left_user_id').eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
+      if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans vos amis.' })
+      // L'ami m'a déjà invité au même rythme : l'inviter à mon tour, c'est
+      // accepter. Une seule partie pour les deux (voir matchInvitations.ts).
+      const dejaInvite = await invitationCroisee(admin, user.id, targetId, pace)
+      if (dejaInvite) return await repondreInvitation(dejaInvite, 'accept') ?? json(200, await lobby())
+      const { data: invitation, error: invitationError } = await admin.from('server_match_invitations')
+        .insert({ host_id: user.id, guest_id: targetId, pace, expires_at: new Date(Date.now() + (pace === 'async' ? 7 * 86400000 : 120000)).toISOString() })
+        .select('id').single()
+      if (invitationError || !invitation) throw invitationError ?? new Error('Invitation non créée.')
+      // Les deux invitations sont parties à la même milliseconde : aucune des
+      // deux requêtes n'a vu l'autre avant d'insérer. Une seule accepte.
+      const course = await invitationCroisee(admin, user.id, targetId, pace)
+      if (course) {
+        if (!jeDoisAccepter(invitation.id, course.id)) return json(200, await lobby())
+        await admin.from('server_match_invitations').update({ status: 'cancelled' }).eq('id', invitation.id).eq('status', 'pending')
+        return await repondreInvitation(course, 'accept') ?? json(200, await lobby())
+      }
+      const inviter = await profile(admin, user.id)
+      notifyFriendInvitation(admin, targetId, invitation.id, inviter?.displayName ?? 'Un ami', pace)
       return json(200, await lobby())
+    }
+
+    if (action === 'respond') {
+      const invitationId = typeof body.invitationId === 'string' ? body.invitationId : ''
+      const { data: invitation } = await admin.from('server_match_invitations').select('*').eq('id', invitationId).eq('guest_id', user.id).maybeSingle()
+      if (!invitation) return json(404, { error: 'Invitation expirée.' })
+      return await repondreInvitation(invitation as InvitationRow, body.decision === 'accept' ? 'accept' : 'decline') ?? json(200, await lobby())
     }
 
     if (action === 'cancel') {

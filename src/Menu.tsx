@@ -23,7 +23,7 @@ import { FirstRunTutorial } from './menu/FirstRunTutorial'
 import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
 import { MatchInvitationPanel, MatchWaitingPanel } from './menu/MatchActivityPanels'
-import { PlayPage } from './menu/PlayPage'
+import { PlayPage, type PlayTabId } from './menu/PlayPage'
 import { EditGuestPanel, ProfilePage, QuickMenu, RankingPage } from './menu/ProfilePanels'
 import { SettingsPanel } from './menu/SettingsPanel'
 import { lireThemeChoisi } from './menu/types'
@@ -248,7 +248,12 @@ export function MenuApp({
     notify('Choisissez maintenant votre nouveau mot de passe')
   }), [notify])
 
-  const navigate = (nextPage: MenuPage) => {
+  // L'onglet où ouvrir Jouer, quand l'écran d'origine en demande un (un ami
+  // touché à l'accueil → Amis). Toute autre navigation l'efface : la barre du
+  // bas rouvre Jouer sur le dernier mode lancé, comme avant.
+  const [ongletJouer, setOngletJouer] = useState<PlayTabId | undefined>(undefined)
+  const navigate = (nextPage: MenuPage, onglet?: PlayTabId) => {
+    setOngletJouer(onglet)
     setPage(nextPage)
     const hash = nextPage === 'home' ? 'accueil' : nextPage === 'play' ? 'jouer' : nextPage === 'ranking' ? 'classement' : nextPage === 'shop' ? 'epicerie' : 'profil'
     history.replaceState(null, '', `#${hash}`)
@@ -308,6 +313,15 @@ export function MenuApp({
     try {
       const next = await createInstantMatch(identity.playerId, friendId, pace)
       setMatchLobby(next)
+      // L'ami m'avait déjà invité au même rythme : le serveur a accepté son
+      // invitation au lieu d'en créer une seconde, et la partie existe déjà.
+      // On y entre, plutôt que d'annoncer une invitation qui n'est jamais partie.
+      const dejaCommencee = next.active.find(match => match.playerIds.includes(friendId) && !matchLobby.active.some(avant => avant.id === match.id))
+      if (dejaCommencee && openingMatch.current !== dejaCommencee.id) {
+        openingMatch.current = dejaCommencee.id
+        onStartMatch(dejaCommencee.id)
+        return
+      }
       if (pace === 'async') notify('Invitation envoyée · Vous pouvez continuer')
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Invitation impossible')
@@ -378,8 +392,8 @@ export function MenuApp({
 
   return <main className="mm-shell">
     <AppHeader onMenu={() => setQuickMenu(true)} onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
-    {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
+    {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de L’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
