@@ -15,6 +15,7 @@ import { loadPublicProfile, loadPublicProfiles, type PublicPlayerProfile } from 
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { publicGrid } from './matchGrid.ts'
 import type { Bot, CatalogGrid, MatchRow } from './matchModel.ts'
+import { currentPresenceDeadline } from './matchTurns.ts'
 
 export async function profile(admin: AdminClient, id: string) {
   return loadPublicProfile(admin, id)
@@ -50,7 +51,10 @@ export async function view(
     difficulty: state.difficulty, playerIds: state.playerIds, bot: state.bot, players: players.filter(Boolean),
     currentPlayerId: row.current_player_id, turnNumber: row.turn_number, turnStartedAt: row.turn_started_at, turnEndsAt: row.turn_ends_at,
     board: state.board, racks: { [viewerId]: state.racks[viewerId] ?? [] }, scores: state.scores,
-    productiveTurns: state.productiveTurns, inactivity: state.inactivity,
+    productiveTurns: state.productiveTurns, inactivity: state.inactivity, presenceAck: state.presenceAck ?? {},
+    // L'échéance « Je suis là » calculée ICI, par le serveur qui la fera respecter :
+    // le client n'affiche que ce décompte-là.
+    presenceDeadline: (() => { const echeance = currentPresenceDeadline(row); return echeance === null ? null : new Date(echeance).toISOString() })(),
     hint: state.hint?.playerId === viewerId ? state.hint : null, hintUsed: state.hintUsed, rerollUsed: state.rerollUsed,
     lastTurn: state.lastTurn, status: row.status, winnerId: row.winner_id, finishReason: row.finish_reason,
     rankedRating: rankedRating ? {

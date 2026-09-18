@@ -15,7 +15,7 @@ import { canUseReroll, gameWordCellIndexes, REWARD_EFFECT_LIFETIME_MS } from './
 import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
-  forfeitMatch, loadMatch, playMatchTurn, requestMatchHint, rerollMatchRack,
+  confirmMatchPresence, forfeitMatch, loadMatch, playMatchTurn, requestMatchHint, rerollMatchRack,
   type MatchState, type MatchTurn,
   type MatchPace,
 } from './matches'
@@ -312,7 +312,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
       provisionalRef.current = {}; setProvisional({}); setDisplayedScores(finalScores)
       resolvingRef.current = false; setResolving(false)
       setStatus(turn.kind === 'timeout'
-        ? owner === 'player' ? `Temps écoulé · ${turn.inactivityCount}/3` : `${opponentNameRef.current} n’a pas joué · ${turn.inactivityCount}/3`
+        ? owner === 'player' ? 'Temps écoulé' : `${opponentNameRef.current} n’a pas joué`
         : owner === 'player' ? 'Tour passé' : `${opponentNameRef.current} passe`)
     }
   }
@@ -769,9 +769,19 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
       missed: myInactivity,
       isMyTurn,
       justOpened: openingTurn.current?.matchId === match.id && openingTurn.current.turnNumber === match.turnNumber,
-      acknowledged: stillThereAck,
+      // La réponse vue par le serveur, ou celle qu'on vient de donner et qu'il
+      // n'a pas encore renvoyée.
+      acknowledged: Math.max(stillThereAck, match.presenceAck?.[playerId] ?? 0),
+      presenceDeadline: match.presenceDeadline,
     })
     : null
+  const repondrePresent = (missed: number) => {
+    setStillThereAck(missed)
+    noterActivite()
+    // Le serveur fait tomber l'échéance ; s'il répond que c'était trop tard, la
+    // partie revient terminée et l'écran de fin le dit.
+    void confirmMatchPresence(playerId, match.id).then(applyMatchState).catch(() => pollingRef.current?.wake())
+  }
 
   return <main className={`app-shell multiplayer-shell ${turnAlert ? 'turn-alerting' : ''} ${resolving ? 'is-resolving' : ''} ${presentationPhase === 'result' ? 'is-finished' : ''}`}>
     <header><button type="button" disabled={match.status === 'finished'} aria-label={match.status === 'active' && isAsync ? 'Retour à toutes les parties' : match.status === 'active' ? 'Options de sortie' : resolving ? 'Résultats en cours' : 'Validez le résultat ci-dessous'} onClick={() => match.status === 'active' && isAsync ? onHome() : match.status === 'active' ? setLeaveOpen(true) : undefined}><ArrowLeft /></button><img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
@@ -821,7 +831,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {turnAlert ? <div className="turn-ready-flash" role="status"><span>À vous !</span></div> : null}
-    {stillThere ? <StillThereDialog prompt={stillThere} confirm={() => setStillThereAck(stillThere.missed)} /> : null}
+    {stillThere ? <StillThereDialog prompt={stillThere} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
     {expandedClue ? <ClueZoom entry={expandedClue} onClose={() => setExpandedClue(null)} /> : null}
     {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}

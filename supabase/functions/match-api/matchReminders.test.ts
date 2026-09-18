@@ -124,17 +124,15 @@ Deno.test('le texte suit l’urgence, et prévient quand la partie est en jeu', 
   const item = (row: MatchRow, maintenant: number) => planReminders([row], new Map(), maintenant).byPlayer.get(MOI)!
 
   const a6h = t(debut) + 6 * HEURE
+  // Depuis le 18/09/2026, un tour de 24 h manqué est un abandon : chaque rappel le dit.
   const premier = reminderMessage(item(partie('m1', debut), a6h), noms, a6h)
-  egal([premier.title, premier.body], ['Camille attend votre coup', 'Il vous reste 18 h pour jouer.'], 'à 6 h')
+  egal([premier.title, premier.body], ['Camille attend votre coup', 'Sans coup d’ici 18 h, vous perdez la partie contre Camille.'], 'à 6 h')
   egal(premier.data, { type: 'match_turn', matchId: 'm1' }, 'ouvre la partie')
   egal(premier.tag, 'match-m1', 'remplace la notification « C’est à vous » de la même partie')
 
   const a18h = t(debut) + 18 * HEURE
   const dernier = reminderMessage(item(partie('m1', debut), a18h), noms, a18h)
-  egal([dernier.title, dernier.body], ['Plus que 6 h pour jouer', 'Sinon, votre tour contre Camille passe.'], 'à 18 h')
-
-  const abandon = reminderMessage(item(partie('m1', debut, { inactivite: 2 }), a18h), noms, a18h)
-  egal(abandon.body, 'Sans coup d’ici 6 h, vous perdez la partie contre Camille.', 'troisième tour manqué = défaite')
+  egal([dernier.title, dernier.body], ['Plus que 6 h pour jouer', 'Sans coup d’ici 6 h, vous perdez la partie contre Camille.'], 'à 18 h')
 
   const inconnu = reminderMessage(item(partie('m1', debut), a6h), new Map(), a6h)
   egal(inconnu.title, 'Votre adversaire attend votre coup', 'pseudo introuvable')

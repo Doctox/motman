@@ -34,6 +34,16 @@ export function DuelPlayer({ name, score, active, initials, avatarId, frameId, a
   return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong></span></div>
 }
 
+/**
+ * Une partie perdue par absence (règle du 18/09/2026, src/gameRules.ts) : un
+ * tour de 24 h laissé passer en illimité, ou « Tu es toujours là ? » resté sans
+ * réponse 30 s en temps limité.
+ */
+function absenceDetail(pace: string, won: boolean, opponentName: string): string {
+  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : 'Vous n’avez pas joué en 24 h : la partie est perdue par abandon.'
+  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'Vous n’avez pas répondu à temps : la partie est perdue.'
+}
+
 export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void }) {
   const [leaving, setLeaving] = useState(false)
   const [leavingError, setLeavingError] = useState<string | null>(null)
@@ -47,7 +57,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
   const detail = administrativeDraw
     ? 'La partie normale est déclarée égale car un joueur rejoint le match classé confirmé. Aucun gain ni perte n’est appliqué.'
     : match.finishReason === 'timeout'
-    ? won ? `${opponentName} n’a pas réagi pendant trois de ses tours.` : 'Vous avez laissé expirer trois de vos tours.'
+    ? absenceDetail(match.pace, won, opponentName)
     : match.finishReason === 'forfeit'
       ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
       : draw ? 'Vous terminez avec le même score.' : won ? 'Vous avez rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
@@ -248,7 +258,7 @@ export function PendingResultPanel({
   const opponentName = result.opponentName ?? 'Votre adversaire'
   const title = draw ? 'Égalité !' : won ? 'Victoire !' : 'Partie terminée'
   const detail = result.finishReason === 'timeout'
-    ? won ? `${opponentName} n’a pas réagi pendant trois de ses tours.` : 'Vous avez laissé expirer trois de vos tours.'
+    ? absenceDetail(result.pace, won, opponentName)
     : result.finishReason === 'forfeit'
       ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
       : draw ? 'Vous terminez avec le même score.' : won ? 'Vous avez rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`

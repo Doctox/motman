@@ -1,20 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// « TU ES TOUJOURS LÀ ? » — la fenêtre qui remplace les étiquettes « Vous 1/3 ».
+// « TU ES TOUJOURS LÀ ? » — la fenêtre du joueur absent, en temps limité.
 //
-// Les étiquettes d'inactivité sous le bandeau étaient petites, peu lisibles, et
-// arrivaient sans rien dire de ce qu'elles voulaient dire. Le joueur concerné
-// reçoit maintenant une vraie question, au bon moment :
-//   - en temps limité : à l'ouverture de la partie, et au début de son tour
-//     suivant après un tour manqué ;
-//   - en temps illimité : seulement au retour dans la partie. Un tour de 24 h
-//     manqué ne se découvre qu'en revenant ; pendant qu'on regarde la partie,
-//     la question n'aurait pas de sens.
-// Une fois « Je suis là » touché, elle ne revient pas pour le même compte de
-// tours manqués. Jouer un tour remet le compteur du serveur à zéro : un nouveau
-// tour manqué redemandera.
+// Règle du propriétaire du 18/09/2026 (src/gameRules.ts) : on ne compte plus
+// les tours manqués. Après un tour manqué, la fenêtre s'ouvre au début du tour
+// suivant du joueur, avec un décompte de 30 s. « Je suis là » (ou jouer) la
+// ferme ; à 0 s, la partie est perdue pour lui. C'est le SERVEUR qui fait
+// respecter l'échéance — le décompte affiché est la sienne (`presenceDeadline`).
+//
+// La fenêtre s'ouvre aussi à l'ouverture de la partie si le joueur doit encore
+// répondre ; pendant le tour de l'adversaire, sans décompte : l'échéance ne
+// court qu'une fois son tour commencé.
+//
+// En temps illimité, plus de fenêtre : un tour de 24 h manqué est un abandon.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { MAX_INACTIVITY_COUNT } from '../gameRules'
+import { presenceRequired } from '../gameRules'
 
 export type StillThereInput = {
   status: 'active' | 'finished'
@@ -25,22 +25,30 @@ export type StillThereInput = {
   isMyTurn: boolean
   /** Aucun tour n'a été joué depuis que le joueur a ouvert la partie. */
   justOpened: boolean
-  /** Compte de tours manqués pour lequel le joueur a déjà répondu « Je suis là ». */
+  /** Compte de tours manqués auquel le joueur a déjà répondu « Je suis là ». */
   acknowledged: number
+  /** L'échéance posée par le serveur pour le joueur dont c'est le tour. */
+  presenceDeadline?: string | null
 }
 
-export type StillTherePrompt = { missed: number; remaining: number }
+/** `deadline` : l'instant (ms) où la partie sera perdue, ou null sans décompte. */
+export type StillTherePrompt = { missed: number; deadline: number | null }
 
 export function stillTherePrompt(input: StillThereInput): StillTherePrompt | null {
+  if (input.status !== 'active' || input.pace !== 'realtime') return null
   const missed = Math.max(0, Math.floor(input.missed) || 0)
-  if (input.status !== 'active' || missed === 0 || missed >= MAX_INACTIVITY_COUNT) return null
-  // Un compteur revenu plus bas (le joueur a rejoué) efface la réponse d'avant.
-  if (missed <= input.acknowledged) return null
-  const moment = input.justOpened || (input.pace === 'realtime' && input.isMyTurn)
-  return moment ? { missed, remaining: MAX_INACTIVITY_COUNT - missed } : null
+  if (!presenceRequired(missed, input.acknowledged)) return null
+  if (!input.justOpened && !input.isMyTurn) return null
+  const echeance = input.isMyTurn && input.presenceDeadline ? Date.parse(input.presenceDeadline) : Number.NaN
+  return { missed, deadline: Number.isFinite(echeance) ? echeance : null }
 }
 
 /** La réponse à garder après « Je suis là », ou après un compteur redescendu. */
 export function acknowledgedAfter(acknowledged: number, missed: number): number {
   return Math.min(acknowledged, Math.max(0, missed))
+}
+
+/** Secondes entières restantes avant l'échéance (jamais négatives). */
+export function secondesRestantes(deadline: number, maintenant: number): number {
+  return Math.max(0, Math.ceil((deadline - maintenant) / 1000))
 }

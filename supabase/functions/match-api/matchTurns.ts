@@ -9,7 +9,7 @@
 // Voir `matchTurns.test.ts` pour ce qui est désormais couvert.
 
 import { planBotMove } from '../../../src/botOpponents.ts'
-import { evaluateTurn, keepRackLettersAfterTurn, REWARD_STEP_MS, shouldForfeitAfterInactivity } from '../../../src/gameRules.ts'
+import { evaluateTurn, keepRackLettersAfterTurn, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity } from '../../../src/gameRules.ts'
 import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
 import { ASYNC_TURN_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type MatchRow, type State, type Turn } from './matchModel.ts'
 
@@ -69,6 +69,8 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
     state.rackCompletions[playerId] = (state.rackCompletions[playerId] ?? 0) + 1
   }
   state.inactivity[playerId] = 0
+  // Jouer, c'est être là : le prochain tour manqué redemandera « Je suis là ».
+  if (state.presenceAck) state.presenceAck[playerId] = 0
   const turn: Turn = {
     id: crypto.randomUUID(), kind: 'played', playerId, turnNumber: row.turn_number,
     correct: evaluated.correctCells, wrong: evaluated.wrongCells, wrongPlacements: evaluated.wrongPlacements,
@@ -97,12 +99,46 @@ export function timeoutTurn(row: MatchRow) {
   state.inactivity[playerId] = inactivity
   const turn: Turn = { id: crypto.randomUUID(), kind: 'timeout', playerId, turnNumber: row.turn_number, correct: [], wrong: [], wrongPlacements: [], aidedCell: null, letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0, inactivityCount: inactivity, createdAt: nowIso() }
   state.lastTurn = turn; state.hint = null
-  if (shouldForfeitAfterInactivity(inactivity)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
+  if (shouldForfeitAfterInactivity(inactivity, row.pace)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
   else {
     const next = state.playerIds.find(id => id !== playerId)!
     const start = new Date(Date.now() + revealDuration(turn)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()
     row.turn_ends_at = new Date(start.getTime() + (row.pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS)).toISOString()
   }
+}
+
+/** Marge sur l'échéance « Je suis là », pour laisser arriver une réponse partie à temps. */
+export const PRESENCE_GRACE_MS = 2_000
+
+/** L'échéance « Je suis là » du joueur dont c'est le tour (voir presenceDeadline), ou null. */
+export function currentPresenceDeadline(row: Pick<MatchRow, 'pace' | 'status' | 'current_player_id' | 'turn_started_at' | 'state'>): number | null {
+  const joueur = row.current_player_id
+  if (!joueur || row.state.bot?.playerId === joueur) return null
+  return presenceDeadline({
+    pace: row.pace, status: row.status, turnStartedAt: row.turn_started_at,
+    inactivity: row.state.inactivity[joueur] ?? 0, acknowledged: row.state.presenceAck?.[joueur] ?? 0,
+  })
+}
+
+/** Le joueur dont c'est le tour a laissé passer ses 30 s sans répondre ni jouer. */
+export function presenceExpired(row: Pick<MatchRow, 'pace' | 'status' | 'current_player_id' | 'turn_started_at' | 'state'>, now = Date.now()): boolean {
+  const echeance = currentPresenceDeadline(row)
+  return echeance !== null && now >= echeance + PRESENCE_GRACE_MS
+}
+
+/** « Je suis là » : le joueur a répondu, l'échéance tombe jusqu'au prochain tour manqué. */
+export function acknowledgePresence(row: MatchRow, playerId: string): boolean {
+  if (row.status !== 'active' || !row.state.playerIds.includes(playerId)) return false
+  const manques = row.state.inactivity[playerId] ?? 0
+  if ((row.state.presenceAck?.[playerId] ?? 0) >= manques) return false
+  row.state.presenceAck = { ...(row.state.presenceAck ?? {}), [playerId]: manques }
+  return true
+}
+
+/** Sans réponse dans les 30 s, la partie est perdue pour l'absent. */
+export function forfeitAbsentPlayer(row: MatchRow) {
+  const absent = row.current_player_id
+  finish(row.state, row, row.state.playerIds.find(id => id !== absent) ?? null, 'timeout')
 }
 
 export function botPlacements(row: MatchRow, grid: CatalogGrid) {

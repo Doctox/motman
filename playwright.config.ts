@@ -14,6 +14,9 @@ const port = process.env.MOTMAN_E2E_PORT ?? '4175'
 // le processus Playwright n'a pas — il ne le transmet qu'au serveur.
 export const E2E_TURN_DURATION_MS = 12_000
 export const E2E_FIRST_TURN_READING_MS = 5_000
+// « Tu es toujours là ? » : 30 s en production, 8 s ici — assez pour ouvrir la
+// page et répondre, assez court pour attendre la défaite sans ralentir la suite.
+export const E2E_PRESENCE_WINDOW_MS = 8_000
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -53,6 +56,7 @@ export default defineConfig({
       // Raccourcie ici comme le reste, mais pas trop : la page doit avoir le temps
       // de se charger AVANT la fin de la fenêtre, sinon le bandeau n'est jamais vu.
       MOTMAN_FIRST_TURN_READING_MS: String(E2E_FIRST_TURN_READING_MS),
+      MOTMAN_PRESENCE_WINDOW_MS: String(E2E_PRESENCE_WINDOW_MS),
       MOTMAN_TURN_GRACE_MS: '1200',
       MOTMAN_AUTOMATIC_TURN_GRACE_MS: '4000',
       MOTMAN_REVEAL_STEP_MS: '30',

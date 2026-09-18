@@ -399,9 +399,8 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 .still-there>svg{color:var(--mm-coral,#c94d29)}
 .still-there h2{margin-top:8px}
 .still-there p{margin:0 0 6px}
-.still-there .still-there-count{color:var(--mm-ink,#073f36);font-size:1rem}
-.still-there .still-there-count b{font-variant-numeric:tabular-nums}
-.still-there-dots{display:flex;justify-content:center;gap:8px;margin:6px 0 10px}
-.still-there-dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--mm-line,#d7d1c2)}
-.still-there-dots i.is-missed{border-color:var(--mm-coral,#c94d29);background:var(--mm-coral,#c94d29)}
+/* Le décompte de 30 s (18/09/2026) : grand, en chiffres fixes, rouge à 10 s. */
+.still-there .still-there-countdown{margin:4px 0 8px;color:var(--mm-ink,#073f36);font:600 1rem 'DM Sans',sans-serif}
+.still-there .still-there-countdown b{font:600 2.75rem/1 'Playfair Display',serif;font-variant-numeric:tabular-nums}
+.still-there .still-there-countdown.is-urgent{color:var(--mm-coral,#c94d29)}
 .still-there #still-there-detail{margin-bottom:16px}

@@ -45,7 +45,6 @@ export type TurnEvaluation = {
 export const RACK_SIZE = 5
 export const RACK_COMPLETION_BONUS = 5
 export const FINAL_SPRINT_THRESHOLD = RACK_SIZE * 2
-export const MAX_INACTIVITY_COUNT = 3
 export const REWARD_STEP_MS = 1_240
 export const REWARD_EFFECT_LIFETIME_MS = 1_180
 
@@ -306,8 +305,55 @@ export function canUseReroll({ alreadyUsed, pendingPlacements, hintActive }: {
   return !alreadyUsed && pendingPlacements === 0 && !hintActive
 }
 
-export function shouldForfeitAfterInactivity(inactivityCount: number): boolean {
-  return inactivityCount >= MAX_INACTIVITY_COUNT
+// ─────────────────────────────────────────────────────────────────────────────
+// LE JOUEUR ABSENT — règle du propriétaire du 18/09/2026, qui remplace les trois
+// tours manqués d'affilée :
+//
+//   • temps ILLIMITÉ : un tour de 24 h laissé passer, c'est un abandon. La
+//     partie est perdue sur-le-champ — « je joue, mon adversaire joue 6 h après,
+//     je joue 4 h après, puis il ne joue pas sur les 24 h suivantes : j'ai
+//     gagné par abandon ».
+//   • temps LIMITÉ : un tour manqué n'est plus compté. Au début de son tour
+//     suivant, le joueur doit dire « Je suis là » (ou jouer) dans les 30 s de
+//     la fenêtre « Tu es toujours là ? ». Sinon la partie est perdue pour lui.
+//
+// Écrite UNE fois ici : le jeu, match-api et le serveur de test la lisent.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Temps limité : le délai pour répondre « Je suis là » après un tour manqué. */
+export const PRESENCE_WINDOW_MS = 30_000
+
+/** Ce tour manqué fait-il perdre la partie ? Oui en illimité ; en limité, c'est la fenêtre qui tranche. */
+export function shouldForfeitAfterInactivity(inactivityCount: number, pace: 'realtime' | 'async'): boolean {
+  return pace === 'async' && inactivityCount >= 1
+}
+
+/**
+ * Le joueur doit-il prouver sa présence ? Il a manqué un tour depuis sa dernière
+ * réponse. `inactivity` : tours manqués d'affilée (remis à 0 quand il joue) ;
+ * `acknowledged` : le compte auquel il a répondu « Je suis là ».
+ */
+export function presenceRequired(inactivity: number, acknowledged: number): boolean {
+  return Math.max(0, inactivity || 0) > Math.max(0, acknowledged || 0)
+}
+
+/**
+ * L'échéance « Je suis là » du joueur DONT C'EST LE TOUR, en millisecondes, ou
+ * null s'il n'en a pas. Seulement en temps limité, et seulement une fois son
+ * tour commencé : c'est le moment où la fenêtre s'ouvre.
+ */
+export function presenceDeadline(input: {
+  pace: 'realtime' | 'async'
+  status: string
+  turnStartedAt: string
+  inactivity: number
+  acknowledged: number
+  windowMs?: number
+}): number | null {
+  if (input.pace !== 'realtime' || input.status !== 'active') return null
+  if (!presenceRequired(input.inactivity, input.acknowledged)) return null
+  const debut = new Date(input.turnStartedAt).getTime()
+  return Number.isFinite(debut) ? debut + (input.windowMs ?? PRESENCE_WINDOW_MS) : null
 }
 
 export function isTurnSubmissionExpired(now: number, turnEndsAt: number, graceMilliseconds: number): boolean {

@@ -1,6 +1,6 @@
 import { ruleGrid } from './matchGrid.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
-import { applyTurn, revealDuration, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
+import { acknowledgePresence, applyTurn, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MÉCANIQUE D'UN TOUR — et surtout, la frontière anti-triche.
@@ -173,12 +173,53 @@ Deno.test('une expiration incrémente l’inactivité et passe la main', () => {
   verifie(ligne.state.lastTurn?.kind === 'timeout', 'le dernier tour est une expiration')
 })
 
-Deno.test('trop d’expirations font perdre la partie par abandon', () => {
+// ── Le joueur absent (règle du 18/09/2026, voir src/gameRules.ts) ────────────
+
+Deno.test('en temps illimité, un tour de 24 h manqué est un abandon', () => {
+  const ligne = match({}, { pace: 'async' })
+  timeoutTurn(ligne)
+  egal(ligne.status, 'finished', 'la partie est terminée dès le premier tour manqué')
+  egal(ligne.finish_reason, 'timeout', 'pour cause d’absence')
+  egal(ligne.winner_id, ADVERSAIRE, 'l’adversaire gagne par abandon')
+})
+
+Deno.test('en temps limité, les tours manqués ne font plus perdre au compte', () => {
   const ligne = match({ inactivity: { [JOUEUR]: 10 } })
   timeoutTurn(ligne)
+  egal(ligne.status, 'active', 'la partie continue : c’est la fenêtre de 30 s qui tranche')
+  egal(ligne.current_player_id, ADVERSAIRE, 'la main passe')
+})
+
+Deno.test('après un tour manqué, 30 s sans réponse au tour suivant font perdre l’absent', () => {
+  const debut = Date.now()
+  const ligne = match({ inactivity: { [JOUEUR]: 1 } }, { turn_started_at: new Date(debut).toISOString() })
+  verifie(currentPresenceDeadline(ligne) === debut + 30_000, 'l’échéance tombe 30 s après le début du tour')
+  verifie(!presenceExpired(ligne, debut + 29_000), 'à 29 s, il est encore temps')
+  verifie(presenceExpired(ligne, debut + 30_000 + PRESENCE_GRACE_MS), 'passé l’échéance et sa marge, c’est fini')
+  forfeitAbsentPlayer(ligne)
   egal(ligne.status, 'finished', 'la partie est terminée')
-  egal(ligne.finish_reason, 'timeout', 'pour cause d’inactivité')
   egal(ligne.winner_id, ADVERSAIRE, 'l’adversaire gagne')
+})
+
+Deno.test('« Je suis là » fait tomber l’échéance, jusqu’au prochain tour manqué', () => {
+  const ligne = match({ inactivity: { [JOUEUR]: 1 } })
+  verifie(acknowledgePresence(ligne, JOUEUR), 'la réponse est enregistrée')
+  egal(currentPresenceDeadline(ligne), null, 'plus d’échéance')
+  verifie(!acknowledgePresence(ligne, JOUEUR), 'répondre deux fois ne change rien')
+  ligne.state.inactivity[JOUEUR] = 2
+  verifie(currentPresenceDeadline(ligne) !== null, 'un nouveau tour manqué redemande')
+})
+
+Deno.test('jouer vaut réponse : le prochain tour manqué redemandera', () => {
+  const ligne = match({ inactivity: { [JOUEUR]: 1 }, presenceAck: { [JOUEUR]: 1 } })
+  applyTurn(ligne, GRILLE, JOUEUR, [placer(0, 'M')])
+  egal(ligne.state.inactivity[JOUEUR], 0, 'l’inactivité retombe')
+  egal(ligne.state.presenceAck?.[JOUEUR], 0, 'la réponse d’avant est oubliée')
+})
+
+Deno.test('le bot n’a jamais à dire « Je suis là »', () => {
+  const ligne = match({ inactivity: { [JOUEUR]: 1 }, bot: { playerId: JOUEUR, displayName: 'Bot', level: 1, skill: 'rookie', avatarId: 'a', frameId: 'f' } as never })
+  egal(currentPresenceDeadline(ligne), null, 'pas d’échéance pour le bot')
 })
 
 Deno.test('la durée de révélation ne descend jamais sous 700 ms', () => {

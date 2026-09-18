@@ -1,21 +1,37 @@
+import { useEffect, useRef, useState } from 'react'
 import { Hand } from 'lucide-react'
+import { serverNow } from '../serverClock'
 import { useDialogFocus } from '../useDialogFocus'
-import { MAX_INACTIVITY_COUNT } from '../gameRules'
-import type { StillTherePrompt } from './stillThere'
+import { secondesRestantes, type StillTherePrompt } from './stillThere'
 
 /** « Tu es toujours là ? » — voir stillThere.ts pour le moment où elle s'ouvre. */
-export function StillThereDialog({ prompt, confirm }: { prompt: StillTherePrompt; confirm: () => void }) {
+export function StillThereDialog({ prompt, confirm, expire }: { prompt: StillTherePrompt; confirm: () => void; expire?: () => void }) {
   const dialogRef = useDialogFocus<HTMLElement>(confirm)
+  const [maintenant, setMaintenant] = useState(serverNow)
+  useEffect(() => {
+    if (prompt.deadline === null) return
+    const minuterie = window.setInterval(() => setMaintenant(serverNow()), 250)
+    return () => window.clearInterval(minuterie)
+  }, [prompt.deadline])
+  const reste = prompt.deadline === null ? null : secondesRestantes(prompt.deadline, maintenant)
+  // À 0 s, on va relire la partie (une fois) : le serveur l'a close, l'écran de fin suit.
+  const relue = useRef(false)
+  useEffect(() => {
+    if (reste !== 0 || relue.current) return
+    relue.current = true
+    expire?.()
+  }, [reste, expire])
   return <div className="mm-modal-layer mm-pause-layer still-there-layer" role="presentation">
     <section ref={dialogRef} className="mm-pause still-there" role="alertdialog" aria-modal="true" aria-labelledby="still-there-title" aria-describedby="still-there-detail" tabIndex={-1}>
       <Hand aria-hidden="true" />
       <h2 id="still-there-title">Tu es toujours là ?</h2>
       <div id="still-there-detail">
-        <p className="still-there-count">Tour manqué <b>{prompt.missed}/{MAX_INACTIVITY_COUNT}</b></p>
-        <div className="still-there-dots" aria-hidden="true">
-          {Array.from({ length: MAX_INACTIVITY_COUNT }, (_, index) => <i key={index} className={index < prompt.missed ? 'is-missed' : ''} />)}
-        </div>
-        <p>Encore {prompt.remaining} et la partie est perdue.</p>
+        {reste === null
+          ? <p>Tu as laissé passer ton tour.</p>
+          : <>
+            <p className={`still-there-countdown ${reste <= 10 ? 'is-urgent' : ''}`} aria-live="polite"><b>{reste}</b> s</p>
+            <p>Sans réponse, la partie est perdue.</p>
+          </>}
       </div>
       <button type="button" data-dialog-autofocus onClick={confirm}>Je suis là</button>
     </section>

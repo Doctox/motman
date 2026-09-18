@@ -229,6 +229,17 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   }
   if (match.status !== 'active') return sendJson(response, 409, { error: 'Cette partie est terminée.', match: publicMatch(match) })
 
+  // « Je suis là » : même règle que match-api (acknowledgePresence).
+  if (route === 'present') {
+    const manques = match.inactivity[playerId] ?? 0
+    if ((match.presenceAck?.[playerId] ?? 0) < manques) {
+      match.presenceAck = { ...(match.presenceAck ?? {}), [playerId]: manques }
+      match.updatedAt = new Date().toISOString()
+      saveDatabase()
+    }
+    return sendJson(response, 200, { match: publicMatch(match) })
+  }
+
   if (route === 'forfeit') {
     const winner = match.playerIds.find(id => id !== playerId) ?? null
     finishMatch(match, winner, 'forfeit')
@@ -323,7 +334,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     match.hint = null
     match.updatedAt = occurredAt.toISOString()
     const opponentId = match.playerIds.find(id => id !== playerId) ?? null
-    if (shouldForfeitAfterInactivity(inactivityCount)) finishMatch(match, opponentId, 'timeout')
+    if (shouldForfeitAfterInactivity(inactivityCount, match.pace)) finishMatch(match, opponentId, 'timeout')
     else startNextTurn(match, occurredAt, match.lastTurn)
     saveDatabase()
     return sendJson(response, 200, { match: publicMatch(match), result: match.lastTurn })

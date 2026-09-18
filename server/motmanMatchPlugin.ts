@@ -13,6 +13,7 @@ import {
   isTurnSubmissionExpired,
   keepRackLettersAfterTurn,
   prepareFinalSprintRacks,
+  presenceDeadline,
   RACK_SIZE,
   shouldForfeitAfterInactivity,
 } from '../src/gameRules'
@@ -26,6 +27,7 @@ import {
   MATCH_DATABASE_PATH,
   MAX_ASYNC_MATCHES,
   MIN_REVEAL_DURATION_MS,
+  PRESENCE_WINDOW_MS,
   REALTIME_BOT_MATCH_DELAY_MS,
   REALTIME_SEARCH_STALE_MS,
   REALTIME_TURN_DURATION_MS,
@@ -33,6 +35,7 @@ import {
   REVEAL_STEP_MS,
   FIRST_TURN_READING_MS,
   TURN_READY_DURATION_MS,
+  TURN_SUBMIT_GRACE_MS,
 } from './match/config'
 import { gridById, gridIds, gridSolution, grids, hash, publicGrid, ruleGrid, wordIndexes } from './match/gridCatalog'
 import { sendJson } from './match/http'
@@ -166,6 +169,17 @@ function replenishRack(match: StoredMatch, playerId: string, current: string[], 
   return drawn.rack
 }
 
+/** L'échéance « Je suis là » du joueur dont c'est le tour (même règle que match-api). */
+function currentPresenceDeadline(match: StoredMatch): number | null {
+  const joueur = match.currentPlayerId
+  if (!joueur || match.bot?.playerId === joueur) return null
+  return presenceDeadline({
+    pace: match.pace, status: match.status, turnStartedAt: match.turnStartedAt,
+    inactivity: match.inactivity[joueur] ?? 0, acknowledged: match.presenceAck?.[joueur] ?? 0,
+    windowMs: PRESENCE_WINDOW_MS,
+  })
+}
+
 function publicMatch(match: StoredMatch) {
   const {
     letterBag: _privateLetterBag,
@@ -174,7 +188,11 @@ function publicMatch(match: StoredMatch) {
     ...safeMatch
   } = match
   const players = match.playerIds.map(playerId => playerId === match.bot?.playerId ? botUser(match.bot) : publicUser(playerId)).filter(Boolean)
-  return { ...safeMatch, players, grid: publicGrid(gridForMatch(match)) }
+  const echeance = currentPresenceDeadline(match)
+  return {
+    ...safeMatch, presenceAck: match.presenceAck ?? {}, players, grid: publicGrid(gridForMatch(match)),
+    presenceDeadline: echeance === null ? null : new Date(echeance).toISOString(),
+  }
 }
 
 function finishMatch(match: StoredMatch, winnerId: string | null, reason: StoredMatch['finishReason']): void {
@@ -237,6 +255,8 @@ function applyPlayedTurn(match: StoredMatch, playerId: string, sanitized: Array<
   match.scores[playerId] = (match.scores[playerId] ?? 0) + evaluation.scoreGained
   if (evaluation.productive) match.productiveTurns[playerId] = (match.productiveTurns[playerId] ?? 0) + 1
   match.inactivity[playerId] = 0
+  // Jouer, c'est être là : le prochain tour manqué redemandera « Je suis là ».
+  if (match.presenceAck) match.presenceAck[playerId] = 0
   const usedCorrectLetters = new Set(evaluation.correctPlacements.map(item => item.letter))
   const retainedRack = keepRackLettersAfterTurn(rack, evaluation.correctPlacements)
   match.racks[playerId] = replenishRack(match, playerId, retainedRack, usedCorrectLetters)
@@ -315,6 +335,14 @@ function resolveExpired(): void {
   })
   if (validSearches.length !== database.searches.length) { database.searches = validSearches; changed = true }
   database.matches.forEach(match => {
+    // Temps limité : 30 s sans « Je suis là » ni coup après un tour manqué, et
+    // la partie est perdue pour l'absent (src/gameRules.ts, 18/09/2026).
+    const echeance = match.status === 'active' ? currentPresenceDeadline(match) : null
+    if (echeance !== null && now >= echeance + TURN_SUBMIT_GRACE_MS) {
+      finishMatch(match, match.playerIds.find(playerId => playerId !== match.currentPlayerId) ?? null, 'timeout')
+      changed = true
+      return
+    }
     // Give the automatic 00:00 payload enough time to leave a sleeping mobile
     // radio before a poll resolves the turn as an inactivity timeout.
     if (match.status !== 'active' || !isTurnSubmissionExpired(now, new Date(match.turnEndsAt).getTime(), AUTOMATIC_TURN_SUBMIT_GRACE_MS)) return
@@ -330,7 +358,7 @@ function resolveExpired(): void {
     match.hint = null
     match.updatedAt = occurredAt.toISOString()
     const opponentId = match.playerIds.find(playerId => playerId !== inactivePlayerId) ?? null
-    if (shouldForfeitAfterInactivity(inactivityCount)) finishMatch(match, opponentId, 'timeout')
+    if (shouldForfeitAfterInactivity(inactivityCount, match.pace)) finishMatch(match, opponentId, 'timeout')
     else {
       startNextTurn(match, occurredAt, match.lastTurn)
     }

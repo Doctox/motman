@@ -82,6 +82,10 @@ export type MatchState = {
   scores: Record<string, number>
   productiveTurns: Record<string, number>
   inactivity: Record<string, number>
+  /** Temps limité : le compte de tours manqués auquel chacun a répondu « Je suis là ». */
+  presenceAck?: Record<string, number>
+  /** L'échéance « Je suis là » du joueur dont c'est le tour, posée par le serveur (ou null). */
+  presenceDeadline?: string | null
   hint: { playerId: string; cellIndex: number; letter: string; turnNumber: number } | null
   hintUsed: Record<string, boolean | number>
   rerollUsed: Record<string, boolean | number>
@@ -218,6 +222,13 @@ export async function rerollMatchRack(playerId: string, matchId: string, knownUp
   if (localTestServer) return localMatch('reroll', { playerId, matchId, knownUpdatedAt })
   void playerId
   return (await supabaseMatch<{ match: MatchState }>('reroll', { matchId, knownUpdatedAt })).match
+}
+
+/** « Je suis là » : répondre à la fenêtre qui suit un tour manqué (temps limité). */
+export async function confirmMatchPresence(playerId: string, matchId: string): Promise<MatchState> {
+  if (localTestServer) return (await localMatch<{ match: MatchState }>('present', { playerId, matchId })).match
+  void playerId
+  return (await supabaseMatch<{ match: MatchState }>('present', { matchId })).match
 }
 
 export async function forfeitMatch(playerId: string, matchId: string, knownUpdatedAt?: string): Promise<MatchState> {

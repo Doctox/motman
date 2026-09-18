@@ -16,7 +16,6 @@
 // fonctions pures, testées par `matchReminders.test.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { shouldForfeitAfterInactivity } from '../../../src/gameRules.ts'
 import type { PushMessage } from '../_shared/pushNotifications.ts'
 import type { MatchRow } from './matchModel.ts'
 
@@ -55,8 +54,6 @@ export type ReminderItem = {
   playerId: string
   opponentId: string
   turnEndsAt: string
-  /** Un tour de plus sans jouer, et la partie est perdue par abandon. */
-  forfeitsNext: boolean
 }
 
 export type ReminderClaim = { match_id: string; turn_number: number; marks_sent: number }
@@ -78,7 +75,6 @@ export function planReminders(rows: readonly MatchRow[], alreadySent: ReadonlyMa
       playerId: joueur,
       opponentId: row.state.playerIds.find(id => id !== joueur) ?? joueur,
       turnEndsAt: row.turn_ends_at,
-      forfeitsNext: shouldForfeitAfterInactivity((row.state.inactivity[joueur] ?? 0) + 1),
     })
     plan.byPlayer.set(joueur, items)
   }
@@ -110,9 +106,9 @@ export function reminderMessage(items: readonly ReminderItem[], names: ReadonlyM
   const dernierAppel = reste <= 6
   return {
     title: dernierAppel ? `Plus que ${duree(reste)} pour jouer` : `${nom} attend votre coup`,
-    body: urgent.forfeitsNext
-      ? `Sans coup d’ici ${duree(reste)}, vous perdez la partie contre ${nom}.`
-      : dernierAppel ? `Sinon, votre tour contre ${nom} passe.` : `Il vous reste ${duree(reste)} pour jouer.`,
+    // Depuis le 18/09/2026, un tour de 24 h laissé passer est un abandon
+    // (shouldForfeitAfterInactivity) : chaque rappel le dit, dès le premier.
+    body: `Sans coup d’ici ${duree(reste)}, vous perdez la partie contre ${nom}.`,
     data: { type: 'match_turn', matchId: urgent.matchId },
     tag: `match-${urgent.matchId}`,
   }

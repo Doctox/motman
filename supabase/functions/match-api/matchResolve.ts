@@ -18,7 +18,7 @@ import { ensureFinalSprintRacks, ensureSharedLetterBag, ruleGrid } from './match
 import type { MatchRow } from './matchModel.ts'
 import { notifyCurrentTurn } from './matchNotifications.ts'
 import { MatchStateConflictError, persist } from './matchSetup.ts'
-import { applyTurn, botPlacements, timeoutTurn } from './matchTurns.ts'
+import { applyTurn, botPlacements, forfeitAbsentPlayer, presenceExpired, timeoutTurn } from './matchTurns.ts'
 import { getGrid } from './matchView.ts'
 
 /** Délai après la fin officielle du tour avant de le déclarer passé : laisse arriver un envoi automatique en retard. */
@@ -43,6 +43,9 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow): Promis
       if (Date.now() >= new Date(row.turn_started_at).getTime() + delay) {
         applyTurn(row, grid, row.current_player_id, botPlacements(row, grid)); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
       }
+    } else if (presenceExpired(row)) {
+      // Temps limité : 30 s sans « Je suis là » ni coup après un tour manqué.
+      forfeitAbsentPlayer(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (turnExpired(row)) {
       timeoutTurn(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (initializedBag || initializedFinale) row = await persist(admin, row)

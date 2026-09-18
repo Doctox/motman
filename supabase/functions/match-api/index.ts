@@ -27,7 +27,7 @@ const BOT_SEARCH_MS = 15_000
 // `matchGrid.ts` et `matchTurns.ts`. Sorties d'ici pour devenir testables —
 // ce fichier démarre un serveur à l'import.
 import { ensureFinalSprintRacks, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
-import { applyTurn, finish, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
+import { acknowledgePresence, applyTurn, finish, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, matchConflictResponse, profile, view } from './matchView.ts'
 import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
@@ -592,6 +592,13 @@ Deno.serve(async request => {
       return matchConflictResponse(admin, row, user.id, grid, json)
     }
     if (row.status !== 'active') return json(200, { match: await view(admin, row, user.id, grid) })
+    // « Je suis là » (temps limité, après un tour manqué) : l'échéance de 30 s
+    // tombe. Si elle était déjà passée, `resolveRow` a clos la partie juste
+    // au-dessus et la réponse arrive trop tard — la règle, pas une erreur.
+    if (action === 'present') {
+      if (acknowledgePresence(row, user.id)) row = await persist(admin, row)
+      return json(200, { match: await view(admin, row, user.id, grid) })
+    }
     if (action === 'forfeit') {
       finish(row.state, row, row.state.playerIds.find(id => id !== user.id)!, 'forfeit')
       row = await persist(admin, row); await awardFinished(admin, row)

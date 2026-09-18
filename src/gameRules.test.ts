@@ -12,6 +12,9 @@ import {
   prepareFinalSprintRacks,
   replenishRackFromNeeds,
   shouldForfeitAfterInactivity,
+  PRESENCE_WINDOW_MS,
+  presenceDeadline,
+  presenceRequired,
   type GameRuleGrid,
 } from './gameRules'
 
@@ -266,9 +269,42 @@ describe('limites de tour', () => {
     expect(isTurnSubmissionExpired(now, 10_000, 2_000)).toBe(false)
   })
 
-  it('ne déclare une défaite qu’au troisième tour inactif', () => {
-    expect(shouldForfeitAfterInactivity(1)).toBe(false)
-    expect(shouldForfeitAfterInactivity(2)).toBe(false)
-    expect(shouldForfeitAfterInactivity(3)).toBe(true)
+  // Règle du propriétaire du 18/09/2026 : plus de trois tours manqués.
+  it('en temps illimité, un tour de 24 h manqué est un abandon', () => {
+    expect(shouldForfeitAfterInactivity(1, 'async')).toBe(true)
+  })
+
+  it('en temps limité, un tour manqué ne fait jamais perdre au compte : la fenêtre tranche', () => {
+    expect(shouldForfeitAfterInactivity(1, 'realtime')).toBe(false)
+    expect(shouldForfeitAfterInactivity(5, 'realtime')).toBe(false)
+  })
+})
+
+describe('« Tu es toujours là ? » en temps limité : 30 s pour répondre', () => {
+  const tour = { pace: 'realtime' as const, status: 'active', turnStartedAt: '2026-09-18T20:00:00.000Z' }
+  const debut = Date.parse(tour.turnStartedAt)
+
+  it('après un tour manqué, 30 s à partir du début du tour suivant', () => {
+    expect(PRESENCE_WINDOW_MS).toBe(30_000)
+    expect(presenceDeadline({ ...tour, inactivity: 1, acknowledged: 0 })).toBe(debut + 30_000)
+  })
+
+  it('« Je suis là » efface l’échéance, jusqu’au prochain tour manqué', () => {
+    expect(presenceDeadline({ ...tour, inactivity: 1, acknowledged: 1 })).toBeNull()
+    expect(presenceDeadline({ ...tour, inactivity: 2, acknowledged: 1 })).toBe(debut + 30_000)
+  })
+
+  it('jouer remet tout à zéro : plus rien à prouver', () => {
+    expect(presenceRequired(0, 0)).toBe(false)
+    expect(presenceDeadline({ ...tour, inactivity: 0, acknowledged: 0 })).toBeNull()
+  })
+
+  it('jamais en temps illimité, ni dans une partie finie', () => {
+    expect(presenceDeadline({ ...tour, pace: 'async', inactivity: 1, acknowledged: 0 })).toBeNull()
+    expect(presenceDeadline({ ...tour, status: 'finished', inactivity: 1, acknowledged: 0 })).toBeNull()
+  })
+
+  it('la fenêtre du serveur de test peut être raccourcie', () => {
+    expect(presenceDeadline({ ...tour, inactivity: 1, acknowledged: 0, windowMs: 4_000 })).toBe(debut + 4_000)
   })
 })

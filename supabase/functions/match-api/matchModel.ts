@@ -33,6 +33,8 @@ export type State = {
   invitationId: string | null; difficulty: 'easy' | 'normal' | 'hard'; playerIds: [string, string]; bot: Bot | null;
   board: Record<string, { letter: string; playerId: string }>; racks: Record<string, string[]>; letterBag?: string[]; scores: Record<string, number>;
   productiveTurns: Record<string, number>; inactivity: Record<string, number>;
+  /** Temps limité : le compte de tours manqués auquel chacun a répondu « Je suis là » (voir presenceRequired). */
+  presenceAck?: Record<string, number>;
   rackCompletions: Record<string, number>;
   /** Quêtes : mots terminés par chacun, et parmi eux ceux dont la définition est une image. */
   wordsCompleted?: Record<string, number>; imageWordsCompleted?: Record<string, number>;

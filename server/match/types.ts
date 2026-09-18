@@ -87,6 +87,8 @@ export type StoredMatch = {
   scores: Record<string, number>
   productiveTurns: Record<string, number>
   inactivity: Record<string, number>
+  /** Temps limité : le compte de tours manqués auquel chacun a répondu « Je suis là ». */
+  presenceAck?: Record<string, number>
   hint: { playerId: string; cellIndex: number; letter: string; turnNumber: number } | null
   hintUsed: Record<string, boolean | number>
   rerollUsed: Record<string, boolean | number>

@@ -52,5 +52,11 @@
     "titre": "Vos gains sans attendre",
     "texte": "À la fin d’une partie, l’expérience et les plumes gagnées s’affichent aussitôt, et un ami qui quitte sa partie n’apparaît plus « En jeu ».",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-09-18T22:20",
+    "titre": "Joueur absent : nouvelle règle",
+    "texte": "En temps limité, après un tour manqué, vous avez 30 s pour répondre « Je suis là ». En temps illimité, 24 h sans jouer et la partie est perdue par abandon.",
+    "genre": "jeu"
   }
 ]

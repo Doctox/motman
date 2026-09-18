@@ -1,6 +1,6 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
-import { E2E_TURN_DURATION_MS } from '../../playwright.config'
+import { E2E_PRESENCE_WINDOW_MS, E2E_TURN_DURATION_MS } from '../../playwright.config'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
@@ -39,6 +39,7 @@ type MatchState = {
   racks: Record<string, string[]>
   scores: Record<string, number>
   inactivity: Record<string, number>
+  presenceDeadline?: string | null
   hint: null | { playerId: string; cellIndex: number; letter: string; turnNumber: number }
   lastTurn: null | { id: string; playerId: string; turnNumber: number; correct: number[] }
   status: 'active' | 'finished'
@@ -239,13 +240,19 @@ async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
  * (`MOTMAN_ASYNC_TURN_DURATION_MS`). Ouvrir la page sur son propre tour en
  * mange déjà la moitié — chargement, session, grille —, et le reste ne suffit
  * plus aux gestes lents (attendre l'éclair, viser une case). On ouvre donc la
- * page pendant le tour de l'ADVERSAIRE, on laisse ce tour expirer, et l'observé
+ * page pendant le tour de l'ADVERSAIRE, l'adversaire PASSE, et l'observé
  * hérite d'un tour neuf qui commence sous ses yeux.
+ *
+ * Passer, et non plus laisser expirer : depuis le 18/09/2026, un tour de 24 h
+ * laissé passer en illimité est un abandon (src/gameRules.ts) — la partie
+ * s'arrêterait là. Et passer JUSTE AVANT l'échéance : en illimité, la page ne
+ * relit la partie qu'à la fin du tour en cours (matchPollDelay). Passé plus
+ * tôt, l'observé ne découvrirait son tour qu'à moitié écoulé.
  */
 async function rendreLaMainA(request: APIRequestContext, matchId: string, joueur: Identity, enCours: MatchState): Promise<MatchState> {
-  const attente = new Date(enCours.turnEndsAt).getTime() + 25 - Date.now()
+  const attente = new Date(enCours.turnEndsAt).getTime() - 400 - Date.now()
   if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
-  await submitTurn(request, enCours, [], true)
+  await submitTurn(request, enCours, [], false)
   const apres = await loadMatch(request, joueur.playerId, matchId)
   expect(apres.currentPlayerId).toBe(joueur.playerId)
   return apres
@@ -304,10 +311,12 @@ test('après une attente, l’indice et le mélange se signalent — et se taise
     await expect(indice).not.toHaveAttribute('data-idle-cue')
     await expect(melange).not.toHaveAttribute('data-idle-cue')
 
-    // L'adversaire laisse filer son tour ; celui du joueur observé démarre ici.
-    const apresEcheance = new Date(initial.turnEndsAt).getTime() + 250 - Date.now()
-    if (apresEcheance > 0) await page.waitForTimeout(apresEcheance)
-    await submitTurn(request, initial, [], true)
+    // L'adversaire garde la main presque tout son tour, puis passe ; celui du
+    // joueur observé démarre ici. (Laisser expirer serait un abandon depuis le
+    // 18/09/2026 : la partie s'arrêterait.)
+    const avantEcheance = new Date(initial.turnEndsAt).getTime() - 900 - Date.now()
+    if (avantEcheance > 0) await page.waitForTimeout(avantEcheance)
+    await submitTurn(request, initial, [], false)
 
     // Le « À vous ! » n'est pas une action : l'attente court déjà sous lui.
     await expect(page.locator('.turn-ready-flash')).toBeVisible()
@@ -692,32 +701,31 @@ test('une validation automatique mobile retardée conserve les lettres posées',
   expect(accepted.match.board[placement.cellIndex]?.letter).toBe(placement.letter)
 })
 
-test('temps limité et illimité demandent trois absences avant la défaite', async ({ request, browserName }) => {
+// Règle du propriétaire du 18/09/2026 (src/gameRules.ts) : plus de trois tours
+// manqués. En illimité, un tour de 24 h laissé passer est un abandon ; en
+// limité, c'est « Tu es toujours là ? » (30 s) qui tranche, jamais le compte.
+test('en temps illimité, un tour manqué fait perdre par abandon ; en limité, jamais au compte', async ({ request, browserName }) => {
   test.skip(browserName === 'webkit', 'La règle d’inactivité est couverte une fois au niveau serveur.')
   test.setTimeout(90_000)
-  for (const pace of ['realtime', 'async'] as const) {
-    const { first, matchId } = await createNormalMatch(request, pace, pace === 'realtime' ? 'Abs RT' : 'Abs IL')
-    let match = await loadMatch(request, first.playerId, matchId)
-    const inactivePlayer = match.currentPlayerId
 
-    for (let miss = 1; miss <= 3; miss += 1) {
-      const waitForDeadline = new Date(match.turnEndsAt).getTime() + 25 - Date.now()
-      if (waitForDeadline > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, waitForDeadline))
-      const timeout = await submitTurn(request, match, [], true)
-      match = timeout.match
-      expect(match.inactivity[inactivePlayer]).toBe(miss)
-      if (miss < 3) {
-        expect(match.status).toBe('active')
-        const opponentPass = await submitTurn(request, match, [], false)
-        match = opponentPass.match
-        expect(match.currentPlayerId).toBe(inactivePlayer)
-      }
-    }
+  const illimite = await createNormalMatch(request, 'async', 'Abs IL')
+  let partie = await loadMatch(request, illimite.first.playerId, illimite.matchId)
+  const absentIllimite = partie.currentPlayerId
+  let attente = new Date(partie.turnEndsAt).getTime() + 25 - Date.now()
+  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
+  partie = (await submitTurn(request, partie, [], true)).match
+  expect(partie.status).toBe('finished')
+  expect(partie.finishReason).toBe('timeout')
+  expect(partie.winnerId).not.toBe(absentIllimite)
 
-    expect(match.status).toBe('finished')
-    expect(match.finishReason).toBe('timeout')
-    expect(match.winnerId).not.toBe(inactivePlayer)
-  }
+  const limite = await createNormalMatch(request, 'realtime', 'Abs RT')
+  partie = await loadMatch(request, limite.first.playerId, limite.matchId)
+  const absentLimite = partie.currentPlayerId
+  attente = new Date(partie.turnEndsAt).getTime() + 25 - Date.now()
+  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
+  partie = (await submitTurn(request, partie, [], true)).match
+  expect(partie.inactivity[absentLimite]).toBe(1)
+  expect(partie.status).toBe('active')
 })
 
 test('une grille complète atteint l’écran final', async ({ browser, request }) => {
@@ -938,58 +946,62 @@ test('ordinateur portable : la partie tient dans l’écran, grille à gauche, l
   }
 })
 
-test('après un tour manqué, « Tu es toujours là ? » remplace les étiquettes 1/3', async ({ browser, browserName, request }) => {
-  test.skip(browserName !== 'chromium', 'La fenêtre est la même sur WebKit ; le chronométrage serveur est coûteux.')
-  test.setTimeout(90_000)
-  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Toujours la')
+/** L'absent laisse filer son tour, l'adversaire passe le sien : c'est de nouveau à l'absent. */
+async function tourManquePuisRetour(request: APIRequestContext, label: string) {
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', label)
   let match = await loadMatch(request, first.playerId, matchId)
   const absent = match.currentPlayerId === first.playerId ? first : second
-  // L'absent laisse filer son tour, puis l'adversaire joue le sien : c'est de
-  // nouveau à l'absent.
   const attente = new Date(match.turnEndsAt).getTime() + 25 - Date.now()
   if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
   match = (await submitTurn(request, match, [], true)).match
   expect(match.inactivity[absent.playerId]).toBe(1)
   match = (await submitTurn(request, match, [], false)).match
   expect(match.currentPlayerId).toBe(absent.playerId)
+  return { absent, matchId }
+}
+
+test('après un tour manqué, « Tu es toujours là ? » laisse un décompte pour répondre', async ({ browser, browserName, request }) => {
+  test.skip(browserName !== 'chromium', 'La fenêtre est la même sur WebKit ; le chronométrage serveur est coûteux.')
+  test.setTimeout(90_000)
+  const { absent, matchId } = await tourManquePuisRetour(request, 'Toujours la')
 
   const { context, page } = await openGame(browser, absent, matchId, { width: 390, height: 844 })
   try {
     const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
     await expect(fenetre).toBeVisible()
-    await expect(fenetre).toContainText('Tour manqué 1/3')
-    await expect(fenetre).toContainText('Encore 2 et la partie est perdue.')
-    // Plus aucune étiquette « Nom 1/3 » : seule la fenêtre en parle.
-    await expect(page.locator('.duel-inactivity, .duel-inactivity-announcement')).toHaveCount(0)
+    // Plus de « Tour manqué 1/3 » : un décompte en secondes.
+    await expect(fenetre.locator('.still-there-countdown')).toBeVisible()
+    await expect(fenetre).toContainText('Sans réponse, la partie est perdue.')
+    await expect(fenetre).not.toContainText('/3')
     await page.screenshot({ path: 'output/quality/toujours-la-390.png' })
 
     await fenetre.getByRole('button', { name: 'Je suis là' }).click()
     await expect(fenetre).toBeHidden()
-    // Elle ne revient pas pour le même tour manqué.
-    await page.waitForTimeout(1500)
+    // Le serveur a pris la réponse : plus d'échéance, la partie continue.
+    await expect.poll(async () => (await loadMatch(request, absent.playerId, matchId)).presenceDeadline ?? null).toBeNull()
+    await page.waitForTimeout(E2E_PRESENCE_WINDOW_MS)
     await expect(fenetre).toBeHidden()
+    expect((await loadMatch(request, absent.playerId, matchId)).status).toBe('active')
   } finally {
     await context.close()
   }
 })
 
-test('en temps illimité, « Tu es toujours là ? » attend le retour dans la partie', async ({ browser, browserName, request }) => {
-  test.skip(browserName !== 'chromium', 'Même fenêtre que le temps limité.')
+test('sans réponse à « Tu es toujours là ? », la partie est perdue pour l’absent', async ({ browser, browserName, request }) => {
+  test.skip(browserName !== 'chromium', 'Même fenêtre que le test précédent.')
   test.setTimeout(90_000)
-  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Retour IL')
-  let match = await loadMatch(request, first.playerId, matchId)
-  const absent = match.currentPlayerId === first.playerId ? first : second
-  const attente = new Date(match.turnEndsAt).getTime() + 25 - Date.now()
-  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
-  match = (await submitTurn(request, match, [], true)).match
-  match = (await submitTurn(request, match, [], false)).match
+  const { absent, matchId } = await tourManquePuisRetour(request, 'Absent QA')
 
   const { context, page } = await openGame(browser, absent, matchId, { width: 360, height: 740 })
   try {
     const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
-    await expect(fenetre).toContainText('Tour manqué 1/3')
-    await fenetre.getByRole('button', { name: 'Je suis là' }).click()
-    await expect(fenetre).toBeHidden()
+    await expect(fenetre).toBeVisible()
+    // Il ne répond pas : à 0 s, le serveur clôt la partie, l'écran de fin le dit.
+    await expect(page.getByText('Vous n’avez pas répondu à temps : la partie est perdue.')).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
+    const fin = await loadMatch(request, absent.playerId, matchId)
+    expect(fin.status).toBe('finished')
+    expect(fin.finishReason).toBe('timeout')
+    expect(fin.winnerId).not.toBe(absent.playerId)
   } finally {
     await context.close()
   }
