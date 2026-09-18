@@ -40,7 +40,12 @@ function identityFor(user: DatabaseUser): ClientIdentity {
 // qui la remplissent par /api/account/quest-progress.
 const compteursQuetes = new Map<string, Record<string, number>>()
 const cleQuetes = (userId: string, scope: string, period: string) => `${userId}:${scope}:${period}`
-const jourQuetes = () => new Date().toISOString().slice(0, 10)
+// Le jour des quêtes est celui de PARIS, comme en production (account-api :
+// `parisDateKey()`) et comme le client. En UTC, entre minuit et 2 h à Paris,
+// le serveur de test comptait les quêtes d'un autre jour : « une quête finie
+// pendant la partie » échouait à coup sûr à ces heures-là (vu le 19/09/2026).
+const JOUR_PARIS = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
+const jourQuetes = () => JOUR_PARIS.format(new Date())
 
 // Démonstration : avec MOTMAN_QUETES_DEMO=1, toute session neuve arrive avec ses
 // quêtes déjà finies. Sert à regarder l'écran et son animation sans jouer six

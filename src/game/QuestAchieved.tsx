@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { CheckCheck } from 'lucide-react'
 import './quest-achieved.css'
 
@@ -11,10 +11,16 @@ import './quest-achieved.css'
  * l'écran il masquerait la grille au moment précis où le joueur la regarde.
  */
 export function QuestAchieved({ titre, close }: { titre: string; close: () => void }) {
+  // Le minuteur part UNE fois, au montage. Il dépendait de `close`, que l'écran
+  // de partie recrée à chaque rendu — et le chrono du tour en provoque sans
+  // cesse : le minuteur repartait de zéro et le bandeau restait affiché tant
+  // que le tour tournait (vu le 19/09/2026, e2e « une quête finie » sur WebKit).
+  const fermer = useRef(close)
+  fermer.current = close
   useEffect(() => {
-    const minuteur = setTimeout(close, 3_200)
+    const minuteur = setTimeout(() => fermer.current(), 3_200)
     return () => clearTimeout(minuteur)
-  }, [close])
+  }, [])
 
   return <p className="mm-quest-achieved" role="status">
     <CheckCheck aria-hidden="true" />
