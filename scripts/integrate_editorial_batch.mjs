@@ -193,32 +193,32 @@ console.log('  Ensuite : npm run policy:runtime (projection), build_daily_calend
 // Cinq thèmes intégrés dans la matinée font donc un message à 10 h, pas cinq —
 // ce que le propriétaire demandait le 18/09/2026.
 //
-// Un rapport par intégration, et un seul pour tous les lots du groupe. Son
-// texte décrit ce qui entre ; on a jusqu'au rendez-vous pour le reprendre dans
-// le fichier s'il faut dire mieux ce que le joueur y gagne.
+// Un rapport pour les thèmes du groupe, un pour ses grilles normales — jamais
+// un par thème. Les deux paraissent dans le même message, chacun avec son
+// icône. Leur texte décrit ce qui entre ; on a jusqu'au rendez-vous pour le
+// reprendre dans le fichier s'il faut dire mieux ce que le joueur y gagne.
 const enumerer = noms => noms.length < 2 ? noms.join('') : `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}`
 const themes = [...new Set(lots.map(entree => entree.theme).filter(Boolean))]
 const normales = lots.filter(entree => !entree.theme).flatMap(entree => entree.renommees).length
 const rotation = fusionne.grids.filter(grille => !grille.dailyOnly).length
-const titres = []
-const textes = []
+const rapports = []
 if (themes.length) {
-  titres.push(themes.length === 1 ? `Nouveau thème : ${themes[0]}` : `${themes.length} nouveaux thèmes`)
-  textes.push(themes.length === 1
-    ? `Le thème ${themes[0]} rejoint le défi du jour.`
-    : `Les thèmes ${enumerer(themes)} rejoignent le défi du jour.`)
+  rapports.push(themes.length === 1
+    ? { genre: 'theme', titre: `Nouveau thème : ${themes[0]}`, texte: `Le thème ${themes[0]} rejoint le défi du jour.` }
+    : { genre: 'theme', titre: `${themes.length} nouveaux thèmes`, texte: `${enumerer(themes)} rejoignent le défi du jour.` })
 }
 if (normales) {
-  titres.push(`${normales} nouvelles grilles`)
-  textes.push(`Les parties normales comptent désormais ${rotation} grilles.`)
+  rapports.push({ genre: 'grilles', titre: `${normales} nouvelles grilles`, texte: `Les parties normales en comptent désormais ${rotation} : vous retomberez moins souvent sur la même.` })
 }
 const { ajouterRapport } = await import('./lib/rapports.mjs')
-try {
-  const { annonce } = await ajouterRapport({ titre: titres.join(' et '), texte: textes.join(' ') })
-  console.log(`\n✔ Rapport de nouveauté déposé — ${annonce}, regroupé avec les autres rapports du créneau.`)
-  console.log('  Il part dans le même commit que le catalogue. Relis-le dans src/nouveautes.rapports.json d’ici là.')
-} catch (erreur) {
-  // Le catalogue est déjà écrit : on ne l'annule pas pour un rapport. On le dit.
-  console.warn(`\n⚠ Rapport de nouveauté NON déposé (${erreur.message}).`)
-  console.warn('  À faire à la main : npm run rapport -- "titre" "texte"')
+for (const rapport of rapports) {
+  try {
+    const { annonce } = await ajouterRapport(rapport)
+    console.log(`\n✔ Rapport « ${rapport.titre} » déposé — ${annonce}, regroupé avec les autres rapports du créneau.`)
+  } catch (erreur) {
+    // Le catalogue est déjà écrit : on ne l'annule pas pour un rapport. On le dit.
+    console.warn(`\n⚠ Rapport « ${rapport.titre} » NON déposé (${erreur.message}).`)
+    console.warn(`  À faire à la main : npm run rapport -- "titre" "texte" ${rapport.genre}`)
+  }
 }
+if (rapports.length) console.log('  Ils partent dans le même commit que le catalogue. Relis-les dans src/nouveautes.rapports.json d’ici là.')

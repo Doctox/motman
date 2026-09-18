@@ -34,7 +34,7 @@
 
 import { useSyncExternalStore } from 'react'
 import rapportsData from './nouveautes.rapports.json'
-import { creneauDePublication, momentParis } from './nouveautesCreneaux'
+import { creneauDePublication, momentParis, type GenreDeRapport } from './nouveautesCreneaux'
 import { serverNow } from './serverClock'
 import { completedTutorialVersion } from './tutorialProgress'
 
@@ -44,6 +44,8 @@ export type Rapport = {
   titre: string
   /** Une ou deux phrases. Le joueur lit ça entre deux parties. */
   texte: string
+  /** Choisit l'icône du rapport ; sans genre, l'étincelle de « jeu ». */
+  genre?: GenreDeRapport
 }
 
 /** Un message de nouveauté : les rapports d'un créneau, publiés ensemble. */
@@ -62,7 +64,8 @@ export const RAPPORTS: readonly Rapport[] = rapportsData as Rapport[]
 
 // La règle des rendez-vous vit dans src/nouveautesCreneaux.ts, SANS IMPORT, pour
 // que le script qui dépose les rapports la lise telle quelle.
-export { creneauDePublication, HEURES_DE_PUBLICATION, horodatageParis, momentParis } from './nouveautesCreneaux'
+export { creneauDePublication, GENRES_DE_RAPPORT, HEURES_DE_PUBLICATION, horodatageParis, momentParis } from './nouveautesCreneaux'
+export type { GenreDeRapport } from './nouveautesCreneaux'
 
 /** Les messages déjà parus à cet instant, le plus récent en haut. */
 export function nouveautesPubliees(rapports: readonly Rapport[] = RAPPORTS, maintenantMs: number = serverNow()): Nouveaute[] {

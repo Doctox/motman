@@ -18,7 +18,7 @@ export const TEXTE_MAX = 200
 
 const JOUR = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })
 
-export async function ajouterRapport({ titre, texte }, maintenantMs = Date.now()) {
+export async function ajouterRapport({ titre, texte, genre }, maintenantMs = Date.now()) {
   titre = String(titre ?? '').trim()
   texte = String(texte ?? '').trim()
   if (!titre || !texte) throw new Error('Un rapport demande un titre ET un texte.')
@@ -26,9 +26,12 @@ export async function ajouterRapport({ titre, texte }, maintenantMs = Date.now()
   if (texte.length > TEXTE_MAX) throw new Error(`Texte trop long : ${texte.length} caractères, ${TEXTE_MAX} au plus.`)
 
   const regle = await importTs(REGLE)
+  if (genre !== undefined && !regle.GENRES_DE_RAPPORT.includes(genre)) {
+    throw new Error(`Genre inconnu : « ${genre} ». Au choix : ${regle.GENRES_DE_RAPPORT.join(', ')}.`)
+  }
   const ajoute = regle.horodatageParis(maintenantMs)
   const rapports = JSON.parse(readFileSync(FICHIER_RAPPORTS, 'utf8'))
-  rapports.push({ ajoute, titre, texte })
+  rapports.push(genre === undefined ? { ajoute, titre, texte } : { ajoute, titre, texte, genre })
   writeFileSync(FICHIER_RAPPORTS, `${JSON.stringify(rapports, null, 2)}\n`, 'utf8')
 
   const creneau = regle.creneauDePublication(ajoute)

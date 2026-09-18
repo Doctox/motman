@@ -1,6 +1,8 @@
 // Déposer un rapport de nouveauté.
 //
-//   npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur."
+//   npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur." [genre]
+//
+// Le genre choisit l'icône : theme, grilles, affichage ou jeu (par défaut).
 //
 // Le rapport part dans src/nouveautes.rapports.json, horodaté à l'heure de
 // Paris. Il reste INVISIBLE jusqu'au prochain rendez-vous (10 h ou 18 h), où
@@ -13,9 +15,9 @@
 import process from 'node:process'
 import { ajouterRapport } from './lib/rapports.mjs'
 
-const [titre, texte] = process.argv.slice(2)
+const [titre, texte, genre] = process.argv.slice(2)
 try {
-  const { ajoute, annonce, memeCreneau } = await ajouterRapport({ titre, texte })
+  const { ajoute, annonce, memeCreneau } = await ajouterRapport({ titre, texte, genre })
   console.log(`✔ Rapport déposé (${ajoute}) — ${annonce}.`)
   console.log(memeCreneau > 1
     ? `  Il sera regroupé avec ${memeCreneau - 1} autre(s) rapport(s) du même créneau : un seul message pour tous.`
@@ -23,6 +25,6 @@ try {
   console.log('  À commiter avec le changement qu’il annonce.')
 } catch (erreur) {
   console.error(`✖ ${erreur.message}`)
-  console.error('  Usage : npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur."')
+  console.error('  Usage : npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur." [theme|grilles|affichage|jeu]')
   process.exit(1)
 }

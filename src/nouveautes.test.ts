@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  creneauDePublication, HEURES_DE_PUBLICATION, horodatageParis, lireEntreesLues, momentParis, NOUVEAUTES_STORAGE_KEY,
+  creneauDePublication, GENRES_DE_RAPPORT, HEURES_DE_PUBLICATION, horodatageParis, lireEntreesLues, momentParis, NOUVEAUTES_STORAGE_KEY,
   nouveautesNonLues, nouveautesPubliees, RAPPORTS, type Rapport,
 } from './nouveautes'
 
@@ -144,6 +144,10 @@ describe('qui voit un message à lire', () => {
 describe('les rapports écrits', () => {
   it('portent une heure de dépôt au bon format', () => {
     for (const r of RAPPORTS) expect(r.ajoute).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+  })
+
+  it('n’ont qu’un genre que l’app sait dessiner', () => {
+    for (const r of RAPPORTS) if (r.genre !== undefined) expect(GENRES_DE_RAPPORT).toContain(r.genre)
   })
 
   it('restent courts : le joueur les lit entre deux parties', () => {

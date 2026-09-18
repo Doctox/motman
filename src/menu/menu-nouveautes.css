@@ -20,7 +20,15 @@
 .mm-roue > .mm-pastille,
 .mm-nouveautes-bouton > .mm-pastille { position: absolute; top: 4px; right: 4px; }
 
-/* ── La liste ── */
+/* ── La liste ──
+   D'après la maquette validée par le propriétaire le 18/09/2026 : replié, un
+   message met sa première nouveauté en vedette et compte les autres ; ouvert,
+   chaque nouveauté a son icône, un titre net et une phrase simple. */
+.mm-nouveautes-intro {
+  margin: -4px 2px 12px;
+  color: var(--mm-muted);
+  font-size: 0.875rem;
+}
 .mm-nouveautes {
   margin: 0;
   padding: 0;
@@ -34,10 +42,12 @@
   background: var(--mm-surface);
   overflow: hidden;
 }
+/* Pas encore lu : le liseré doré, en plus de la pastille. */
+.mm-nouveaute.is-unread { border-color: var(--mm-gold); }
 .mm-nouveaute > button {
   width: 100%;
   min-height: 58px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border: 0;
   background: transparent;
   color: var(--mm-ink);
@@ -47,12 +57,16 @@
   text-align: left;
   cursor: pointer;
 }
+.mm-nouveaute.is-open > button {
+  background: var(--mm-sage);
+  border-bottom: 1px solid var(--mm-line);
+}
 .mm-nouveaute > button > span {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .mm-nouveaute small {
   color: var(--mm-muted);
@@ -63,12 +77,17 @@
 }
 .mm-nouveaute > button strong {
   font: 600 1rem/1.25 'Playfair Display', serif;
-  /* Replié, le message aligne les titres de ses rapports : deux lignes au plus. */
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
+.mm-nouveaute > button em {
+  color: var(--mm-muted);
+  font-size: 0.8125rem;
+  font-style: normal;
+}
+.mm-nouveaute.is-open > button em { color: var(--mm-ink); }
 .mm-nouveaute > button > svg {
   width: 18px;
   flex: 0 0 auto;
@@ -76,25 +95,47 @@
   transition: transform .2s ease;
 }
 .mm-nouveaute.is-open > button > svg { transform: rotate(180deg); }
-/* Déplié : les rapports de la journée, un par un. */
+
+/* Ouvert : les nouveautés du rendez-vous, une par une. */
 .mm-nouveaute > ul {
   margin: 0;
-  padding: 0 14px 14px;
+  padding: 0;
   list-style: none;
-  display: grid;
+}
+.mm-nouveaute > ul > li {
+  padding: 14px;
+  display: flex;
   gap: 12px;
 }
+.mm-nouveaute > ul > li + li { border-top: 1px solid var(--mm-line); }
 .mm-nouveaute > ul strong {
   display: block;
   color: var(--mm-ink);
-  font: 700 0.9375rem/1.3 'DM Sans', sans-serif;
+  font: 600 1rem/1.25 'Playfair Display', serif;
 }
 .mm-nouveaute > ul p {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   color: var(--mm-ink-soft);
   font-size: 0.875rem;
   line-height: 1.5;
 }
+/* L'icône du genre : une teinte par genre, prise dans la palette du jeu pour
+   suivre le mode sombre sans rien redéfinir. */
+.mm-nouveaute-icone {
+  --teinte: var(--mm-ink);
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--teinte);
+  background: color-mix(in srgb, var(--teinte) 14%, var(--mm-surface));
+}
+.mm-nouveaute-icone > svg { width: 18px; height: 18px; }
+.mm-nouveaute-icone[data-genre="grilles"] { --teinte: var(--mm-gold); }
+.mm-nouveaute-icone[data-genre="jeu"] { --teinte: var(--mm-coral); }
+.mm-nouveaute-icone[data-genre="affichage"] { --teinte: var(--mm-muted); }
 .mm-nouveautes-vide {
   margin: 8px 4px;
   color: var(--mm-muted);

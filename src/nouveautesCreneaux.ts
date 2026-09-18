@@ -20,6 +20,14 @@
  */
 export const HEURES_DE_PUBLICATION: readonly number[] = [10, 18]
 
+/**
+ * Le genre d'un rapport, qui choisit son icône dans la liste : un thème du défi,
+ * des grilles, un affichage plus confortable, une nouveauté de jeu. Ici aussi
+ * pour que le script de dépôt refuse un genre que l'app ne saurait pas dessiner.
+ */
+export const GENRES_DE_RAPPORT = ['theme', 'grilles', 'affichage', 'jeu'] as const
+export type GenreDeRapport = typeof GENRES_DE_RAPPORT[number]
+
 const PARIS = new Intl.DateTimeFormat('fr-CA', {
   timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
