@@ -19,11 +19,6 @@ const DATA_DIR = path.resolve(process.cwd(), 'src', 'data')
 const CALENDAR = path.join(DATA_DIR, 'runtime.daily.calendar.json')
 const POLICY = path.join(DATA_DIR, 'runtime.catalog-policy.json')
 
-// Doit rester synchronisé avec BLOCKED_ANSWERS de src/gridCatalogPolicy.ts.
-const BLOCKED_ANSWERS = new Set([
-  'SS', 'TT', 'PCQ', 'FDP', 'IBN', 'KIL', 'NUD', 'GEN', 'INN', 'THE', 'GUEST', 'BOARD', 'CHAN',
-  'BESEF', 'TUT', 'ATON', 'SPEED',
-])
 const NUL = String.fromCharCode(0)
 
 function fail(message) {
@@ -63,8 +58,7 @@ function isCatalogGridPlayable(grid) {
   if (!grid) return false
   if (quarantined.has(grid.id)) return false
   return grid.words.every(word =>
-    !BLOCKED_ANSWERS.has(word.answer)
-    && !rejectedPairs.has(`${word.answer}${NUL}${word.clue ?? ''}`)
+    !rejectedPairs.has(`${word.answer}${NUL}${word.clue ?? ''}`)
     && Boolean((word.clue && word.clue.trim()) || word.image))
 }
 

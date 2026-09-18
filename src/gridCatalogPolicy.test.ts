@@ -16,11 +16,9 @@ import { isCatalogGridPlayable } from './gridCatalogPolicy'
 // quand un garde-fou maigrit qu'il faut l'attacher — sans quoi les suivantes
 // s'érodent à leur tour sans que personne ne s'en aperçoive.
 //
-// LES QUATRE CONDITIONS, et ce que chacune protège :
+// LES TROIS CONDITIONS, et ce que chacune protège (la liste de réponses
+// bloquées en dur est partie le 18/09/2026, voir gridCatalogPolicy.ts) :
 //
-//   BLOCKED_ANSWERS      dernier rempart contre les insultes au moment de
-//                        servir. Ne dépend d'aucun fichier ni d'aucune chaîne
-//                        extérieure — c'est tout l'intérêt.
 //   quarantinedGridIds   une grille retirée après coup, sur signalement.
 //   rejectedPairs        un couple réponse+définition refusé. L'atelier ne peut
 //                        pas s'en charger : il est words-only par contrat et ne
@@ -51,21 +49,12 @@ describe('une grille saine est jouable', () => {
   })
 })
 
-describe('le dernier rempart contre les insultes', () => {
-  it('refuse une grille contenant FDP', () => {
-    expect(isCatalogGridPlayable(grille([mot('CHAT'), mot('FDP')]))).toBe(false)
-  })
-
-  it('refuse aussi les réponses jugées indevinables', () => {
-    expect(isCatalogGridPlayable(grille([mot('BESEF')]))).toBe(false)
-  })
-
-  it('ne dépend d’aucun fichier extérieur', () => {
-    // C'est la raison d'être de cette liste : elle survit à la disparition de
-    // `runtime.catalog-policy.json`, de l'atelier, de la chaîne de
-    // certification. Un mot ci-dessus ne passera jamais, quoi qu'il arrive
-    // en amont.
-    expect(isCatalogGridPlayable(grille([mot('PCQ')]))).toBe(false)
+describe('plus de réponses bloquées en dur', () => {
+  it('sert THE quand c’est le thé', () => {
+    // La grille qui a fait partir la liste : « Earl Grey, par exemple ». Grid
+    // Factory, l'Éditeur et l'approbation du propriétaire filtrent en amont ;
+    // le jeu ne refait pas leur travail sur un seul mot.
+    expect(isCatalogGridPlayable(grille([mot('THE', 'Earl Grey, par exemple')]))).toBe(true)
   })
 })
 

@@ -47,11 +47,6 @@ const themes = await importTs(path.resolve(process.cwd(), 'src', 'dailyThemes.ts
 const PICK_WINDOW = 8
 const DEFAULT_DAYS = 240
 
-// Doit rester synchronisé avec BLOCKED_ANSWERS de src/gridCatalogPolicy.ts.
-const BLOCKED_ANSWERS = new Set([
-  'SS', 'TT', 'PCQ', 'FDP', 'IBN', 'KIL', 'NUD', 'GEN', 'INN', 'THE', 'GUEST', 'BOARD', 'CHAN',
-  'BESEF', 'TUT', 'ATON', 'SPEED',
-])
 const NUL = String.fromCharCode(0)
 
 function readJson(file) {
@@ -97,8 +92,7 @@ const rejectedPairs = new Set(policy.rejectedPairs ?? [])
 
 const playable = catalog.grids
   .filter(grid => !quarantined.has(grid.id) && grid.words.every(word =>
-    !BLOCKED_ANSWERS.has(word.answer)
-    && !rejectedAnswers.has(word.answer)
+    !rejectedAnswers.has(word.answer)
     && !rejectedPairs.has(`${word.answer}${NUL}${word.clue ?? ''}`)
     && Boolean((word.clue && word.clue.trim()) || word.image)))
 
