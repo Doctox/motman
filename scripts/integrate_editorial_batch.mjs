@@ -139,3 +139,23 @@ if (blanc) {
 writeFileSync(CATALOGUE, `${JSON.stringify(fusionne, null, 2)}\n`, 'utf8')
 console.log(`\n✔ ${CATALOGUE} écrit.`)
 console.log('  Ensuite : npm run policy:runtime  (projection runtime), puis les contrôles.')
+
+// LES NOUVEAUTÉS, DANS LE MÊME COMMIT. Demandé par le propriétaire le 18/09/2026 :
+// un lot intégré, c'est du contenu que le joueur remarquera, donc une entrée
+// dans src/nouveautes.ts. Personne d'autre n'y pensera — les entrées s'écrivent
+// à la main, exprès. Le brouillon ci-dessous est à RELIRE avant de le coller :
+// il décrit le lot, pas encore ce que le joueur y gagne.
+const aujourdhui = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date())
+const theme = lot.theme ? (lot.theme.label ?? lot.theme) : null
+const rotation = fusionne.grids.filter(grille => !grille.dailyOnly).length
+const slug = (theme ?? 'grilles').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const brouillon = theme
+  ? { titre: `Nouveau thème : ${theme}`, texte: `${renommees.length} grilles « ${theme} » rejoignent le défi du jour.` }
+  : { titre: `${renommees.length} nouvelles grilles`, texte: `Les parties normales comptent désormais ${rotation} grilles : moins de chances de retomber sur la même.` }
+console.log('\n⚠ N’OUBLIE PAS LES NOUVEAUTÉS — src/nouveautes.ts, en tête de NOUVEAUTES, dans le même commit :')
+console.log(`  {
+    id: '${aujourdhui}-${slug}',
+    date: '${aujourdhui}',
+    titre: '${brouillon.titre}',
+    texte: '${brouillon.texte}',
+  },`)
