@@ -128,31 +128,55 @@ async function historiquesJoueurs(admin: AdminClient, playerIds: string[]): Prom
   }))
 }
 
+/** Une ligne de `server_grid_selection` : le strict nécessaire au tirage. */
+type GridSelectionRow = { id: string; daily_only: boolean; words: Array<{ answer: string }> | null }
+
 export async function chooseGrid(
   admin: AdminClient,
   seed: string,
   playerIds: string[],
   excludedMatchId?: string,
 ): Promise<CatalogGrid> {
-  const [{ data: catalogRows }, histories, activeMatches] = await Promise.all([
-    admin.from('server_grid_catalog').select('payload').eq('active', true).order('id'),
+  // ON NE LIT PLUS TOUT LE CATALOGUE POUR N'EN GARDER QU'UNE GRILLE.
+  //
+  // Cette requête chargeait la charge utile ENTIÈRE des grilles actives à chaque
+  // création de partie. Mesuré le 17/09/2026, catalogue v30, 166 grilles :
+  // 1 089 Ko transférés, dont 18 Ko utiles. Les images en `data:` — 65 % du
+  // poids — traversaient le réseau pour être jetées aussitôt.
+  //
+  // `server_grid_selection` (migration 20260918060000) n'expose que ce dont le
+  // tirage a besoin : l'identifiant, les réponses pour le délai de répétition,
+  // et le drapeau du défi du jour. La grille RETENUE est ensuite chargée par
+  // son identifiant, comme le défi du jour le fait déjà.
+  const [{ data: selectionRows }, histories, activeMatches] = await Promise.all([
+    admin.from('server_grid_selection').select('id,daily_only,words').eq('active', true).order('id'),
     historiquesJoueurs(admin, playerIds),
     activeMatchesForPlayers(admin, playerIds, excludedMatchId),
   ])
-  if (!catalogRows?.length) throw new Error('Le catalogue serveur est vide.')
+  if (!selectionRows?.length) throw new Error('Le catalogue serveur est vide.')
   // Les grilles à thème sont RÉSERVÉES au défi du jour, qui les charge par son
   // identifiant (`activeGridById`). Elles restent `active` — sans quoi le défi
   // ne pourrait pas les servir — et c'est donc ICI qu'elles sortent du tirage :
   // sinon un joueur tomberait dessus en partie normale, et arriverait au défi
   // en connaissant déjà les réponses.
-  const grids = normalRotationGrids(catalogRows.map(item => item.payload as CatalogGrid))
-  return selectGridForPlayers({
-    grids,
+  const candidates = (selectionRows as GridSelectionRow[]).map(ligne => ({
+    id: ligne.id,
+    words: ligne.words ?? [],
+    dailyOnly: ligne.daily_only,
+  }))
+  const retenue = selectGridForPlayers({
+    grids: normalRotationGrids(candidates),
     recentGridIdsByPlayer: histories.map(historique => historique.recent),
     playCountsByPlayer: histories.map(historique => historique.counts),
     activeGridIds: activeMatches.map(item => item.gridId),
     seed,
   }).grid
+  const grid = await activeGridById(admin, retenue.id)
+  // Entre le tirage et ce chargement, une publication de catalogue pourrait
+  // avoir désactivé la grille. Le cas est théorique — la bascule est atomique —
+  // mais il vaut mieux une erreur nommée qu'une grille vide côté joueur.
+  if (!grid) throw new Error(`La grille tirée (${retenue.id}) n'est plus active au catalogue.`)
+  return grid
 }
 
 /**

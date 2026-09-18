@@ -125,18 +125,49 @@ Deno.test('la difficulté affichée suit la force du bot, et vaut « normal » s
 // `chooseGrid`. Le joueur arriverait au défi en connaissant les réponses.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Une base réduite à ce que `chooseGrid` lit : le catalogue, et rien d'autre. */
+/**
+ * Une base réduite à ce que `chooseGrid` lit.
+ *
+ * Il en lit maintenant DEUX : la projection légère `server_grid_selection` pour
+ * tirer, puis `server_grid_catalog` pour charger la seule grille retenue. Le
+ * faux client retient donc le filtre `eq('id', …)`, sans quoi il servirait
+ * toujours la première grille et les bancs d'essai ci-dessous ne vérifieraient
+ * plus rien.
+ */
 function baseCatalogue(grilles: CatalogGrid[]): AdminClient {
-  const resultat = (data: unknown) => {
+  const resultat = (donnees: (filtres: Record<string, unknown>) => unknown) => {
+    const filtres: Record<string, unknown> = {}
     const chainable: Record<string, unknown> = {}
-    for (const methode of ['select', 'eq', 'in', 'neq', 'is', 'not', 'or', 'order', 'limit', 'gte', 'lte']) {
+    for (const methode of ['select', 'in', 'neq', 'is', 'not', 'or', 'order', 'limit', 'gte', 'lte']) {
       chainable[methode] = () => chainable
     }
-    chainable.then = (resoudre: (v: unknown) => unknown) => resoudre({ data, error: null })
+    chainable.eq = (colonne: string, valeur: unknown) => {
+      filtres[colonne] = valeur
+      return chainable
+    }
+    const resoudre = () => ({ data: donnees(filtres), error: null })
+    chainable.maybeSingle = () => Promise.resolve(resoudre())
+    chainable.single = () => Promise.resolve(resoudre())
+    chainable.then = (suite: (v: unknown) => unknown) => suite(resoudre())
     return chainable
   }
   return {
-    from: (table: string) => resultat(table === 'server_grid_catalog' ? grilles.map(payload => ({ payload })) : []),
+    from: (table: string) => {
+      if (table === 'server_grid_selection') {
+        return resultat(() => grilles.map(grille => ({
+          id: grille.id,
+          daily_only: grille.dailyOnly === true,
+          words: grille.words.map(mot => ({ answer: mot.answer })),
+        })))
+      }
+      if (table === 'server_grid_catalog') {
+        return resultat(filtres => {
+          const trouvee = grilles.find(grille => grille.id === filtres.id)
+          return trouvee ? { payload: trouvee } : null
+        })
+      }
+      return resultat(() => [])
+    },
   } as unknown as AdminClient
 }
 
