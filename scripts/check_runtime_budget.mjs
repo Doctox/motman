@@ -39,10 +39,21 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // l'export administrateur de Grid Factory le sert, sous sa propre limite de
 // 8 Mio (`grid-usage-api/catalog.ts`). Le seuil reste un garde-fou de
 // croissance : le franchir redemande de regarder qui lit quoi.
+//
+// 2026-09-18 soir : v33, 262 grilles, 1 604 Ko — franchi le jour même, les
+// images pesant ~8 Ko par grille. Regardé qui lit quoi : personne en jeu. Le
+// fichier ne part pas au navigateur (`check_production_secrets`), une partie ne
+// lit que la vue de tirage, et Grid Factory a sa limite de 8 Mio. Relevé à
+// 3 Mo / 850 Ko pour ne plus sonner à chaque lot, et le garde-fou qui COMPTE
+// est ajouté : `tirageParPartie`, ce qu'une partie lit réellement pour tirer
+// sa grille (id, drapeau du défi, réponses — ~290 octets par grille, 77 Ko
+// pour 262). À 200 Ko, soit ~680 grilles, le tirage devra se faire en SQL
+// plutôt que dans match-api.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 1_600_000,
-  runtimeCatalogGzip: 460_000,
+  runtimeCatalog: 3_000_000,
+  runtimeCatalogGzip: 850_000,
+  tirageParPartie: 200_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,
@@ -70,6 +81,15 @@ if (catalogueReel) {
     gzipSync(readFileSync(catalogueReel.chemin), { level: 9 }).length,
     limits.runtimeCatalogGzip,
   )
+  // La même projection que la vue `server_grid_selection` que lit `chooseGrid`
+  // (migration 20260918060000), telle que PostgREST la renvoie en JSON.
+  const grilles = JSON.parse(readFileSync(catalogueReel.chemin, 'utf8')).grids
+  const tirage = grilles.map(grille => ({
+    id: grille.id,
+    daily_only: grille.dailyOnly === true,
+    words: grille.words.map(mot => ({ answer: mot.answer })),
+  }))
+  assertBudget('Tirage d’une partie (server_grid_selection)', JSON.stringify(tirage).length, limits.tirageParPartie)
 }
 const runtimePolicyPath = resolve('src/data/runtime.catalog-policy.json')
 assertBudget('Politique runtime', statSync(runtimePolicyPath).size, limits.runtimePolicy)

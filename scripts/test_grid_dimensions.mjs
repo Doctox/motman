@@ -45,16 +45,16 @@ try {
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
   if (reel) {
-    assert.equal(catalog.version, 32)
-    // v32 (18/09) : lot « normales-7 », 50 grilles de rotation, le plus gros
-    // déposé à ce jour (après les quatre thèmes de la v31, le même jour). Le
-    // catalogue passe de 186 à 236 grilles ; les parties normales, de 111 à 161.
-    assert.equal(catalog.grids.length, 236)
-    // 304 en v31 ; les 57 images du lot portent le total à 361, dont 18 dessins
+    assert.equal(catalog.version, 33)
+    // v33 (18/09) : lot « normales-8 », 26 grilles de rotation — 28 autres de
+    // l'export écartées par l'Éditeur, trop proches du lot 7. Le catalogue passe
+    // de 236 à 262 grilles ; les parties normales, de 161 à 187.
+    assert.equal(catalog.grids.length, 262)
+    // 361 en v32 ; les 51 images du lot portent le total à 412, dont 24 dessins
     // nouveaux copiés dans public/assets/clues (vérifiés octet par octet contre
     // les data: URI du lot).
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 361)
-    // Les grilles à thème du défi du jour : inchangées, « normales-7 » n'en crée aucune.
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 412)
+    // Les grilles à thème du défi du jour : inchangées, « normales-8 » n'en crée aucune.
     assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 75)
   }
   assert.ok(catalog.grids.every(grid => grid.columns === 7 && grid.rows === 8 && grid.size === undefined))
