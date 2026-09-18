@@ -176,10 +176,20 @@ function measureWord(word: string, font: string): number {
   return ctx.measureText(word).width
 }
 
+/**
+ * Le texte de la case vit dans son propre <span class="clue-text"> (depuis le
+ * 18/09/2026, voir CLAMP_CLASS) ; les anciennes cases le portaient en noeuds
+ * texte directs, lus en repli. La fleche de direction (le <b>) n'en fait jamais
+ * partie.
+ */
+function porteurDuTexte(el: HTMLElement): HTMLElement {
+  return el.querySelector<HTMLElement>(':scope > .clue-text') ?? el
+}
+
 /** Texte propre de la case, hors fleche directionnelle (le <b> bas/droite). */
 function directText(el: HTMLElement): string {
   let text = ''
-  el.childNodes.forEach(node => {
+  porteurDuTexte(el).childNodes.forEach(node => {
     if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? ''
   })
   return text.trim()
@@ -187,6 +197,30 @@ function directText(el: HTMLElement): string {
 
 /** Classe qui autorise la coupe française dans une définition (voir planHyphenation). */
 export const HYPHENATE_CLASS = 'clue-hyphenate'
+
+// ── LE DERNIER RECOURS : « … » (18/09/2026) ─────────────────────────────────
+// Une définition qui déborde encore au plancher de lisibilité était rognée par
+// les bords de sa case — et, la case centrant son texte, rognée EN HAUT :
+// « Fermeture auto-agrippante » s'y lisait « rerme-ture », relevé par le
+// propriétaire sur son téléphone (police agrandie). Elle garde maintenant les
+// lignes qui tiennent et finit par « … » ; le texte entier reste dans le DOM,
+// et un toucher sur la case l'affiche en grand.
+//
+// C'est le <span class="clue-text"> qui se coupe, pas la case : la case garde
+// en bas une marge pour la flèche, et le rognage se fait au bord de cette
+// marge. Coupée elle-même, elle laissait voir les lignes d'après le « … » dans
+// cette marge — vu à la première capture, le 18/09/2026.
+
+/** Classe posée sur une définition qui ne tient pas, même au plancher. */
+export const CLAMP_CLASS = 'clue-clamped'
+/** Le nombre de lignes gardées, lu par le CSS du <span class="clue-text">. */
+const VARIABLE_LIGNES = '--clue-lignes'
+
+/** Combien de lignes ENTIÈRES tiennent dans la hauteur disponible (au moins une). */
+export function lignesQuiTiennent(hauteurDisponible: number, hauteurLigne: number): number {
+  if (!(hauteurLigne > 0) || !(hauteurDisponible > 0)) return 1
+  return Math.max(1, Math.floor((hauteurDisponible + 0.5) / hauteurLigne))
+}
 
 /**
  * Taille maximale a laquelle l'indice tient en largeur ET en hauteur.
@@ -211,13 +245,17 @@ export const HYPHENATE_CLASS = 'clue-hyphenate'
  * absolu, et sa boite compte dans `scrollHeight`. On mesure donc les noeuds de
  * TEXTE, et eux seuls.
  */
-function boiteDuTexte(el: HTMLElement): DOMRect | null {
-  const noeuds = [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim())
+function plageDuTexte(el: HTMLElement): Range | null {
+  const noeuds = [...porteurDuTexte(el).childNodes].filter(node => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim())
   if (!noeuds.length) return null
   const plage = document.createRange()
   plage.setStartBefore(noeuds[0])
   plage.setEndAfter(noeuds[noeuds.length - 1])
-  return plage.getBoundingClientRect()
+  return plage
+}
+
+function boiteDuTexte(el: HTMLElement): DOMRect | null {
+  return plageDuTexte(el)?.getBoundingClientRect() ?? null
 }
 
 /**
@@ -274,6 +312,30 @@ function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: nu
   return { base, fit }
 }
 
+/**
+ * Une definition qui deborde encore a sa taille finale garde les lignes qui
+ * tiennent et finit par « … » (voir CLAMP_CLASS). Rien ne change pour celles
+ * qui tiennent : c'est l'immense majorite.
+ */
+function couperSiDeborde(el: HTMLElement): void {
+  const plage = plageDuTexte(el)
+  if (!plage) return
+  const texte = plage.getBoundingClientRect()
+  const style = getComputedStyle(el)
+  const disponible = el.getBoundingClientRect().height - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0)
+  if (texte.height <= disponible + 0.5) return
+  // La hauteur d'une ligne : celle du style si elle est chiffree, sinon la
+  // hauteur du texte divisee par son nombre de lignes reelles (la fleche de
+  // direction, hors du texte, n'est pas comptee).
+  let ligne = parseFloat(style.lineHeight)
+  if (!(ligne > 0)) {
+    const hauts = new Set([...plage.getClientRects()].filter(r => r.height > 0).map(r => Math.round(r.top)))
+    ligne = texte.height / Math.max(1, hauts.size)
+  }
+  el.classList.add(CLAMP_CLASS)
+  el.style.setProperty(VARIABLE_LIGNES, String(lignesQuiTiennent(disponible, ligne)))
+}
+
 /** Ajuste toutes les cases d'indices texte presentes dans `root`. */
 export function fitClueTexts(root: HTMLElement | null): void {
   if (!root) return
@@ -288,7 +350,11 @@ export function fitClueTexts(root: HTMLElement | null): void {
     const signature = `${root.clientWidth}x${root.clientHeight}|${nodes.map(directText).join('')}`
     if (root.dataset.clueFit === signature) return
 
-    nodes.forEach(el => { el.style.fontSize = ''; el.classList.remove(HYPHENATE_CLASS) })
+    nodes.forEach(el => {
+      el.style.fontSize = ''
+      el.classList.remove(HYPHENATE_CLASS, CLAMP_CLASS)
+      el.style.removeProperty(VARIABLE_LIGNES)
+    })
     const mesures = nodes.map(el => ({ el, mesure: measureFit(el) }))
     const retenues = mesures.filter((item): item is { el: HTMLElement; mesure: { base: number; fit: number } } => item.mesure !== null)
     // La coupe ciblée, groupe par groupe (cases simples, cases doubles).
@@ -313,6 +379,7 @@ export function fitClueTexts(root: HTMLElement | null): void {
       const taille = tailles[index]
       if (taille < mesure.base - 0.05) el.style.fontSize = `${taille}px`
     })
+    retenues.forEach(({ el }) => couperSiDeborde(el))
     root.dataset.clueFit = signature
   } catch {
     /* cosmetique : on n'interrompt jamais le jeu */

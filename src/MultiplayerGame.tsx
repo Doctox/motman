@@ -42,6 +42,7 @@ import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
 import { StillThereDialog } from './game/StillThereDialog'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 import { ReadingWindow, useReadingWindow } from './game/ReadingWindow'
+import { prechargerRecompense } from './game/matchRewardPrefetch'
 
 export { LeaveMatchPanel } from './game/DuelPresentation'
 export { StableBoardLetters } from './game/StableBoardLetters'
@@ -438,6 +439,14 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, playerId])
 
+  // La récompense XP / plumes est écrite par le serveur avec le dernier coup :
+  // on la demande DÈS la fin, elle se charge pendant l'animation au lieu
+  // d'attendre l'écran de fin (matchRewardPrefetch.ts, 18/09/2026).
+  const partieFinie = match?.status === 'finished' ? match.id : null
+  useEffect(() => {
+    if (partieFinie) void prechargerRecompense(partieFinie).catch(() => undefined)
+  }, [partieFinie])
+
   useEffect(() => { provisionalRef.current = provisional }, [provisional])
   useEffect(() => { resolvingRef.current = resolving }, [resolving])
   useEffect(() => { hintRequestingRef.current = hintRequesting }, [hintRequesting])
@@ -783,7 +792,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
           if (!entries.length && index !== 0) return <div className="cell blocked" key={index} aria-hidden="true" />
           const row = Math.floor(index / grid.columns)
           const column = index % grid.columns
-          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={() => { noterActivite(); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : compactClue(entry.text)}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
+          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={() => { noterActivite(); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : <span className="clue-text">{compactClue(entry.text)}</span>}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
         }
         const confirmed = match.board[index]
         const localTile = provisional[index]

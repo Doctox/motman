@@ -437,3 +437,13 @@ html[data-motion="off"] .turn-ready-flash span{animation:turnReadyHeartbeatReduc
    (clueAutoFit.ts, planHyphenation). Mots d'au moins 8 lettres, 3 de chaque côté
    (Safari ignore ce dernier réglage et peut couper un peu plus court). */
 .board .clue .clue-entry.clue-hyphenate{overflow-wrap:normal!important;word-break:normal!important;-webkit-hyphens:auto;hyphens:auto;hyphenate-limit-chars:8 3 3}
+/* Le texte d'une définition vit dans son propre span (18/09/2026). Par défaut
+   il se comporte comme le texte nu d'avant : l'ancienne règle `.clue span` le
+   couperait sinon à quatre lignes, même quand il tient. */
+.board .clue .clue-entry>.clue-text{display:block;min-width:0;overflow:visible;-webkit-line-clamp:unset}
+/* Une définition qui ne tient pas, même au plancher : ses lignes entières puis
+   « … », plutôt que rognée en haut par la case (voir CLAMP_CLASS, clueAutoFit.ts).
+   C'est le span qui se coupe, au bord de SON texte : la case, elle, garde en
+   bas la marge de la flèche, où les lignes d'après le « … » restaient visibles
+   quand c'était elle qu'on coupait. Le nombre de lignes vient du script. */
+.board .clue .clue-entry.clue-clamped>.clue-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--clue-lignes,3);overflow:hidden;max-height:100%}

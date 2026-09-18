@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { largestFittingSize, MIN_FONT_PX, MIN_UNIFORM_FONT_PX, planHyphenation, uniformClueSizes } from './clueAutoFit'
+import { largestFittingSize, lignesQuiTiennent, MIN_FONT_PX, MIN_UNIFORM_FONT_PX, planHyphenation, uniformClueSizes } from './clueAutoFit'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LA TAILLE DES DÉFINITIONS.
@@ -124,5 +124,28 @@ describe('la coupe ciblée des mots longs', () => {
   it('ne mesure rien de plus quand tout tient déjà à la même taille', () => {
     const { mesurer } = mesureur([9, 9])
     expect(planHyphenation([9, 9], mesurer).cut).toEqual([])
+  })
+})
+
+describe('le dernier recours : « … »', () => {
+  // « Fermeture auto-agrippante », sur le téléphone du propriétaire (police
+  // agrandie, 18/09/2026) : quatre lignes dans une case qui en tient trois, et
+  // la case, centrant son texte, rognait la PREMIÈRE ligne.
+  it('garde les lignes entières qui tiennent', () => {
+    expect(lignesQuiTiennent(28, 9)).toBe(3)
+  })
+
+  it('tolère un demi-pixel d’arrondi', () => {
+    expect(lignesQuiTiennent(26.6, 9)).toBe(3)
+  })
+
+  it('garde toujours au moins une ligne', () => {
+    expect(lignesQuiTiennent(4, 9)).toBe(1)
+    expect(lignesQuiTiennent(0, 9)).toBe(1)
+  })
+
+  it('une hauteur de ligne illisible ne casse rien', () => {
+    expect(lignesQuiTiennent(28, Number.NaN)).toBe(1)
+    expect(lignesQuiTiennent(28, 0)).toBe(1)
   })
 })

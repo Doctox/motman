@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Check, Feather, House, UserPlus } from 'lucide-react'
-import { refreshPlayerAccount } from '../auth'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
@@ -18,6 +17,7 @@ import type { ExperienceAward } from '../playerProgress'
 import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
 import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
 import { useCountUp } from './countUp'
+import { recompenseDuMatch } from './matchRewardPrefetch'
 import { loadSocialState, sendFriendRequestToPlayer } from '../social'
 import './duel-friend.css'
 
@@ -65,8 +65,8 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
   }
   useEffect(() => {
     let active = true
-    void refreshPlayerAccount().then(response => {
-      const award = response.progress?.experienceAwards.find(candidate => candidate.id === `server:match:${match.id}`) ?? null
+    // Demandée dès la fin de partie (matchRewardPrefetch.ts) : souvent déjà là.
+    void recompenseDuMatch(match.id).then(award => {
       if (active) setExperienceAward(award)
     }).catch(() => undefined)
     haptic(won ? [18, 32, 18, 55, 28] : 24)
@@ -255,8 +255,7 @@ export function PendingResultPanel({
 
   useEffect(() => {
     let active = true
-    void refreshPlayerAccount().then(response => {
-      const award = response.progress?.experienceAwards.find(candidate => candidate.id === `server:match:${result.matchId}`) ?? null
+    void recompenseDuMatch(result.matchId).then(award => {
       if (active) setExperienceAward(award)
     }).catch(() => undefined)
     haptic(won ? [18, 32, 18, 55, 28] : 24)
