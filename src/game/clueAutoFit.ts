@@ -87,14 +87,32 @@ export function largestFittingSize(base: number, floor: number, fits: (size: num
   return tient
 }
 
-export type ClueFit = { group: string; fit: number }
+/**
+ * `fit` : la plus grande taille ou l'indice tient en largeur ET en hauteur.
+ * `widthFit` : la meme, en LARGEUR seulement (le mot le plus long sur une ligne).
+ */
+export type ClueFit = { group: string; fit: number; widthFit?: number }
 
 /**
  * Taille finale de chaque indice : la taille commune de son groupe (la plus
- * petite taille qui tient, planchee), ou sa propre taille s'il ne tient pas
- * a la taille commune.
+ * petite taille qui tient, planchee), ou plus petite seulement si un de ses
+ * mots est trop LARGE pour la case a cette taille (`widthFit`).
+ *
+ * UNE DEFINITION NE RAPETISSE PLUS POUR TENIR EN HAUTEUR (18/09/2026). Elle
+ * descendait jusqu'a 5 px pour tout faire tenir : sur le telephone du
+ * proprietaire, sept lignes minuscules ou le gras ne se voyait plus — « on voit
+ * rien du tout ». Elle garde maintenant la taille de ses voisines, et ce qui
+ * depasse finit en « … » (CLAMP_CLASS) ; un toucher l'affiche en entier. Le mot
+ * trop large, lui, rapetisse encore : sinon il serait coupe au milieu.
+ * Sans `widthFit`, la regle d'avant s'applique (taille propre si plus petite).
  */
 export function uniformClueSizes(fits: readonly ClueFit[], uniformFloor = MIN_UNIFORM_FONT_PX): number[] {
+  const communes = communesParGroupe(fits, uniformFloor)
+  return fits.map(({ group, fit, widthFit }) => Math.min(widthFit ?? fit, communes.get(group) ?? fit))
+}
+
+/** La taille commune de chaque groupe (cases simples, cases doubles). */
+export function communesParGroupe(fits: readonly ClueFit[], uniformFloor = MIN_UNIFORM_FONT_PX): Map<string, number> {
   const parGroupe = new Map<string, number[]>()
   for (const { group, fit } of fits) {
     const valeurs = parGroupe.get(group)
@@ -114,10 +132,15 @@ export function uniformClueSizes(fits: readonly ClueFit[], uniformFloor = MIN_UN
     // d'une case à l'autre — le défaut même que la taille commune avait corrigé
     // le 13/09/2026.
     const plancher = Math.min(uniformFloor, mediane)
-    communes.set(groupe, Math.max(plancher, triees[0]))
+    // LA DÉFINITION HORS NORME NE FAIT PLUS RAPETISSER LE PLATEAU (18/09/2026).
+    // Sous le plancher, elle ramenait TOUTES les définitions au plancher : sur
+    // le téléphone du propriétaire, une seule longue définition et le plateau
+    // entier passait de 8,2 à 6,9 px — « dès que tu fais ta modif ça change la
+    // taille et le gras ». Elle est tronquée à quatre lignes, à la taille de ses
+    // voisines ; la taille commune se prend sur les définitions qui tiennent.
+    communes.set(groupe, triees.find(valeur => valeur >= plancher) ?? plancher)
   }
-
-  return fits.map(({ group, fit }) => Math.min(fit, communes.get(group) ?? fit))
+  return communes
 }
 
 // ── LA COUPE CIBLÉE (14/09/2026) ────────────────────────────────────────────
@@ -216,10 +239,18 @@ export const CLAMP_CLASS = 'clue-clamped'
 /** Le nombre de lignes gardées, lu par le CSS du <span class="clue-text">. */
 const VARIABLE_LIGNES = '--clue-lignes'
 
-/** Combien de lignes ENTIÈRES tiennent dans la hauteur disponible (au moins une). */
-export function lignesQuiTiennent(hauteurDisponible: number, hauteurLigne: number): number {
+/**
+ * QUATRE LIGNES AU PLUS — la règle du propriétaire, le 18/09/2026 : « maximum
+ * 4 lignes, au-delà on tronque », et « change pas la taille d'écriture ni le
+ * gras ». La taille se calcule comme avant ; seule la COUPE s'arrête à la
+ * quatrième ligne (ou avant, si la case est plus petite).
+ */
+export const MAX_LIGNES_DEFINITION = 4
+
+/** Combien de lignes ENTIÈRES garder : ce qui tient dans la case, quatre au plus (au moins une). */
+export function lignesQuiTiennent(hauteurDisponible: number, hauteurLigne: number, maximum = MAX_LIGNES_DEFINITION): number {
   if (!(hauteurLigne > 0) || !(hauteurDisponible > 0)) return 1
-  return Math.max(1, Math.floor((hauteurDisponible + 0.5) / hauteurLigne))
+  return Math.max(1, Math.min(maximum, Math.floor((hauteurDisponible + 0.5) / hauteurLigne)))
 }
 
 /**
@@ -279,7 +310,9 @@ function facteurAgrandissement(el: HTMLElement): number {
   return Number.isFinite(rendu) && rendu > 0 ? rendu / 10 : 1
 }
 
-function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: number } | null {
+type Mesure = { base: number; fit: number; largeur: number }
+
+function measureFit(el: HTMLElement, hyphenate = false): Mesure | null {
   const text = directText(el)
   if (!text) return null
   const style = getComputedStyle(el)
@@ -306,10 +339,19 @@ function measureFit(el: HTMLElement, hyphenate = false): { base: number; fit: nu
     if (!texte) return true
     return texte.height <= disponibleHauteur + 0.5 && texte.width <= available + EPS + 0.5
   }
+  // La meme chose, en LARGEUR seulement : ce qu'un mot trop long impose.
+  const tientEnLargeur = (size: number) => {
+    const font = `${weight} ${size}px ${family}`
+    if (!hyphenate && tokens.some(token => measureWord(token, font) > available)) return false
+    el.style.fontSize = `${size}px`
+    const texte = boiteDuTexte(el)
+    return !texte || texte.width <= available + EPS + 0.5
+  }
   // Le plancher protege la taille AFFICHEE : on le convertit en pixels CSS.
   const fit = largestFittingSize(base, MIN_FONT_PX / facteur, fits)
+  const largeur = fit >= base ? base : largestFittingSize(base, Math.max(fit, MIN_FONT_PX / facteur), tientEnLargeur)
   el.style.fontSize = ''
-  return { base, fit }
+  return { base, fit, largeur }
 }
 
 /**
@@ -323,7 +365,6 @@ function couperSiDeborde(el: HTMLElement): void {
   const texte = plage.getBoundingClientRect()
   const style = getComputedStyle(el)
   const disponible = el.getBoundingClientRect().height - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0)
-  if (texte.height <= disponible + 0.5) return
   // La hauteur d'une ligne : celle du style si elle est chiffree, sinon la
   // hauteur du texte divisee par son nombre de lignes reelles (la fleche de
   // direction, hors du texte, n'est pas comptee).
@@ -332,8 +373,19 @@ function couperSiDeborde(el: HTMLElement): void {
     const hauts = new Set([...plage.getClientRects()].filter(r => r.height > 0).map(r => Math.round(r.top)))
     ligne = texte.height / Math.max(1, hauts.size)
   }
+  // Elle tient dans la case ET en quatre lignes au plus : rien a couper.
+  if (texte.height <= Math.min(disponible, MAX_LIGNES_DEFINITION * ligne) + 0.5) return
   el.classList.add(CLAMP_CLASS)
   el.style.setProperty(VARIABLE_LIGNES, String(lignesQuiTiennent(disponible, ligne)))
+}
+
+/** Le texte, a sa taille actuelle, tient-il dans la LARGEUR de la case ? */
+function tientEnLargeur(el: HTMLElement): boolean {
+  const texte = boiteDuTexte(el)
+  if (!texte) return true
+  const style = getComputedStyle(el)
+  const disponible = el.getBoundingClientRect().width - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)
+  return texte.width <= disponible + 0.5
 }
 
 /** Ajuste toutes les cases d'indices texte presentes dans `root`. */
@@ -356,28 +408,50 @@ export function fitClueTexts(root: HTMLElement | null): void {
       el.style.removeProperty(VARIABLE_LIGNES)
     })
     const mesures = nodes.map(el => ({ el, mesure: measureFit(el) }))
-    const retenues = mesures.filter((item): item is { el: HTMLElement; mesure: { base: number; fit: number } } => item.mesure !== null)
+    const retenues = mesures.filter((item): item is { el: HTMLElement; mesure: Mesure } => item.mesure !== null)
     // La coupe ciblée, groupe par groupe (cases simples, cases doubles).
     for (const groupe of ['simple', 'double']) {
       const membres = retenues.filter(({ el }) => (el.closest('.double-clue') ? 'double' : 'simple') === groupe)
       if (!membres.length) continue
+      const coupees = new Map<number, Mesure>()
       const plan = planHyphenation(membres.map(({ mesure }) => mesure.fit), index => {
         const { el } = membres[index]
         el.classList.add(HYPHENATE_CLASS)
         const coupe = measureFit(el, true)
         el.classList.remove(HYPHENATE_CLASS)
+        if (coupe) coupees.set(index, coupe)
         return coupe?.fit ?? 0
       })
       plan.cut.forEach(index => membres[index].el.classList.add(HYPHENATE_CLASS))
-      membres.forEach((membre, index) => { membre.mesure.fit = plan.fits[index] })
+      membres.forEach((membre, index) => {
+        membre.mesure.fit = plan.fits[index]
+        // Coupée, la définition n'a plus de mot trop large : sa largeur aussi change.
+        const coupe = plan.cut.includes(index) ? coupees.get(index) : undefined
+        if (coupe) membre.mesure.largeur = coupe.largeur
+      })
     }
-    const tailles = uniformClueSizes(retenues.map(({ el, mesure }) => ({
+    const ajustements = retenues.map(({ el, mesure }) => ({
       group: el.closest('.double-clue') ? 'double' : 'simple',
       fit: mesure.fit,
-    })))
+      widthFit: mesure.largeur,
+    }))
+    const tailles = uniformClueSizes(ajustements)
+    const communes = communesParGroupe(ajustements)
     retenues.forEach(({ el, mesure }, index) => {
-      const taille = tailles[index]
-      if (taille < mesure.base - 0.05) el.style.fontSize = `${taille}px`
+      let taille = tailles[index]
+      const commune = communes.get(ajustements[index].group) ?? taille
+      // Elle ne tiendra pas entière à la taille commune : elle finira en « … ».
+      // Autant garder la taille de ses voisines — c'est ce que le propriétaire
+      // voulait lire, le 18/09/2026 — en coupant au trait d'union le mot trop
+      // large. Seul un mot qui refuse toute coupure la fait encore rapetisser.
+      if (taille < commune - 0.05 && mesure.fit < commune - 0.05) {
+        const dejaCoupee = el.classList.contains(HYPHENATE_CLASS)
+        el.classList.add(HYPHENATE_CLASS)
+        el.style.fontSize = `${commune}px`
+        if (tientEnLargeur(el)) taille = commune
+        else if (!dejaCoupee) el.classList.remove(HYPHENATE_CLASS)
+      }
+      el.style.fontSize = taille < mesure.base - 0.05 ? `${taille}px` : ''
     })
     retenues.forEach(({ el }) => couperSiDeborde(el))
     root.dataset.clueFit = signature

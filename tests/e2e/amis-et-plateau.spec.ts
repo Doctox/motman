@@ -178,6 +178,8 @@ test('une définition trop longue pour sa case finit par « … » au lieu d’�
     })
     expect(mesure.coupee).toBe(true)
     expect(mesure.lignesGardees).toBeGreaterThanOrEqual(1)
+    // Quatre lignes au plus, la règle du propriétaire (18/09/2026).
+    expect(mesure.lignesGardees).toBeLessThanOrEqual(4)
     expect(mesure.premiereLigneDansLaCase).toBe(true)
     expect(mesure.texteDansLeContenu).toBe(true)
   } finally {

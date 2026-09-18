@@ -52,7 +52,9 @@ describe('une seule taille par plateau', () => {
     // Un seul mot très long ne tient qu'à 5 px : il y descend, seul.
     const tailles = uniformClueSizes([...plateau, { group: 'simple', fit: 5 }])
     expect(tailles.at(-1)).toBe(5)
-    expect(tailles.slice(0, -1).every(taille => taille === MIN_UNIFORM_FONT_PX)).toBe(true)
+    // Les autres gardent LEUR taille (6,4) : jusqu'au 18/09/2026, l'intrus les
+    // ramenait toutes au plancher de 6.
+    expect(tailles.slice(0, -1).every(taille => taille === 6.4)).toBe(true)
   })
 
   it('garde UNE taille commune même quand tout le plateau passe sous le plancher', () => {
@@ -127,6 +129,33 @@ describe('la coupe ciblée des mots longs', () => {
   })
 })
 
+describe('une définition ne rapetisse plus pour tenir en hauteur', () => {
+  // 18/09/2026, sur le téléphone du propriétaire : une définition trop longue
+  // descendait à 5 px, sept lignes où « on voit rien du tout ». Elle garde la
+  // taille de ses voisines, et finit en « … ».
+  const plateau = [
+    { group: 'simple', fit: 7.0, widthFit: 9.0 },
+    { group: 'simple', fit: 7.2, widthFit: 9.0 },
+    { group: 'simple', fit: 4.1, widthFit: 9.0 },  // trop HAUTE : trop de mots
+    { group: 'simple', fit: 5.0, widthFit: 5.0 },  // un mot trop LARGE
+  ]
+
+  it('la définition trop haute garde la taille commune', () => {
+    const tailles = uniformClueSizes(plateau)
+    expect(tailles[2]).toBe(tailles[0])
+    expect(tailles[2]).toBeGreaterThan(4.1)
+  })
+
+  it('le mot trop large rapetisse encore, pour ne pas être coupé au milieu', () => {
+    expect(uniformClueSizes(plateau)[3]).toBe(5.0)
+  })
+
+  it('sans largeur mesurée, la règle d’avant s’applique', () => {
+    const avant = plateau.map(({ group, fit }) => ({ group, fit }))
+    expect(uniformClueSizes(avant)[2]).toBe(4.1)
+  })
+})
+
 describe('le dernier recours : « … »', () => {
   // « Fermeture auto-agrippante », sur le téléphone du propriétaire (police
   // agrandie, 18/09/2026) : quatre lignes dans une case qui en tient trois, et
@@ -137,6 +166,10 @@ describe('le dernier recours : « … »', () => {
 
   it('tolère un demi-pixel d’arrondi', () => {
     expect(lignesQuiTiennent(26.6, 9)).toBe(3)
+  })
+
+  it('jamais plus de quatre lignes, même dans une grande case', () => {
+    expect(lignesQuiTiennent(80, 9)).toBe(4)
   })
 
   it('garde toujours au moins une ligne', () => {
