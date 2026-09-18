@@ -29,10 +29,20 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // part toujours pas au navigateur. La vraie piste — servir les pictogrammes par
 // fichier — exige des noms de fichier NEUTRES : equerre.svg, selfie.svg… disent
 // la réponse, et un chemin part au téléphone.
+//
+// 2026-09-18 : v31, 186 grilles (+ Sport, Musique, Espace & Sciences, Émotions).
+// 1 128 Ko bruts / 320 Ko compressés. Seuils relevés à 1,6 Mo et 460 Ko, et
+// cette fois la raison du plafond a disparu : jusqu'au matin même, CHAQUE
+// partie lisait tout `server_grid_catalog` pour tirer sa grille (1 089 Ko par
+// partie). Depuis la vue `server_grid_selection`, le tirage lit 52 Ko et charge
+// la seule grille retenue. Plus rien ne lit le catalogue entier en jeu ; seul
+// l'export administrateur de Grid Factory le sert, sous sa propre limite de
+// 8 Mio (`grid-usage-api/catalog.ts`). Le seuil reste un garde-fou de
+// croissance : le franchir redemande de regarder qui lit quoi.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 1_100_000,
-  runtimeCatalogGzip: 320_000,
+  runtimeCatalog: 1_600_000,
+  runtimeCatalogGzip: 460_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,
