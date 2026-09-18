@@ -34,5 +34,23 @@
     "titre": "26 nouvelles grilles",
     "texte": "Les parties normales en comptent désormais 187 : vous retomberez moins souvent sur la même.",
     "genre": "grilles"
+  },
+  {
+    "ajoute": "2026-09-18T21:36",
+    "titre": "Jouer avec ses amis, plus simple",
+    "texte": "Touchez un ami sur l’accueil pour l’inviter. Deux amis qui s’invitent en même temps se retrouvent dans la même partie, et une invitation reste sur la ligne de l’ami.",
+    "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-09-18T21:36",
+    "titre": "Des définitions toujours lisibles",
+    "texte": "Une définition trop longue pour sa case se termine par « … » au lieu d’être coupée en haut. Touchez la case pour la lire en entier.",
+    "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-09-18T21:36",
+    "titre": "Vos gains sans attendre",
+    "texte": "À la fin d’une partie, l’expérience et les plumes gagnées s’affichent aussitôt, et un ami qui quitte sa partie n’apparaît plus « En jeu ».",
+    "genre": "jeu"
   }
 ]
