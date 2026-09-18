@@ -1,81 +1,103 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// LES NOUVEAUTÉS — ce qui a changé, dit au joueur.
+// LES NOUVEAUTÉS — noter dans la journée, annoncer à 10 h et à 18 h.
 //
-// Une courte liste datée, dans le menu (roue crantée → « Nouveautés »). Une
-// PISTE DE PASTILLES y mène : sur la roue crantée tant qu'une entrée n'est pas
-// lue, puis sur la ligne « Nouveautés », puis sur l'entrée elle-même. C'est en
-// ouvrant CETTE entrée qu'elle passe lue — pas en survolant la liste. Voulu
-// ainsi par le propriétaire le 18/09/2026.
+// Deux gestes séparés, voulus ainsi par le propriétaire le 18/09/2026 :
 //
-// LES ENTRÉES S'ÉCRIVENT À LA MAIN, ICI. Surtout pas une par déploiement : avec
-// la mise à jour embarquée, le jeu change plusieurs fois par jour sans que le
-// joueur ait rien à apprendre, et une pastille qui clignote à chaque fois ne
-// serait plus lue par personne. On n'écrit que ce qu'un joueur REMARQUERAIT :
-// un thème qui arrive, un gros lot de grilles, une gêne qui disparaît.
+//   NOTER. À chaque commit qui compte pour le joueur, un RAPPORT d'une ligne
+//   s'ajoute à `nouveautes.rapports.json` (`npm run rapport -- "titre" "texte"`,
+//   ou tout seul à l'intégration d'un lot). On pousse, on commite, on vit sa vie.
 //
-// Le tutoriel garde son rôle : quand une MÉCANIQUE nouvelle demande d'être
-// expliquée, c'est lui qu'on rouvre (`FIRST_RUN_TUTORIAL_VERSION`). Ici, on
-// informe ; là-bas, on apprend à jouer.
+//   ANNONCER. À 10 h et à 18 h, heure de Paris, l'app rassemble les rapports
+//   déposés depuis le rendez-vous précédent en UN SEUL message de nouveauté, et
+//   la pastille s'allume. Cinq thèmes entrés dans la matinée font un message,
+//   pas cinq. Deux rendez-vous plutôt qu'un (le propriétaire, même jour) : une
+//   chose faite à 8 h n'a pas à attendre le soir.
 //
-// Tout ce fichier part par la mise à jour embarquée : ajouter une entrée ne
-// demande aucun APK.
+//     déposé avant 10 h          → paraît à 10 h
+//     entre 10 h et 18 h         → paraît à 18 h
+//     après 18 h                 → paraît le LENDEMAIN à 10 h
+//
+// Avant son rendez-vous, un rapport est invisible : il reste le temps de relire
+// ou de corriger son texte avant qu'il parte aux joueurs.
+//
+// Tout se passe dans l'app : ni serveur ni tâche planifiée. L'heure vient de
+// l'horloge du serveur (`serverNow`), comme pour le défi du jour, pour qu'un
+// téléphone mal réglé ne voie pas le message en avance.
+//
+// LA PISTE DE PASTILLES : roue crantée → enveloppe du menu → message non lu. C'est
+// en OUVRANT le message qu'il passe lu, pas en survolant la liste.
+//
+// On n'écrit que ce qu'un joueur REMARQUERAIT : un thème qui arrive, un lot de
+// grilles, une gêne qui disparaît. Le tutoriel garde son rôle pour les
+// mécaniques nouvelles — ici on informe, là-bas on apprend à jouer.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useSyncExternalStore } from 'react'
+import rapportsData from './nouveautes.rapports.json'
+import { creneauDePublication, momentParis } from './nouveautesCreneaux'
+import { serverNow } from './serverClock'
 import { completedTutorialVersion } from './tutorialProgress'
 
-export type Nouveaute = {
-  /** Stable, jamais réutilisé : c'est lui que retient l'état « lu ». */
-  id: string
-  /** `AAAA-MM-JJ`, pour l'affichage. */
-  date: string
+export type Rapport = {
+  /** Heure de PARIS du dépôt, `AAAA-MM-JJTHH:MM`. C'est elle qui décide du message. */
+  ajoute: string
   titre: string
   /** Une ou deux phrases. Le joueur lit ça entre deux parties. */
   texte: string
 }
 
-/** La plus récente EN HAUT. Ajouter en tête, ne jamais changer un `id`. */
-export const NOUVEAUTES: readonly Nouveaute[] = [
-  {
-    id: '2026-09-18-definitions-entieres',
-    date: '2026-09-18',
-    titre: 'Les définitions s’affichent en entier',
-    texte: 'Plus de « Elle fait la… » ou « Côté droit de la… » : chaque définition tient maintenant entière dans sa case.',
-  },
-  {
-    id: '2026-09-18-trente-deux-grilles',
-    date: '2026-09-18',
-    titre: '32 nouvelles grilles',
-    texte: 'Les parties normales passent de 79 à 111 grilles : vous tomberez beaucoup moins souvent deux fois sur la même.',
-  },
-  {
-    id: '2026-09-17-grandes-polices',
-    date: '2026-09-17',
-    titre: 'Un affichage net avec une grande police',
-    texte: 'Si votre téléphone agrandit le texte, MotMan garde désormais sa mise en page : lettres, chrono et boutons restent à leur place.',
-  },
-]
+/** Un message de nouveauté : les rapports d'un créneau, publiés ensemble. */
+export type Nouveaute = {
+  /** `maj-AAAA-MM-JJ-HH` : stable, c'est lui que retient l'état « lu ». */
+  id: string
+  /** Le jour de publication, `AAAA-MM-JJ`. */
+  date: string
+  /** L'heure de publication, l'une de `HEURES_DE_PUBLICATION`. */
+  heure: number
+  /** Dans l'ordre de dépôt. */
+  rapports: Rapport[]
+}
+
+export const RAPPORTS: readonly Rapport[] = rapportsData as Rapport[]
+
+// La règle des rendez-vous vit dans src/nouveautesCreneaux.ts, SANS IMPORT, pour
+// que le script qui dépose les rapports la lise telle quelle.
+export { creneauDePublication, HEURES_DE_PUBLICATION, horodatageParis, momentParis } from './nouveautesCreneaux'
+
+/** Les messages déjà parus à cet instant, le plus récent en haut. */
+export function nouveautesPubliees(rapports: readonly Rapport[] = RAPPORTS, maintenantMs: number = serverNow()): Nouveaute[] {
+  const maintenant = momentParis(maintenantMs)
+  const paru = (c: { date: string; heure: number }) =>
+    c.date < maintenant.date || (c.date === maintenant.date && maintenant.heure >= c.heure)
+  // La clé `AAAA-MM-JJ-HH` se trie comme le temps : deux chiffres pour l'heure.
+  const parCreneau = new Map<string, { date: string; heure: number; rapports: Rapport[] }>()
+  for (const rapport of [...rapports].sort((a, b) => a.ajoute.localeCompare(b.ajoute))) {
+    const creneau = creneauDePublication(rapport.ajoute)
+    if (!paru(creneau)) continue
+    const cle = `${creneau.date}-${String(creneau.heure).padStart(2, '0')}`
+    const courant = parCreneau.get(cle) ?? { ...creneau, rapports: [] }
+    courant.rapports.push(rapport)
+    parCreneau.set(cle, courant)
+  }
+  return [...parCreneau.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([cle, creneau]) => ({ id: `maj-${cle}`, date: creneau.date, heure: creneau.heure, rapports: creneau.rapports }))
+}
 
 export const NOUVEAUTES_STORAGE_KEY = 'motman-nouveautes-lues'
 
 /**
- * Les entrées lues, lues dans le stockage.
+ * Les messages lus, lus dans le stockage.
  *
  * PREMIÈRE OUVERTURE (aucune clé) : un joueur tout neuf n'a rien à « rattraper »
- * — le tutoriel l'accueille, et une pastille sur des nouveautés antérieures à
- * son arrivée ne voudrait rien dire pour lui. Tout ce qui existe passe donc lu
- * d'office. Un HABITUÉ, lui, a déjà fini le tutoriel : il voit les entrées non
- * lues, c'est tout l'objet de la section. C'est le tutoriel qui fait la
- * différence entre les deux, parce que c'est la seule trace durable d'un
- * passage antérieur dans ce navigateur.
- *
- * L'état initial est ÉCRIT aussitôt : la règle ne s'évalue qu'une fois. Sinon un
- * joueur neuf qui termine ensuite le tutoriel deviendrait « habitué » et verrait
- * toutes les entrées se rallumer.
+ * — le tutoriel l'accueille. Tout ce qui est DÉJÀ paru passe donc lu d'office ;
+ * seuls les messages publiés après son arrivée s'allumeront. Un HABITUÉ, lui, a
+ * déjà fini le tutoriel : il voit ce qu'il n'a pas ouvert. L'état initial est
+ * ÉCRIT aussitôt, pour que la règle ne s'évalue qu'une fois.
  */
 export function lireEntreesLues(
   storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage,
-  liste: readonly Nouveaute[] = NOUVEAUTES,
+  publiees: readonly Nouveaute[] = nouveautesPubliees(),
   dejaJoue: () => boolean = () => completedTutorialVersion() > 0,
 ): Set<string> {
   try {
@@ -84,62 +106,99 @@ export function lireEntreesLues(
       const valeur = JSON.parse(brut) as unknown
       return new Set(Array.isArray(valeur) ? valeur.filter((id): id is string => typeof id === 'string') : [])
     }
-    const initial = dejaJoue() ? new Set<string>() : new Set(liste.map(entree => entree.id))
+    const initial = dejaJoue() ? new Set<string>() : new Set(publiees.map(entree => entree.id))
     storage.setItem(NOUVEAUTES_STORAGE_KEY, JSON.stringify([...initial]))
     return initial
   } catch {
-    // Stockage indisponible (navigation privée, bac à sable) : aucune pastille
-    // plutôt qu'une pastille qu'on ne pourrait jamais éteindre.
-    return new Set(liste.map(entree => entree.id))
+    // Stockage indisponible : aucune pastille plutôt qu'une qu'on ne pourrait
+    // jamais éteindre.
+    return new Set(publiees.map(entree => entree.id))
   }
 }
 
-/** Les entrées pas encore ouvertes, dans l'ordre de la liste. */
-export function nouveautesNonLues(lues: ReadonlySet<string>, liste: readonly Nouveaute[] = NOUVEAUTES): Nouveaute[] {
-  return liste.filter(entree => !lues.has(entree.id))
+/** Les messages parus et pas encore ouverts. */
+export function nouveautesNonLues(lues: ReadonlySet<string>, publiees: readonly Nouveaute[]): Nouveaute[] {
+  return publiees.filter(entree => !lues.has(entree.id))
 }
 
-// ── L'état partagé : la roue, la ligne du menu et la liste le lisent ensemble ──
-// Ouvrir une entrée doit éteindre les trois pastilles d'un coup. Un magasin
-// minuscule plutôt qu'un état passé de composant en composant.
+// ── L'état partagé : la roue, l'enveloppe et la liste le lisent ensemble ──────
+// Un seul instantané, remplacé à chaque changement : `useSyncExternalStore`
+// compare les références.
+
+type Etat = { lues: Set<string>; publiees: Nouveaute[] }
 
 const abonnes = new Set<() => void>()
-let lues: Set<string> | null = null
+let etatCourant: Etat | null = null
+let minuterie: ReturnType<typeof setInterval> | null = null
 
-function etat(): Set<string> {
-  lues ??= lireEntreesLues()
-  return lues
+function signature(publiees: readonly Nouveaute[]): string {
+  return publiees.map(entree => `${entree.id}:${entree.rapports.length}`).join('|')
+}
+
+function etat(): Etat {
+  if (!etatCourant) {
+    const publiees = nouveautesPubliees()
+    etatCourant = { publiees, lues: lireEntreesLues(localStorage, publiees) }
+  }
+  return etatCourant
+}
+
+function prevenir(): void {
+  abonnes.forEach(rappel => rappel())
+}
+
+/**
+ * 18 h peut sonner pendant que l'app est ouverte : on regarde chaque minute si
+ * un message vient de paraître, pour que la pastille s'allume sans recharger.
+ */
+function surveillerLHeure(): void {
+  if (minuterie || typeof window === 'undefined') return
+  minuterie = setInterval(() => {
+    const courant = etat()
+    const publiees = nouveautesPubliees()
+    if (signature(publiees) === signature(courant.publiees)) return
+    etatCourant = { ...courant, publiees }
+    prevenir()
+  }, 60_000)
 }
 
 export function marquerNouveauteLue(id: string, storage: Pick<Storage, 'setItem'> = localStorage): void {
   const courant = etat()
-  if (courant.has(id)) return
-  // Un NOUVEL ensemble : `useSyncExternalStore` compare les références.
-  lues = new Set([...courant, id])
+  if (courant.lues.has(id)) return
+  const lues = new Set([...courant.lues, id])
+  etatCourant = { ...courant, lues }
   try {
     storage.setItem(NOUVEAUTES_STORAGE_KEY, JSON.stringify([...lues]))
   } catch {
     // Retenu pour la session, faute de pouvoir l'écrire.
   }
-  abonnes.forEach(prevenir => prevenir())
+  prevenir()
 }
 
-function sAbonner(prevenir: () => void): () => void {
-  abonnes.add(prevenir)
-  return () => abonnes.delete(prevenir)
+function sAbonner(rappel: () => void): () => void {
+  abonnes.add(rappel)
+  surveillerLHeure()
+  return () => {
+    abonnes.delete(rappel)
+    if (!abonnes.size && minuterie) {
+      clearInterval(minuterie)
+      minuterie = null
+    }
+  }
 }
 
-/** Les entrées lues, qui se mettent à jour dès qu'on en ouvre une. */
-export function useNouveautesLues(): ReadonlySet<string> {
+/** Les messages parus et l'état « lu », mis à jour dès qu'on en ouvre un — ou qu'il est 18 h. */
+export function useNouveautes(): Etat {
   return useSyncExternalStore(sAbonner, etat, etat)
 }
 
-/** Vrai tant qu'au moins une entrée n'a pas été ouverte : c'est la pastille. */
+/** Vrai tant qu'au moins un message paru n'a pas été ouvert : c'est la pastille. */
 export function useNouveauteEnAttente(): boolean {
-  return nouveautesNonLues(useNouveautesLues()).length > 0
+  const { lues, publiees } = useNouveautes()
+  return nouveautesNonLues(lues, publiees).length > 0
 }
 
 /** Pour les bancs d'essai : oublie l'état chargé. */
 export function reinitialiserNouveautesPourTest(): void {
-  lues = null
+  etatCourant = null
 }

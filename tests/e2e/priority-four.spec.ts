@@ -599,11 +599,12 @@ test('les nouveautés se signalent de la roue jusqu’à l’entrée, et s’ét
   expect(total).toBeGreaterThan(0)
   await expect(page.locator('.mm-nouveaute .mm-pastille')).toHaveCount(total)
 
-  // Ouvrir la première : SA pastille s'éteint, son texte apparaît, les autres
-  // restent signalées.
+  // Ouvrir le premier message : SA pastille s'éteint, ses rapports apparaissent
+  // (un message regroupe tous ceux d'un rendez-vous, 10 h ou 18 h), les autres
+  // messages restent signalés.
   await entrees.nth(0).getByRole('button').click()
   await expect(entrees.nth(0).locator('.mm-pastille')).toHaveCount(0)
-  await expect(entrees.nth(0).locator('p')).toBeVisible()
+  await expect(entrees.nth(0).locator('ul > li').first()).toBeVisible()
   await expect(page.locator('.mm-nouveaute .mm-pastille')).toHaveCount(total - 1)
 
   // Tant qu'il en reste une à lire, l'enveloppe et la roue restent allumées.

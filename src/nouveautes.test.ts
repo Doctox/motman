@@ -1,82 +1,155 @@
 import { describe, expect, it } from 'vitest'
-import { lireEntreesLues, NOUVEAUTES, NOUVEAUTES_STORAGE_KEY, nouveautesNonLues, type Nouveaute } from './nouveautes'
+import {
+  creneauDePublication, HEURES_DE_PUBLICATION, horodatageParis, lireEntreesLues, momentParis, NOUVEAUTES_STORAGE_KEY,
+  nouveautesNonLues, nouveautesPubliees, RAPPORTS, type Rapport,
+} from './nouveautes'
+
+// Un instant donné en heure de PARIS, l'été (UTC+2), pour lire les tests d'un œil.
+const aParis = (date: string, heure: number, minute = 0) => {
+  const [a, m, j] = date.split('-').map(Number)
+  return Date.UTC(a, m - 1, j, heure - 2, minute)
+}
+
+const rapport = (ajoute: string, titre = ajoute): Rapport => ({ ajoute, titre, texte: `texte de ${titre}` })
+
+describe('le rendez-vous d’un rapport', () => {
+  it('suit les deux rendez-vous de la journée, 10 h et 18 h', () => {
+    expect(HEURES_DE_PUBLICATION).toEqual([10, 18])
+  })
+
+  it('avant 10 h, il paraît à 10 h le jour même', () => {
+    expect(creneauDePublication('2026-09-18T08:30')).toEqual({ date: '2026-09-18', heure: 10 })
+    expect(creneauDePublication('2026-09-18T09:59')).toEqual({ date: '2026-09-18', heure: 10 })
+  })
+
+  it('entre 10 h et 18 h, il paraît à 18 h', () => {
+    expect(creneauDePublication('2026-09-18T10:00')).toEqual({ date: '2026-09-18', heure: 18 })
+    expect(creneauDePublication('2026-09-18T17:59')).toEqual({ date: '2026-09-18', heure: 18 })
+  })
+
+  it('après 18 h, il paraît le LENDEMAIN à 10 h', () => {
+    expect(creneauDePublication('2026-09-18T18:00')).toEqual({ date: '2026-09-19', heure: 10 })
+    expect(creneauDePublication('2026-09-18T23:40')).toEqual({ date: '2026-09-19', heure: 10 })
+  })
+
+  it('le lendemain enjambe les fins de mois et d’année', () => {
+    expect(creneauDePublication('2026-09-30T20:00')).toEqual({ date: '2026-10-01', heure: 10 })
+    expect(creneauDePublication('2026-12-31T19:00')).toEqual({ date: '2027-01-01', heure: 10 })
+  })
+})
+
+describe('l’heure de Paris', () => {
+  it('suit l’heure d’été…', () => {
+    expect(momentParis(Date.UTC(2026, 8, 18, 16, 0))).toEqual({ date: '2026-09-18', heure: 18, minute: 0 })
+  })
+
+  it('…et l’heure d’hiver', () => {
+    // Décembre : UTC+1. 17 h UTC = 18 h à Paris.
+    expect(momentParis(Date.UTC(2026, 11, 3, 17, 0))).toEqual({ date: '2026-12-03', heure: 18, minute: 0 })
+  })
+
+  it('horodate un dépôt au format que l’app relit', () => {
+    expect(horodatageParis(Date.UTC(2026, 8, 18, 7, 5))).toBe('2026-09-18T09:05')
+    // Et ce que le script horodate, l'app le range au bon rendez-vous.
+    expect(creneauDePublication(horodatageParis(Date.UTC(2026, 8, 18, 7, 5)))).toEqual({ date: '2026-09-18', heure: 10 })
+  })
+
+  it('change de jour à minuit PARIS, pas à minuit UTC', () => {
+    // 22 h 30 UTC le 18, c'est déjà 0 h 30 le 19 à Paris.
+    expect(momentParis(Date.UTC(2026, 8, 18, 22, 30)).date).toBe('2026-09-19')
+  })
+})
+
+describe('les messages parus', () => {
+  const RAPPORTS_DU_JOUR = [
+    rapport('2026-09-18T08:00', 'matin A'),
+    rapport('2026-09-18T09:30', 'matin B'),
+    rapport('2026-09-18T11:00', 'après-midi A'),
+    rapport('2026-09-18T14:00', 'après-midi B'),
+    rapport('2026-09-18T16:30', 'après-midi C'),
+  ]
+
+  it('cinq rapports d’un même créneau font UN message, pas cinq', () => {
+    const publies = nouveautesPubliees(RAPPORTS_DU_JOUR, aParis('2026-09-18', 20))
+    const soir = publies.find(message => message.heure === 18)
+    expect(soir?.rapports.map(r => r.titre)).toEqual(['après-midi A', 'après-midi B', 'après-midi C'])
+  })
+
+  it('un message reste invisible avant son rendez-vous', () => {
+    expect(nouveautesPubliees(RAPPORTS_DU_JOUR, aParis('2026-09-18', 9, 59))).toEqual([])
+    expect(nouveautesPubliees(RAPPORTS_DU_JOUR, aParis('2026-09-18', 17, 59)).map(m => m.id)).toEqual(['maj-2026-09-18-10'])
+  })
+
+  it('il paraît à l’heure pile', () => {
+    expect(nouveautesPubliees(RAPPORTS_DU_JOUR, aParis('2026-09-18', 10)).map(m => m.id)).toEqual(['maj-2026-09-18-10'])
+    expect(nouveautesPubliees(RAPPORTS_DU_JOUR, aParis('2026-09-18', 18)).map(m => m.id)).toEqual(['maj-2026-09-18-18', 'maj-2026-09-18-10'])
+  })
+
+  it('le plus récent est en haut, et deux messages d’un même jour se distinguent', () => {
+    const publies = nouveautesPubliees(RAPPORTS_DU_JOUR, aParis('2026-09-19', 12))
+    expect(publies.map(m => `${m.date} ${m.heure} h`)).toEqual(['2026-09-18 18 h', '2026-09-18 10 h'])
+  })
+
+  it('les rapports d’un message restent dans l’ordre où ils ont été déposés', () => {
+    const desordre = [rapport('2026-09-18T15:00', 'deux'), rapport('2026-09-18T11:00', 'un')]
+    expect(nouveautesPubliees(desordre, aParis('2026-09-18', 19))[0].rapports.map(r => r.titre)).toEqual(['un', 'deux'])
+  })
+})
 
 function stockage(initial: Record<string, string> = {}) {
   const donnees = new Map(Object.entries(initial))
   return {
     getItem: (cle: string) => donnees.get(cle) ?? null,
     setItem: (cle: string, valeur: string) => { donnees.set(cle, valeur) },
-    lire: (cle: string) => donnees.get(cle),
   }
 }
 
-const LISTE: Nouveaute[] = [
-  { id: 'c', date: '2026-09-18', titre: 'C', texte: 'c' },
-  { id: 'b', date: '2026-09-17', titre: 'B', texte: 'b' },
-  { id: 'a', date: '2026-09-16', titre: 'A', texte: 'a' },
-]
+describe('qui voit un message à lire', () => {
+  const publies = nouveautesPubliees(
+    [rapport('2026-09-17T15:00'), rapport('2026-09-18T11:00')],
+    aParis('2026-09-18', 20),
+  )
 
-describe('qui voit des nouveautés à lire', () => {
-  it('un joueur tout neuf n’a rien à rattraper : tout est lu d’office', () => {
+  it('un joueur tout neuf n’a rien à rattraper : ce qui est déjà paru est lu d’office', () => {
+    expect(nouveautesNonLues(lireEntreesLues(stockage(), publies, () => false), publies)).toEqual([])
+  })
+
+  it('un habitué voit tout ce qu’il n’a pas ouvert', () => {
+    expect(nouveautesNonLues(lireEntreesLues(stockage(), publies, () => true), publies)).toHaveLength(2)
+  })
+
+  it('un message paru APRÈS l’arrivée du joueur s’allume, même pour lui', () => {
     const s = stockage()
-    const lues = lireEntreesLues(s, LISTE, () => false)
-    expect(nouveautesNonLues(lues, LISTE)).toEqual([])
+    lireEntreesLues(s, publies, () => false)
+    const plusTard = nouveautesPubliees(
+      [rapport('2026-09-17T15:00'), rapport('2026-09-18T11:00'), rapport('2026-09-19T08:00')],
+      aParis('2026-09-19', 11),
+    )
+    expect(nouveautesNonLues(lireEntreesLues(s, plusTard, () => true), plusTard).map(m => m.id)).toEqual(['maj-2026-09-19-10'])
   })
 
-  it('un habitué, qui a déjà fini le tutoriel, voit tout ce qu’il n’a pas ouvert', () => {
+  it('la règle ne s’évalue qu’une fois', () => {
     const s = stockage()
-    const lues = lireEntreesLues(s, LISTE, () => true)
-    expect(nouveautesNonLues(lues, LISTE).map(e => e.id)).toEqual(['c', 'b', 'a'])
+    lireEntreesLues(s, publies, () => false)
+    expect(nouveautesNonLues(lireEntreesLues(s, publies, () => true), publies)).toEqual([])
   })
 
-  it('la règle ne s’évalue qu’une fois : finir le tutoriel ensuite ne rallume rien', () => {
-    const s = stockage()
-    lireEntreesLues(s, LISTE, () => false)
-    // Le joueur neuf termine son tutoriel : il est désormais « habitué »…
-    const ensuite = lireEntreesLues(s, LISTE, () => true)
-    // …mais l'état écrit à la première ouverture fait foi.
-    expect(nouveautesNonLues(ensuite, LISTE)).toEqual([])
-  })
-
-  it('une entrée ajoutée APRÈS l’arrivée du joueur s’allume, même pour lui', () => {
-    const s = stockage()
-    lireEntreesLues(s, LISTE, () => false)
-    const avecNouvelle = [{ id: 'd', date: '2026-09-20', titre: 'D', texte: 'd' }, ...LISTE]
-    const lues = lireEntreesLues(s, avecNouvelle, () => true)
-    expect(nouveautesNonLues(lues, avecNouvelle).map(e => e.id)).toEqual(['d'])
-  })
-
-  it('respecte ce qui est déjà écrit', () => {
-    const s = stockage({ [NOUVEAUTES_STORAGE_KEY]: JSON.stringify(['c']) })
-    expect(nouveautesNonLues(lireEntreesLues(s, LISTE, () => true), LISTE).map(e => e.id)).toEqual(['b', 'a'])
-  })
-
-  it('un stockage abîmé ne fait pas planter le menu', () => {
-    const s = stockage({ [NOUVEAUTES_STORAGE_KEY]: '{pas du json' })
-    expect(() => lireEntreesLues(s, LISTE, () => true)).not.toThrow()
-  })
-
-  it('un stockage inaccessible n’allume jamais une pastille impossible à éteindre', () => {
-    const fermé = { getItem: () => { throw new Error('bloqué') }, setItem: () => { throw new Error('bloqué') } }
-    expect(nouveautesNonLues(lireEntreesLues(fermé, LISTE, () => true), LISTE)).toEqual([])
+  it('un stockage abîmé ou fermé ne casse rien et n’allume pas de pastille éternelle', () => {
+    expect(() => lireEntreesLues(stockage({ [NOUVEAUTES_STORAGE_KEY]: '{pas du json' }), publies, () => true)).not.toThrow()
+    const ferme = { getItem: () => { throw new Error('bloqué') }, setItem: () => { throw new Error('bloqué') } }
+    expect(nouveautesNonLues(lireEntreesLues(ferme, publies, () => true), publies)).toEqual([])
   })
 })
 
-describe('les entrées écrites', () => {
-  it('ont des identifiants uniques — l’état « lu » s’appuie dessus', () => {
-    expect(new Set(NOUVEAUTES.map(e => e.id)).size).toBe(NOUVEAUTES.length)
+describe('les rapports écrits', () => {
+  it('portent une heure de dépôt au bon format', () => {
+    for (const r of RAPPORTS) expect(r.ajoute).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
   })
 
-  it('portent une date valide, et la plus récente est en haut', () => {
-    for (const entree of NOUVEAUTES) expect(entree.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    const dates = NOUVEAUTES.map(e => e.date)
-    expect(dates).toEqual([...dates].sort().reverse())
-  })
-
-  it('restent courtes : le joueur les lit entre deux parties', () => {
-    for (const entree of NOUVEAUTES) {
-      expect(entree.titre.length).toBeLessThanOrEqual(60)
-      expect(entree.texte.length).toBeLessThanOrEqual(200)
+  it('restent courts : le joueur les lit entre deux parties', () => {
+    for (const r of RAPPORTS) {
+      expect(r.titre.length).toBeLessThanOrEqual(60)
+      expect(r.texte.length).toBeLessThanOrEqual(200)
     }
   })
 })

@@ -1,39 +1,48 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { marquerNouveauteLue, NOUVEAUTES, useNouveautesLues, type Nouveaute } from '../nouveautes'
+import { marquerNouveauteLue, useNouveautes, type Nouveaute } from '../nouveautes'
 import './menu-nouveautes.css'
 
 const JOUR = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })
 
 function dateAffichee(date: string): string {
-  // Midi : une date « AAAA-MM-JJ » lue à minuit UTC tomberait la veille en
-  // Europe/Paris l'hiver comme l'été selon l'heure de lecture. Midi ne bouge pas.
+  // Midi : une date « AAAA-MM-JJ » lue à minuit UTC tomberait la veille selon
+  // l'heure de lecture. Midi ne bouge pas.
   return JOUR.format(new Date(`${date}T12:00:00Z`))
 }
 
-function Entree({ entree, lue }: { entree: Nouveaute; lue: boolean }) {
-  const [ouverte, setOuverte] = useState(false)
+function Message({ message, lu }: { message: Nouveaute; lu: boolean }) {
+  const [ouvert, setOuvert] = useState(false)
   const basculer = () => {
-    // C'est EN OUVRANT l'entrée qu'elle passe lue : pas en survolant la liste.
-    if (!ouverte) marquerNouveauteLue(entree.id)
-    setOuverte(!ouverte)
+    // C'est EN OUVRANT le message qu'il passe lu : pas en survolant la liste.
+    if (!ouvert) marquerNouveauteLue(message.id)
+    setOuvert(!ouvert)
   }
-  return <li className={`mm-nouveaute ${ouverte ? 'is-open' : ''}`}>
-    <button type="button" aria-expanded={ouverte} onClick={basculer}>
+  // Replié, le message annonce ce qu'il contient ; déplié, il en dit plus.
+  const resume = message.rapports.map(rapport => rapport.titre).join(' · ')
+  return <li className={`mm-nouveaute ${ouvert ? 'is-open' : ''}`}>
+    <button type="button" aria-expanded={ouvert} onClick={basculer}>
       <span>
-        <small>{dateAffichee(entree.date)}</small>
-        <strong>{entree.titre}</strong>
+        {/* Deux rendez-vous par jour : l'heure distingue deux messages du même jour. */}
+        <small>{dateAffichee(message.date)} · {message.heure} h</small>
+        <strong>{resume}</strong>
       </span>
-      {lue ? null : <i className="mm-pastille" aria-label="Pas encore lue" />}
+      {lu ? null : <i className="mm-pastille" aria-label="Pas encore lu" />}
       <ChevronDown aria-hidden="true" />
     </button>
-    {ouverte ? <p>{entree.texte}</p> : null}
+    {ouvert ? <ul>
+      {message.rapports.map(rapport => <li key={rapport.ajoute + rapport.titre}>
+        <strong>{rapport.titre}</strong>
+        <p>{rapport.texte}</p>
+      </li>)}
+    </ul> : null}
   </li>
 }
 
 export function NouveautesListe() {
-  const lues = useNouveautesLues()
+  const { lues, publiees } = useNouveautes()
+  if (!publiees.length) return <p className="mm-nouveautes-vide">Rien de neuf pour l’instant.</p>
   return <ol className="mm-nouveautes">
-    {NOUVEAUTES.map(entree => <Entree key={entree.id} entree={entree} lue={lues.has(entree.id)} />)}
+    {publiees.map(message => <Message key={message.id} message={message} lu={lues.has(message.id)} />)}
   </ol>
 }

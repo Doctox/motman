@@ -16,11 +16,12 @@
 // par un montait la version à chaque fois : le premier passait, le deuxième
 // était refusé parce qu'il annonçait une base déjà dépassée. Relevé par le
 // propriétaire le 18/09/2026 (« dès fois je fais rentrer 5 thèmes »). Ils
-// entrent donc ensemble : une seule montée de version, et UNE SEULE nouveauté
-// pour tout le groupe — pas un message par thème.
+// entrent donc ensemble : une seule montée de version, et UN SEUL rapport de
+// nouveauté pour tout le groupe — pas un message par thème.
 //
 // CE QU'IL NE FAIT PAS. Il n'écrit que `src/data/grid.catalog.json`, le
-// catalogue SOURCE, qui vit dans l'atelier privé. La projection runtime se
+// catalogue SOURCE, qui vit dans l'atelier privé, et le rapport de nouveauté
+// (`src/nouveautes.rapports.json`, public). La projection runtime se
 // regénère ensuite par `npm run policy:runtime`, le calendrier par
 // `build_daily_calendar.mjs`, et Supabase par `publish_catalog_to_supabase.mjs`,
 // sur autorisation explicite du propriétaire.
@@ -29,7 +30,10 @@
 // grille en clair et les `wordId` en dérivent : tant qu'une grille garde son
 // identifiant de fabrique, l'archive publique se retrouve par cet identifiant,
 // quelles que soient les définitions. L'Éditeur fournit la table dans
-// `correspondance-identifiants.json`.
+// `correspondance-identifiants.json`. Les lots À THÈME n'en ont pas : leurs
+// grilles arrivent déjà sous un identifiant de jeu (`sport-7x8-…`). Sans table,
+// on garde donc les identifiants tels quels — et le contrôle « factory- » plus
+// bas refuse le lot si l'un d'eux sort encore de la fabrique.
 //
 // IL REFUSE PLUTÔT QUE DE DEVINER. Un lot non approuvé, une version de base qui
 // ne correspond pas, une grille sans ligne de correspondance, un identifiant
@@ -42,7 +46,6 @@ import { basename, resolve } from 'node:path'
 import process from 'node:process'
 
 const CATALOGUE = resolve('src/data/grid.catalog.json')
-const NOUVEAUTES = resolve('src/nouveautes.ts')
 
 const argumentsLus = process.argv.slice(2)
 const blanc = argumentsLus.includes('--blanc')
@@ -81,7 +84,10 @@ const pris = new Set(dejaPris)
 const themesEnJeu = new Set(catalogue.grids.map(grille => libelleTheme(grille.theme)).filter(Boolean))
 const lots = dossiers.map(dossier => {
   const lot = lire(dossier, 'motman-editorialized-grids.json')
-  const correspondance = lire(dossier, 'correspondance-identifiants.json')
+  const sansTable = !existsSync(resolve(dossier, 'correspondance-identifiants.json'))
+  const correspondance = sansTable
+    ? { grilles: lot.grids.map(grille => ({ ancien: grille.id, nouveau: grille.id })) }
+    : lire(dossier, 'correspondance-identifiants.json')
   const nom = lot.lotId ?? basename(dossier)
 
   exiger(lot.schema === 'motman-editorialized-grid-batch', `${nom} : schéma inattendu (${lot.schema})`)
@@ -122,10 +128,28 @@ const lots = dossiers.map(dossier => {
 
   // L'ancien identifiant n'apparaît qu'à deux endroits (`grid.id` et
   // `word.wordId`) : les champs de provenance portent des UUID de campagne.
+  //
+  // Une grille À THÈME est réservée au défi du jour (`dailyOnly`) : sans ce
+  // drapeau elle partirait aussi en partie normale, et ses réponses seraient
+  // connues d'avance le jour de son défi. L'Éditeur ne le pose pas — il livre
+  // le thème, c'est ici que la réserve se décide. Oublié par la première version
+  // de ce script, rattrapé à l'essai à blanc des 4 thèmes du 18/09/2026.
   const renommees = lot.grids.map(grille => {
     const neuf = table.get(grille.id) ?? grille.id
-    return { ...grille, id: neuf, words: grille.words.map(mot => ({ ...mot, wordId: mot.wordId.replace(grille.id, neuf) })) }
+    return {
+      ...grille,
+      id: neuf,
+      ...(theme ? { dailyOnly: true } : {}),
+      words: grille.words.map(mot => ({ ...mot, wordId: mot.wordId.replace(grille.id, neuf) })),
+    }
   })
+  if (theme) {
+    for (const grille of lot.grids) {
+      exiger(libelleTheme(grille.theme) === theme, `${nom} : la grille ${grille.id} ne porte pas le thème du lot (${libelleTheme(grille.theme) ?? 'aucun'})`)
+    }
+  } else {
+    for (const grille of lot.grids) exiger(!grille.theme, `${nom} : lot de grilles normales, mais ${grille.id} porte un thème`)
+  }
   return { nom, lot, theme, renommees }
 })
 
@@ -160,45 +184,41 @@ writeFileSync(CATALOGUE, `${JSON.stringify(fusionne, null, 2)}\n`, 'utf8')
 console.log(`\n✔ ${CATALOGUE} écrit.`)
 console.log('  Ensuite : npm run policy:runtime (projection), build_daily_calendar.mjs s\'il y a un thème, puis les contrôles.')
 
-// ── LA NOUVEAUTÉ : UNE SEULE POUR TOUT LE GROUPE ─────────────────────────────
-// Demandé par le propriétaire le 18/09/2026 : un lot intégré, c'est du contenu
-// que le joueur remarquera, donc une entrée dans src/nouveautes.ts, dans le
-// même commit. Mais UNE pour le groupe : cinq thèmes arrivés ensemble ne font
-// pas cinq pastilles. Le brouillon est à RELIRE : il décrit ce qui entre, pas
-// encore ce que le joueur y gagne.
-const aujourdhui = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date())
+// ── LE RAPPORT DE NOUVEAUTÉ, DÉPOSÉ TOUT SEUL ────────────────────────────────
+// Un lot intégré, c'est du contenu que le joueur remarquera. Plutôt qu'un
+// brouillon à coller à la main — qu'on finit par oublier —, le rapport est
+// DÉPOSÉ ici même dans src/nouveautes.rapports.json. Il reste invisible
+// jusqu'au prochain rendez-vous (10 h ou 18 h, voir src/nouveautesCreneaux.ts),
+// où l'app le regroupe avec les autres rapports du créneau en UN SEUL message.
+// Cinq thèmes intégrés dans la matinée font donc un message à 10 h, pas cinq —
+// ce que le propriétaire demandait le 18/09/2026.
+//
+// Un rapport par intégration, et un seul pour tous les lots du groupe. Son
+// texte décrit ce qui entre ; on a jusqu'au rendez-vous pour le reprendre dans
+// le fichier s'il faut dire mieux ce que le joueur y gagne.
 const enumerer = noms => noms.length < 2 ? noms.join('') : `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}`
 const themes = [...new Set(lots.map(entree => entree.theme).filter(Boolean))]
 const normales = lots.filter(entree => !entree.theme).flatMap(entree => entree.renommees).length
 const rotation = fusionne.grids.filter(grille => !grille.dailyOnly).length
-const morceauxTitre = []
-const morceauxTexte = []
+const titres = []
+const textes = []
 if (themes.length) {
-  morceauxTitre.push(themes.length === 1 ? `Nouveau thème : ${themes[0]}` : `${themes.length} nouveaux thèmes`)
-  morceauxTexte.push(`${enumerer(themes)} ${themes.length === 1 ? 'rejoint' : 'rejoignent'} le défi du jour.`)
+  titres.push(themes.length === 1 ? `Nouveau thème : ${themes[0]}` : `${themes.length} nouveaux thèmes`)
+  textes.push(themes.length === 1
+    ? `Le thème ${themes[0]} rejoint le défi du jour.`
+    : `Les thèmes ${enumerer(themes)} rejoignent le défi du jour.`)
 }
 if (normales) {
-  morceauxTitre.push(`${normales} nouvelles grilles`)
-  morceauxTexte.push(`Les parties normales comptent désormais ${rotation} grilles.`)
+  titres.push(`${normales} nouvelles grilles`)
+  textes.push(`Les parties normales comptent désormais ${rotation} grilles.`)
 }
-const slug = [themes.length === 1 ? themes[0] : themes.length ? 'themes' : '', normales ? 'grilles' : '']
-  .filter(Boolean).join('-')
-  .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-
-// Une entrée du jour existe déjà (un autre groupe intégré plus tôt) : la
-// compléter plutôt qu'en ouvrir une deuxième.
-const entreeDuJour = existsSync(NOUVEAUTES) && readFileSync(NOUVEAUTES, 'utf8').includes(`date: '${aujourdhui}'`)
-if (entreeDuJour) {
-  console.log(`\n⚠ Une nouveauté datée du ${aujourdhui} existe déjà dans src/nouveautes.ts.`)
-  console.log('  COMPLÈTE-LA avec ce qui vient d\'entrer plutôt que d\'en ajouter une : une seule pastille par jour.')
-  console.log(`  À y ajouter : ${morceauxTexte.join(' ')}`)
-} else {
-  console.log('\n⚠ N’OUBLIE PAS LA NOUVEAUTÉ — src/nouveautes.ts, en tête de NOUVEAUTES, dans le même commit.')
-  console.log('  UNE SEULE pour tout ce groupe :')
-  console.log(`  {
-    id: '${aujourdhui}-${slug}',
-    date: '${aujourdhui}',
-    titre: '${morceauxTitre.join(' et ')}',
-    texte: '${morceauxTexte.join(' ')}',
-  },`)
+const { ajouterRapport } = await import('./lib/rapports.mjs')
+try {
+  const { annonce } = await ajouterRapport({ titre: titres.join(' et '), texte: textes.join(' ') })
+  console.log(`\n✔ Rapport de nouveauté déposé — ${annonce}, regroupé avec les autres rapports du créneau.`)
+  console.log('  Il part dans le même commit que le catalogue. Relis-le dans src/nouveautes.rapports.json d’ici là.')
+} catch (erreur) {
+  // Le catalogue est déjà écrit : on ne l'annule pas pour un rapport. On le dit.
+  console.warn(`\n⚠ Rapport de nouveauté NON déposé (${erreur.message}).`)
+  console.warn('  À faire à la main : npm run rapport -- "titre" "texte"')
 }

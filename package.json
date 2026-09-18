@@ -42,7 +42,8 @@
     "mobile:android": "npm run mobile:sync && cap open android",
     "mobile:ios": "npm run mobile:sync && cap open ios",
     "mobile:doctor": "cap doctor",
-    "apk:debug": "npm run build && npx cap sync android && node scripts/build_debug_apk.mjs"
+    "apk:debug": "npm run build && npx cap sync android && node scripts/build_debug_apk.mjs",
+    "rapport": "node scripts/ajouter_rapport.mjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.8",
