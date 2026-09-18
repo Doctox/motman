@@ -58,5 +58,11 @@
     "titre": "Joueur absent : nouvelle règle",
     "texte": "En temps limité, après un tour manqué, vous avez 30 s pour répondre « Je suis là ». En temps illimité, 24 h sans jouer et la partie est perdue par abandon.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-09-18T23:23",
+    "titre": "Des définitions plus simples",
+    "texte": "186 définitions des grilles ont été réécrites pour qu’on trouve le mot plus facilement.",
+    "genre": "grilles"
   }
 ]

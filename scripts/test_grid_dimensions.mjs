@@ -45,15 +45,13 @@ try {
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
   if (reel) {
-    assert.equal(catalog.version, 33)
-    // v33 (18/09) : lot « normales-8 », 26 grilles de rotation — 28 autres de
-    // l'export écartées par l'Éditeur, trop proches du lot 7. Le catalogue passe
-    // de 236 à 262 grilles ; les parties normales, de 161 à 187.
+    assert.equal(catalog.version, 34)
+    // v34 (18/09) : révision « revision-simples », 186 définitions trop dures
+    // réécrites dans 100 grilles normales. Aucune grille créée : 262 comme en v33
+    // (lot « normales-8 » : 26 grilles de rotation, 187 pour les parties normales).
     assert.equal(catalog.grids.length, 262)
-    // 361 en v32 ; les 51 images du lot portent le total à 412, dont 24 dessins
-    // nouveaux copiés dans public/assets/clues (vérifiés octet par octet contre
-    // les data: URI du lot).
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 412)
+    // 412 en v33 ; SEL prend la salière déjà en jeu : 413.
+    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 413)
     // Les grilles à thème du défi du jour : inchangées, « normales-8 » n'en crée aucune.
     assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 75)
   }
