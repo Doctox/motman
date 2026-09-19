@@ -10,8 +10,10 @@ assets/source-originals
 src/data/sources
 *.log
 *.tsbuildinfo
-.env.local
-.env.*.local
+# Tout fichier d'environnement : clés, jetons, adresses de projet. Seul le
+# modèle, sans aucune valeur réelle, est suivi.
+.env*
+!.env.example
 firebase-adminsdk-*.json
 firebase-service-account*.json
 android/app/google-services.json
@@ -26,28 +28,28 @@ supabase/.temp/
 android/gradle/gradle-daemon-jvm.properties
 .fuse_hidden*
 
-# Brouillons de fabrication, jamais lus par l'application ni par le build.
-#   tmp/pglast   — une dependance Python recopiee dans le depot, binaire
-#                  Windows compris (.pyd), qu'aucun script n'importe.
-#   tmp/imagegen — les etapes intermediaires des emblemes de rang ; les
-#                  versions finies vivent dans `public/assets/ranks/`.
-# 489 fichiers et 38 Mo qui alourdissaient chaque copie de travail. Ils restent
-# sur le disque, et l'historique les garde : `git show <commit>:<chemin>` les
-# rend si besoin.
+# Brouillons de travail — bancs de mesure, captures avant/après, étapes
+# intermédiaires d'images —, jamais lus par l'application ni par le build.
+# Le dossier était suivi jusqu'au commit a0eca31 (489 fichiers, 38 Mo), qui l'a
+# retiré ; l'historique garde ce qu'il contenait : `git show <commit>:<chemin>`.
 tmp/
 
-# Sauvegardes de la base (scripts/export_supabase_backup.ps1).
+# Sauvegardes de la base (`npm run backup:db`, scripts/export_supabase_backup.mjs).
 # Elles contiennent des DONNÉES PERSONNELLES : adresses e-mail, pseudos,
 # signalements rédigés par les joueurs. Elles ne doivent jamais entrer dans le
 # dépôt — un dépôt public ou un artefact GitHub les sortirait de France, en
 # contradiction avec la politique de confidentialité de MotMan.
-# Le script écrit par défaut HORS du dépôt ; ces lignes ne sont qu'un filet de
-# sécurité si quelqu'un redirige l'export ici par erreur.
+# Le script écrit par défaut HORS du dépôt (~/MotMan-sauvegardes/motman-<date>/) ;
+# ces lignes ne sont qu'un filet de sécurité si MOTMAN_BACKUP_DIR redirige
+# l'export ici par erreur. Les trois `.sql` couvrent un `supabase db dump`
+# lancé à la main, l'ancienne méthode.
+/motman-20[0-9][0-9]-*/
+MotMan-sauvegardes/
+motman-sauvegardes/
+sauvegardes/
 /roles.sql
 /schema.sql
 /data.sql
-motman-sauvegardes/
-sauvegardes/
 
 # >>> atelier privé
 # Tout ce qui fabrique les grilles, et donc en porte les SOLUTIONS : les
@@ -79,6 +81,11 @@ sauvegardes/
 /src/data/lexique.*
 /src/data/fill.wordlist.large.*
 /MotMan Grilles prêtes/
+# Les dessins-indices, souvent nommés d'après leur réponse, et identiques aux
+# images que le catalogue envoie au jeu : publiés, ils permettaient de retrouver
+# une réponse à partir de l'image. Le jeu ne les lit pas (le catalogue les porte
+# en data:) ; seuls les scripts d'intégration vérifient qu'ils existent.
+/dessins-indices/
 # <<< atelier privé
 
 # Le dossier git de l'atelier lui-même.

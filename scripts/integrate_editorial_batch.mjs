@@ -38,12 +38,14 @@
 // IL REFUSE PLUTÔT QUE DE DEVINER. Un lot non approuvé, une version de base qui
 // ne correspond pas, une grille sans ligne de correspondance, un identifiant
 // déjà pris — au catalogue OU dans un autre lot du groupe —, un dessin absent
-// de `public/assets/clues` : chacun arrête le script avant toute écriture.
+// de `dessins-indices/` (atelier privé) : chacun arrête le script avant toute écriture.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import process from 'node:process'
+
+import { cheminDessinIndice, DOSSIER_DESSINS } from './lib/dessinsIndices.mjs'
 
 const CATALOGUE = resolve('src/data/grid.catalog.json')
 
@@ -115,8 +117,8 @@ const lots = dossiers.map(dossier => {
     for (const mot of grille.words) {
       const chemin = mot.image?.sourceAsset || mot.image?.asset
       if (!chemin) continue
-      if (!existsSync(resolve('public', String(chemin).replace(/^\//, '')))) {
-        refus.push(`${nom} : dessin absent de public/assets/clues — ${chemin}`)
+      if (!existsSync(cheminDessinIndice(chemin))) {
+        refus.push(`${nom} : dessin absent de ${DOSSIER_DESSINS}/ — ${chemin}`)
       }
     }
   }

@@ -27,6 +27,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 
+import { cheminDessinIndice, DOSSIER_DESSINS } from './lib/dessinsIndices.mjs'
+
 const CATALOGUE = resolve('src/data/grid.catalog.json')
 
 const argumentsLus = process.argv.slice(2)
@@ -85,8 +87,8 @@ for (const [index, changement] of changements.entries()) {
     if ((mot.clue ?? '') !== (changement.ancien?.clue ?? '')) { refus.push(`${ou} : l'ancienne définition ne correspond pas (« ${mot.clue} »)`); continue }
     const image = changement.nouveau?.image
     if (!image || !String(image.asset ?? '').startsWith('data:image/')) { refus.push(`${ou} : dessin sans data: URI`); continue }
-    if (image.sourceAsset && !existsSync(resolve('public', String(image.sourceAsset).replace(/^\//, '')))) {
-      refus.push(`${ou} : dessin absent de public — ${image.sourceAsset}`)
+    if (image.sourceAsset && !existsSync(cheminDessinIndice(image.sourceAsset))) {
+      refus.push(`${ou} : dessin absent de ${DOSSIER_DESSINS}/ — ${image.sourceAsset}`)
       continue
     }
     mot.clue = changement.nouveau.clue ?? ''
