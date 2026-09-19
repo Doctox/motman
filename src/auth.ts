@@ -38,7 +38,7 @@ export type AuthResponse = {
   identity: GuestIdentity
   progress?: PlayerProgress
   cosmetics?: PlayerCosmetics
-  /** Série du défi du jour recalculée par le serveur depuis `daily_wins`. */
+  /** Série du défi du jour recalculée par le serveur depuis les jours joués (`daily_plays`). */
   daily?: ServerDailyStreak
   /** Quêtes du jour et de la semaine, telles que le serveur les compte (src/quests.ts). */
   quests?: QuestBoard

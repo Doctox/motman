@@ -95,91 +95,47 @@ export async function recordMatchHistory(
 }
 
 /**
- * Enregistre la victoire quotidienne côté serveur, puis verse la récompense de
- * série si cette victoire franchit une tranche de 7 jours.
+ * Le jour du défi est-il encore d'actualité ? `dailyDate` est FIGÉ à la création
+ * du match, et rien n'oblige à ce qu'il le soit encore au moment où l'on écrit.
+ * Une ligne `daily_plays` ou `daily_wins` datée du passé reboucherait un trou
+ * après coup — la série se déduisant des jours présents dans les tables, cela
+ * peut réparer une série cassée, voire débloquer une tranche.
  *
- * DEPUIS LE 14/09/2026 : UN PANIER OFFERT à chaque tranche de 7 jours (7, 14, 21…),
- * à la place des paliers uniques (200 / 700 / 1 800 / 4 500). La règle est
- * `streakRewardsEarned` (src/dailyMilestones.ts), partagée avec le client. Les
- * paliers déjà versés sous l'ancienne règle restent versés.
- *
- * POURQUOI CE N'EST PAS LE CLIENT QUI DEMANDE. La série vivait uniquement dans
- * le `localStorage` du joueur : elle mourait à la réinstallation, et le serveur
- * n'avait aucun moyen de la vérifier. Résultat, le versement des paliers
- * n'existait tout simplement pas — le jeu affichait « palier atteint » et ne
- * créditait rien. Ici le serveur écrit sa propre trace (`daily_wins`), recompte
- * la série lui-même (`server_daily_streak`, gels compris) et paie ce qui est dû.
- *
- * Une série se déduit de `daily_wins`, qui n’existe que depuis le 01/09/2026 :
- * les séries plus anciennes n’y sont pas reconstituées.
- *
- * `bonusApplied` évite de refaire le travail coûteux à chaque sondage :
- * `awardFinished` est rejouée sur toute action visant un match déjà terminé.
- * L'écriture de `daily_wins`, elle, se fait toujours — c'est la seule partie
- * irrattrapable, et un INSERT sans verrou ne coûte rien.
- *
- * Aucune erreur ici ne doit faire échouer la clôture du match : le résultat, la
- * récompense ordinaire et le bonus de 250 sont déjà écrits.
+ * CE N'EST PAS LA DÉFENSE PRINCIPALE. Le défi du jour est en temps limité —
+ * imposé côté serveur à la création —, l'absence le clôt en quelques minutes, il
+ * n'est pas éligible à la mise en pause (`private.pause_realtime_normal_for_ranked`
+ * exige `mode='normal'` et aucun bot) et la purge l'efface après 26 h. Il se
+ * gagne ou se perd dans la minute ; la veille est le plus loin qu'il puisse
+ * aller — le joueur qui commence à 23 h 58 et termine à 0 h 02. Voir ce refus
+ * dans le journal signalerait qu'une de ces propriétés a changé : c'est
+ * précisément à ça qu'il sert.
  */
-export async function recordDailyWinAndMilestones(
-  admin: AdminClient,
-  playerId: string,
-  dailyDate: string,
-  matchId: string,
-  bonusApplied: boolean,
-) {
-  // ── Garde-fou anti-rétroactif ───────────────────────────────────────────────
-  // `dailyDate` est FIGÉ à la création du match, et rien n'oblige à ce qu'il soit
-  // encore d'actualité au moment de la clôture. Une ligne `daily_wins` datée du
-  // passé rebouche un trou après coup — la série se déduisant des jours présents
-  // dans la table, cela peut réparer une série cassée, voire débloquer un palier.
-  //
-  // CE N'EST PAS LA DÉFENSE PRINCIPALE, et il ne faut pas se reposer dessus. Le
-  // défi du jour est en temps limité — 45 s par tour, imposé côté serveur à la
-  // création — et l'inactivité le fait abandonner en quelques tours ; une partie
-  // ne peut donc pas traîner de jour en jour. La vraie fermeture est là-bas.
-  //
-  // Ce test reste comme deuxième verrou : il ne coûte rien, et il protège du jour
-  // où quelqu'un rouvrirait le temps illimité sur le défi sans repenser à cette
-  // conséquence-ci.
-  //
-  // La veille est acceptée, et elle seule : c'est le cas légitime, et fréquent,
-  // du joueur qui commence à 23 h 58 et termine à 0 h 02. Au-delà, on refuse
-  // d'écrire la victoire, mais SANS toucher au reste de la clôture.
-  //
-  // EN PRATIQUE, CE REFUS NE DEVRAIT JAMAIS SE DÉCLENCHER, et c'est voulu. Un
-  // défi du jour est en temps limité, il n'est pas éligible à la mise en pause
-  // (`private.pause_realtime_normal_for_ranked` exige `mode='normal'` et aucun
-  // bot), l'inactivité l'abandonne en quelques tours et la purge l'efface après
-  // 26 h. Il se gagne ou se perd dans la minute ; la veille est le plus loin
-  // qu'il puisse aller. Le voir se déclencher dans le journal signalerait qu'une
-  // de ces quatre propriétés a changé — c'est précisément à ça qu'il sert.
+function jourDuDefiValide(dailyDate: string, playerId: string, matchId: string, action: string): boolean {
   const aujourdhui = parisDateKey()
   const veille = parisDateKey(new Date(Date.parse(`${aujourdhui}T12:00:00Z`) - 86_400_000))
-  if (dailyDate !== aujourdhui && dailyDate !== veille) {
-    logServerError('match-api', new Error(`daily win trop ancienne : ${dailyDate} (aujourd'hui ${aujourdhui})`), {
-      action: 'daily-win-stale', userId: playerId, matchId,
-    })
-    return
-  }
-
-  // La PREMIÈRE victoire du jour fait foi : un rejeu ne réécrit rien. Depuis le
-  // 14/09/2026, la même opération consomme les gels de série qui couvrent les
-  // jours manqués depuis la dernière journée active (migration 20260914220000,
-  // jumeau TypeScript freezeDaysToUse).
-  const { error: winError } = await admin.rpc('server_record_daily_win', {
-    p_user_id: playerId, p_day: dailyDate, p_match_id: matchId,
+  if (dailyDate === aujourdhui || dailyDate === veille) return true
+  logServerError('match-api', new Error(`jour de défi trop ancien : ${dailyDate} (aujourd'hui ${aujourdhui})`), {
+    action, userId: playerId, matchId,
   })
-  if (winError) {
-    logServerError('match-api', winError, { action: 'daily-win-record', userId: playerId })
-    return
-  }
-  if (!bonusApplied) return
+  return false
+}
 
-  // La série APRÈS cette victoire, et celle au moment de la victoire d'avant :
-  // `server_daily_streak` ne lit que les victoires jusqu'à la date donnée, la
-  // veille rend donc l'état d'avant aujourd'hui. Le moteur de série reste le
-  // seul, en SQL ; seule la comparaison des deux est faite ici.
+/**
+ * Verse la récompense de série si le jour `dailyDate`, qui vient d'entrer dans
+ * la série, franchit une tranche de 7 : UN PANIER OFFERT à chaque tranche (7, 14,
+ * 21…) depuis le 14/09/2026. La règle est `streakRewardsEarned`
+ * (src/dailyMilestones.ts), partagée avec le client.
+ *
+ * POURQUOI CE N'EST PAS LE CLIENT QUI DEMANDE. La série vivait uniquement dans le
+ * `localStorage` du joueur : elle mourait à la réinstallation, et le serveur
+ * n'avait aucun moyen de la vérifier. Le serveur écrit donc sa propre trace
+ * (`daily_plays`), recompte la série lui-même (`server_daily_streak`, gels
+ * compris) et paie ce qui est dû.
+ */
+async function payerTrancheDeSerie(admin: AdminClient, playerId: string, dailyDate: string, matchId: string) {
+  // La série APRÈS ce jour, et celle au jour d'avant : `server_daily_streak` ne
+  // lit que les jours jusqu'à la date donnée, la veille rend donc l'état d'avant.
+  // Le moteur de série reste le seul, en SQL ; seule la comparaison est faite ici.
   const veilleDuDefi = parisDateKey(new Date(Date.parse(`${dailyDate}T12:00:00Z`) - 86_400_000))
   const [
     { data: apres, error: apresError },
@@ -196,10 +152,10 @@ export async function recordDailyWinAndMilestones(
   const tranches = streakRewardsEarned(serieDe(avant), serieDe(apres))
   if (tranches === 0) return
 
-  // Clé du JOUR : une victoire quotidienne n'existe qu'une fois par jour, et la
-  // règle ne paie qu'au franchissement. Rejouer la clôture ne verse rien de plus.
-  // Un panier offert en réserve (player_wallets.free_baskets), consommé à la
-  // prochaine ouverture à l'Épicerie — migration 20260914200000.
+  // Clé du JOUR : un jour n'entre qu'une fois dans la série, et la règle ne paie
+  // qu'au franchissement. Rejouer ne verse rien de plus. Un panier offert en
+  // réserve (player_wallets.free_baskets), consommé à la prochaine ouverture à
+  // l'Épicerie — migration 20260914200000.
   const { error } = await admin.rpc('server_grant_free_basket', {
     p_user_id: playerId,
     p_idempotency_key: `daily-streak-reward:${playerId}:${dailyDate}`,
@@ -207,6 +163,54 @@ export async function recordDailyWinAndMilestones(
     p_metadata: { reward: 'streak-7-days', streak: serieDe(apres), dateKey: dailyDate, matchId },
   })
   if (error) logServerError('match-api', error, { action: 'daily-streak-reward', userId: playerId })
+}
+
+/** Réponse de `server_record_daily_play` / `server_record_daily_win` : ce jour vient-il d'entrer dans la série ? */
+const jourEntre = (reponse: unknown) => (reponse as { recorded?: unknown } | null)?.recorded === true
+
+/**
+ * LE DÉFI OUVERT COMPTE POUR LA SÉRIE (décision du propriétaire, 19/09/2026) :
+ * gagné, perdu ou abandonné. Appelé par l'action `daily` à la CRÉATION de la
+ * partie — c'est l'ouverture qui compte, pas l'issue. La même opération consomme
+ * les gels de série qui couvrent les jours manqués depuis la dernière journée
+ * active (migration 20260919130000, jumeau TypeScript freezeDaysToUse).
+ *
+ * Aucune erreur ici ne doit empêcher la partie de s'ouvrir.
+ */
+export async function recordDailyPlay(admin: AdminClient, playerId: string, dailyDate: string, matchId: string) {
+  if (!jourDuDefiValide(dailyDate, playerId, matchId, 'daily-play-stale')) return
+  const { data, error } = await admin.rpc('server_record_daily_play', {
+    p_user_id: playerId, p_day: dailyDate, p_match_id: matchId,
+  })
+  if (error) {
+    logServerError('match-api', error, { action: 'daily-play-record', userId: playerId })
+    return
+  }
+  // Une nouvelle tentative du même jour ne recompte rien.
+  if (jourEntre(data)) await payerTrancheDeSerie(admin, playerId, dailyDate, matchId)
+}
+
+/**
+ * Enregistre la VICTOIRE quotidienne (`daily_wins`) : le calendrier la marque à
+ * part, et le bonus de 250 plumes l'accompagne. Le jour, lui, est déjà dans la
+ * série depuis l'ouverture — sauf pour un match créé avant le 19/09/2026, dont
+ * la victoire le fait entrer (`server_record_daily_win` enregistre d'abord le
+ * jour joué) ; la tranche est alors payée ici.
+ *
+ * `awardFinished` est rejouée sur toute action visant un match déjà terminé :
+ * l'écriture se refait à chaque fois sans rien changer, et le calcul de série
+ * ne se fait que si le jour vient d'entrer.
+ */
+export async function recordDailyWin(admin: AdminClient, playerId: string, dailyDate: string, matchId: string) {
+  if (!jourDuDefiValide(dailyDate, playerId, matchId, 'daily-win-stale')) return
+  const { data, error } = await admin.rpc('server_record_daily_win', {
+    p_user_id: playerId, p_day: dailyDate, p_match_id: matchId,
+  })
+  if (error) {
+    logServerError('match-api', error, { action: 'daily-win-record', userId: playerId })
+    return
+  }
+  if (jourEntre(data)) await payerTrancheDeSerie(admin, playerId, dailyDate, matchId)
 }
 
 /**
@@ -289,7 +293,7 @@ export async function awardFinished(admin: AdminClient, row: MatchRow) {
       // `daily:<user>:<date>` : rejouer et regagner le même jour ne verse rien de
       // plus. La récompense ordinaire du match ci-dessus reste due à chaque partie.
       if (row.state.isDaily && row.state.dailyDate && outcome === 'win') {
-        const { data: dailyAward, error: dailyError } = await admin.rpc('server_award_feathers', {
+        const { error: dailyError } = await admin.rpc('server_award_feathers', {
           p_user_id: playerId,
           p_idempotency_key: `daily:${playerId}:${row.state.dailyDate}`,
           p_amount: DAILY_COMPLETION_FEATHERS,
@@ -303,10 +307,7 @@ export async function awardFinished(admin: AdminClient, row: MatchRow) {
         // Un bonus manqué ne doit pas faire échouer la clôture du match : le
         // résultat, l'historique et la récompense ordinaire sont déjà écrits.
         if (dailyError) logServerError('match-api', dailyError, { action: 'daily-award', userId: playerId })
-        // `applied` distingue la PREMIÈRE victoire du jour d'un simple rejeu de
-        // `awardFinished` sur un match déjà clos — ce qui arrive à chaque sondage.
-        const bonusApplied = Boolean((dailyAward as { applied?: unknown } | null)?.applied)
-        await recordDailyWinAndMilestones(admin, playerId, row.state.dailyDate, row.id, bonusApplied)
+        await recordDailyWin(admin, playerId, row.state.dailyDate, row.id)
       }
       await recordQuestProgress(admin, row, playerId, outcome)
     })()

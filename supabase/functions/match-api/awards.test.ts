@@ -1,6 +1,6 @@
 import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
-import { awardFinished } from './awards.ts'
+import { awardFinished, recordDailyPlay } from './awards.ts'
 import { nowIso, type MatchRow, type State } from './matchModel.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -208,24 +208,74 @@ Deno.test('défi du jour PERDU : aucun bonus, aucune victoire enregistrée', asy
 
 Deno.test('clôture rejouée : la série n’est pas recalculée', async () => {
   // `awardFinished` est rejouée à chaque sondage visant un match déjà terminé.
-  // `applied: false` signale que le bonus du jour avait déjà été versé : tout le
-  // travail coûteux qui suit doit être sauté.
+  // `recorded: false` signale que le jour était déjà dans la série (compté à
+  // l'ouverture depuis le 19/09/2026) : tout le travail coûteux est sauté.
   const { client, rpcs } = clientFactice({
     'rpc.server_award_feathers': { data: { applied: false }, error: null },
+    'rpc.server_record_daily_win': { data: { recorded: false }, error: null },
   })
   await awardFinished(client, defiDuJour())
+  egal(versements(rpcs, 'server_record_daily_win').length, 1, 'la victoire est tout de même écrite')
   egal(versements(rpcs, 'server_daily_streak').length, 0, 'pas de recalcul de série')
+})
+
+Deno.test('défi du jour ABANDONNÉ : ni bonus, ni victoire — il a compté à l’ouverture', async () => {
+  const { client, rpcs } = clientFactice()
+  await awardFinished(client, defiDuJour({ winner_id: BOT, finish_reason: 'forfeit' }))
+  egal(versements(rpcs, 'server_award_feathers').length, 0, 'aucun bonus')
+  verifie(!rpcs.some(appel => appel.fonction === 'server_record_daily_win'), 'aucune victoire quotidienne écrite')
+  verifie(!rpcs.some(appel => appel.fonction === 'server_record_daily_play'), 'le jour n’est pas recompté à la clôture')
+})
+
+// ── Le défi OUVERT compte pour la série (19/09/2026) ────────────────────────
+function ouverture(avant: number, apres: number, recorded = true): Reponses {
+  const jour = parisDateKey()
+  return {
+    'rpc.server_record_daily_play': { data: { recorded }, error: null },
+    [`rpc.server_daily_streak@${veille(jour)}`]: { data: { streakAtLastWin: avant }, error: null },
+    [`rpc.server_daily_streak@${jour}`]: { data: { streakAtLastWin: apres }, error: null },
+  }
+}
+
+Deno.test('ouvrir le défi du 7e jour offre le panier, sous la clé du jour', async () => {
+  const jour = parisDateKey()
+  const { client, rpcs } = clientFactice(ouverture(6, 7))
+  await recordDailyPlay(client, HUMAIN_A, jour, 'match-1')
+  const jeu = versements(rpcs, 'server_record_daily_play')
+  egal(jeu.length, 1, 'le jour joué est enregistré')
+  egal(jeu[0]?.arguments.p_day, jour, 'le jour du défi')
+  const recompense = versements(rpcs, 'server_grant_free_basket')
+  egal(recompense.length, 1, 'un panier')
+  egal(recompense[0]?.arguments.p_idempotency_key, `daily-streak-reward:${HUMAIN_A}:${jour}`, 'même clé qu’une victoire : jamais deux fois')
+})
+
+Deno.test('une nouvelle tentative du même jour ne recompte rien', async () => {
+  const { client, rpcs } = clientFactice(ouverture(6, 7, false))
+  await recordDailyPlay(client, HUMAIN_A, parisDateKey(), 'match-2')
+  egal(versements(rpcs, 'server_daily_streak').length, 0, 'pas de recalcul de série')
+  egal(versements(rpcs, 'server_grant_free_basket').length, 0, 'pas de second panier')
+})
+
+Deno.test('un jour de défi trop ancien n’entre pas dans la série', async () => {
+  const vieux = new Date(Date.now() - 10 * 86_400_000).toISOString().slice(0, 10)
+  const { client, rpcs } = clientFactice(ouverture(6, 7))
+  await recordDailyPlay(client, HUMAIN_A, vieux, 'match-3')
+  egal(rpcs.length, 0, 'aucun appel')
 })
 
 function veille(jour: string): string {
   return new Date(Date.parse(`${jour}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
 }
 
-/** Série au moment de la victoire d'avant, puis après celle du jour. */
+/**
+ * Série au jour d'avant, puis après celui-ci. `recorded: true` : un match créé
+ * avant le 19/09/2026, dont la victoire fait entrer le jour dans la série.
+ */
 function series(avant: number, apres: number): Reponses {
   const jour = parisDateKey()
   return {
     'rpc.server_award_feathers': { data: { applied: true }, error: null },
+    'rpc.server_record_daily_win': { data: { recorded: true }, error: null },
     [`rpc.server_daily_streak@${veille(jour)}`]: { data: { streakAtLastWin: avant }, error: null },
     [`rpc.server_daily_streak@${jour}`]: { data: { streakAtLastWin: apres }, error: null },
   }

@@ -1,10 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Défi du jour — série (streak), gel, paliers, tentatives.
 //
-// « Complété » = GAGNÉ. Le défi se joue contre un bot (niveau suivant celui du
-// joueur, choisi CÔTÉ SERVEUR). Une défaite ne fait rien avancer : elle ouvre une
-// nouvelle tentative. On peut rejouer la grille du jour autant qu'on veut jusqu'à
-// minuit (Europe/Paris) ; une fois gagnée, le défi est verrouillé pour la journée.
+// Le défi se joue contre un bot (niveau suivant celui du joueur, choisi CÔTÉ
+// SERVEUR). Depuis le 19/09/2026 (décision du propriétaire) :
+//  - TOUT DÉFI OUVERT COMPTE POUR LA SÉRIE — gagné, perdu ou abandonné. Les
+//    libellés gardent « victoires de série », et la victoire garde ce qui la
+//    distingue : le bonus de 250 plumes, l'état « réussi », sa marque au
+//    calendrier ;
+//  - une DÉFAITE en fin de grille ouvre une nouvelle tentative, jusqu'à minuit
+//    (Europe/Paris) ;
+//  - un ABANDON — le bouton, ou l'absence restée sans réponse — FERME le défi
+//    jusqu'à minuit. Le serveur le refuse (`DAILY_CLOSED`), ce module le retient
+//    pour l'affichage ;
+//  - une fois gagné, le défi est verrouillé pour la journée.
 //
 // PARTAGE LOCAL / SERVEUR (arbitrage JM) :
 //  - LOCAL (ce module) : l'ÉTAT de la série (série, gel, historique, paliers
@@ -39,16 +47,27 @@ export const HISTORY_LIMIT = 90
 // remonté par account-api (ExperienceAward.dailyBonusPlumes) : aucune constante
 // locale ne doit pouvoir le contredire.
 
-export type DailyResult = 'win' | 'loss'
-export type DailyStatus = 'todo' | 'lost' | 'won'
+export type DailyResult = 'win' | 'loss' | 'abandon'
+/** À faire / perdu (retentable) / gagné / abandonné (fermé jusqu'à minuit). */
+export type DailyStatus = 'todo' | 'lost' | 'won' | 'closed'
 
 export type DailyHistoryEntry = { day: string; gridId: string; theme: string | null }
 
-export type DailyToday = { day: string; attempts: number; won: boolean }
+export type DailyToday = {
+  day: string
+  attempts: number
+  won: boolean
+  /** Abandonné (bouton ou absence) : plus de tentative avant minuit. */
+  closed?: boolean
+}
 
 export type DailyChallengeState = {
   version: typeof DAILY_STATE_VERSION
-  /** Dernier jour GAGNÉ (pilote la série). */
+  /**
+   * Dernier jour JOUÉ, qui pilote la série. Le nom date du temps où seules les
+   * victoires comptaient (avant le 19/09/2026) : il est gardé parce que le
+   * stockage local de chaque joueur le porte.
+   */
   lastWonDay: string | null
   currentStreak: number
   longestStreak: number
@@ -67,6 +86,8 @@ export type DailyChallengeState = {
    * et d'un compte que le serveur n'a pas encore rapporté.
    */
   serverWinDays?: string[]
+  /** Jours où le défi a été ouvert, gagné ou non (`daily_plays`) : ils font la série. */
+  serverPlayDays?: string[]
   /** Jours couverts par un gel, tels que le serveur les connaît (`daily_frozen_days`). */
   serverFrozenDays?: string[]
   /** Jours couverts par un gel sur cet appareil, avant que le serveur ne les rapporte. */
@@ -74,7 +95,7 @@ export type DailyChallengeState = {
 }
 
 export type DailyAdvanceEffects = {
-  /** false = la série n'a pas bougé (défaite, ou jour déjà gagné) → idempotent. */
+  /** false = la série n'a pas bougé (jour déjà compté par une tentative d'avant) → idempotent. */
   changed: boolean
   previousStreak: number
   streak: number
@@ -113,13 +134,14 @@ export function daysBetween(fromKey: string, toKey: string): number {
   return dayNumber(toKey) - dayNumber(fromKey)
 }
 
-// ── Cœur PUR : avancée de série sur une VICTOIRE ──────────────────────────────
+// ── Cœur PUR : avancée de série sur un JOUR JOUÉ ──────────────────────────────
 /**
- * Applique une VICTOIRE du jour `day` à la partie « série » de `state`. PURE :
- * ne lit/écrit aucun stockage, ne verse aucune plume (le serveur s'en charge).
- * Idempotent : re-gagner le même jour, ou un jour passé, ne change rien.
+ * Applique le défi JOUÉ le jour `day` (gagné, perdu ou abandonné) à la partie
+ * « série » de `state`. PURE : ne lit/écrit aucun stockage, ne verse aucune
+ * plume (le serveur s'en charge). Idempotent : rejouer le même jour, ou un jour
+ * passé, ne change rien.
  *
- * Règle (dailyStreakRule.ts, jumeau SQL server_record_daily_win) : s'il manque
+ * Règle (dailyStreakRule.ts, jumeau SQL server_record_daily_play) : s'il manque
  * N jours depuis la dernière journée active et que le joueur a au moins N gels,
  * ils couvrent ces jours et la série continue ; sinon la série repart à 1.
  */
@@ -190,14 +212,17 @@ export function loadDailyChallengeState(storage: ReadableStorage = localStorage)
   }
 }
 
-/** Série telle que le SERVEUR la recalcule depuis `daily_wins` (account-api). */
+/** Série telle que le SERVEUR la recalcule depuis les jours joués (account-api). */
 export type ServerDailyStreak = {
   streak: number
   best: number
   freezes: number
+  /** Dernier jour JOUÉ (la clé serveur a gardé son nom d'avant le 19/09/2026). */
   lastWin: string | null
   /** Tous les jours gagnés, du plus ancien au plus récent. */
   winDays?: string[]
+  /** Tous les jours où le défi a été ouvert (`daily_plays`). */
+  playDays?: string[]
   /** Jours couverts par un gel. */
   frozenDays?: string[]
 }
@@ -254,13 +279,16 @@ export function reconcileServerDailyStreak(
   const freezes = serveurAJour ? serverFreezes : local.freezes
   const serverWinDays = Array.isArray(server.winDays) ? server.winDays.filter(day => typeof day === 'string') : local.serverWinDays
   const serverFrozenDays = Array.isArray(server.frozenDays) ? server.frozenDays.filter(day => typeof day === 'string') : local.serverFrozenDays
+  const serverPlayDays = Array.isArray(server.playDays) ? server.playDays.filter(day => typeof day === 'string') : local.serverPlayDays
   const memesJours = (serverWinDays ?? []).join() === (local.serverWinDays ?? []).join()
     && (serverFrozenDays ?? []).join() === (local.serverFrozenDays ?? []).join()
+    && (serverPlayDays ?? []).join() === (local.serverPlayDays ?? []).join()
   if (currentStreak === local.currentStreak && longestStreak === local.longestStreak && freezes === local.freezes && memesJours) return local
   return {
     ...local,
     ...(serverWinDays ? { serverWinDays } : {}),
     ...(serverFrozenDays ? { serverFrozenDays } : {}),
+    ...(serverPlayDays ? { serverPlayDays } : {}),
     // Les gels prévus sur cet appareil sont désormais connus du serveur.
     ...(serveurAJour ? { frozenDays: [] } : {}),
     currentStreak,
@@ -308,13 +336,14 @@ function todayFor(state: DailyChallengeState, day: string): DailyToday {
 /**
  * Enregistre le RÉSULTAT d'une tentative du défi du jour.
  *  - Incrémente le compteur de tentatives du jour (UI).
- *  - Sur une VICTOIRE non encore acquise ce jour : avance la série, crédite le gel
- *    local des paliers, verrouille le défi (won=true), borne l'historique.
- *  - Sur une défaite (ou une victoire quand le jour est déjà gagné) : la série ne
- *    bouge pas ; seule la tentative est comptée.
+ *  - Fait avancer la série au PREMIER défi du jour, QUEL QUE SOIT le résultat :
+ *    tout défi ouvert compte (19/09/2026). `advanceStreak` est idempotent, les
+ *    tentatives suivantes du même jour ne recomptent rien.
+ *  - Une victoire verrouille le défi (won=true) ; un abandon le ferme jusqu'à
+ *    minuit (closed=true) ; une défaite laisse retenter.
  *
- * NE VERSE AUCUNE PLUME. Les 250 et les plumes de palier sont versés par le
- * serveur (voir en-tête). Les paliers franchis sont dans `effects.reachedMilestones`.
+ * NE VERSE AUCUNE PLUME. Les 250 et les paniers de série sont versés par le
+ * serveur (voir en-tête).
  */
 export function recordDailyResult(
   input: DailyResultInput,
@@ -324,55 +353,80 @@ export function recordDailyResult(
   const current = loadDailyChallengeState(storage)
   const today = todayFor(current, input.day)
   const attempts = today.attempts + 1
-
-  if (input.result !== 'win' || today.won) {
-    // Défaite, ou défi déjà gagné aujourd'hui : on ne compte que la tentative.
-    const next: DailyChallengeState = { ...current, today: { day: input.day, attempts, won: today.won } }
-    saveDailyChallengeState(next, storage)
-    return {
-      state: next,
-      effects: aucunEffet(current.currentStreak),
-      attempts,
-      status: today.won ? 'won' : 'lost',
-    }
-  }
+  const won = today.won || input.result === 'win'
+  const closed = !won && (Boolean(today.closed) || input.result === 'abandon')
 
   const { state: advanced, effects } = advanceStreak(current, input.day)
   const history = [
     ...advanced.history.filter(entry => entry.day !== input.day),
     { day: input.day, gridId: input.gridId, theme: input.theme },
   ].slice(-HISTORY_LIMIT)
-  const next: DailyChallengeState = { ...advanced, today: { day: input.day, attempts, won: true }, history }
+  const next: DailyChallengeState = {
+    ...advanced,
+    today: { day: input.day, attempts, won, ...(closed ? { closed: true } : {}) },
+    history,
+  }
   saveDailyChallengeState(next, storage)
-  return { state: next, effects, attempts, status: 'won' }
+  return { state: next, effects, attempts, status: won ? 'won' : closed ? 'closed' : 'lost' }
+}
+
+/**
+ * Le serveur a refusé une nouvelle tentative (`DAILY_CLOSED`) : le défi du jour
+ * a été abandonné, peut-être sur un autre appareil ou pendant que l'appli était
+ * fermée. On le retient pour que l'accueil cesse de proposer « Jouer ».
+ */
+export function markDailyClosed(
+  day: string,
+  deps: { storage?: ReadableStorage & WritableStorage } = {},
+): DailyChallengeState {
+  const storage = deps.storage ?? localStorage
+  const current = loadDailyChallengeState(storage)
+  const today = todayFor(current, day)
+  if (today.closed || today.won) return current
+  const next: DailyChallengeState = { ...current, today: { ...today, attempts: Math.max(1, today.attempts), closed: true } }
+  saveDailyChallengeState(next, storage)
+  return next
 }
 
 /**
  * Résultat de défi déduit d'un match TERMINÉ, avec exactement la règle du serveur
- * (`playerOutcome`, match-api) : seule une grille menée jusqu'au bout et gagnée
- * compte. Un abandon ou un temps écoulé n'est pas une victoire — sinon la série
- * locale avancerait alors que le serveur ne verse pas le bonus de 250 plumes, et
- * les deux divergeraient sans que personne ne le voie.
+ * (`playerOutcome`, match-api). Seule une grille menée jusqu'au bout et gagnée
+ * est une victoire : c'est elle qui touche le bonus de 250 plumes. Une partie
+ * interrompue (`forfeit` : le bouton ; `timeout` : l'absence) que le joueur n'a
+ * pas gagnée est un ABANDON — celui qui ferme le défi jusqu'à minuit.
  */
 export function dailyResultForMatch(
   match: { winnerId: string | null; finishReason: string | null },
   playerId: string,
 ): DailyResult {
-  return match.winnerId === playerId && match.finishReason === 'completed' ? 'win' : 'loss'
+  if (match.winnerId === playerId && match.finishReason === 'completed') return 'win'
+  const interrompue = match.finishReason === 'forfeit' || match.finishReason === 'timeout'
+  return interrompue && match.winnerId !== playerId ? 'abandon' : 'loss'
 }
 
 // ── Sélecteurs UI ─────────────────────────────────────────────────────────────
+/**
+ * Gagné ce jour-là ? Joué sur cet appareil : `today` le dit. Ailleurs : les
+ * victoires que le serveur connaît. Surtout pas `lastWonDay`, qui désigne depuis
+ * le 19/09/2026 le dernier jour JOUÉ.
+ */
 export function isDailyWon(state: DailyChallengeState, day: string): boolean {
   if (state.today && state.today.day === day) return state.today.won
-  return state.lastWonDay !== null && daysBetween(state.lastWonDay, day) === 0
+  return (state.serverWinDays ?? []).includes(day)
 }
 
 export function dailyAttempts(state: DailyChallengeState, day: string): number {
   return state.today && state.today.day === day ? state.today.attempts : 0
 }
 
-/** État d'affichage du défi pour `day` : à faire / perdu (au moins une tentative) / gagné. */
+/** État d'affichage du défi pour `day` : à faire / perdu (retentable) / gagné / abandonné. */
 export function dailyStatus(state: DailyChallengeState, day: string): DailyStatus {
   if (isDailyWon(state, day)) return 'won'
+  if (state.today?.day === day && state.today.closed) return 'closed'
   return dailyAttempts(state, day) > 0 ? 'lost' : 'todo'
+}
+
+/** Le défi du jour a-t-il déjà compté pour la série (ouvert, quelle qu'en soit l'issue) ? */
+export function dailyCountedToday(state: DailyChallengeState, day: string): boolean {
+  return dailyAttempts(state, day) > 0 || (state.serverPlayDays ?? []).includes(day) || isDailyWon(state, day)
 }

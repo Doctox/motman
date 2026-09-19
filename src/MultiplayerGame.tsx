@@ -30,7 +30,7 @@ import { createMatchRackTiles, reconcileRackPlacements, type RackTile } from './
 import { haptic, ladderFor, playEffect } from './sensoryPreferences'
 import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
-import { DuelPlayer, LeaveMatchPanel, ResultPanel } from './game/DuelPresentation'
+import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel } from './game/DuelPresentation'
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTargeting'
@@ -724,6 +724,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const leave = async () => {
     if (match?.status === 'active') {
       try { applyMatchState(await forfeitMatch(playerId, match.id, match.updatedAt)) } catch { /* Le serveur appliquera aussi le délai si la connexion est perdue. */ }
+      // Défi du jour : fermé jusqu'à minuit et compté pour la série. On sort sans
+      // écran de fin, c'est donc ici qu'on l'enregistre.
+      recordDailyAbandon(match)
     }
     onExit()
   }
@@ -831,10 +834,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {turnAlert ? <div className="turn-ready-flash" role="status"><span>À vous !</span></div> : null}
-    {stillThere ? <StillThereDialog prompt={stillThere} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
+    {stillThere ? <StillThereDialog prompt={stillThere} isDaily={Boolean(match.isDaily)} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
     {expandedClue ? <ClueZoom entry={expandedClue} onClose={() => setExpandedClue(null)} /> : null}
-    {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
+    {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
     {optionsOpen ? <GameOptionsOverlay close={() => setOptionsOpen(false)} report={match.bot ? undefined : () => setReportOpen(true)} leaveMatch={match.status === 'active' ? () => setLeaveOpen(true) : undefined} /> : null}
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}
   </main>

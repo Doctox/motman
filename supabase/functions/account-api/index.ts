@@ -71,7 +71,7 @@ async function accountState(admin: AdminClient, userId: string) {
     { data: dailyBonusRows },
     { data: titleCatalog }, { data: ownedTitles }, { data: cosmeticCatalog },
     { data: dailyStreak }, { data: dailyWinRows }, { data: frozenDayRows },
-    { data: questCounterRows }, { data: questClaimRows },
+    { data: questCounterRows }, { data: questClaimRows }, { data: dailyPlayRows },
   ] = await Promise.all([
     admin.from('profiles').select('*').eq('id', userId).single(),
     admin.from('player_progress').select('*').eq('user_id', userId).single(),
@@ -88,7 +88,7 @@ async function accountState(admin: AdminClient, userId: string) {
     admin.from('server_title_catalog').select('id,name,description,unlock_type,required_value,sort_order').eq('active', true).order('sort_order'),
     admin.from('player_titles').select('title_id,source,unlocked_at').eq('user_id', userId),
     admin.from('server_cosmetic_catalog').select('kind,item_id,rarity').eq('active', true).eq('availability', 'epicerie'),
-    // Série du défi du jour, recalculée depuis `daily_wins`. Le client la compare
+    // Série du défi du jour, recalculée depuis les jours joués (`daily_plays`). Le client la compare
     // à sa série locale et adopte la plus longue : c'est ce qui permet à une série
     // de survivre à une réinstallation ou à un changement de téléphone. Un échec
     // ici ne doit pas empêcher le compte de se charger — le client garde alors sa
@@ -117,6 +117,10 @@ async function accountState(admin: AdminClient, userId: string) {
       .in('period', [parisDateKey(), weekKey(parisDateKey())]),
     admin.from('player_quest_claims').select('scope,period,quest_id').eq('user_id', userId)
       .in('period', [parisDateKey(), weekKey(parisDateKey())]),
+    // Les jours où le défi a été OUVERT, gagné ou non : ce sont eux qui font la
+    // série depuis le 19/09/2026 (migration 20260919130000). Le calendrier les
+    // marque à côté des victoires.
+    admin.from('daily_plays').select('day').eq('user_id', userId).order('day', { ascending: true }).limit(1000),
   ])
   if (!profile || !progress || !wallet) throw new Error('Profil serveur incomplet.')
   const items = inventory ?? []
@@ -187,6 +191,7 @@ async function accountState(admin: AdminClient, userId: string) {
       freezes: Math.max(0, Number(daily?.freezes) || 0),
       lastWin: typeof daily?.lastWin === 'string' ? daily.lastWin : null,
       winDays: (dailyWinRows ?? []).map(row => String(row.day)).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)),
+      playDays: (dailyPlayRows ?? []).map(row => String(row.day)).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)),
       frozenDays: (frozenDayRows ?? []).map(row => String(row.day)).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)),
     },
     identity: {

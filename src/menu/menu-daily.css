@@ -178,6 +178,10 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-streak-day-mark svg { width: 13px; height: 13px; stroke-width: 3; }
 .mm-streak-week li.is-won .mm-streak-day { border-color: transparent; background: var(--mm-ink); color: var(--mm-paper); }
 .mm-streak-week li.is-won .mm-streak-day-mark { color: #2f8a5c; }
+/* Joué sans être gagné (perdu ou abandonné) : il compte pour la série depuis le
+   19/09/2026, mais la victoire garde son disque plein. */
+.mm-streak-week li.is-played .mm-streak-day { border-color: var(--mm-ink); background: color-mix(in srgb, var(--mm-ink) 10%, transparent); }
+.mm-streak-week li.is-played .mm-streak-day-mark { color: var(--mm-coral); }
 .mm-streak-week li.is-missed .mm-streak-day { border-style: dashed; color: var(--mm-muted); }
 .mm-streak-week li.is-missed .mm-streak-day-mark { color: var(--mm-coral); }
 .mm-streak-week li.is-frozen .mm-streak-day { border-color: #8fb8d0; background: color-mix(in srgb, #8fb8d0 22%, transparent); }

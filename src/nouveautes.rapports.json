@@ -76,5 +76,11 @@
     "titre": "La quête de la semaine, case par case",
     "texte": "Sa barre est découpée en quatre : une case se remplit à chaque défi du jour joué.",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-09-19T12:51",
+    "titre": "Défi du jour : ouvert, il compte",
+    "texte": "Gagné, perdu ou abandonné, le défi du jour fait avancer votre série dès que vous l’ouvrez. Attention : abandonné, il ne se retente plus avant le lendemain.",
+    "genre": "jeu"
   }
 ]

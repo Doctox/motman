@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronLeft, ChevronRight, Flame, Gift, Snowflake, X } from 'lucide-react'
 import { freeBasketsLabel, STREAK_REWARD_EVERY_DAYS, STREAK_REWARD_FREE_BASKETS, winsUntilNextStreakReward } from '../dailyMilestones'
-import type { DailyChallengeState } from '../dailyChallenge'
+import { isDailyWon, type DailyChallengeState } from '../dailyChallenge'
 import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from '../dailyStreakRule'
 import { addDays, mondayOf, nextStreakRewardDay, streakDayMarks, weekDays, weekLabel, type DayMark } from '../streakCalendar'
 import { useDialogFocus } from '../useDialogFocus'
@@ -22,12 +22,14 @@ const SEMAINES_A_VENIR = 4
 
 const LIBELLE: Record<DayMark, string> = {
   won: 'défi réussi',
+  played: 'défi joué, compté dans la série',
   frozen: 'manqué, protégé par un gel',
   missed: 'manqué',
 }
 
 function IconeDuJour({ marque }: { marque: DayMark | undefined }) {
   if (marque === 'won') return <Check aria-hidden="true" />
+  if (marque === 'played') return <Flame aria-hidden="true" />
   if (marque === 'frozen') return <Snowflake aria-hidden="true" />
   if (marque === 'missed') return <X aria-hidden="true" />
   return null
@@ -38,33 +40,47 @@ export function knownFrozenDays(state: DailyChallengeState): string[] {
   return [...new Set([...(state.serverFrozenDays ?? []), ...(state.frozenDays ?? [])])].sort()
 }
 
-/** Tous les jours gagnés connus : ceux du serveur, et ceux que cet appareil vient de jouer. */
+/** Tous les jours gagnés connus : ceux du serveur, et celui que cet appareil vient de gagner. */
 export function knownWinDays(state: DailyChallengeState): string[] {
+  const aujourdhui = state.today && isDailyWon(state, state.today.day) ? [state.today.day] : []
+  return [...new Set([...(state.serverWinDays ?? []), ...aujourdhui])].sort()
+}
+
+/**
+ * Tous les jours JOUÉS connus — ils font la série depuis le 19/09/2026 : ceux du
+ * serveur, et ceux de cet appareil. L'historique local et `lastWonDay` en font
+ * partie : avant cette date ils ne gardaient que des victoires, qui sont aussi
+ * des jours joués.
+ */
+export function knownPlayDays(state: DailyChallengeState): string[] {
   return [...new Set([
+    ...(state.serverPlayDays ?? []),
     ...(state.serverWinDays ?? []),
     ...state.history.map(entry => entry.day),
     ...(state.lastWonDay ? [state.lastWonDay] : []),
+    ...(state.today && state.today.attempts > 0 ? [state.today.day] : []),
   ])].sort()
 }
 
-export function StreakCalendar({ state, today, streak, freezes, wonToday, close }: {
+export function StreakCalendar({ state, today, streak, freezes, countedToday, close }: {
   state: DailyChallengeState
   today: string
   streak: number
   freezes: number
-  wonToday: boolean
+  /** Le défi du jour est-il déjà compté dans la série (ouvert, quelle qu'en soit l'issue) ? */
+  countedToday: boolean
   close: () => void
 }) {
   const dialogRef = useDialogFocus<HTMLElement>(close)
-  const joursGagnes = useMemo(() => knownWinDays(state), [state])
-  const marques = useMemo(() => streakDayMarks(joursGagnes, knownFrozenDays(state), today), [joursGagnes, state, today])
+  const joursJoues = useMemo(() => knownPlayDays(state), [state])
+  const marques = useMemo(() => streakDayMarks(knownWinDays(state), knownFrozenDays(state), today, joursJoues), [joursJoues, state, today])
   const semaineActuelle = mondayOf(today)
-  const premiereSemaine = joursGagnes.length ? mondayOf(joursGagnes[0]) : semaineActuelle
+  const premiereSemaine = joursJoues.length ? mondayOf(joursJoues[0]) : semaineActuelle
   const derniereSemaine = addDays(semaineActuelle, 7 * SEMAINES_A_VENIR)
   const [lundi, setLundi] = useState(semaineActuelle)
 
-  const jourRecompense = nextStreakRewardDay(streak, today, wonToday)
-  const recompenseAujourdhui = wonToday && streak > 0 && streak % STREAK_REWARD_EVERY_DAYS === 0
+  const jourRecompense = nextStreakRewardDay(streak, today, countedToday)
+  const recompenseAujourdhui = countedToday && streak > 0 && streak % STREAK_REWARD_EVERY_DAYS === 0
   const restantes = winsUntilNextStreakReward(streak)
   const progression = recompenseAujourdhui ? STREAK_REWARD_EVERY_DAYS : streak % STREAK_REWARD_EVERY_DAYS
 
@@ -123,6 +139,7 @@ export function StreakCalendar({ state, today, streak, freezes, wonToday, close 
 
       <ul className="mm-streak-legend" aria-hidden="true">
         <li><Check />réussi</li>
+        <li><Flame />joué</li>
         <li><X />manqué</li>
         <li><Snowflake />gel</li>
         <li><Gift />panier offert</li>

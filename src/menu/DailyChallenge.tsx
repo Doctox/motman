@@ -12,6 +12,7 @@ import { SocialPortrait } from './MenuChrome'
 import type { DailyRankingEntry } from '../dailyScore'
 import {
   dailyAttempts,
+  dailyCountedToday,
   dailyStatus,
   loadDailyChallengeState,
   type DailyAdvanceEffects,
@@ -21,8 +22,9 @@ import {
 import './menu-daily.css'
 
 // Composants « Défi du jour » — Option A (intégration chirurgicale).
-// 100 % présentation, pilotés par l'état LOCAL réel (motman-daily-v1). Le défi
-// est rejouable : trois états (à faire / perdu / gagné). Aucun changement de nav.
+// 100 % présentation, pilotés par l'état LOCAL réel (motman-daily-v1). Quatre
+// états : à faire / perdu (rejouable) / gagné / abandonné (fermé jusqu'à minuit,
+// depuis le 19/09/2026). Aucun changement de nav.
 //
 // LE THÈME DU JOUR s'affiche dès que le calendrier en annonce un (« Défi du jour
 // · Animaux »). Il n'en annonce que pour une grille qui le porte réellement :
@@ -134,7 +136,7 @@ export function DailyStreakChip() {
         <Flame aria-hidden="true" />
         <b>{streak}</b>
       </button>
-      {ouvert ? <StreakCalendar state={state} today={day} streak={streak} freezes={freezes} wonToday={status === 'won'} close={() => setOuvert(false)} /> : null}
+      {ouvert ? <StreakCalendar state={state} today={day} streak={streak} freezes={freezes} countedToday={dailyCountedToday(state, day)} close={() => setOuvert(false)} /> : null}
     </>
   )
 }
@@ -163,6 +165,20 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
         <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
         <DailyShareHero day={day} />
+      </section>
+    )
+  }
+
+  // Abandonné (bouton ou absence) : fermé jusqu'à minuit, mais compté pour la
+  // série — règles du 19/09/2026. Ni bouton ni reproche : juste l'heure du
+  // prochain.
+  if (status === 'closed') {
+    return (
+      <section className="mm-daily-hero is-lost is-closed" aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour votre série. Nouvelle grille dans ${countdown}.`}>
+        <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+        <small className="mm-daily-eyebrow">{libelle}</small>
+        <h2 className="mm-daily-title">Défi abandonné</h2>
+        <p className="mm-daily-note">Il compte pour votre série · nouvelle grille dans {countdown}</p>
       </section>
     )
   }
@@ -202,8 +218,9 @@ function DailyShareHero({ day }: { day: string }) {
 
 /**
  * Ligne de série pour la séquence de récompense de fin de partie (à côté de l'XP
- * et des plumes), quand la partie terminée EST une victoire au défi du jour.
- * Pilotée par les effets d'une victoire (`recordDailyResult(...).effects`).
+ * et des plumes), quand la partie terminée est le PREMIER défi du jour joué —
+ * gagné, perdu ou abandonné, puisque tout défi ouvert compte (19/09/2026).
+ * Pilotée par `recordDailyResult(...).effects`.
  */
 export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects }) {
   if (!effects.changed) return null

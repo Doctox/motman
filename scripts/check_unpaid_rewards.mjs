@@ -13,8 +13,9 @@
 // RPC en échec, un déploiement raté, un bug corrigé depuis. Trois écarts sont
 // cherchés, tous entre ce que les données IMPLIQUENT et ce qui a été versé :
 //
-//   1. RÉCOMPENSE DE SÉRIE DUE — une victoire quotidienne a franchi une tranche
-//      de 7 jours (7, 14, 21…) d'après `daily_wins`, et aucune transaction
+//   1. RÉCOMPENSE DE SÉRIE DUE — un jour de défi a franchi une tranche de 7 jours
+//      (7, 14, 21…) d'après `daily_plays` (les jours JOUÉS, qui font la série
+//      depuis le 19/09/2026 ; `daily_wins` avant), et aucune transaction
 //      `daily-streak-reward:<user>:<jour>` n'existe. Un panier offert chacune
 //      (250 plumes jusqu'à la migration 20260914200000).
 //      (Avant le 14/09/2026, c'étaient des paliers uniques jusqu'à 4 500 plumes.)
@@ -75,13 +76,19 @@ export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = 
   const depuis = /^\d{4}-\d{2}-\d{2}$/.test(RECOMPENSE_SERIE.depuis) ? RECOMPENSE_SERIE.depuis : '9999-12-31'
   const rows = await runQuery(projectRef, accessToken, `
     with series as (
-      -- La série après chaque victoire, et au moment de la victoire d'avant
+      -- La série après chaque jour joué, et au moment du jour joué d'avant
       -- (server_daily_streak ne lit que les jours jusqu'à la date donnée).
-      select victoire.user_id, victoire.day,
-             coalesce((public.server_daily_streak(victoire.user_id, victoire.day)->>'streakAtLastWin')::int, 0) as apres,
-             coalesce((public.server_daily_streak(victoire.user_id, victoire.day - 1)->>'streakAtLastWin')::int, 0) as avant
-      from public.daily_wins as victoire
-      where victoire.day >= date '${depuis}'
+      -- Les jours JOUÉS font la série depuis le 19/09/2026 (migration
+      -- 20260919130000) ; toute victoire en est un.
+      select jour.user_id, jour.day,
+             coalesce((public.server_daily_streak(jour.user_id, jour.day)->>'streakAtLastWin')::int, 0) as apres,
+             coalesce((public.server_daily_streak(jour.user_id, jour.day - 1)->>'streakAtLastWin')::int, 0) as avant
+      from (
+        select user_id, day from public.daily_plays
+        union
+        select user_id, day from public.daily_wins
+      ) as jour
+      where jour.day >= date '${depuis}'
     ),
     recompenses_dues as (
       select serie.user_id, serie.day

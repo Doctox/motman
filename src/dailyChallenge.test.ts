@@ -7,7 +7,9 @@ import {
   dailyResultForMatch,
   daysBetween,
   emptyDailyChallengeState,
+  dailyCountedToday,
   isDailyWon,
+  markDailyClosed,
   MAX_FREEZES,
   reconcileServerDailyStreak,
   recordDailyResult,
@@ -105,16 +107,46 @@ describe('advanceStreak (victoire)', () => {
 })
 
 describe('recordDailyResult (tentatives + verrou victoire)', () => {
-  it('compte les tentatives sur défaite sans toucher la série', () => {
+  // Tout défi ouvert compte pour la série (propriétaire, 19/09/2026).
+  it('une défaite compte pour la série, une fois par jour, et laisse retenter', () => {
     const storage = memoryStorage()
     const first = recordDailyResult({ day: '2026-03-01', result: 'loss', gridId: 'g', theme: 'Animaux' }, { storage })
     expect(first.status).toBe('lost')
     expect(first.attempts).toBe(1)
-    expect(first.effects.changed).toBe(false)
-    expect(first.state.currentStreak).toBe(0)
+    expect(first.effects.changed).toBe(true)
+    expect(first.state.currentStreak).toBe(1)
     const second = recordDailyResult({ day: '2026-03-01', result: 'loss', gridId: 'g', theme: 'Animaux' }, { storage })
     expect(second.attempts).toBe(2)
+    expect(second.effects.changed).toBe(false)
+    expect(second.state.currentStreak).toBe(1)
     expect(dailyStatus(second.state, '2026-03-01')).toBe('lost')
+    // Le défi joué n'est pas pour autant réussi.
+    expect(isDailyWon(second.state, '2026-03-01')).toBe(false)
+  })
+
+  it('un abandon compte pour la série et ferme le défi jusqu’à minuit', () => {
+    const storage = memoryStorage()
+    const abandon = recordDailyResult({ day: '2026-03-01', result: 'abandon', gridId: 'g', theme: null }, { storage })
+    expect(abandon.status).toBe('closed')
+    expect(abandon.state.currentStreak).toBe(1)
+    expect(dailyStatus(abandon.state, '2026-03-01')).toBe('closed')
+    expect(isDailyWon(abandon.state, '2026-03-01')).toBe(false)
+    // Le lendemain, un nouveau défi est à faire, et la série continue.
+    expect(dailyStatus(abandon.state, '2026-03-02')).toBe('todo')
+    const lendemain = recordDailyResult({ day: '2026-03-02', result: 'loss', gridId: 'g', theme: null }, { storage })
+    expect(lendemain.state.currentStreak).toBe(2)
+  })
+
+  it('le refus du serveur ferme le défi à l’écran', () => {
+    const storage = memoryStorage()
+    const ferme = markDailyClosed('2026-03-01', { storage })
+    expect(dailyStatus(ferme, '2026-03-01')).toBe('closed')
+    // Rien d'autre ne bouge : la série vient du serveur.
+    expect(ferme.currentStreak).toBe(0)
+    // Un défi déjà gagné ne se ferme pas.
+    const gagne = memoryStorage()
+    recordDailyResult({ day: '2026-03-01', result: 'win', gridId: 'g', theme: null }, { storage: gagne })
+    expect(dailyStatus(markDailyClosed('2026-03-01', { storage: gagne }), '2026-03-01')).toBe('won')
   })
 
   it('avance la série à la victoire puis verrouille le jour', () => {
@@ -164,11 +196,16 @@ describe('dailyResultForMatch', () => {
   })
 
   it('refuse les parties interrompues, comme le serveur', () => {
-    // playerOutcome (match-api) classe timeout/forfeit en abandon : aucun bonus
-    // de 250 plumes n’est versé, la série ne doit donc pas avancer non plus.
+    // playerOutcome (match-api) classe timeout/forfeit à part : aucun bonus de
+    // 250 plumes n’est versé, ce n’est donc jamais une victoire.
     expect(dailyResultForMatch(finished('moi', 'forfeit'), 'moi')).toBe('loss')
     expect(dailyResultForMatch(finished('moi', 'timeout'), 'moi')).toBe('loss')
     expect(dailyResultForMatch(finished('moi', null), 'moi')).toBe('loss')
+  })
+
+  it('le bouton Abandonner et l’absence sont des abandons', () => {
+    expect(dailyResultForMatch(finished('bot', 'forfeit'), 'moi')).toBe('abandon')
+    expect(dailyResultForMatch(finished('bot', 'timeout'), 'moi')).toBe('abandon')
   })
 })
 
@@ -194,17 +231,17 @@ describe('série du défi, bout en bout depuis un match serveur', () => {
     expect(storage.read()?.currentStreak).toBe(2)
   })
 
-  it('ne fait pas avancer la série sur une partie abandonnée', () => {
+  it('une partie abandonnée fait avancer la série et ferme le jour', () => {
     const storage = memoryStorage()
     const outcome = recordDailyResult({
       day: '2026-08-16',
-      result: dailyResultForMatch({ winnerId: 'moi', finishReason: 'forfeit' }, 'moi'),
+      result: dailyResultForMatch({ winnerId: 'bot', finishReason: 'forfeit' }, 'moi'),
       gridId: 'compact-7x8-agent-c-01',
       theme: null,
     }, { storage })
-    expect(outcome.effects.changed).toBe(false)
-    expect(outcome.status).toBe('lost')
-    expect(storage.read()?.currentStreak).toBe(0)
+    expect(outcome.effects.changed).toBe(true)
+    expect(outcome.status).toBe('closed')
+    expect(storage.read()?.currentStreak).toBe(1)
   })
 })
 
@@ -278,5 +315,32 @@ describe('reconcileServerDailyStreak', () => {
       { streak: 3, best: 3, freezes: 99, lastWin: '2026-08-31' },
     )
     expect(merged.freezes).toBe(MAX_FREEZES)
+  })
+})
+
+// Depuis le 19/09/2026, `lastWonDay` est le dernier jour JOUÉ. Un jour joué
+// ailleurs (autre appareil) ne doit donc pas passer pour gagné ici.
+describe('gagné ou seulement joué, vu d’un autre appareil', () => {
+  const jour = '2026-09-19'
+  const venuDuServeur = (winDays: string[], playDays: string[]): DailyChallengeState => ({
+    ...emptyDailyChallengeState(), lastWonDay: jour, currentStreak: 3, longestStreak: 3,
+    serverWinDays: winDays, serverPlayDays: playDays,
+  })
+
+  it('un jour joué mais pas gagné reste à faire ici, et compte pour la série', () => {
+    const etat = venuDuServeur([], [jour])
+    expect(isDailyWon(etat, jour)).toBe(false)
+    expect(dailyStatus(etat, jour)).toBe('todo')
+    expect(dailyCountedToday(etat, jour)).toBe(true)
+  })
+
+  it('un jour gagné ailleurs est réussi ici', () => {
+    const etat = venuDuServeur([jour], [jour])
+    expect(isDailyWon(etat, jour)).toBe(true)
+    expect(dailyStatus(etat, jour)).toBe('won')
+  })
+
+  it('un jour pas encore ouvert ne compte pas', () => {
+    expect(dailyCountedToday(venuDuServeur([], []), jour)).toBe(false)
   })
 })

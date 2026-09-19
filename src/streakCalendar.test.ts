@@ -51,6 +51,27 @@ describe('les marques', () => {
     expect(marques.get('2026-09-13')).toBe('won')
   })
 
+  // Tout défi ouvert compte pour la série depuis le 19/09/2026 : un jour perdu
+  // ou abandonné n'est pas « manqué », et la victoire garde sa marque.
+  it('un jour joué sans victoire est « joué », pas « manqué »', () => {
+    const marques = streakDayMarks(['2026-09-15'], [], '2026-09-19', ['2026-09-15', '2026-09-16', '2026-09-18'])
+    expect(marques.get('2026-09-15')).toBe('won')
+    expect(marques.get('2026-09-16')).toBe('played')
+    expect(marques.get('2026-09-17')).toBe('missed')
+    expect(marques.get('2026-09-18')).toBe('played')
+  })
+
+  it('le calendrier commence au premier défi joué, même perdu', () => {
+    const marques = streakDayMarks([], [], '2026-09-19', ['2026-09-17'])
+    expect(marques.get('2026-09-17')).toBe('played')
+    expect(marques.get('2026-09-18')).toBe('missed')
+    expect(marques.has('2026-09-16')).toBe(false)
+  })
+
+  it('aujourd’hui est marqué dès qu’il est joué', () => {
+    expect(streakDayMarks([], [], '2026-09-19', ['2026-09-19']).get('2026-09-19')).toBe('played')
+  })
+
   it('ignore les dates futures ou mal formées', () => {
     const marques = streakDayMarks(['2026-09-01', 'n’importe quoi', '2026-12-31'], ['2026-12-30'], '2026-09-02')
     expect([...marques.keys()]).toEqual(['2026-09-01'])

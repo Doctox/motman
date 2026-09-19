@@ -12,7 +12,7 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3
 // La forme d'un match et le versement des récompenses vivent désormais à côté :
 // `matchModel.ts` pour les types, `awards.ts` pour la clôture — sortie d'ici pour
 // devenir testable (voir `awards.test.ts`).
-import { awardFinished, recordMatchHistory } from './awards.ts'
+import { awardFinished, recordDailyPlay, recordMatchHistory } from './awards.ts'
 import { nowIso, type MatchRow, type Pace } from './matchModel.ts'
 
 const MANUAL_SUBMIT_GRACE_MS = 2_000
@@ -342,8 +342,8 @@ Deno.serve(async request => {
       // puis de le terminer bien plus tard : le serveur écrivait alors une
       // victoire DATÉE DU JOUR DE CRÉATION, rebouchant après coup un trou de
       // série — jusqu'à réparer une série cassée ou débloquer un palier.
-      // `recordDailyWinAndMilestones` refuse désormais une victoire trop
-      // ancienne, mais c'est ici que la porte se ferme vraiment.
+      // `jourDuDefiValide` (awards.ts) refuse désormais un jour trop ancien,
+      // mais c'est ici que la porte se ferme vraiment.
       const pace: Pace = 'realtime'
       const dateKey = parisDateKey(new Date())
       // UN SEUL DÉFI EN COURS PAR JOUR. Le 14/09/2026, deux appuis à 1,6 s
@@ -357,6 +357,17 @@ Deno.serve(async request => {
         const repris = await resolveRow(enCours)
         return json(200, { match: await view(admin, repris, user.id, await getGrid(admin, repris.grid_id)) })
       }
+      // ABANDONNÉ = FERMÉ JUSQU'À MINUIT (décision du propriétaire, 19/09/2026).
+      // Une défaite en fin de grille se retente ; un abandon — le bouton, ou
+      // l'absence restée sans réponse (« Tu es toujours là ? ») — non : sinon
+      // abandonner dès que le bot mène suffirait à rejouer la grille qu'on vient
+      // de découvrir. `playerOutcome` (awards.ts) range les deux sous
+      // `abandon`, et l'historique en garde la trace avec le jour du défi.
+      const { data: abandon } = await admin.from('grid_player_history').select('match_id')
+        .eq('user_id', user.id).eq('daily_date', dateKey).eq('outcome', 'abandon').limit(1)
+      if (abandon?.length) {
+        return json(409, { error: 'Défi du jour abandonné : il revient demain.', code: 'DAILY_CLOSED' })
+      }
       const skill = botSkillForLevel(await playerLevel(admin, user.id))
       const bot = createBot(`${user.id}:daily:${dateKey}:${Date.now()}`, skill)
       const created = await createMatch(admin, user.id, bot.playerId, 'solo', pace, null, bot, {
@@ -364,6 +375,9 @@ Deno.serve(async request => {
         dailyDate: dateKey,
         forcedGridId: dailyGridIdFor(dateKey),
       })
+      // Le défi OUVERT compte pour la série, quelle qu'en soit l'issue (voir
+      // awards.ts). Une nouvelle tentative du même jour ne recompte rien.
+      await recordDailyPlay(admin, user.id, dateKey, created.row.id)
       return json(200, { match: await view(admin, created.row, user.id, created.grid) })
     }
 

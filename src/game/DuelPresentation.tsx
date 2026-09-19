@@ -28,6 +28,22 @@ import './duel-friend.css'
 // module évite de gonfler le compteur du jour pour une seule partie jouée.
 const recordedDailyMatches = new Set<string>()
 
+/**
+ * Abandon du défi du jour depuis la fenêtre « Quitter » : on sort aussitôt, sans
+ * écran de fin, qui l'aurait enregistré. On le fait donc ici — l'accueil passe à
+ * « Défi abandonné » et la série compte le jour (règles du 19/09/2026). Même
+ * garde-fou que l'écran de fin : un match n'est compté qu'une fois.
+ */
+export function recordDailyAbandon(match: Pick<MatchState, 'id' | 'isDaily' | 'dailyDate' | 'gridId'>): void {
+  if (!match.isDaily || !match.dailyDate || recordedDailyMatches.has(match.id)) return
+  recordedDailyMatches.add(match.id)
+  try {
+    recordDailyResult({ day: match.dailyDate, result: 'abandon', gridId: match.gridId, theme: dailyThemeFor(match.dailyDate) })
+  } catch {
+    recordedDailyMatches.delete(match.id)
+  }
+}
+
 export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string }) {
   // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
   // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
@@ -62,6 +78,10 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     : match.finishReason === 'forfeit'
       ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
       : draw ? 'Vous terminez avec le même score.' : won ? 'Vous avez rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
+  // Défi du jour abandonné (bouton ou absence) : fermé jusqu'à minuit (19/09/2026).
+  const detailDuDefi = match.isDaily && dailyResultForMatch(match, playerId) === 'abandon'
+    ? `${detail} Le défi revient demain.`
+    : detail
   const leaveResult = async (destination: () => void) => {
     if (leaving) return
     setLeaving(true)
@@ -144,7 +164,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
   return <GameResultScreen
     outcome={draw ? 'draw' : won ? 'win' : 'loss'}
     title={title}
-    detail={detail}
+    detail={detailDuDefi}
     playerScore={match.scores[playerId] ?? 0}
     opponentScore={match.scores[opponentId] ?? 0}
     opponentName={opponentName}
@@ -311,16 +331,20 @@ export function PendingResultPanel({
  * limité : accueil (la partie attend) ou abandon (demande du propriétaire).
  * Une vraie fenêtre (aria-modal) : le retour d'Android la referme.
  */
-export function LeaveMatchPanel({ opponentName, isAsync = false, cancel, continueLater, leave }: { opponentName: string; isAsync?: boolean; cancel: () => void; continueLater?: () => void; leave: () => void }) {
+export function LeaveMatchPanel({ opponentName, isAsync = false, isDaily = false, cancel, continueLater, leave }: { opponentName: string; isAsync?: boolean; isDaily?: boolean; cancel: () => void; continueLater?: () => void; leave: () => void }) {
   const dialogRef = useDialogFocus<HTMLElement>(cancel)
   const accueil = isAsync && continueLater
   return <div className="mm-modal-layer mm-pause-layer" role="presentation">
     <section ref={dialogRef} className="mm-pause duel-leave" role="dialog" aria-modal="true" aria-labelledby="duel-leave-title" tabIndex={-1}>
-      <h2 id="duel-leave-title">Quitter la partie ?</h2>
-      <p>{isAsync ? 'Elle vous attend à l’accueil — ou abandonnez-la, et votre adversaire gagne.' : `${opponentName} remportera la partie par abandon.`}</p>
+      <h2 id="duel-leave-title">{isDaily ? 'Quitter le défi du jour ?' : 'Quitter la partie ?'}</h2>
+      {/* Un défi abandonné ne se retente plus avant minuit (19/09/2026) : le
+          joueur doit le savoir AVANT de toucher le bouton. */}
+      <p>{isDaily
+        ? 'Abandonné, il compte pour votre série, mais vous ne pourrez plus le retenter avant demain.'
+        : isAsync ? 'Elle vous attend à l’accueil — ou abandonnez-la, et votre adversaire gagne.' : `${opponentName} remportera la partie par abandon.`}</p>
       {accueil ? <button type="button" data-dialog-autofocus onClick={continueLater}>Retour à l’accueil</button> : null}
       <button type="button" className={accueil ? 'secondary' : undefined} data-dialog-autofocus={accueil ? undefined : true} onClick={cancel}>Continuer à jouer</button>
-      <button type="button" className="danger" onClick={leave}>Abandonner la partie</button>
+      <button type="button" className="danger" onClick={leave}>{isDaily ? 'Abandonner le défi' : 'Abandonner la partie'}</button>
     </section>
   </div>
 }

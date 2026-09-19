@@ -5,7 +5,7 @@ import { useDialogFocus } from '../useDialogFocus'
 import { secondesRestantes, type StillTherePrompt } from './stillThere'
 
 /** « Tu es toujours là ? » — voir stillThere.ts pour le moment où elle s'ouvre. */
-export function StillThereDialog({ prompt, confirm, expire }: { prompt: StillTherePrompt; confirm: () => void; expire?: () => void }) {
+export function StillThereDialog({ prompt, confirm, expire, isDaily = false }: { prompt: StillTherePrompt; confirm: () => void; expire?: () => void; isDaily?: boolean }) {
   const dialogRef = useDialogFocus<HTMLElement>(confirm)
   const [maintenant, setMaintenant] = useState(serverNow)
   useEffect(() => {
@@ -30,7 +30,8 @@ export function StillThereDialog({ prompt, confirm, expire }: { prompt: StillThe
           ? <p>Tu as laissé passer ton tour.</p>
           : <>
             <p className={`still-there-countdown ${reste <= 10 ? 'is-urgent' : ''}`} aria-live="polite"><b>{reste}</b> s</p>
-            <p>Sans réponse, la partie est perdue.</p>
+            {/* Au défi du jour, l'absence vaut abandon : fermé jusqu'à minuit (19/09/2026). */}
+            <p>{isDaily ? 'Sans réponse, le défi est abandonné jusqu’à demain.' : 'Sans réponse, la partie est perdue.'}</p>
           </>}
       </div>
       <button type="button" data-dialog-autofocus onClick={confirm}>Je suis là</button>
