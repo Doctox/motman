@@ -97,6 +97,12 @@ describe('la décision', () => {
     expect(decideLiveUpdate(manifeste({ version: 99 }), { runningBuild: 99, nativeVersionCode: 8 })).toBe('none')
   })
 
+  // Une version qui n'a pas démarré n'est pas retéléchargée en boucle (19/09/2026).
+  it('n’essaie plus une version qui a déjà échoué sur ce téléphone, mais essaie la suivante', () => {
+    expect(decideLiveUpdate(manifeste({ version: 120 }), { runningBuild: 99, nativeVersionCode: 11, failedVersions: [120] })).toBe('failed')
+    expect(decideLiveUpdate(manifeste({ version: 121 }), { runningBuild: 99, nativeVersionCode: 11, failedVersions: [120] })).toBe('download')
+  })
+
   it('n’installe pas un code qui réclame un APK plus récent', () => {
     expect(decideLiveUpdate(manifeste({ minNativeVersionCode: 9 }), { runningBuild: 99, nativeVersionCode: 8 })).toBe('native-too-old')
   })

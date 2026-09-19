@@ -29,6 +29,7 @@ export type LiveUpdateStep =
 export type LiveUpdateStatus = { etape: LiveUpdateStep; version?: number; detail?: string; date: string }
 
 const CLE_STATUT = 'motman-live-update-status'
+const CLE_ECHECS = 'motman-live-update-echecs'
 
 function consigner(statut: Omit<LiveUpdateStatus, 'date'>): void {
   try {
@@ -78,6 +79,30 @@ export async function confirmLiveUpdateBoot(): Promise<void> {
   }
 }
 
+/**
+ * Les versions qui ont échoué sur ce téléphone (voir `decideLiveUpdate`). Le
+ * module ne signale un échec qu'UNE fois (`getFailedUpdate` se vide à la
+ * lecture) : on le recopie dans le stockage local, que toutes les versions du
+ * code partagent. Les dix dernières suffisent : les numéros ne font que monter.
+ */
+async function versionsEnEchec(): Promise<number[]> {
+  let connues: number[] = []
+  try {
+    const brut = JSON.parse(localStorage.getItem(CLE_ECHECS) ?? '[]') as unknown
+    if (Array.isArray(brut)) connues = brut.filter((n): n is number => Number.isInteger(n))
+  } catch { /* Stockage illisible : on repart de rien. */ }
+  try {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    const echec = await CapacitorUpdater.getFailedUpdate()
+    const version = Number(echec?.bundle?.version)
+    if (Number.isInteger(version) && version > 0 && !connues.includes(version)) {
+      connues = [...connues, version].slice(-10)
+      try { localStorage.setItem(CLE_ECHECS, JSON.stringify(connues)) } catch { /* Confort, pas nécessité. */ }
+    }
+  } catch { /* Module absent (web) ou ancien : rien à apprendre. */ }
+  return connues
+}
+
 /** Le numéro de la construction qui tourne ; 0 pour un APK construit à la main. */
 function runningBuild(): number {
   return /^\d+$/.test(appVersion.updateNumber) ? Number(appVersion.updateNumber) : 0
@@ -112,9 +137,10 @@ export async function findLiveUpdate(limiteMs: number): Promise<LiveUpdateManife
     if (!manifeste) { consigner({ etape: 'signature' }); return null }
     const { App } = await import('@capacitor/app')
     const nativeVersionCode = Number((await App.getInfo()).build) || 0
-    const decision = decideLiveUpdate(manifeste, { runningBuild: runningBuild(), nativeVersionCode })
+    const decision = decideLiveUpdate(manifeste, { runningBuild: runningBuild(), nativeVersionCode, failedVersions: await versionsEnEchec() })
     if (decision === 'none') { consigner({ etape: 'a-jour', version: manifeste.version }); return null }
     if (decision === 'native-too-old') { consigner({ etape: 'apk-ancien', version: manifeste.version }); return null }
+    if (decision === 'failed') { consigner({ etape: 'echec', version: manifeste.version, detail: 'version écartée : elle n’a pas démarré' }); return null }
     return manifeste
   } catch (reason) {
     consigner({ etape: 'echec', detail: message(reason) })

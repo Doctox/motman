@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- L'APK de débogage (com.motman.game.debug, npm run apk:debug) s'installe à
+     côté de l'appli du Play Store : ce nom les distingue sur l'écran d'accueil
+     et dans le choix d'appli. -->
+<resources>
+    <string name="app_name">MotMan (débogage)</string>
+    <string name="title_activity_main">MotMan (débogage)</string>
+</resources>

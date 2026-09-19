@@ -5,7 +5,8 @@
 // téléphones sans republier un APK, la chaîne GitHub publie à chaque envoi une
 // copie complète du site (un zip) et un manifeste `latest.json` qui la décrit.
 // Au démarrage, l'application lit ce manifeste, le vérifie, télécharge le zip et
-// l'installe au lancement suivant (module @capgo/capacitor-updater).
+// l'applique aussitôt — ou au lancement suivant si le joueur choisit de jouer
+// sans attendre (main.tsx ; module @capgo/capacitor-updater).
 //
 // POURQUOI UNE SIGNATURE. Ce mécanisme revient à installer du code sur tous les
 // téléphones. Celui qui prendrait la main sur l'hébergement pourrait y déposer
@@ -64,7 +65,7 @@ export type LiveUpdateManifest = {
 
 export type SignedLiveUpdateManifest = { payload: string; signature: string }
 
-export type LiveUpdateDecision = 'none' | 'native-too-old' | 'download'
+export type LiveUpdateDecision = 'none' | 'native-too-old' | 'failed' | 'download'
 
 type Subtle = Pick<SubtleCrypto, 'importKey' | 'sign' | 'verify'>
 
@@ -145,13 +146,24 @@ export async function verifyLiveUpdateManifest(
   }
 }
 
-/** Télécharger ou non, d'après le code qui tourne et l'APK installé. */
+/**
+ * Télécharger ou non, d'après le code qui tourne, l'APK installé et les
+ * versions qui ont déjà échoué sur ce téléphone.
+ *
+ * UNE VERSION EN ÉCHEC N'EST JAMAIS RETENTÉE (19/09/2026). Une version qui ne
+ * démarre pas n'appelle pas `notifyAppReady` : le module revient à la
+ * précédente au bout de dix secondes, et la supprime. Sans cette règle, le
+ * lancement suivant relisait le manifeste, y retrouvait la même version, plus
+ * récente, et la retéléchargeait — 15 Mo toutes les dix à vingt secondes,
+ * jusqu'au déploiement suivant. La version d'après, elle, est essayée.
+ */
 export function decideLiveUpdate(
   manifeste: LiveUpdateManifest,
-  { runningBuild, nativeVersionCode }: { runningBuild: number; nativeVersionCode: number },
+  { runningBuild, nativeVersionCode, failedVersions = [] }: { runningBuild: number; nativeVersionCode: number; failedVersions?: readonly number[] },
 ): LiveUpdateDecision {
   // Jamais vers une version égale ou plus ancienne : voir l'en-tête.
   if (manifeste.version <= runningBuild) return 'none'
   if (nativeVersionCode < manifeste.minNativeVersionCode) return 'native-too-old'
+  if (failedVersions.includes(manifeste.version)) return 'failed'
   return 'download'
 }

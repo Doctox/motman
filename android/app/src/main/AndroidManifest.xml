@@ -18,6 +18,15 @@
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
 
+        <!-- Portrait sur les TABLETTES aussi. Depuis Android 16 (API 36), un
+             grand écran (plus petit côté >= 600 dp) ignore le verrou
+             d'orientation ; la partie n'est pensée qu'en portrait, et les
+             tablettes des résidences seniors sont une cible. Dérogation admise
+             tant que targetSdk vaut 36 : à revoir au passage à l'API 37. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_motman" />
