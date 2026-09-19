@@ -32,9 +32,9 @@ import { compareDailyRuns, type DailyRankingEntry } from '../../../src/dailyScor
 //     chaque essai faisait une ligne de plus, et le même joueur apparaissait
 //     deux fois.
 //   • Les ABANDONS ne classent pas. Une partie quittée n'est pas une partie
-//     jouée ; elle ne prend donc pas non plus la place de « première ». Le prix
-//     est connu : on peut lire les définitions, abandonner, puis revenir. C'est
-//     un avantage bien moindre que de rejouer une grille qu'on a finie.
+//     jouée ; elle ne prend donc pas non plus la place de « première ». Lire les
+//     définitions, abandonner puis revenir n'est plus possible depuis le
+//     19/09/2026 : un défi abandonné est fermé jusqu'à minuit.
 //
 // L'ordre et ses départages vivent dans `compareDailyRuns`, à côté de la note :
 // on ne trie pas ici avec une règle et là avec une autre.

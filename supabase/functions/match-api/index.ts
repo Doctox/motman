@@ -307,9 +307,9 @@ Deno.serve(async request => {
     //  - la grille vient du calendrier gravé, donc partagée par tous ;
     //  - la force du bot vient de player_progress.level, lu en base ;
     //  - le rythme est le TEMPS LIMITÉ, toujours (voir ci-dessous).
-    // Le défi est rejouable jusqu'à minuit : chaque appel crée bien une nouvelle
-    // tentative. Le bonus de 250 plumes, lui, reste versé une seule fois par jour
-    // (idempotence `daily:<user>:<date>` dans awardFinished).
+    // Le défi se retente jusqu'à minuit après une DÉFAITE ; un abandon le ferme
+    // (voir plus bas). Le bonus de 250 plumes, lui, reste versé une seule fois
+    // par jour (idempotence `daily:<user>:<date>` dans awardFinished).
     // Classement du défi du jour. Lecture seule, et volontairement placée AVANT
     // l'action `daily` : un joueur doit pouvoir consulter le tableau sans avoir
     // encore joué, ni déclencher la création d'une partie.

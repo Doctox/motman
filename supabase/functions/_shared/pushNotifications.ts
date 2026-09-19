@@ -94,6 +94,21 @@ function firebaseErrorCode(payload: unknown): string {
   return ''
 }
 
+/**
+ * Faut-il oublier cet appareil ? `UNREGISTERED` : l'appli a été désinstallée.
+ * `INVALID_ARGUMENT` seulement quand FCM dit que c'est le JETON qui est
+ * mauvais : le même code sert aussi à un message mal formé, et un seul bogue
+ * dans le contenu d'une notification désinscrivait sinon tous les appareils
+ * de chaque destinataire (relevé le 19/09/2026).
+ */
+export function jetonPerime(payload: unknown): boolean {
+  const code = firebaseErrorCode(payload)
+  if (code === 'UNREGISTERED') return true
+  if (code !== 'INVALID_ARGUMENT') return false
+  const texte = String((payload as { error?: { message?: unknown } } | null)?.error?.message ?? '')
+  return /registration token/i.test(texte)
+}
+
 async function sendToDevice(account: FirebaseServiceAccount, accessToken: string, device: PushDevice, message: PushMessage) {
   const response = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(account.project_id)}/messages:send`, {
     method: 'POST',
@@ -118,7 +133,7 @@ async function sendToDevice(account: FirebaseServiceAccount, accessToken: string
     signal: AbortSignal.timeout(FCM_TIMEOUT_MS),
   })
   const payload = await response.json().catch(() => ({}))
-  return { ok: response.ok, invalid: ['UNREGISTERED', 'INVALID_ARGUMENT'].includes(firebaseErrorCode(payload)) }
+  return { ok: response.ok, invalid: jetonPerime(payload) }
 }
 
 export async function sendPushToUser(admin: SupabaseClient, userId: string, message: PushMessage): Promise<void> {

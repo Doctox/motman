@@ -233,8 +233,19 @@ async function recordQuestProgress(admin: AdminClient, row: MatchRow, playerId: 
   if (error) logServerError('match-api', error, { action: 'quest-progress', userId: playerId, matchId: row.id })
 }
 
+/**
+ * Les fins qui méritent quelque chose. Une partie classée refusée ou expirée
+ * PENDANT la confirmation (`ready_declined`, `ready_expired`) n'a jamais été
+ * jouée : elle était payée comme un match nul — 90 plumes et 22 XP — à qui
+ * relisait la partie, et deux comptes qui se refusaient en boucle en
+ * récoltaient autant qu'ils voulaient (relevé le 19/09/2026). Liste BLANCHE :
+ * une fin qu'on ajoutera un jour ne sera pas payée par mégarde.
+ */
+const FINS_RECOMPENSEES = new Set<MatchRow['finish_reason']>(['completed', 'timeout', 'forfeit', 'ranked_transfer'])
+
 export async function awardFinished(admin: AdminClient, row: MatchRow) {
   if (row.status !== 'finished') return
+  if (!FINS_RECOMPENSEES.has(row.finish_reason)) return
   const humanPlayerIds = row.state.playerIds.filter(playerId => playerId !== row.state.bot?.playerId)
   const profiles = await loadPublicProfiles(admin, humanPlayerIds)
   // Les deux joueurs sont traités DE FRONT. Rien n'est partagé entre eux : chacun
@@ -292,7 +303,9 @@ export async function awardFinished(admin: AdminClient, row: MatchRow) {
       // qui ajouterait de l'XP et une victoire fantôme au palmarès. Idempotent sur
       // `daily:<user>:<date>` : rejouer et regagner le même jour ne verse rien de
       // plus. La récompense ordinaire du match ci-dessus reste due à chaque partie.
-      if (row.state.isDaily && row.state.dailyDate && outcome === 'win') {
+      // Même garde de date que le jour de série : une victoire trop ancienne ne
+      // paie pas un bonus daté après coup.
+      if (row.state.isDaily && row.state.dailyDate && outcome === 'win' && jourDuDefiValide(row.state.dailyDate, playerId, row.id, 'daily-bonus-stale')) {
         const { error: dailyError } = await admin.rpc('server_award_feathers', {
           p_user_id: playerId,
           p_idempotency_key: `daily:${playerId}:${row.state.dailyDate}`,

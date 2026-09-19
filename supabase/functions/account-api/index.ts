@@ -261,7 +261,8 @@ Deno.serve(async request => {
   const { data: accessProfile } = await admin.from('profiles').select('status').eq('id', user.id).single()
   if (accessProfile?.status === 'banned') return json(403, { error: 'Ce compte a été banni.' })
   if (accessProfile?.status === 'suspended') return json(403, { error: 'Ce compte est temporairement suspendu.' })
-  if (!user.is_anonymous) await admin.from('profiles').update({ account_kind: 'account', updated_at: new Date().toISOString() }).eq('id', user.id)
+  // Une fois, au premier passage d'un compte lié : pas une écriture par requête.
+  if (!user.is_anonymous) await admin.from('profiles').update({ account_kind: 'account', updated_at: new Date().toISOString() }).eq('id', user.id).neq('account_kind', 'account')
   let body: Record<string, unknown>
   try { body = await request.json() } catch { return json(400, { error: 'Requête invalide.' }) }
   const action = typeof body.action === 'string' ? body.action : 'state'
@@ -355,11 +356,18 @@ Deno.serve(async request => {
     } else if (action === 'purchase-cosmetic') {
       const cosmetic = cosmeticInput(body)
       if (!cosmetic) return json(400, { error: 'Élément invalide.' })
-      const idempotencyKey = typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()
+      // Préfixée : une clé choisie par le client ne peut plus désigner une
+      // transaction du serveur (`match:…`, `daily:…`). Rejouer une clé d'achat
+      // rend l'ancienne transaction SANS erreur (idempotence) : sans le contrôle
+      // de possession ci-dessous, rejouer une clé connue avec un autre objet
+      // l'équipait sans l'avoir acheté (relevé le 19/09/2026).
+      const idempotencyKey = `client:${typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()}`
       const { error } = await admin.rpc('server_purchase_cosmetic', {
         p_user_id: user.id, p_kind: cosmetic.kind, p_item_id: cosmetic.id, p_idempotency_key: idempotencyKey,
       })
       if (error) throw error
+      const { data: owned } = await admin.from('player_inventory').select('item_id').eq('user_id', user.id).eq('kind', cosmetic.kind).eq('item_id', cosmetic.id).maybeSingle()
+      if (!owned) return json(409, { error: 'Cet achat n’a pas abouti. Réessayez.' })
       const { error: equipError } = await admin.from('profiles').update({ [cosmeticColumn(cosmetic.kind)]: cosmetic.id, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (equipError) throw equipError
     } else if (action === 'buy-streak-freeze') {

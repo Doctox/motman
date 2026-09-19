@@ -21,8 +21,16 @@ export async function profile(admin: AdminClient, id: string) {
   return loadPublicProfile(admin, id)
 }
 
+/**
+ * L'adversaire du bot, présenté comme un joueur. Son code ami était
+ * « BOT03 » : rien ne l'affichait, mais la réponse réseau le trahissait. Il a
+ * désormais la forme d'un vrai code, tiré de son identifiant.
+ */
 export function botUser(bot: Bot) {
-  return { playerId: bot.playerId, displayName: bot.displayName, code: `BOT${String(bot.level).padStart(2, '0')}`, online: true, activity: 'playing', avatarId: bot.avatarId, frameId: bot.frameId }
+  return {
+    playerId: bot.playerId, displayName: bot.displayName, code: bot.playerId.replace(/-/g, '').slice(0, 8).toUpperCase(),
+    online: true, activity: 'playing', avatarId: bot.avatarId, frameId: bot.frameId, level: bot.level,
+  }
 }
 
 export async function view(
@@ -35,7 +43,17 @@ export async function view(
   const state = row.state
   const humanIds = state.playerIds.filter(id => state.bot?.playerId !== id)
   const profiles = loadedProfiles ?? await loadPublicProfiles(admin, humanIds)
-  const players = state.playerIds.map(id => state.bot?.playerId === id ? botUser(state.bot) : profiles.get(id) ?? null)
+  // Le niveau de CHAQUE joueur (19/09/2026) : il n'était affiché que pour le
+  // bot, ce qui suffisait à le reconnaître.
+  const { data: niveaux } = humanIds.length
+    ? await admin.from('player_progress').select('user_id,level').in('user_id', humanIds)
+    : { data: [] }
+  const niveauDe = new Map((niveaux ?? []).map(ligne => [String(ligne.user_id), Number(ligne.level) || 1]))
+  const players = state.playerIds.map(id => {
+    if (state.bot?.playerId === id) return botUser(state.bot)
+    const joueur = profiles.get(id)
+    return joueur ? { ...joueur, level: niveauDe.get(id) } : null
+  })
   const { data: readySession } = row.ranked_ready_session_id
     ? await admin.from('server_ranked_ready_sessions').select('expires_at').eq('id', row.ranked_ready_session_id).maybeSingle()
     : { data: null }

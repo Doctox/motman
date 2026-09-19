@@ -297,7 +297,10 @@ export async function createMatch(
     if (replacement.id === grid.id) break
     state = markDaily(initialMatchState(replacement, hostId, guestId, invitationId, bot))
     const { data: updatedRow, error: updateError } = await admin.from('server_matches')
-      .update({ grid_id: replacement.id, state })
+      // `updated_at` bouge avec la grille : un client qui avait lu la partie
+      // avant le changement recevait sinon « rien de nouveau » et gardait
+      // l'ancienne grille à l'écran (relevé le 19/09/2026).
+      .update({ grid_id: replacement.id, state, updated_at: nowIso() })
       .eq('id', row.id)
       .select('*')
       .single()
@@ -354,7 +357,10 @@ export async function resolveAtomicGridCollision(
     if (replacement.id === grid.id) break
     const state = initialMatchState(replacement, hostId, guestId, invitationId, bot)
     const { data: updatedRow, error: updateError } = await admin.from('server_matches')
-      .update({ grid_id: replacement.id, state })
+      // `updated_at` bouge avec la grille : un client qui avait lu la partie
+      // avant le changement recevait sinon « rien de nouveau » et gardait
+      // l'ancienne grille à l'écran (relevé le 19/09/2026).
+      .update({ grid_id: replacement.id, state, updated_at: nowIso() })
       .eq('id', row.id)
       .select('*')
       .single()

@@ -1,6 +1,6 @@
 import { ruleGrid } from './matchGrid.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
-import { acknowledgePresence, applyTurn, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
+import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MÉCANIQUE D'UN TOUR — et surtout, la frontière anti-triche.
@@ -245,4 +245,30 @@ Deno.test('une case mal formée dans le catalogue est refusée à la constructio
   let leve = false
   try { ruleGrid(cassee) } catch { leve = true }
   verifie(leve, 'la construction refuse la grille')
+})
+
+// ── Personne n'est là (19/09/2026) ──────────────────────────────────────────
+// Appli fermée contre le bot, la partie ne bougeait plus : au retour, un seul
+// tour perdu puis une nouvelle fenêtre de 30 s. Trois minutes sans que personne
+// ne la fasse avancer, et l'humain absent perd.
+const ilYa = (ms: number) => new Date(Date.now() - ms).toISOString()
+const BOT = { playerId: ADVERSAIRE, displayName: 'Léa', level: 3, skill: 'regular', avatarId: 'a', frameId: 'f' } as unknown as State['bot']
+
+Deno.test('trois minutes sans personne : l’humain face au bot perd, même pendant le tour du bot', () => {
+  const partie = match({ bot: BOT }, { current_player_id: ADVERSAIRE, updated_at: ilYa(ABSENCE_SANS_TEMOIN_MS + 1_000) })
+  egal(absentSansTemoin(partie), JOUEUR, 'l’humain est l’absent')
+  forfeitAbsentPlayer(partie, JOUEUR)
+  egal(partie.status, 'finished', 'partie close')
+  egal(partie.winner_id, ADVERSAIRE, 'le bot gagne')
+  egal(partie.finish_reason, 'timeout', 'par absence')
+})
+
+Deno.test('entre deux humains, c’est celui dont c’est le tour qui est absent', () => {
+  egal(absentSansTemoin(match({}, { updated_at: ilYa(ABSENCE_SANS_TEMOIN_MS + 1_000) })), JOUEUR, 'le joueur au trait')
+})
+
+Deno.test('une partie suivie ne déclenche jamais la règle', () => {
+  egal(absentSansTemoin(match({}, { updated_at: ilYa(ABSENCE_SANS_TEMOIN_MS - 5_000) })), null, 'moins de trois minutes')
+  egal(absentSansTemoin(match({}, { pace: 'async', updated_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'l’illimité a sa règle de 24 h')
+  egal(absentSansTemoin(match({}, { paused_at: nowIso(), updated_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'une partie en pause attend')
 })

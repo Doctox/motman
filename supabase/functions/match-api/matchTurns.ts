@@ -135,10 +135,38 @@ export function acknowledgePresence(row: MatchRow, playerId: string): boolean {
   return true
 }
 
-/** Sans réponse dans les 30 s, la partie est perdue pour l'absent. */
-export function forfeitAbsentPlayer(row: MatchRow) {
-  const absent = row.current_player_id
+/** Sans réponse dans les 30 s, la partie est perdue pour l'absent (par défaut, celui dont c'est le tour). */
+export function forfeitAbsentPlayer(row: MatchRow, absent = row.current_player_id) {
   finish(row.state, row, row.state.playerIds.find(id => id !== absent) ?? null, 'timeout')
+}
+
+/**
+ * PERSONNE N'EST LÀ (19/09/2026). Le serveur ne fait avancer une partie que
+ * quand quelqu'un la lit. Entre deux humains, l'appli de celui qui reste s'en
+ * charge : le tour de l'absent expire, puis ses 30 s de « Tu es toujours là ? »,
+ * et il perd. Mais contre le bot — le défi du jour surtout —, appli fermée,
+ * plus rien ne bougeait : la partie restait figée des heures, et au retour le
+ * joueur ne perdait qu'un tour avant une nouvelle fenêtre de 30 s. Ouvrir le
+ * défi, fermer l'appli, chercher les réponses, revenir : c'était possible.
+ *
+ * En temps limité, une partie que PERSONNE n'a fait avancer depuis trois
+ * minutes est donc perdue par l'humain absent. Trois minutes, c'est plus du
+ * double du plus long silence d'une partie suivie (lecture de la grille, tour
+ * de 45 s, délai de grâce, fenêtre de 30 s) : tant qu'une appli est ouverte,
+ * cette règle ne se déclenche jamais.
+ */
+export const ABSENCE_SANS_TEMOIN_MS = 3 * 60_000
+
+/** L'humain déclaré absent : celui dont c'est le tour, ou celui qui affronte le bot. Null si la partie vit. */
+export function absentSansTemoin(
+  row: Pick<MatchRow, 'status' | 'pace' | 'paused_at' | 'updated_at' | 'current_player_id' | 'state'>,
+  now = Date.now(),
+): string | null {
+  if (row.status !== 'active' || row.pace !== 'realtime' || row.paused_at) return null
+  if (now - Date.parse(row.updated_at) < ABSENCE_SANS_TEMOIN_MS) return null
+  const bot = row.state.bot?.playerId
+  if (row.current_player_id && row.current_player_id !== bot) return row.current_player_id
+  return row.state.playerIds.find(id => id !== bot) ?? null
 }
 
 export function botPlacements(row: MatchRow, grid: CatalogGrid) {

@@ -349,3 +349,14 @@ Deno.test('match classé : le résultat est appliqué atomiquement', async () =>
   await awardFinished(client, match({ mode: 'ranked' }))
   egal(versements(rpcs, 'server_apply_ranked_result_atomic').length, 1, 'le classement est appliqué une fois')
 })
+
+// Un classé refusé ou expiré pendant la confirmation n'a jamais été joué : il
+// était payé comme un nul (19/09/2026).
+for (const fin of ['ready_declined', 'ready_expired'] as const) {
+  Deno.test(`classé ${fin} : ni historique, ni plumes, ni classement`, async () => {
+    const { client, rpcs, tables } = clientFactice()
+    await awardFinished(client, match({ mode: 'ranked', finish_reason: fin, winner_id: null }))
+    egal(rpcs.length, 0, 'aucun versement')
+    egal(tables.length, 0, 'aucune écriture')
+  })
+}
