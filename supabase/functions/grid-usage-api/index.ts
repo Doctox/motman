@@ -125,14 +125,14 @@ Deno.serve(async request => {
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
       return json(429, {
-        error: 'Trop de requêtes. Réessayez dans un instant.',
+        error: 'Trop de requêtes. Réessaie dans un instant.',
         code: 'RATE_LIMITED',
         retryAfter: error.retryAfterSeconds,
       }, { 'Retry-After': String(error.retryAfterSeconds) })
     }
     const reference = logServerError('grid-usage-api', error, { action, userId: user.id })
     return json(500, {
-      error: 'L’historique des grilles est momentanément indisponible. Réessayez.',
+      error: 'L’historique des grilles est momentanément indisponible. Réessaie.',
       code: 'GRID_USAGE_SERVICE_UNAVAILABLE',
       reference,
     })

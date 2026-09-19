@@ -55,7 +55,7 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
       }
       const response = await createPlayerAccount(email)
       apply(response)
-      notify('Vérifiez votre e-mail pour protéger ce profil')
+      notify('Vérifie ton e-mail pour protéger ce profil')
       close()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Opération impossible.')
@@ -90,10 +90,10 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
 
   return <div className="mm-modal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
     <form ref={dialogRef} className="mm-guest-editor mm-account-panel" role="dialog" aria-modal="true" aria-label="Compte MotMan" tabIndex={-1} onSubmit={submit}>
-      <header><div><small>{deleteConfirming ? 'Compte et données' : 'Progression sécurisée'}</small><h2>{deleteConfirming ? 'Supprimer le compte' : googleAuthIssue?.kind === 'identity-already-linked' ? 'Reprendre mon compte' : identity.accountType === 'account' ? 'Votre compte' : mode === 'create' ? 'Créer mon compte' : mode === 'login' ? 'Me connecter' : 'Retrouver mon compte'}</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
+      <header><div><small>{deleteConfirming ? 'Compte et données' : 'Progression sécurisée'}</small><h2>{deleteConfirming ? 'Supprimer le compte' : googleAuthIssue?.kind === 'identity-already-linked' ? 'Reprendre mon compte' : identity.accountType === 'account' ? 'Ton compte' : mode === 'create' ? 'Créer mon compte' : mode === 'login' ? 'Me connecter' : 'Retrouver mon compte'}</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
       {deleteConfirming ? <>
         <div className="mm-account-delete-warning"><AlertTriangle /><div><strong>Cette action est définitive</strong><p>Le profil, la progression, les plumes, la collection, les amis et les parties associées seront supprimés.</p></div></div>
-        <label htmlFor="account-delete-confirmation">Écrivez SUPPRIMER pour confirmer</label>
+        <label htmlFor="account-delete-confirmation">Écris SUPPRIMER pour confirmer</label>
         <input id="account-delete-confirmation" value={deletePhrase} autoComplete="off" autoCapitalize="characters" spellCheck={false} onChange={event => setDeletePhrase(event.target.value.toUpperCase())} />
         {error ? <p className="mm-account-error" role="alert">{error}</p> : null}
         <button className="mm-account-delete-confirm" type="submit" disabled={busy || deletePhrase !== 'SUPPRIMER'}><Trash2 />{busy ? 'Suppression…' : 'Supprimer définitivement'}</button>
@@ -102,7 +102,7 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
       </> : <>
         {googleAuthIssue?.kind === 'identity-already-linked' ? <div className="mm-google-account-conflict" role="alert">
           <strong>Compte Google retrouvé</strong>
-          <p>Ce compte Google possède déjà une progression MotMan. Vous pouvez la reprendre sans écraser ce profil invité.</p>
+          <p>Ce compte Google possède déjà une progression MotMan. Tu peux la reprendre sans écraser ce profil invité.</p>
           <button type="button" disabled={busy} onClick={() => void google('sign-in')}><span aria-hidden="true">G</span>Reprendre mon compte Google</button>
         </div> : null}
         {googleAuthIssue?.kind === 'oauth-error' ? <p className="mm-account-error" role="alert">{googleAuthIssue.message}</p> : null}
@@ -125,11 +125,11 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
         </div>
         <label htmlFor="account-email">E-mail</label>
         <input id="account-email" type="email" required value={email} autoComplete="email" onChange={event => setEmail(event.target.value)} />
-        {mode === 'create' ? <p>Votre profil invité sera conservé. Un lien protégera le compte avant de choisir son mot de passe.</p> : null}
+        {mode === 'create' ? <p>Ton profil invité sera conservé. Un lien protégera le compte avant de choisir son mot de passe.</p> : null}
         {mode === 'login' ? <><label htmlFor="account-login-password">Mot de passe</label><input id="account-login-password" type="password" required minLength={10} maxLength={128} value={password} autoComplete="current-password" onChange={event => setPassword(event.target.value)} /></> : null}
         {mode === 'recover' ? <p>Nous enverrons un lien sécurisé pour choisir un nouveau mot de passe.</p> : null}
         {error ? <p className="mm-account-error" role="alert">{error}</p> : null}
-        <button className="mm-save-guest" type="submit" disabled={busy || !email.trim() || mode === 'login' && password.length < 10}>{busy ? 'Patientez…' : mode === 'create' ? 'Protéger ce profil' : mode === 'login' ? 'Se connecter' : 'Envoyer le lien'}</button>
+        <button className="mm-save-guest" type="submit" disabled={busy || !email.trim() || mode === 'login' && password.length < 10}>{busy ? 'Patiente…' : mode === 'create' ? 'Protéger ce profil' : mode === 'login' ? 'Se connecter' : 'Envoyer le lien'}</button>
         </>}
         <button className="mm-account-delete-entry" type="button" disabled={busy} onClick={beginDeletion}><Trash2 /><span>Supprimer {identity.accountType === 'account' ? 'mon compte' : 'ce profil invité'}</span></button>
       </>}

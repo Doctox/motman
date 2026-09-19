@@ -403,7 +403,7 @@ Deno.serve(async request => {
           )
         }
         const guest = await profile(admin, user.id)
-        if (result.created) notifyInvitationAccepted(admin, invitation.host_id, result.match.id, guest?.displayName ?? 'Votre ami')
+        if (result.created) notifyInvitationAccepted(admin, invitation.host_id, result.match.id, guest?.displayName ?? 'Ton ami')
       } else if (result.status !== 'declined') {
         if (result.status === 'forbidden') return json(409, { error: 'Cette invitation ne peut plus être acceptée.' })
         if (result.status === 'invalid') throw new Error('Données de partie invalides.')
@@ -419,7 +419,7 @@ Deno.serve(async request => {
       const [left, right] = [user.id, targetId].sort()
       if (await playersBlocked(admin, user.id, targetId)) return json(409, { error: 'Cette invitation ne peut pas être envoyée.' })
       const { data: friendship } = await admin.from('friendships').select('left_user_id').eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
-      if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans vos amis.' })
+      if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans tes amis.' })
       // L'ami m'a déjà invité au même rythme : l'inviter à mon tour, c'est
       // accepter. Une seule partie pour les deux (voir matchInvitations.ts).
       const dejaInvite = await invitationCroisee(admin, user.id, targetId, pace)
@@ -575,7 +575,7 @@ Deno.serve(async request => {
       row = await persist(admin, row); await awardFinished(admin, row)
       return json(200, { match: await view(admin, row, user.id, grid) })
     }
-    if (row.current_player_id !== user.id) return json(409, { error: 'Ce n’est pas votre tour.', match: await view(admin, row, user.id, grid) })
+    if (row.current_player_id !== user.id) return json(409, { error: 'Ce n’est pas ton tour.', match: await view(admin, row, user.id, grid) })
     if (Date.now() < new Date(row.turn_started_at).getTime()) return json(409, { error: 'Le tour n’a pas encore commencé.' })
 
     const previousPlayerId = row.current_player_id
@@ -597,7 +597,7 @@ Deno.serve(async request => {
       if (Date.now() >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) timeoutTurn(row)
       else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
-      if (!canUseHint(Boolean(row.state.hintUsed[user.id]))) return json(409, { error: 'Votre indice a déjà été utilisé.' })
+      if (!canUseHint(Boolean(row.state.hintUsed[user.id]))) return json(409, { error: 'Ton indice a déjà été utilisé.' })
       const pendingPlacements = sanitizePlacements(
         row,
         grid,
@@ -635,14 +635,14 @@ Deno.serve(async request => {
     return json(200, action === 'turn' ? { match: await view(admin, row, user.id, grid), result } : { match: await view(admin, row, user.id, grid) })
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
-      return json(429, { error: 'Trop de requêtes. Réessayez dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
+      return json(429, { error: 'Trop de requêtes. Réessaie dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
     }
     if (error instanceof MatchStateConflictError) {
       return matchConflictResponse(admin, error.latest, user.id, undefined, json)
     }
     const reference = logServerError('match-api', error, { action, userId: user.id })
     return json(500, {
-      error: 'La partie n’a pas pu être synchronisée. Réessayez.',
+      error: 'La partie n’a pas pu être synchronisée. Réessaie.',
       code: 'MATCH_SERVICE_UNAVAILABLE',
       reference,
     })

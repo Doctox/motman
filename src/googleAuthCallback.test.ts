@@ -21,7 +21,7 @@ describe('retour de connexion Google', () => {
     expect(parseGoogleAuthIssue('?error=access_denied&error_description=private-provider-detail', '#profil'))
       .toEqual({
         kind: 'oauth-error',
-        message: 'La connexion Google n’a pas abouti. Réessayez dans un instant.',
+        message: 'La connexion Google n’a pas abouti. Réessaie dans un instant.',
       })
   })
 

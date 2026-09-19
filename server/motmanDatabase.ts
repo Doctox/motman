@@ -249,7 +249,7 @@ export function authenticatedUser(request: IncomingMessage, touch = true): Datab
 export function requireAuthenticatedUser(request: IncomingMessage, response: ServerResponse, touch = true): DatabaseUser | null {
   const user = authenticatedUser(request, touch)
   if (user) return user
-  sendJson(response, 401, { error: 'Votre session a expiré. Reconnectez-vous.' })
+  sendJson(response, 401, { error: 'Ta session a expiré. Reconnecte-toi.' })
   return null
 }
 

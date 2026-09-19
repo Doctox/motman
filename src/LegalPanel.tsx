@@ -77,7 +77,7 @@ function ContactForm({ identity }: { identity?: GuestIdentity }) {
   }
   return <article className="mm-contact">
     <h3>Nous écrire</h3>
-    <p>Un bug, une idée, une question ou une demande professionnelle ? Votre messagerie s’ouvre avec le message prêt : il ne reste qu’à l’envoyer.</p>
+    <p>Un bug, une idée, une question ou une demande professionnelle ? Ta messagerie s’ouvre avec le message prêt : il ne reste qu’à l’envoyer.</p>
     <div className="mm-contact-sujets" role="radiogroup" aria-label="Sujet du message">
       {CONTACT_SUJETS.map(entree => <label key={entree.id} className={entree.id === sujet ? 'active' : ''}>
         <input type="radio" name="mm-contact-sujet" value={entree.id} checked={entree.id === sujet} onChange={() => setSujet(entree.id)} />
@@ -85,15 +85,15 @@ function ContactForm({ identity }: { identity?: GuestIdentity }) {
       </label>)}
     </div>
     <label className="mm-contact-message">
-      <span>Votre message</span>
+      <span>Ton message</span>
       <textarea rows={6} maxLength={3000} placeholder={choisi.invite} value={message} onChange={event => setMessage(event.target.value)} />
     </label>
-    {joindreTechnique(sujet) ? <p className="mm-contact-note"><Info aria-hidden="true" />La version du jeu et le modèle de votre appareil sont ajoutés au message, pour retrouver le bug plus vite.</p> : null}
+    {joindreTechnique(sujet) ? <p className="mm-contact-note"><Info aria-hidden="true" />La version du jeu et le modèle de ton appareil sont ajoutés au message, pour retrouver le bug plus vite.</p> : null}
     {/* Un `mailto:` ne porte aucun fichier : c'est la messagerie qui s'en charge. */}
-    <p className="mm-contact-note"><Paperclip aria-hidden="true" />Une capture d’écran ou un PDF ? Ajoutez-la en pièce jointe dans l’e-mail qui s’ouvre.</p>
+    <p className="mm-contact-note"><Paperclip aria-hidden="true" />Une capture d’écran ou un PDF ? Ajoute-la en pièce jointe dans l’e-mail qui s’ouvre.</p>
     {pret
       ? <a className="mm-contact-envoyer" href={contactMailto(sujet, message, technique)}><Send aria-hidden="true" />Préparer l’e-mail</a>
       : <button className="mm-contact-envoyer" type="button" disabled><Send aria-hidden="true" />Préparer l’e-mail</button>}
-    <p className="mm-contact-direct">Ou écrivez directement à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
+    <p className="mm-contact-direct">Ou écris directement à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
   </article>
 }

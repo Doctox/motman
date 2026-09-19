@@ -27,12 +27,12 @@ export function InstallAppRow({ invite, openAccount }: { invite: boolean; openAc
     {etapes ? <div className="mm-install-steps">
       {invite ? <p className="mm-install-warning" role="note">
         <TriangleAlert aria-hidden="true" />
-        <span>Vous jouez en invité : sur iPhone et iPad, l’appli installée repart de zéro. <button type="button" onClick={openAccount}>Connectez d’abord votre compte</button> pour garder votre progression.</span>
+        <span>Tu joues en invité : sur iPhone et iPad, l’appli installée repart de zéro. <button type="button" onClick={openAccount}>Connecte d’abord ton compte</button> pour garder ta progression.</span>
       </p> : null}
       <ol>
-        <li><Share aria-hidden="true" /><span>Touchez le bouton <strong>Partager</strong> du navigateur</span></li>
-        <li><SquarePlus aria-hidden="true" /><span>Choisissez <strong>Sur l’écran d’accueil</strong></span></li>
-        <li><img className="mm-install-icon" src={assetUrl('/assets/icons/apple-touch-icon.png')} alt="" /><span>Touchez <strong>Ajouter</strong> : l’icône MotMan apparaît</span></li>
+        <li><Share aria-hidden="true" /><span>Touche le bouton <strong>Partager</strong> du navigateur</span></li>
+        <li><SquarePlus aria-hidden="true" /><span>Choisis <strong>Sur l’écran d’accueil</strong></span></li>
+        <li><img className="mm-install-icon" src={assetUrl('/assets/icons/apple-touch-icon.png')} alt="" /><span>Touche <strong>Ajouter</strong> : l’icône MotMan apparaît</span></li>
       </ol>
     </div> : null}
   </div>

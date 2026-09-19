@@ -67,8 +67,8 @@ function RankedReadyDialog({
       </div>
       <small>Partie classée · 45 s par tour</small>
       <h2 id="ranked-ready-title">Adversaire trouvé !</h2>
-      <p><strong>{ready.opponent?.displayName ?? 'Votre adversaire'}</strong> est prêt à rejoindre l’arène.</p>
-      {ready.pausedMatchId ? <p className="ranked-ready-pause-note">Votre partie normale est mise en pause. Elle reprendra intacte si le match classé ne démarre pas.</p> : null}
+      <p><strong>{ready.opponent?.displayName ?? 'Ton adversaire'}</strong> est prêt à rejoindre l’arène.</p>
+      {ready.pausedMatchId ? <p className="ranked-ready-pause-note">Ta partie normale est mise en pause. Elle reprendra intacte si le match classé ne démarre pas.</p> : null}
       {/* Le serveur ne met en pause que les parties normales en temps limité
           entre humains. Pour le solo, le défi du jour et les parties entre amis
           en temps limité, rejoindre l'arène signifie perdre la partie en cours.
@@ -78,7 +78,7 @@ function RankedReadyDialog({
           quelques minutes, et elle attend tranquillement le retour du joueur.
           L'avertir serait lui mentir — et l'inquiéter pour rien. */}
       {!ready.pausedMatchId && currentMatchId && currentMatchPace === 'realtime' ? <p className="ranked-ready-loss-note" role="alert">
-        Attention : votre partie en cours sera perdue si vous rejoignez. Elle compte comme un abandon — aucune plume, aucune expérience.
+        Attention : ta partie en cours sera perdue si tu rejoins. Elle compte comme un abandon — aucune plume, aucune expérience.
       </p> : null}
       {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde. */}
       <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`}><Clock3 /><b>{seconds}</b><span>secondes</span></div>

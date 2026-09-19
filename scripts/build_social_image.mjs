@@ -61,7 +61,7 @@ p{margin:22px 0 0;font-size:30px;line-height:1.3;color:#24594f;max-width:520px}
     <div class="puces"><span>Gratuit</span><span>Défi du jour</span><span>Entre amis</span></div>
   </div>
   <div class="jeu">
-    <div class="scores"><span class="vous">Vous · 12</span><span class="adv">Adversaire · 9</span></div>
+    <div class="scores"><span class="vous">Toi · 12</span><span class="adv">Adversaire · 9</span></div>
     <div class="grille">${grille}</div>
   </div>
   <div class="adresse">doctox.fr/motman</div>

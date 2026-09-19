@@ -12,7 +12,7 @@ export function GameResultScreen({
   detail,
   playerScore,
   opponentScore,
-  playerName = 'Vous',
+  playerName = 'Toi',
   opponentName,
   award,
   children,

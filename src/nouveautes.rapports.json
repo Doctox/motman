@@ -2,7 +2,7 @@
   {
     "ajoute": "2026-09-17T17:40",
     "titre": "Un affichage net avec une grande police",
-    "texte": "Si votre téléphone agrandit le texte, MotMan garde désormais sa mise en page : lettres, chrono et boutons restent à leur place.",
+    "texte": "Si ton téléphone agrandit le texte, MotMan garde désormais sa mise en page : lettres, chrono et boutons restent à leur place.",
     "genre": "affichage"
   },
   {
@@ -14,7 +14,7 @@
   {
     "ajoute": "2026-09-18T09:05",
     "titre": "32 nouvelles grilles",
-    "texte": "Les parties normales passent de 79 à 111 grilles : vous tomberez beaucoup moins souvent deux fois sur la même.",
+    "texte": "Les parties normales passent de 79 à 111 grilles : tu tomberas beaucoup moins souvent deux fois sur la même.",
     "genre": "grilles"
   },
   {
@@ -26,37 +26,37 @@
   {
     "ajoute": "2026-09-18T15:34",
     "titre": "50 nouvelles grilles",
-    "texte": "Les parties normales en comptent désormais 161 : vous retomberez moins souvent sur la même.",
+    "texte": "Les parties normales en comptent désormais 161 : tu retomberas moins souvent sur la même.",
     "genre": "grilles"
   },
   {
     "ajoute": "2026-09-18T18:56",
     "titre": "26 nouvelles grilles",
-    "texte": "Les parties normales en comptent désormais 187 : vous retomberez moins souvent sur la même.",
+    "texte": "Les parties normales en comptent désormais 187 : tu retomberas moins souvent sur la même.",
     "genre": "grilles"
   },
   {
     "ajoute": "2026-09-18T21:36",
     "titre": "Jouer avec ses amis, plus simple",
-    "texte": "Touchez un ami sur l’accueil pour l’inviter. Deux amis qui s’invitent en même temps se retrouvent dans la même partie, et une invitation reste sur la ligne de l’ami.",
+    "texte": "Touche un ami sur l’accueil pour l’inviter. Deux amis qui s’invitent en même temps se retrouvent dans la même partie, et une invitation reste sur la ligne de l’ami.",
     "genre": "jeu"
   },
   {
     "ajoute": "2026-09-18T21:36",
     "titre": "Des définitions toujours lisibles",
-    "texte": "Une définition trop longue pour sa case se termine par « … » au lieu d’être coupée en haut. Touchez la case pour la lire en entier.",
+    "texte": "Une définition trop longue pour sa case se termine par « … » au lieu d’être coupée en haut. Touche la case pour la lire en entier.",
     "genre": "affichage"
   },
   {
     "ajoute": "2026-09-18T21:36",
-    "titre": "Vos gains sans attendre",
+    "titre": "Tes gains sans attendre",
     "texte": "À la fin d’une partie, l’expérience et les plumes gagnées s’affichent aussitôt, et un ami qui quitte sa partie n’apparaît plus « En jeu ».",
     "genre": "jeu"
   },
   {
     "ajoute": "2026-09-18T22:20",
     "titre": "Joueur absent : nouvelle règle",
-    "texte": "En temps limité, après un tour manqué, vous avez 30 s pour répondre « Je suis là ». En temps illimité, 24 h sans jouer et la partie est perdue par abandon.",
+    "texte": "En temps limité, après un tour manqué, tu as 30 s pour répondre « Je suis là ». En temps illimité, 24 h sans jouer et la partie est perdue par abandon.",
     "genre": "jeu"
   },
   {
@@ -68,7 +68,7 @@
   {
     "ajoute": "2026-09-19T12:28",
     "titre": "Nous écrire",
-    "texte": "Un bug, une idée, une question ? Menu → Informations → Contact : choisissez le sujet, écrivez, et votre messagerie s’ouvre avec le message prêt à partir.",
+    "texte": "Un bug, une idée, une question ? Menu → Informations → Contact : choisis le sujet, écris, et ta messagerie s’ouvre avec le message prêt à partir.",
     "genre": "jeu"
   },
   {
@@ -80,13 +80,13 @@
   {
     "ajoute": "2026-09-19T12:51",
     "titre": "Défi du jour : ouvert, il compte",
-    "texte": "Gagné, perdu ou abandonné, le défi du jour fait avancer votre série dès que vous l’ouvrez. Attention : abandonné, il ne se retente plus avant le lendemain.",
+    "texte": "Gagné, perdu ou abandonné, le défi du jour fait avancer ta série dès que tu l’ouvres. Attention : abandonné, il ne se retente plus avant le lendemain.",
     "genre": "jeu"
   },
   {
     "ajoute": "2026-09-19T13:23",
     "titre": "Un partage sans « bot »",
-    "texte": "Le message de partage du défi du jour dit votre score et votre rang, sans parler de l’adversaire : « Défi du jour « Jardin » : 60 points 💪 ».",
+    "texte": "Le message de partage du défi du jour dit ton score et ton rang, sans parler de l’adversaire : « Défi du jour « Jardin » : 60 points 💪 ».",
     "genre": "affichage"
   },
   {

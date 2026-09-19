@@ -47,7 +47,7 @@ export function QuestsChip() {
       type="button"
       className={`mm-quests-chip ${recompensePrete ? 'is-ready' : ''}`}
       aria-haspopup="dialog"
-      aria-label={recompensePrete ? 'Quêtes, une récompense vous attend' : 'Quêtes'}
+      aria-label={recompensePrete ? 'Quêtes, une récompense t’attend' : 'Quêtes'}
       onClick={() => setOuvert(true)}
     >
       <ListChecks aria-hidden="true" />
@@ -170,7 +170,7 @@ function QuestsPanel({ close }: { close: () => void }) {
               recuperer={() => void recuperer(board.week, 'week')}
             />
           </ul>
-        </> : <p className="mm-quests-attente">Vos quêtes arrivent…</p>}
+        </> : <p className="mm-quests-attente">Tes quêtes arrivent…</p>}
 
         {erreur ? <p className="mm-quests-erreur" role="alert">{erreur}</p> : null}
       </section>

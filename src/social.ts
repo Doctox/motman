@@ -30,7 +30,7 @@ async function localSocial<T>(path: string, body?: Record<string, unknown>): Pro
 type SocialAction = 'request' | 'respond' | 'cancel' | 'remove' | 'block' | 'unblock'
 
 async function supabaseSocial<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
-  if (!await hasSupabaseSession()) throw new Error('Votre session MotMan a expiré. Reconnectez-vous.')
+  if (!await hasSupabaseSession()) throw new Error('Ta session MotMan a expiré. Reconnecte-toi.')
   return invokeSupabaseFunction<T>('social-api', { action, ...body })
 }
 

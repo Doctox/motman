@@ -255,7 +255,7 @@ export function MenuApp({
   useEffect(() => subscribePasswordRecovery(() => {
     if (!consumePasswordRecovery()) return
     setAccountOpen(true)
-    notify('Choisissez maintenant votre nouveau mot de passe')
+    notify('Choisis maintenant ton nouveau mot de passe')
   }), [notify])
 
   // L'onglet où ouvrir Jouer, quand l'écran d'origine en demande un (un ami
@@ -297,7 +297,7 @@ export function MenuApp({
       const raw = reason instanceof Error ? reason.message : ''
       notify(/session/i.test(raw)
         ? raw
-        : 'Le défi du jour n’est pas disponible pour le moment. Réessayez plus tard.')
+        : 'Le défi du jour n’est pas disponible pour le moment. Réessaie plus tard.')
     } finally {
       dailyStarting.current = false
     }
@@ -339,7 +339,7 @@ export function MenuApp({
         onStartMatch(dejaCommencee.id)
         return
       }
-      if (pace === 'async') notify('Invitation envoyée · Vous pouvez continuer')
+      if (pace === 'async') notify('Invitation envoyée · Tu peux continuer')
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Invitation impossible')
     }

@@ -58,7 +58,7 @@ export function initializeNativePushNotifications(): Promise<void> {
     if (Capacitor.getPlatform() === 'android') {
       await PushNotifications.createChannel({
         id: 'motman_turns', name: 'Tours et invitations',
-        description: 'Prévient lorsqu’un duel MotMan demande votre attention.',
+        description: 'Prévient lorsqu’un duel MotMan demande ton attention.',
         importance: 4, visibility: 1, vibration: true, lights: true, lightColor: '#0B5A49',
       })
     }

@@ -134,7 +134,7 @@ export async function bootstrapPlayerSession(): Promise<GuestIdentity> {
   if (!sessionData.session) {
     const captchaToken = await getAnonymousCaptchaToken()
     const { data, error } = await supabase.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined)
-    if (error || !data.session) throw new Error(messageAuth(error, 'Création de la session MotMan impossible. Réessayez.'))
+    if (error || !data.session) throw new Error(messageAuth(error, 'Création de la session MotMan impossible. Réessaie.'))
     sessionData = { session: data.session }
   }
   const response = await accountAction('bootstrap', { identity: legacyIdentity })
@@ -170,14 +170,14 @@ export async function createPlayerAccount(email: string): Promise<AuthResponse> 
     ? NATIVE_AUTH_REDIRECT
     : `${location.origin}${location.pathname}#profil`
   const { error } = await supabase.auth.updateUser({ email: email.trim() }, { emailRedirectTo })
-  if (error) throw new Error(messageAuth(error, 'Création du compte impossible. Réessayez.'))
+  if (error) throw new Error(messageAuth(error, 'Création du compte impossible. Réessaie.'))
   const state = await accountAction('state')
   return { ...state, emailConfirmationRequired: true }
 }
 
 export async function finishPlayerAccount(password: string): Promise<AuthResponse> {
   const { error } = await supabase.auth.updateUser({ password })
-  if (error) throw new Error(messageAuth(error, 'Mot de passe non enregistré. Réessayez.'))
+  if (error) throw new Error(messageAuth(error, 'Mot de passe non enregistré. Réessaie.'))
   return accountAction('state')
 }
 
@@ -203,7 +203,7 @@ export async function loginPlayerAccount(email: string, password: string): Promi
 
 export async function authenticateWithGoogle(mode: 'link' | 'sign-in' = 'link'): Promise<void> {
   if (!supabaseConfigured) {
-    throw new Error('Connexion Google indisponible. Redémarrez MotMan puis réessayez.')
+    throw new Error('Connexion Google indisponible. Redémarre MotMan puis réessaie.')
   }
   const native = isNativeRuntime()
   const redirectTo = native ? NATIVE_AUTH_REDIRECT : `${location.origin}${location.pathname}#profil`
@@ -213,7 +213,7 @@ export async function authenticateWithGoogle(mode: 'link' | 'sign-in' = 'link'):
   const { data, error } = shouldLink
     ? await supabase.auth.linkIdentity({ provider: 'google', options })
     : await supabase.auth.signInWithOAuth({ provider: 'google', options })
-  if (error) throw new Error(messageAuth(error, 'Connexion Google impossible. Réessayez.'))
+  if (error) throw new Error(messageAuth(error, 'Connexion Google impossible. Réessaie.'))
   if (data?.url) {
     if (native) await openNativeAuthentication(data.url)
     else location.assign(data.url)
@@ -225,7 +225,7 @@ export async function recoverPlayerAccount(email: string): Promise<void> {
     ? NATIVE_AUTH_REDIRECT
     : `${location.origin}${location.pathname}#profil`
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
-  if (error) throw new Error(messageAuth(error, 'Envoi du lien impossible. Réessayez.'))
+  if (error) throw new Error(messageAuth(error, 'Envoi du lien impossible. Réessaie.'))
 }
 
 export async function logoutPlayerAccount(): Promise<GuestIdentity> {
@@ -239,7 +239,7 @@ export async function logoutPlayerAccount(): Promise<GuestIdentity> {
   const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
   if (signOutError) {
     if (isNativeRuntime()) void import('./nativePushNotifications').then(module => module.syncStoredPushDevice()).catch(() => undefined)
-    throw new Error(messageAuth(signOutError, 'Déconnexion impossible. Vérifiez votre connexion, puis réessayez.'))
+    throw new Error(messageAuth(signOutError, 'Déconnexion impossible. Vérifie ta connexion, puis réessaie.'))
   }
   clearPlayerDataFromDevice()
   const identity = await bootstrapPlayerSession()
@@ -250,7 +250,7 @@ export async function logoutPlayerAccount(): Promise<GuestIdentity> {
 }
 
 export async function deletePlayerAccount(confirmation: string): Promise<AuthResponse> {
-  if (confirmation !== 'SUPPRIMER') throw new Error('Écrivez SUPPRIMER pour confirmer.')
+  if (confirmation !== 'SUPPRIMER') throw new Error('Écris SUPPRIMER pour confirmer.')
 
   if (isNativeRuntime()) {
     await import('./nativePushNotifications').then(module => module.detachStoredPushDevice()).catch(() => undefined)

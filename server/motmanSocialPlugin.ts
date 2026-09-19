@@ -200,11 +200,11 @@ async function handleSocialRequest(request: IncomingMessage, response: ServerRes
       ? database.prepare('SELECT * FROM users WHERE id = ?').get(targetId)
       : database.prepare('SELECT * FROM users WHERE friend_code = ?').get(friendCode)) as DatabaseUser | undefined
     if (!target) return sendJson(response, 404, { error: targetId ? 'Joueur introuvable.' : 'Code ami inconnu.' })
-    if (target.id === playerId) return sendJson(response, 400, { error: 'Vous ne pouvez pas vous ajouter vous-même.' })
+    if (target.id === playerId) return sendJson(response, 400, { error: 'Tu ne peux pas t’ajouter toi-même.' })
     if (isBlocked(playerId, target.id)) return sendJson(response, 409, { error: 'Cette demande ne peut pas être envoyée.' })
     const [left, right] = orderedPair(playerId, target.id)
     if (database.prepare('SELECT 1 FROM friendships WHERE left_user_id=? AND right_user_id=?').get(left, right))
-      return sendJson(response, 409, { error: 'Ce joueur est déjà dans vos amis.' })
+      return sendJson(response, 409, { error: 'Ce joueur est déjà dans tes amis.' })
     const reverse = database.prepare('SELECT id FROM friend_requests WHERE from_user_id=? AND to_user_id=?').get(target.id, playerId) as { id: string } | undefined
     if (reverse) database.transaction(() => {
       database.prepare('DELETE FROM friend_requests WHERE id=?').run(reverse.id)
@@ -245,7 +245,7 @@ async function handleSocialRequest(request: IncomingMessage, response: ServerRes
     const reason = typeof body.reason === 'string' && allowedReasons.includes(body.reason) ? body.reason : 'autre'
     const details = typeof body.details === 'string' ? body.details.trim().slice(0, 500) : ''
     const matchId = typeof body.matchId === 'string' ? body.matchId.slice(0, 80) : null
-    if (targetId === playerId) return sendJson(response, 400, { error: 'Vous ne pouvez pas vous signaler vous-même.' })
+    if (targetId === playerId) return sendJson(response, 400, { error: 'Tu ne peux pas te signaler toi-même.' })
     database.prepare('INSERT INTO reports(id,reporter_id,reported_id,reason,details,match_id,created_at) VALUES(?,?,?,?,?,?,?)')
       .run(randomUUID(), playerId, targetId, reason, details, matchId, nowIso())
   } else return sendJson(response, 404, { error: 'Action inconnue.' })

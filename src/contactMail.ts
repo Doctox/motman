@@ -22,10 +22,10 @@ export const CONTACT_EMAIL = 'contact@doctox.fr'
 export type ContactSujet = 'bug' | 'suggestion' | 'demande' | 'pro'
 
 export const CONTACT_SUJETS: ReadonlyArray<{ id: ContactSujet; libelle: string; objet: string; invite: string }> = [
-  { id: 'bug', libelle: 'Un bug', objet: 'Bug', invite: 'Ce qui s’est passé, et ce que vous faisiez juste avant : écran, mode de jeu, heure…' },
-  { id: 'suggestion', libelle: 'Une idée', objet: 'Suggestion', invite: 'Votre idée pour MotMan…' },
-  { id: 'demande', libelle: 'Une question', objet: 'Question', invite: 'Votre question ou votre demande…' },
-  { id: 'pro', libelle: 'Demande pro', objet: 'Demande commerciale', invite: 'Présentez-vous et votre projet : partenariat, grilles sur mesure, presse…' },
+  { id: 'bug', libelle: 'Un bug', objet: 'Bug', invite: 'Ce qui s’est passé, et ce que tu faisais juste avant : écran, mode de jeu, heure…' },
+  { id: 'suggestion', libelle: 'Une idée', objet: 'Suggestion', invite: 'Ton idée pour MotMan…' },
+  { id: 'demande', libelle: 'Une question', objet: 'Question', invite: 'Ta question ou ta demande…' },
+  { id: 'pro', libelle: 'Demande pro', objet: 'Demande commerciale', invite: 'Présente-toi et ton projet : partenariat, grilles sur mesure, presse…' },
 ]
 
 export type ContactTechnique = {

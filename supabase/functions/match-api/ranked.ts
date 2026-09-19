@@ -214,13 +214,13 @@ export async function advanceRankedSearch(
         admin,
         userId,
         committed.readySessionId,
-        players.get(discovery.opponentId)?.displayName ?? 'Votre adversaire',
+        players.get(discovery.opponentId)?.displayName ?? 'Ton adversaire',
       )
       notifyRankedReady(
         admin,
         discovery.opponentId,
         committed.readySessionId,
-        players.get(userId)?.displayName ?? 'Votre adversaire',
+        players.get(userId)?.displayName ?? 'Ton adversaire',
       )
       return { ...committed, match: resolved.row }
     }

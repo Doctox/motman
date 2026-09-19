@@ -94,7 +94,7 @@ describe('ajouter l’adversaire en ami', () => {
   it('ne le propose pas à quelqu’un qui est déjà un ami', async () => {
     await ouvrir({ friends: [{ ...moi, since: '' }] })
     expect(bouton()).toBeUndefined()
-    expect(hote.textContent).not.toContain('déjà dans vos amis')
+    expect(hote.textContent).not.toMatch(/déjà dans (?:tes|vos) amis/)
   })
 
   it('dit « demande envoyée » si elle est déjà partie', async () => {

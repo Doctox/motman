@@ -80,7 +80,7 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
           <p className="mm-replay-legende">
             {cases.length === 0
               ? 'Le plateau de cette partie n’a pas été conservé.'
-              : <><b>{posees}</b> lettre{posees > 1 ? 's' : ''} de vous · <b>{cases.length - posees}</b> de {adversaire}. Les cases vides n’ont jamais été remplies.</>}
+              : <><b>{posees}</b> lettre{posees > 1 ? 's' : ''} de toi · <b>{cases.length - posees}</b> de {adversaire}. Les cases vides n’ont jamais été remplies.</>}
           </p>
         </>}
     </section>

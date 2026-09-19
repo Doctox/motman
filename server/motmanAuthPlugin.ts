@@ -221,7 +221,7 @@ function createGuest(legacyId: string, displayName: string): DatabaseUser {
 function currentUser(request: IncomingMessage, response: ServerResponse): DatabaseUser | null {
   const user = authenticatedUser(request)
   if (user) return user
-  sendJson(response, 401, { error: 'Votre session a expiré.' })
+  sendJson(response, 401, { error: 'Ta session a expiré.' })
   return null
 }
 
@@ -254,7 +254,7 @@ async function handleAuthRequest(request: IncomingMessage, response: ServerRespo
     const name = validatePlayerName(typeof legacy.displayName === 'string' ? legacy.displayName : '')
     const displayName = name.valid ? name.normalized : `Invité ${Math.floor(1000 + Math.random() * 9000)}`
     let user = database.prepare('SELECT * FROM users WHERE id = ?').get(legacyId) as DatabaseUser | undefined
-    if (user?.account_type === 'account') return sendJson(response, 401, { error: 'Ce profil est protégé. Connectez-vous avec son mot de passe.' })
+    if (user?.account_type === 'account') return sendJson(response, 401, { error: 'Ce profil est protégé. Connecte-toi avec son mot de passe.' })
     if (!user) user = createGuest(legacyId, displayName)
     importLegacyState(user.id, body.progress, body.cosmetics)
     user = database.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as DatabaseUser

@@ -20,8 +20,8 @@ export function notifyCurrentTurn(admin: AdminClient, row: MatchRow): void {
   const tourPasse = row.state.lastTurn?.kind === 'timeout'
   if (tourPasse && inQuietHours(Date.now())) return
   queuePush(sendPushToUser(admin, row.current_player_id, {
-    title: 'C’est à vous',
-    body: tourPasse ? 'Votre adversaire n’a pas joué à temps. À vous de compléter la grille.' : 'Votre adversaire a joué. À vous de compléter la grille.',
+    title: 'C’est à toi',
+    body: tourPasse ? 'Ton adversaire n’a pas joué à temps. À toi de compléter la grille.' : 'Ton adversaire a joué. À toi de compléter la grille.',
     data: { type: 'match_turn', matchId: row.id },
     tag: `match-${row.id}`,
   }))
@@ -36,7 +36,7 @@ export function notifyFriendInvitation(
 ): void {
   queuePush(sendPushToUser(admin, guestId, {
     title: `Invitation de ${inviterName}`,
-    body: pace === 'async' ? 'Vous propose une partie en temps illimité.' : 'Vous propose une partie en temps limité.',
+    body: pace === 'async' ? 'Te propose une partie en temps illimité.' : 'Te propose une partie en temps limité.',
     data: { type: 'friend_invitation', invitationId },
     tag: `invitation-${invitationId}`,
   }))
@@ -50,7 +50,7 @@ export function notifyInvitationAccepted(
 ): void {
   queuePush(sendPushToUser(admin, hostId, {
     title: 'Invitation acceptée',
-    body: `${guestName} a accepté votre invitation. C’est à vous de jouer.`,
+    body: `${guestName} a accepté ton invitation. C’est à toi de jouer.`,
     data: { type: 'invitation_accepted', matchId },
     tag: `match-${matchId}`,
   }))
@@ -64,7 +64,7 @@ export function notifyRankedReady(
 ): void {
   queuePush(sendPushToUser(admin, playerId, {
     title: 'Match classé trouvé',
-    body: `${opponentName} vous attend. Vous avez 30 secondes pour accepter.`,
+    body: `${opponentName} t’attend. Tu as 30 secondes pour accepter.`,
     data: { type: 'ranked_ready', readySessionId },
     tag: `ranked-ready-${readySessionId}`,
   }))

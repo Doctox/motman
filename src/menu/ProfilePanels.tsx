@@ -49,7 +49,7 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
     <div className="mm-segmented" role="group" aria-label="Type de classement"><button type="button" className={tab === 'general' ? 'active' : ''} aria-pressed={tab === 'general'} onClick={() => setTab('general')}>Général</button><button type="button" className={tab === 'friends' ? 'active' : ''} aria-pressed={tab === 'friends'} onClick={() => setTab('friends')}>Amis</button></div>
     <section className="mm-leaderboard">
       {!entries.length && tab === 'general' && progress.rankedMatches >= 5 ? <div className="mm-ranking-row you">
-        <span className="mm-position">—</span><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="" small /><strong>{identity.displayName}<small>Vous</small></strong><b>{progress.rankedPoints} <small>pt</small></b>
+        <span className="mm-position">—</span><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="" small /><strong>{identity.displayName}<small>Toi</small></strong><b>{progress.rankedPoints} <small>pt</small></b>
       </div> : null}
       {entries.map(entry => {
         const division = rankedDivision(entry.points, entry.matches)
@@ -57,11 +57,11 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
         return <div className={`mm-ranking-row ${mine ? 'you' : ''}`} key={entry.user.playerId}>
           <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
           <SocialPortrait user={entry.user} small />
-          <strong>{entry.user.displayName}<small>{mine ? 'Vous' : `${entry.wins} victoire${entry.wins > 1 ? 's' : ''}`}</small></strong>
+          <strong>{entry.user.displayName}<small>{mine ? 'Toi' : `${entry.wins} victoire${entry.wins > 1 ? 's' : ''}`}</small></strong>
           <span className="mm-ranking-rank"><img src={rankImage(division)} alt="" /><b>{entry.points} <small>pt</small></b></span>
         </div>
       })}
-      {!entries.length ? <div className="mm-empty-ranking"><Trophy /><strong>{loading ? 'Chargement du classement…' : tab === 'general' ? progress.rankedMatches < 5 ? 'Placements en cours' : 'Aucun joueur classé' : 'Aucun ami classé'}</strong><span>{loading ? 'Les meilleurs joueurs arrivent.' : tab === 'general' ? progress.rankedMatches < 5 ? `Encore ${5 - progress.rankedMatches} partie${5 - progress.rankedMatches > 1 ? 's' : ''} de placement.` : 'Soyez le premier à terminer vos cinq placements.' : 'Vos amis apparaîtront ici après leurs placements.'}</span></div> : null}
+      {!entries.length ? <div className="mm-empty-ranking"><Trophy /><strong>{loading ? 'Chargement du classement…' : tab === 'general' ? progress.rankedMatches < 5 ? 'Placements en cours' : 'Aucun joueur classé' : 'Aucun ami classé'}</strong><span>{loading ? 'Les meilleurs joueurs arrivent.' : tab === 'general' ? progress.rankedMatches < 5 ? `Encore ${5 - progress.rankedMatches} partie${5 - progress.rankedMatches > 1 ? 's' : ''} de placement.` : 'Sois le premier à terminer tes cinq placements.' : 'Tes amis apparaîtront ici après leurs placements.'}</span></div> : null}
     </section>
     </>}
   </div>
@@ -107,13 +107,13 @@ function PlayerStatsPanel() {
   if (chargement) return null
   if (stats.played === 0) {
     return <section className="mm-player-stats is-empty">
-      <h2><Gamepad2 aria-hidden="true" />Vos parties</h2>
-      <p>Vos statistiques apparaîtront après votre première partie terminée.</p>
+      <h2><Gamepad2 aria-hidden="true" />Tes parties</h2>
+      <p>Tes statistiques apparaîtront après ta première partie terminée.</p>
     </section>
   }
 
-  return <section className="mm-player-stats" aria-label="Vos statistiques de jeu">
-    <h2><Gamepad2 aria-hidden="true" />Vos parties</h2>
+  return <section className="mm-player-stats" aria-label="Tes statistiques de jeu">
+    <h2><Gamepad2 aria-hidden="true" />Tes parties</h2>
     <dl>
       <div><dt>Jouées</dt><dd>{frenchNumber.format(stats.played)}</dd></div>
       <div><dt>Victoires</dt><dd>{frenchNumber.format(stats.wins)}</dd></div>
@@ -128,17 +128,17 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openAccount }
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
   const equippedTitle = progress.titles.find(title => title.id === progress.equippedTitleId)
   return <div className="mm-page mm-profile-page">
-    <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Votre avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
+    <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{progress.level >= MAX_PLAYER_LEVEL ? 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{progress.level >= MAX_PLAYER_LEVEL ? <strong>Niveau maximum atteint</strong> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
     <PlayerStatsPanel />
     {/* La bourse, et plus l'entrée de l'Épicerie : celle-ci a son onglet depuis
         qu'elle est dans la barre du bas. Le solde reste ici parce qu'il n'a rien
         d'une navigation — c'est ce que le joueur possède, à sa place sur son
         profil, et il ne se lit nulle part ailleurs hors de la boutique. */}
-    <section className="mm-purse" aria-label={`Votre bourse : ${cosmetics.plumes} plumes`}>
+    <section className="mm-purse" aria-label={`Ta bourse : ${cosmetics.plumes} plumes`}>
       <span className="mm-purse-icon" aria-hidden="true"><Feather /></span>
       <span className="mm-purse-copy">
-        <small>Votre bourse</small>
+        <small>Ta bourse</small>
         <strong>{frenchNumber.format(cosmetics.plumes)} plume{cosmetics.plumes > 1 ? 's' : ''}</strong>
       </span>
     </section>
@@ -170,8 +170,8 @@ export function EditGuestPanel({ identity, progress, cosmetics, close, save }: {
       setBusy(true); setError(null)
       void save(normalized, avatarId, frameId, animationId, titleId).catch(reason => setError(reason instanceof Error ? reason.message : 'Enregistrement impossible.')).finally(() => setBusy(false))
     }}>
-      <header><div><small>Votre identité</small><h2>Modifier le profil</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
-      <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de votre avatar" /><span><strong>{normalized || 'Votre pseudo'}</strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `Code ami ${friendCodeOf(identity)}`}</small></span></div>
+      <header><div><small>Ton identité</small><h2>Modifier le profil</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
+      <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de ton avatar" /><span><strong>{normalized || 'Ton pseudo'}</strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `Code ami ${friendCodeOf(identity)}`}</small></span></div>
       <div className="mm-profile-editor-scroll">
       <label htmlFor="guest-display-name">Pseudo</label>
       <input id="guest-display-name" value={displayName} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" aria-invalid={!nameValidation.valid} aria-describedby="guest-display-name-help" onChange={event => setDisplayName(event.target.value)} />

@@ -64,7 +64,7 @@ export function ReportPlayerOverlay({ playerName, close, submit }: {
       <label htmlFor="game-report-reason">Motif</label>
       <select id="game-report-reason" value={reason} onChange={event => setReason(event.target.value as typeof reason)}><option value="pseudo">Pseudo inapproprié</option><option value="comportement">Comportement</option><option value="triche">Triche</option><option value="harcelement">Harcèlement</option><option value="autre">Autre</option></select>
       <label htmlFor="game-report-details">Précisions facultatives</label>
-      <textarea id="game-report-details" maxLength={500} value={details} onChange={event => setDetails(event.target.value)} placeholder="Décrivez brièvement le problème." />
+      <textarea id="game-report-details" maxLength={500} value={details} onChange={event => setDetails(event.target.value)} placeholder="Décris brièvement le problème." />
       {error ? <p className="mm-account-error" role="alert">{error}</p> : null}
       <button className="mm-save-guest" type="submit" disabled={busy}>{busy ? 'Envoi…' : 'Envoyer le signalement'}</button>
     </form>

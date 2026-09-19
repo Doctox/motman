@@ -112,7 +112,7 @@ Deno.test('plusieurs parties en attente : une seule notification, sur la plus pr
   const plan = planReminders([tot, tard], new Map(), maintenant)
   egal(plan.claims.length, 2, 'les deux parties sont notées')
   const message = reminderMessage(plan.byPlayer.get(MOI)!, new Map([[CAMILLE, 'Camille'], [LEO, 'Léo']]), maintenant)
-  egal(message.title, '2 parties attendent votre coup', 'titre groupé')
+  egal(message.title, '2 parties attendent ton coup', 'titre groupé')
   egal(message.body, 'La plus pressée, contre Léo, se termine dans 12 h.', 'la partie de Léo finit la première')
   egal(message.data, { type: 'match_reminder' }, 'ouvre l’application sans viser une partie')
 })
@@ -126,16 +126,16 @@ Deno.test('le texte suit l’urgence, et prévient quand la partie est en jeu', 
   const a6h = t(debut) + 6 * HEURE
   // Depuis le 18/09/2026, un tour de 24 h manqué est un abandon : chaque rappel le dit.
   const premier = reminderMessage(item(partie('m1', debut), a6h), noms, a6h)
-  egal([premier.title, premier.body], ['Camille attend votre coup', 'Sans coup d’ici 18 h, vous perdez la partie contre Camille.'], 'à 6 h')
+  egal([premier.title, premier.body], ['Camille attend ton coup', 'Sans coup d’ici 18 h, tu perds la partie contre Camille.'], 'à 6 h')
   egal(premier.data, { type: 'match_turn', matchId: 'm1' }, 'ouvre la partie')
-  egal(premier.tag, 'match-m1', 'remplace la notification « C’est à vous » de la même partie')
+  egal(premier.tag, 'match-m1', 'remplace la notification « C’est à toi » de la même partie')
 
   const a18h = t(debut) + 18 * HEURE
   const dernier = reminderMessage(item(partie('m1', debut), a18h), noms, a18h)
-  egal([dernier.title, dernier.body], ['Plus que 6 h pour jouer', 'Sans coup d’ici 6 h, vous perdez la partie contre Camille.'], 'à 18 h')
+  egal([dernier.title, dernier.body], ['Plus que 6 h pour jouer', 'Sans coup d’ici 6 h, tu perds la partie contre Camille.'], 'à 18 h')
 
   const inconnu = reminderMessage(item(partie('m1', debut), a6h), new Map(), a6h)
-  egal(inconnu.title, 'Votre adversaire attend votre coup', 'pseudo introuvable')
+  egal(inconnu.title, 'Ton adversaire attend ton coup', 'pseudo introuvable')
 
   egal(hoursLeft(new Date(t(debut) + 24 * HEURE).toISOString(), t(debut) + 23.5 * HEURE), 1, 'jamais « 0 h »')
 })

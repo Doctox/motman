@@ -13,7 +13,7 @@ describe('conflits de synchronisation de partie', () => {
   })
 
   it('ne masque pas les autres erreurs métier ou réseau', () => {
-    expect(matchStateFromConflict({ status: 409, payload: { error: 'Ce n’est pas votre tour.' } })).toBeNull()
+    expect(matchStateFromConflict({ status: 409, payload: { error: 'Ce n’est pas ton tour.' } })).toBeNull()
     expect(matchStateFromConflict({ status: 500, payload: { code: MATCH_STATE_CONFLICT_CODE, conflict: true, match: {} } })).toBeNull()
     expect(matchStateFromConflict(new Error('Connexion interrompue'))).toBeNull()
   })

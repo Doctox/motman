@@ -9,7 +9,7 @@ export function RequiredAppUpdateScreen({ update }: { update: RequiredAppUpdate 
       <h1 id="app-update-title">MotMan doit être mis à jour</h1>
       <p>
         Cette version n’est plus compatible avec les parties en ligne.
-        Mettez l’application à jour pour continuer à jouer.
+        Mets l’application à jour pour continuer à jouer.
       </p>
       <a href={update.storeUrl} target="_blank" rel="noreferrer">
         Mettre à jour sur Google Play

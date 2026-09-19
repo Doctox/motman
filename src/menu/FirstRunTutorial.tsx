@@ -43,7 +43,7 @@ function DuelVisual() {
     {cells.map((cell, index) => <span key={`${cell}-${index}`} className={cell === 'clue' ? 'clue' : cell === 'blank' ? '' : 'letter'}>
       {cell === 'clue' ? index === 0 ? 'Duel →' : index === 3 ? 'Victoire ↓' : 'Mot →' : cell === 'blank' ? null : cell}
     </span>)}
-    <i className="player-one">Vous</i><i className="player-two">Adversaire</i>
+    <i className="player-one">Toi</i><i className="player-two">Adversaire</i>
   </div>
 }
 
@@ -51,7 +51,7 @@ function ClueVisual() {
   return <div className="mm-tutorial-clue-visual" aria-hidden="true">
     <span className="clue-card"><BookOpen /><strong>Compagnon fidèle</strong><b>→</b></span>
     <span className="answer-cells"><i>C</i><i>H</i><i>A</i><i>T</i></span>
-    <span className="tap-cue"><MousePointer2 /> Touchez pour agrandir</span>
+    <span className="tap-cue"><MousePointer2 /> Touche pour agrandir</span>
   </div>
 }
 
@@ -110,7 +110,7 @@ function ProfileVisual() {
   return <div className="mm-tutorial-profile" aria-hidden="true">
     <div className="card">
       <span className="portrait"><User /></span>
-      <span className="who"><strong>Votre pseudo</strong><small>Votre titre</small></span>
+      <span className="who"><strong>Ton pseudo</strong><small>Ton titre</small></span>
       <span className="edit"><Pencil />Modifier</span>
     </div>
     <div className="choices">
@@ -128,14 +128,14 @@ function ModesVisual() {
   return <div className="mm-tutorial-modes is-trois" aria-hidden="true">
     <span><Swords /><strong>Normal</strong><small>Adversaire au hasard<br />Pas de classement</small></span>
     <span><Trophy /><strong>Classé</strong><small>Rang proche<br />Points gagnés ou perdus</small></span>
-    <span><Users /><strong>Amis</strong><small>Invitez un contact<br />Pas de classement</small></span>
+    <span><Users /><strong>Amis</strong><small>Invite un contact<br />Pas de classement</small></span>
   </div>
 }
 
 function PaceVisual() {
   return <div className="mm-tutorial-paces" aria-hidden="true">
     <span><Clock3 /><strong>Temps limité</strong><b>45 s par tour</b><small>Une partie rapide. Disponible partout, et obligatoire en Classé.</small></span>
-    <span><Hourglass /><strong>Temps illimité</strong><b>24 h par tour</b><small>Revenez plus tard depuis l’accueil. Disponible en Normal et entre amis.</small></span>
+    <span><Hourglass /><strong>Temps illimité</strong><b>24 h par tour</b><small>Reviens plus tard depuis l’accueil. Disponible en Normal et entre amis.</small></span>
   </div>
 }
 
@@ -143,58 +143,58 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Bienvenue dans MotMan',
     title: 'Le mot fléché devient un duel',
-    description: 'Vous partagez la même grille. Chaque lettre correcte colore une case à votre nom. À la fin, le meilleur score gagne.',
+    description: 'Tu partages la même grille. Chaque lettre correcte colore une case à ton nom. À la fin, le meilleur score gagne.',
     visual: <DuelVisual />,
   },
   {
     eyebrow: 'Lire la grille',
-    title: 'Suivez les flèches',
+    title: 'Suis les flèches',
     description: 'Les cases colorées donnent les définitions. La flèche indique où commence la réponse et dans quelle direction elle se lit.',
     visual: <ClueVisual />,
-    note: <>Touchez une définition pendant la partie pour la lire en grand.</>,
+    note: <>Touche une définition pendant la partie pour la lire en grand.</>,
   },
   {
     eyebrow: 'Jouer un tour',
-    title: 'Posez vos lettres, puis validez',
-    description: 'Touchez une lettre du chevalet puis une case vide, ou faites-la glisser. Si les 5 lettres sont correctes au même tour sans indice, le bonus Chevalet complet ajoute 5 points.',
+    title: 'Pose tes lettres, puis valide',
+    description: 'Touche une lettre du chevalet puis une case vide, ou fais-la glisser. Si les 5 lettres sont correctes au même tour sans indice, le bonus Chevalet complet ajoute 5 points.',
     visual: <RackVisual />,
     note: <><Lightbulb /> L’indice place une lettre correcte, mais ne rapporte aucun point.</>,
   },
   {
     eyebrow: 'Chaque jour',
-    title: 'Le défi du jour et votre série',
-    description: 'Une grille à thème, la même pour tout le monde, renouvelée chaque jour. Jouez-la chaque jour pour faire grimper votre série : toutes les 7 victoires, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
+    title: 'Le défi du jour et ta série',
+    description: 'Une grille à thème, la même pour tout le monde, renouvelée chaque jour. Joue-la chaque jour pour faire grimper ta série : toutes les 7 victoires, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
     visual: <StreakVisual />,
-    note: <><Flame /> Touchez la flamme sur la carte du défi pour voir votre semaine.</>,
+    note: <><Flame /> Touche la flamme sur la carte du défi pour voir ta semaine.</>,
   },
   {
     eyebrow: 'Trois par jour',
     title: 'Les quêtes remplissent la bourse',
     // Les montants viennent de `src/quests.ts` : le tutoriel ne doit jamais
     // promettre autre chose que ce que le serveur verse.
-    description: `Trois quêtes chaque jour, toutes faisables dans une seule partie : ${DAILY_QUEST_PLUMES} plumes et ${DAILY_QUEST_XP} XP chacune. Une quatrième court sur la semaine et offre un gel de série. La récompense ne tombe pas toute seule : ouvrez les Quêtes et touchez Récupérer.`,
+    description: `Trois quêtes chaque jour, toutes faisables dans une seule partie : ${DAILY_QUEST_PLUMES} plumes et ${DAILY_QUEST_XP} XP chacune. Une quatrième court sur la semaine et offre un gel de série. La récompense ne tombe pas toute seule : ouvre les Quêtes et touche Récupérer.`,
     visual: <QuestsVisual />,
     note: <><ListChecks /> Une pastille sur le bouton Quêtes prévient qu’une récompense attend.</>,
     sinceVersion: 2,
   },
   {
-    eyebrow: 'Votre identité',
-    title: 'Un profil à votre image',
-    description: 'Dans Profil, touchez Modifier pour choisir votre pseudo, votre avatar, votre cadre, votre animation et votre titre. Vos plumes se dépensent à l’Épicerie.',
+    eyebrow: 'Ton identité',
+    title: 'Un profil à ton image',
+    description: 'Dans Profil, touche Modifier pour choisir ton pseudo, ton avatar, ton cadre, ton animation et ton titre. Tes plumes se dépensent à l’Épicerie.',
     visual: <ProfileVisual />,
   },
   {
     eyebrow: 'Choisir un mode',
     title: 'À chacun sa façon de jouer',
-    description: 'Normal vous trouve un adversaire au hasard, sans rien risquer au classement. Amis se joue sur invitation. Le Classé vous oppose à un rang proche et fait évoluer vos points.',
+    description: 'Normal te trouve un adversaire au hasard, sans rien risquer au classement. Amis se joue sur invitation. Le Classé t’oppose à un rang proche et fait évoluer tes points.',
     visual: <ModesVisual />,
   },
   {
     eyebrow: 'Choisir le rythme',
     title: 'Rapide ou à reprendre plus tard',
-    description: 'Le rythme est séparé du mode. Le temps limité impose 45 secondes par tour. L’illimité vous laisse 24 heures et conserve toutes vos parties sur l’accueil.',
+    description: 'Le rythme est séparé du mode. Le temps limité impose 45 secondes par tour. L’illimité te laisse 24 heures et conserve toutes tes parties sur l’accueil.',
     visual: <PaceVisual />,
-    note: <>Liez votre compte dans Profil pour retrouver votre progression sur un autre appareil.</>,
+    note: <>Lie ton compte dans Profil pour retrouver ta progression sur un autre appareil.</>,
   },
 ]
 

@@ -29,7 +29,7 @@ export function parseGoogleAuthIssue(search: string, hash: string): GoogleAuthIs
 
     return {
       kind: 'oauth-error',
-      message: 'La connexion Google n’a pas abouti. Réessayez dans un instant.',
+      message: 'La connexion Google n’a pas abouti. Réessaie dans un instant.',
     }
   }
   return null

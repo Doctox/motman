@@ -91,12 +91,12 @@ const duree = (heures: number) => heures === 1 ? 'une heure' : `${heures} h`
 export function reminderMessage(items: readonly ReminderItem[], names: ReadonlyMap<string, string>, now: number): PushMessage {
   const parUrgence = [...items].sort((a, b) => new Date(a.turnEndsAt).getTime() - new Date(b.turnEndsAt).getTime())
   const urgent = parUrgence[0]
-  const nom = names.get(urgent.opponentId)?.trim() || 'Votre adversaire'
+  const nom = names.get(urgent.opponentId)?.trim() || 'Ton adversaire'
   const reste = hoursLeft(urgent.turnEndsAt, now)
 
   if (items.length > 1) {
     return {
-      title: `${items.length} parties attendent votre coup`,
+      title: `${items.length} parties attendent ton coup`,
       body: `La plus pressée, contre ${nom}, se termine dans ${duree(reste)}.`,
       data: { type: 'match_reminder' },
       tag: 'match-reminders',
@@ -105,10 +105,10 @@ export function reminderMessage(items: readonly ReminderItem[], names: ReadonlyM
 
   const dernierAppel = reste <= 6
   return {
-    title: dernierAppel ? `Plus que ${duree(reste)} pour jouer` : `${nom} attend votre coup`,
+    title: dernierAppel ? `Plus que ${duree(reste)} pour jouer` : `${nom} attend ton coup`,
     // Depuis le 18/09/2026, un tour de 24 h laissé passer est un abandon
     // (shouldForfeitAfterInactivity) : chaque rappel le dit, dès le premier.
-    body: `Sans coup d’ici ${duree(reste)}, vous perdez la partie contre ${nom}.`,
+    body: `Sans coup d’ici ${duree(reste)}, tu perds la partie contre ${nom}.`,
     data: { type: 'match_turn', matchId: urgent.matchId },
     tag: `match-${urgent.matchId}`,
   }

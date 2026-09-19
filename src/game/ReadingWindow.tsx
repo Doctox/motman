@@ -56,7 +56,7 @@ export function useReadingWindow(match: MatchState | null): number | null {
  */
 export function ReadingWindow() {
   return <div className="turn-reading" role="status">
-    <strong>Lisez la grille</strong>
-    <small>Touchez une définition pour l’agrandir.</small>
+    <strong>Lis la grille</strong>
+    <small>Touche une définition pour l’agrandir.</small>
   </div>
 }

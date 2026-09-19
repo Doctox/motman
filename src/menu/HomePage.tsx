@@ -78,8 +78,8 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
   // le tiers de l'écran, au détriment du défi du jour et des parties qui
   // attendent — les deux seules choses sur lesquelles le joueur peut agir.
   return <div className="mm-page mm-home-page">
-    <section className="mm-home-account" aria-label="Votre compte">
-      <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Votre avatar" />
+    <section className="mm-home-account" aria-label="Ton compte">
+      <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" />
       <div className="mm-home-account-copy">
         <div className="mm-home-account-line">
           <h1>{identity.displayName}</h1>
@@ -106,7 +106,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
           return <button type="button" className={`mm-current-match-card ${myTurn ? 'is-my-turn' : ''}`} onClick={() => resumeMatch(match.id)} key={match.id}>
             <Avatar label={playerInitials(opponentName)} small />
             <span>
-              <strong>{opponentName} · {myTurn ? 'à vous' : 'en attente'}</strong>
+              <strong>{opponentName} · {myTurn ? 'à toi' : 'en attente'}</strong>
               <small>{activeMatchLabel(match)} · {asyncTimeLeft(match)}</small>
             </span>
             {myTurn ? <em className="mm-current-match-go">Reprendre</em> : <ChevronRight />}
@@ -124,7 +124,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       <header><h2>Amis</h2><button type="button" onClick={openFriends}><UserPlus />Ajouter</button></header>
       {firstRequest ? <button type="button" className="mm-home-friend-request" onClick={openFriends}>
         <SocialPortrait user={firstRequest.user} small />
-        <span><strong>{firstRequest.user.displayName}</strong><small>vous envoie une demande d’ami</small></span>
+        <span><strong>{firstRequest.user.displayName}</strong><small>t’envoie une demande d’ami</small></span>
         <b>{social.incoming.length}</b><ChevronRight />
       </button> : null}
       {/* Une rangée de visages plutôt qu'une liste : on vient y lire qui est là,
@@ -139,7 +139,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
           <small>{presenceLabel(friend.activity)}</small>
         </button>)}
       </div> : <>
-        <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter votre premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>
+        <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter ton premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>
         {/* Un joueur sans aucun ami doit pouvoir DONNER son code, pas seulement
             en saisir un : jusqu'ici il fallait ouvrir les paramètres pour le
             trouver (suggestion S-04, rapport 6766). C'est le seul moment où ce

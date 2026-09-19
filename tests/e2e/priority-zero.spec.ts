@@ -1005,7 +1005,7 @@ test('sans réponse à « Tu es toujours là ? », la partie est perdue pour l�
     const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
     await expect(fenetre).toBeVisible()
     // Il ne répond pas : à 0 s, le serveur clôt la partie, l'écran de fin le dit.
-    await expect(page.getByText('Vous n’avez pas répondu à temps : la partie est perdue.')).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
+    await expect(page.getByText('Tu n’as pas répondu à temps : la partie est perdue.')).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
     const fin = await loadMatch(request, absent.playerId, matchId)
     expect(fin.status).toBe('finished')
     expect(fin.finishReason).toBe('timeout')
@@ -1121,7 +1121,7 @@ test('la grille s’ouvre sur une fenêtre de lecture, et le premier tour part e
   try {
     const bandeau = page.locator('.turn-reading')
     await expect(bandeau).toBeVisible()
-    await expect(bandeau).toContainText('Lisez la grille')
+    await expect(bandeau).toContainText('Lis la grille')
     // Le chevalet reste fermé : personne ne pose de lettre pendant la lecture.
     const lettre = page.locator('.rack-letter').first()
     await expect(lettre).toBeDisabled()

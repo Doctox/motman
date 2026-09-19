@@ -45,10 +45,10 @@ function publicAccountBusinessError(error: unknown): string | null {
       ? error.message
       : ''
   const message = rawMessage.toLocaleLowerCase('fr')
-  if (message.includes('manque quelques plumes')) return 'Vous n’avez pas assez de plumes.'
-  if (message.includes('deja 3 gels')) return 'Vous avez déjà 3 gels de série.'
-  if (message.includes('déjà possédé')) return 'Cet objet est déjà dans votre collection.'
-  if (message.includes('collection est déjà complète')) return 'Votre collection est déjà complète.'
+  if (message.includes('manque quelques plumes')) return 'Tu n’as pas assez de plumes.'
+  if (message.includes('deja 3 gels')) return 'Tu as déjà 3 gels de série.'
+  if (message.includes('déjà possédé')) return 'Cet objet est déjà dans ta collection.'
+  if (message.includes('collection est déjà complète')) return 'Ta collection est déjà complète.'
   if (message.includes('panier') && message.includes('disponible')) return 'Ce panier n’est plus disponible.'
   if (message.includes('objet') && message.includes('disponible')) return 'Cet objet n’est plus disponible.'
   return null
@@ -367,7 +367,7 @@ Deno.serve(async request => {
       })
       if (error) throw error
       const { data: owned } = await admin.from('player_inventory').select('item_id').eq('user_id', user.id).eq('kind', cosmetic.kind).eq('item_id', cosmetic.id).maybeSingle()
-      if (!owned) return json(409, { error: 'Cet achat n’a pas abouti. Réessayez.' })
+      if (!owned) return json(409, { error: 'Cet achat n’a pas abouti. Réessaie.' })
       const { error: equipError } = await admin.from('profiles').update({ [cosmeticColumn(cosmetic.kind)]: cosmetic.id, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (equipError) throw equipError
     } else if (action === 'buy-streak-freeze') {
@@ -410,13 +410,13 @@ Deno.serve(async request => {
     return json(200, await accountState(admin, user.id))
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
-      return json(429, { error: 'Trop de requêtes. Réessayez dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
+      return json(429, { error: 'Trop de requêtes. Réessaie dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
     }
     const businessError = publicAccountBusinessError(error)
     if (businessError) return json(400, { error: businessError, code: 'ACCOUNT_ACTION_REJECTED' })
     const reference = logServerError('account-api', error, { action, userId: user.id })
     return json(500, {
-      error: 'Le compte est momentanément indisponible. Réessayez.',
+      error: 'Le compte est momentanément indisponible. Réessaie.',
       code: 'ACCOUNT_SERVICE_UNAVAILABLE',
       reference,
     })

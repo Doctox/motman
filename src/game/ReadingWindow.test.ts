@@ -85,8 +85,8 @@ describe('la fenêtre de lecture', () => {
     document.body.appendChild(hote)
     act(() => { createRoot(hote).render(createElement(ReadingWindow)) })
 
-    expect(hote.textContent).toContain('Lisez la grille')
-    expect(hote.textContent).toContain('Touchez une définition')
+    expect(hote.textContent).toContain('Lis la grille')
+    expect(hote.textContent).toContain('Touche une définition')
     expect(hote.querySelector('[role="status"]')).not.toBeNull()
     // Aucun chiffre ici : il vit dans le cercle du jeu, là où le joueur regarde
     // déjà le temps. Deux cadrans pour la même information, c'était un de trop —

@@ -9,7 +9,7 @@ type RateLimitRow = {
 
 export class RateLimitExceededError extends Error {
   constructor(readonly retryAfterSeconds: number) {
-    super('Trop de demandes. Patientez un instant puis réessayez.')
+    super('Trop de demandes. Patiente un instant puis réessaie.')
     this.name = 'RateLimitExceededError'
   }
 }

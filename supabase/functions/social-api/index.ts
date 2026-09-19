@@ -130,7 +130,7 @@ Deno.serve(async request => {
       await admin.from('profiles').update({ activity: body.activity === 'playing' ? 'playing' : 'online', last_seen: new Date().toISOString() }).eq('id', user.id)
     } else if (route === 'request') {
       const { count: pendingCount } = await admin.from('friend_requests').select('id', { count: 'exact', head: true }).eq('from_user_id', user.id)
-      if ((pendingCount ?? 0) >= 20) return json(429, { error: 'Vous avez trop de demandes en attente.' })
+      if ((pendingCount ?? 0) >= 20) return json(429, { error: 'Tu as trop de demandes en attente.' })
       const friendCode = typeof body.friendCode === 'string' ? body.friendCode.toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 8) : ''
       const targetId = typeof body.targetId === 'string' && UUID_PATTERN.test(body.targetId) ? body.targetId : ''
       const targetQuery = admin.from('profiles').select('id').eq('status', 'active')
@@ -138,13 +138,13 @@ Deno.serve(async request => {
         ? await targetQuery.eq('id', targetId).maybeSingle()
         : await targetQuery.eq('friend_code', friendCode).maybeSingle()
       if (!target) return json(404, { error: targetId ? 'Joueur introuvable.' : 'Code ami inconnu.' })
-      if (target.id === user.id) return json(400, { error: 'Vous ne pouvez pas vous ajouter vous-même.' })
+      if (target.id === user.id) return json(400, { error: 'Tu ne peux pas t’ajouter toi-même.' })
       const { data: blocked } = await admin.from('blocks').select('owner_id').or(`and(owner_id.eq.${user.id},blocked_id.eq.${target.id}),and(owner_id.eq.${target.id},blocked_id.eq.${user.id})`).limit(1)
       if (blocked?.length) return json(409, { error: 'Cette demande ne peut pas être envoyée.' })
       const [left, right] = [user.id, target.id].sort()
       const { data: existingFriendship } = await admin.from('friendships').select('left_user_id')
         .eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
-      if (existingFriendship) return json(409, { error: 'Ce joueur est déjà dans vos amis.' })
+      if (existingFriendship) return json(409, { error: 'Ce joueur est déjà dans tes amis.' })
       const { data: reverse } = await admin.from('friend_requests').select('id').eq('from_user_id', target.id).eq('to_user_id', user.id).maybeSingle()
       if (reverse) {
         await admin.from('friend_requests').delete().eq('id', reverse.id)
@@ -197,11 +197,11 @@ Deno.serve(async request => {
     return json(200, action === 'presence' ? { ok: true } : { ok: true, state: await state() })
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
-      return json(429, { error: 'Trop de requêtes. Réessayez dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
+      return json(429, { error: 'Trop de requêtes. Réessaie dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
     }
     const reference = logServerError('social-api', error, { action, userId: user.id })
     return json(500, {
-      error: 'Le service Amis est momentanément indisponible. Réessayez.',
+      error: 'Le service Amis est momentanément indisponible. Réessaie.',
       code: 'SOCIAL_SERVICE_UNAVAILABLE',
       reference,
     })

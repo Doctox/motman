@@ -55,7 +55,7 @@ async function rankedAction(
   action: 'ranked-state' | 'ranked-search' | 'ranked-cancel' | 'ranked-ready-response',
   body: Record<string, unknown> = {},
 ): Promise<RankedMatchmakingState> {
-  if (!await hasSupabaseSession()) throw new Error('Votre session MotMan a expiré. Reconnectez-vous.')
+  if (!await hasSupabaseSession()) throw new Error('Ta session MotMan a expiré. Reconnecte-toi.')
   return invokeSupabaseFunction<RankedMatchmakingState>('match-api', { action, ...body })
 }
 

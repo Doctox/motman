@@ -123,7 +123,7 @@ export function StreakCalendar({ state, today, streak, freezes, countedToday, cl
           const aVenir = jour > today
           const recompense = jour === jourRecompense || (recompenseAujourdhui && estAujourdhui)
           const numero = Number(jour.slice(8))
-          const etat = marque ? LIBELLE[marque] : estAujourdhui ? 'à jouer aujourd’hui' : aVenir ? 'à venir' : 'avant votre série'
+          const etat = marque ? LIBELLE[marque] : estAujourdhui ? 'à jouer aujourd’hui' : aVenir ? 'à venir' : 'avant ta série'
           return <li key={jour}
             className={`is-${marque ?? (estAujourdhui ? 'today' : aVenir ? 'future' : 'none')} ${estAujourdhui ? 'is-current' : ''}`}
             aria-label={`${JOURS_LONGS[index]} ${numero} : ${etat}${recompense ? `, ${freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}` : ''}`}>

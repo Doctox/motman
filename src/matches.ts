@@ -137,7 +137,7 @@ async function localMatch<T>(path: string, body?: Record<string, unknown>): Prom
 }
 
 async function supabaseMatch<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
-  if (!await hasSupabaseSession()) throw new Error('Votre session MotMan a expiré. Reconnectez-vous.')
+  if (!await hasSupabaseSession()) throw new Error('Ta session MotMan a expiré. Reconnecte-toi.')
   return invokeSupabaseFunction<T>('match-api', { action, ...body })
 }
 

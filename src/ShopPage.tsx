@@ -126,7 +126,7 @@ export function PurchaseConfirm({ purchase, balance, preview, confirm, cancel }:
       {preview ? <div className="mm-purchase-preview" aria-hidden="true">{preview}</div> : null}
       <h2>{verbe} « {purchase.name} » ?</h2>
       <p className="mm-purchase-cost">{purchase.price === 0 ? <><Gift aria-hidden="true" /><b>Offert</b></> : <><Feather aria-hidden="true" /><b>{plumes(purchase.price)}</b></>}</p>
-      <p className="mm-purchase-balance">{manque > 0 ? `Il vous manque ${plumes(manque)}.` : `Il vous restera ${plumes(balance - purchase.price)}.`}</p>
+      <p className="mm-purchase-balance">{manque > 0 ? `Il te manque ${plumes(manque)}.` : `Il te restera ${plumes(balance - purchase.price)}.`}</p>
       <button type="button" disabled={manque > 0} onClick={confirm}>{purchase.price === 0 ? `${verbe} gratuitement` : verbe}</button>
       <button type="button" className="secondary" data-dialog-autofocus onClick={cancel}>Annuler</button>
     </section>
@@ -197,7 +197,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     try {
       const response = await buyServerStreakFreeze()
       if (response.cosmetics) setCosmetics(response.cosmetics)
-      notify('Gel de série rangé dans votre poche')
+      notify('Gel de série rangé dans ta poche')
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Achat impossible')
     } finally {
@@ -262,7 +262,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
               portrait={<CosmeticPortrait avatarId={avatar.id} frameId="cadre-ivoire" alt={avatar.name} />}
               owned={cosmetics.ownedAvatarIds.includes(avatar.id)} equipped={cosmetics.equippedAvatarId === avatar.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
               choose={() => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, cosmetics.ownedAvatarIds.includes(avatar.id))} />)}
-          </div> : <p className="mm-shop-empty">Toute la famille est déjà à vous.</p>}
+          </div> : <p className="mm-shop-empty">Toute la famille est déjà à toi.</p>}
         </section>
       })}
     </div> : null}
@@ -292,7 +292,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
           <div className="mm-object-copy">
             <small>Objet · défi du jour</small>
             <strong>Gel de série</strong>
-            <p>Il protège une journée de défi manquée : votre série continue, sans compter de victoire. Il s’utilise tout seul au prochain défi du jour que vous ouvrez.</p>
+            <p>Il protège une journée de défi manquée : ta série continue, sans compter de victoire. Il s’utilise tout seul au prochain défi du jour que tu ouvres.</p>
             <span className="mm-object-stock" aria-label={`${enPoche} gel${enPoche > 1 ? 's' : ''} en poche sur ${MAX_STREAK_FREEZES}`}>
               {Array.from({ length: MAX_STREAK_FREEZES }, (_, index) => <i key={index} className={index < enPoche ? 'is-owned' : ''}><Snowflake /></i>)}
               <em>En poche : {enPoche}/{MAX_STREAK_FREEZES}</em>
@@ -301,7 +301,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
           <button type="button" disabled={plein || manque > 0 || Boolean(pendingItem)} onClick={() => setPurchase({ kind: 'freeze', id: 'gel-de-serie', name: 'Gel de série', price: STREAK_FREEZE_PRICE })}>
             {plein ? <><Check />Poche pleine</> : <Price value={STREAK_FREEZE_PRICE} />}
           </button>
-          {!plein && manque > 0 ? <p className="mm-basket-manque" role="status">Il vous manque {manque} plume{manque > 1 ? 's' : ''}.</p> : null}
+          {!plein && manque > 0 ? <p className="mm-basket-manque" role="status">Il te manque {manque} plume{manque > 1 ? 's' : ''}.</p> : null}
         </article>
       })()}
       <small className="mm-shop-note"><Sparkles />D’autres objets arriveront ici.</small>
@@ -321,9 +321,9 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         const inabordable = basketState === 'idle' && manque > 0
         return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState} ${offert ? 'is-free' : ''} ${basketState === 'revealed' && reward ? `reveals-${reward.rarity}` : ''}`} key={basket.id}>
         <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong>
-          {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />{reserve > 0 ? `${reserve} panier${reserve > 1 ? 's' : ''} offert${reserve > 1 ? 's' : ''} par votre série` : 'Votre premier panier est offert'}</span> : null}</header>
+          {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />{reserve > 0 ? `${reserve} panier${reserve > 1 ? 's' : ''} offert${reserve > 1 ? 's' : ''} par ta série` : 'Ton premier panier est offert'}</span> : null}</header>
         {offert && basketState === 'idle' ? <span className="mm-basket-ribbon" aria-hidden="true">Offert</span> : null}
-        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: prix }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il vous manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
+        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: prix }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il te manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />
           <span className="mm-basket-burst" aria-hidden="true" />
           <span className="mm-feather-cloud" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <Feather key={index} />)}</span>
@@ -336,7 +336,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
                   : <><PackageOpen />Ouvrir <Price value={basket.pricePlumes} /></>}
           </span>
         </button>
-        {inabordable ? <p className="mm-basket-manque" role="status">Il vous manque {manque} plume{manque > 1 ? 's' : ''} pour ouvrir ce panier.</p> : null}
+        {inabordable ? <p className="mm-basket-manque" role="status">Il te manque {manque} plume{manque > 1 ? 's' : ''} pour ouvrir ce panier.</p> : null}
         <em>{cosmetics.basketPity > 0 ? `Chance rare renforcée · palier ${cosmetics.basketPity}` : 'Chance rare initiale'}</em>
         <details className="mm-basket-odds">
           <summary>Probabilités de ce panier</summary>

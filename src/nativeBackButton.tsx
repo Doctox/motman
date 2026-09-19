@@ -62,7 +62,7 @@ function ExitConfirm({ quit, stay }: { quit: () => void; stay: () => void }) {
   return <div className="mm-exit-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) stay() }}>
     <section ref={dialogRef} className="mm-exit-confirm" role="dialog" aria-modal="true" aria-labelledby="mm-exit-title" tabIndex={-1}>
       <h2 id="mm-exit-title">Quitter MotMan ?</h2>
-      <p>Vos parties en temps illimité vous attendront.</p>
+      <p>Tes parties en temps illimité t’attendront.</p>
       <button type="button" className="mm-exit-stay" data-dialog-autofocus onClick={stay}>Rester</button>
       <button type="button" className="mm-exit-quit" onClick={quit}>Quitter</button>
     </section>

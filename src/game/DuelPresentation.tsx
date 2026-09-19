@@ -57,8 +57,8 @@ export function DuelPlayer({ name, score, active, initials, avatarId, frameId, a
  * réponse 30 s en temps limité.
  */
 function absenceDetail(pace: string, won: boolean, opponentName: string): string {
-  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : 'Vous n’avez pas joué en 24 h : la partie est perdue par abandon.'
-  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'Vous n’avez pas répondu à temps : la partie est perdue.'
+  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : 'Tu n’as pas joué en 24 h : la partie est perdue par abandon.'
+  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'Tu n’as pas répondu à temps : la partie est perdue.'
 }
 
 /** La partie normale close d'office quand un joueur rejoint un match classé confirmé. */
@@ -79,8 +79,8 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     : match.finishReason === 'timeout'
     ? absenceDetail(match.pace, won, opponentName)
     : match.finishReason === 'forfeit'
-      ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
-      : draw ? 'Vous terminez avec le même score.' : won ? 'Vous avez rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
+      ? won ? `${opponentName} a quitté la partie.` : 'Tu as abandonné la partie.'
+      : draw ? 'Tu termines avec le même score.' : won ? 'Tu as rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
   // Défi du jour abandonné (bouton ou absence) : fermé jusqu'à minuit (19/09/2026).
   const detailDuDefi = match.isDaily && dailyResultForMatch(match, playerId) === 'abandon'
     ? `${detail} Le défi revient demain.`
@@ -246,7 +246,7 @@ function AddOpponentAsFriend({ playerId, opponentId, opponentName, isBot }: {
       const message = raison instanceof Error ? raison.message : 'Demande impossible.'
       // Le serveur répond « déjà dans vos amis » : ce n'est pas une erreur à
       // afficher en rouge, c'est une bonne nouvelle mal formulée.
-      if (/déjà dans vos amis/i.test(message)) setEtat('deja')
+      if (/déjà dans (?:tes|vos) amis/i.test(message)) setEtat('deja')
       else { setEtat('repos'); setErreur(message) }
     }
   }
@@ -277,7 +277,7 @@ export function PendingResultPanel({
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null | undefined>(undefined)
   const won = result.outcome === 'win' || result.outcome === 'opponent-abandoned'
   const draw = result.outcome === 'draw'
-  const opponentName = result.opponentName ?? 'Votre adversaire'
+  const opponentName = result.opponentName ?? 'Ton adversaire'
   const title = draw ? 'Égalité !' : won ? 'Victoire !' : 'Partie terminée'
   // Même texte que l'écran de fin : sans lui, une bascule vers le classé
   // s'affichait « Vous terminez avec le même score », scores différents ou non.
@@ -286,8 +286,8 @@ export function PendingResultPanel({
     : result.finishReason === 'timeout'
     ? absenceDetail(result.pace, won, opponentName)
     : result.finishReason === 'forfeit'
-      ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
-      : draw ? 'Vous terminez avec le même score.' : won ? 'Vous avez rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
+      ? won ? `${opponentName} a quitté la partie.` : 'Tu as abandonné la partie.'
+      : draw ? 'Tu termines avec le même score.' : won ? 'Tu as rempli la grille avec le meilleur score.' : `${opponentName} remporte cette grille.`
 
   useEffect(() => {
     let active = true
@@ -345,8 +345,8 @@ export function LeaveMatchPanel({ opponentName, isAsync = false, isDaily = false
       {/* Un défi abandonné ne se retente plus avant minuit (19/09/2026) : le
           joueur doit le savoir AVANT de toucher le bouton. */}
       <p>{isDaily
-        ? 'Abandonné, il compte pour votre série, mais vous ne pourrez plus le retenter avant demain.'
-        : isAsync ? 'Elle vous attend à l’accueil — ou abandonnez-la, et votre adversaire gagne.' : `${opponentName} remportera la partie par abandon.`}</p>
+        ? 'Abandonné, il compte pour ta série, mais tu ne pourras plus le retenter avant demain.'
+        : isAsync ? 'Elle t’attend à l’accueil — ou abandonne-la, et ton adversaire gagne.' : `${opponentName} remportera la partie par abandon.`}</p>
       {accueil ? <button type="button" data-dialog-autofocus onClick={continueLater}>Retour à l’accueil</button> : null}
       <button type="button" className={accueil ? 'secondary' : undefined} data-dialog-autofocus={accueil ? undefined : true} onClick={cancel}>Continuer à jouer</button>
       <button type="button" className="danger" onClick={leave}>{isDaily ? 'Abandonner le défi' : 'Abandonner la partie'}</button>

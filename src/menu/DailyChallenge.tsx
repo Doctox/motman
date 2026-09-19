@@ -59,7 +59,7 @@ export function useDailyChallenge() {
 }
 
 function streakLabel(streak: number): string {
-  return streak > 1 ? `Série de ${streak} victoires` : streak === 1 ? 'Série de 1 victoire' : 'Commencez votre série'
+  return streak > 1 ? `Série de ${streak} victoires` : streak === 1 ? 'Série de 1 victoire' : 'Commence ta série'
 }
 
 /**
@@ -174,11 +174,11 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
   // prochain.
   if (status === 'closed') {
     return (
-      <section className="mm-daily-hero is-lost is-closed" aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour votre série. Nouvelle grille dans ${countdown}.`}>
+      <section className="mm-daily-hero is-lost is-closed" aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Défi abandonné</h2>
-        <p className="mm-daily-note">Il compte pour votre série · nouvelle grille dans {countdown}</p>
+        <p className="mm-daily-note">Il compte pour ta série · nouvelle grille dans {countdown}</p>
       </section>
     )
   }
@@ -190,7 +190,7 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <small className="mm-daily-eyebrow">{libelle} · tentative {attempts}</small>
         <h2 className="mm-daily-title">Pas cette fois — on retente ?</h2>
         {/* Pas « jusqu'à minuit » : la bascule est à minuit À PARIS (voir msUntilNextDailyGrid). */}
-        <p className="mm-daily-note">Vous pouvez retenter jusqu’à la prochaine grille, dans {countdown}</p>
+        <p className="mm-daily-note">Tu peux retenter jusqu’à la prochaine grille, dans {countdown}</p>
         <button type="button" className="mm-daily-cta" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}`}>
           <RotateCcw aria-hidden="true" />Réessayer <ChevronRight aria-hidden="true" />
         </button>
@@ -272,7 +272,7 @@ function DailyRankRow({ entry }: { entry: DailyRankingEntry }) {
     <SocialPortrait user={{ displayName: entry.displayName, avatarId: entry.avatarId ?? undefined, frameId: entry.frameId ?? undefined, animationId: entry.animationId ?? undefined }} small />
     <strong>
       {entry.displayName}
-      <small>{entry.isMe ? 'Vous' : `${entry.score} pts · ${entry.turns} tours`}</small>
+      <small>{entry.isMe ? 'Toi' : `${entry.score} pts · ${entry.turns} tours`}</small>
     </strong>
     <b>{entry.note} <small>pts</small></b>
   </div>
@@ -310,7 +310,7 @@ export function DailyLeaderboardPanel() {
         ? <div className="mm-empty-ranking" role={erreur ? 'alert' : 'status'}>
             <Medal aria-hidden="true" />
             <strong>{chargement ? 'Chargement du classement…' : erreur ? 'Classement indisponible' : onglet === 'friends' ? 'Aucun ami classé' : 'Personne n’a encore joué'}</strong>
-            <span>{chargement ? 'Les joueurs du jour arrivent.' : erreur ? erreur : onglet === 'friends' ? 'Vos amis apparaîtront ici dès qu’ils auront joué la grille du jour.' : 'À vous l’honneur : terminez la grille du jour.'}</span>
+            <span>{chargement ? 'Les joueurs du jour arrivent.' : erreur ? erreur : onglet === 'friends' ? 'Tes amis apparaîtront ici dès qu’ils auront joué la grille du jour.' : 'À toi l’honneur : termine la grille du jour.'}</span>
           </div>
         : <>
           <section className="mm-leaderboard">

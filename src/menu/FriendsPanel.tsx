@@ -98,7 +98,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
       await navigator.clipboard.writeText(ownCode)
       notify('Code ami copié')
     } catch {
-      notify(`Votre code : ${ownCode}`)
+      notify(`Ton code : ${ownCode}`)
     }
   }
 
@@ -123,7 +123,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
       <div className="mm-friends-scroll">
         <form className="mm-add-friend mm-friend-search" onSubmit={submitFriendSearch}>
           <label htmlFor="friend-search">Rechercher par pseudo</label>
-          <p>Entrez au moins {SOCIAL_SEARCH_MIN_LENGTH} caractères.</p>
+          <p>Entre au moins {SOCIAL_SEARCH_MIN_LENGTH} caractères.</p>
           <div><input id="friend-search" value={friendSearch} onChange={event => {
             setFriendSearch(event.target.value)
             setSearchPerformed(false)
@@ -144,11 +144,11 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
         <details className="mm-friend-code-fallback">
           <summary>Utiliser un code ami</summary>
           <section className="mm-friend-code-card">
-            <div><small>Votre code ami</small><strong>{ownCode}</strong><p>À utiliser si la recherche par pseudo ne suffit pas.</p></div>
+            <div><small>Ton code ami</small><strong>{ownCode}</strong><p>À utiliser si la recherche par pseudo ne suffit pas.</p></div>
             <button type="button" onClick={copyCode} aria-label="Copier le code ami"><Copy /></button>
           </section>
           <form className="mm-add-friend" onSubmit={submitFriendCode}>
-            <label htmlFor="friend-code">Code de votre ami</label>
+            <label htmlFor="friend-code">Code de ton ami</label>
             <div><input id="friend-code" value={friendCode} onChange={event => {
               const saisi = event.target.value.toUpperCase()
               // Espaces et tirets sont tolérés sans rien signaler : ils viennent
@@ -160,7 +160,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
               codeRefuse ? 'Un code ami ne contient que des chiffres et les lettres A à F.'
               : friendCode.length === 0 ? 'Huit caractères, comme le code affiché au-dessus.'
               : friendCode.length < 8 ? `Encore ${8 - friendCode.length} caractère${friendCode.length === 7 ? '' : 's'}.`
-              : 'Code complet — vous pouvez l’ajouter.'
+              : 'Code complet — tu peux l’ajouter.'
             }</p>
           </form>
         </details>
@@ -168,7 +168,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
         {social.incoming.length ? <section className="mm-social-section">
           <h3>Demandes reçues <b>{social.incoming.length}</b></h3>
           {social.incoming.map(request => <article className="mm-social-row request" key={request.id}>
-            <SocialPortrait user={request.user} small /><span><strong>{request.user.displayName}</strong><small>Souhaite devenir votre ami</small></span>
+            <SocialPortrait user={request.user} small /><span><strong>{request.user.displayName}</strong><small>Souhaite devenir ton ami</small></span>
             <button type="button" className="accept" disabled={busy !== null} onClick={() => void run(request.id, () => respondToFriendRequest(identity.playerId, request.id, 'accept'), 'Ami ajouté')} aria-label={`Accepter ${request.user.displayName}`}><Check /></button>
             <button type="button" className="decline" disabled={busy !== null} onClick={() => void run(request.id, () => respondToFriendRequest(identity.playerId, request.id, 'decline'))} aria-label={`Refuser ${request.user.displayName}`}><X /></button>
           </article>)}
@@ -184,7 +184,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
               <button type="button" disabled={busy !== null} onClick={() => setReportTarget(friend)}><Shield />Signaler</button>
               <button type="button" className="danger" disabled={busy !== null} onClick={() => void run(friend.playerId, () => updateFriend(identity.playerId, friend.playerId, 'block'), 'Joueur bloqué')}><Ban />Bloquer</button>
             </div> : null}
-          </article>) : <div className="mm-social-empty"><Users /><strong>Votre liste est vide</strong><span>Recherchez votre premier ami par son pseudo.</span></div>}
+          </article>) : <div className="mm-social-empty"><Users /><strong>Ta liste est vide</strong><span>Recherche ton premier ami par son pseudo.</span></div>}
         </section>
 
         {social.outgoing.length ? <section className="mm-social-section subdued">
@@ -205,7 +205,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
           <option value="pseudo">Pseudo inapproprié</option><option value="comportement">Comportement</option><option value="triche">Triche</option><option value="harcelement">Harcèlement</option><option value="autre">Autre</option>
         </select>
         <label htmlFor="report-details">Précisions facultatives</label>
-        <textarea id="report-details" maxLength={500} value={reportDetails} onChange={event => setReportDetails(event.target.value)} placeholder="Décrivez brièvement le problème." />
+        <textarea id="report-details" maxLength={500} value={reportDetails} onChange={event => setReportDetails(event.target.value)} placeholder="Décris brièvement le problème." />
         {reportError ? <p className="mm-account-error" role="alert">{reportError}</p> : null}
         <button className="mm-save-guest" type="submit" disabled={reportBusy}>{reportBusy ? 'Envoi…' : 'Envoyer le signalement'}</button>
     </ReportDialog> : null}

@@ -86,7 +86,7 @@ describe('acheter un article', () => {
     const article = aVendre.find(avatar => avatar.pricePlumes > 0 && !riche().ownedAvatarIds.includes(avatar.id))!
     afficher({ ...riche(), plumes: 0 })
     cliquer(boutonDePrix(article))
-    expect(dialogue()?.textContent).toContain('Il vous manque')
+    expect(dialogue()?.textContent).toContain('Il te manque')
     expect((document.querySelector('[role="dialog"] button:not(.secondary)') as HTMLButtonElement).disabled).toBe(true)
   })
 })
@@ -153,7 +153,7 @@ describe('révéler la trouvaille', () => {
 describe('premier panier offert', () => {
   it('se dit, et la confirmation ne demande aucune plume', () => {
     afficher({ ...riche(), plumes: 0, openedBaskets: 0 }, 'Paniers')
-    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('Votre premier panier est offert')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('Ton premier panier est offert')
     cliquer(hote.querySelector('.mm-basket-stage'))
     expect(dialogue()?.textContent).toContain('Offert')
     expect((boutonDe('Ouvrir gratuitement') as HTMLButtonElement).disabled).toBe(false)
@@ -169,7 +169,7 @@ describe('premier panier offert', () => {
 describe('paniers offerts par la série', () => {
   it('disent combien il en reste, et s’ouvrent sans plume', () => {
     afficher({ ...riche(), plumes: 0, openedBaskets: 3, freeBaskets: 2 }, 'Paniers')
-    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('2 paniers offerts par votre série')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('2 paniers offerts par ta série')
     expect((hote.querySelector('.mm-basket-stage') as HTMLButtonElement).disabled).toBe(false)
     cliquer(hote.querySelector('.mm-basket-stage'))
     expect(dialogue()?.textContent).toContain('Offert')
@@ -177,7 +177,7 @@ describe('paniers offerts par la série', () => {
 
   it('le premier panier reste annoncé comme tel, réserve ou pas', () => {
     afficher({ ...riche(), plumes: 0, openedBaskets: 0, freeBaskets: 1 }, 'Paniers')
-    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('Votre premier panier est offert')
+    expect(hote.querySelector('.mm-basket-card')?.textContent).toContain('Ton premier panier est offert')
   })
 })
 

@@ -138,7 +138,7 @@ export const ANIMATIONS: AnimationDefinition[] = [
 ]
 
 export const BASKETS: BasketDefinition[] = [
-  { id: 'panier-epicerie', name: 'Panier de l’Épicerie', description: 'Un avatar, un cadre ou une animation au hasard. Déjà dans votre collection ? 30 % de sa valeur vous revient en plumes.', pricePlumes: 999, cloth: 'sage' },
+  { id: 'panier-epicerie', name: 'Panier de l’Épicerie', description: 'Un avatar, un cadre ou une animation au hasard. Déjà dans ta collection ? 30 % de sa valeur te revient en plumes.', pricePlumes: 999, cloth: 'sage' },
 ]
 
 /**

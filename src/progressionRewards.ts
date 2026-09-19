@@ -15,7 +15,7 @@ export const RARITY_ORDER: readonly RewardRarity[] = [
 ]
 
 export const LEVEL_TITLE_REWARDS = [
-  { id: 'premiers-mots', name: 'Premiers mots', description: 'Les premières lettres de votre aventure.', level: 1 },
+  { id: 'premiers-mots', name: 'Premiers mots', description: 'Les premières lettres de ton aventure.', level: 1 },
   { id: 'plume-curieuse', name: 'Plume curieuse', description: 'Toujours prêt à chercher le mot juste.', level: 5 },
   { id: 'amoureux-des-mots', name: 'Amoureux des mots', description: 'Les mots sont devenus un terrain de jeu.', level: 10 },
   { id: 'esprit-lettre', name: 'Esprit lettré', description: 'Une pensée fine et un vocabulaire sûr.', level: 15 },
@@ -24,7 +24,7 @@ export const LEVEL_TITLE_REWARDS = [
   { id: 'virtuose-des-lettres', name: 'Virtuose des lettres', description: 'Les lettres s’accordent avec élégance.', level: 30 },
   { id: 'maitre-des-mots', name: 'Maître des mots', description: 'Une maîtrise patiente et redoutable.', level: 35 },
   { id: 'sage-du-lexique', name: 'Sage du lexique', description: 'Un grand voyage au cœur du français.', level: 40 },
-  { id: 'gardien-des-mots', name: 'Gardien des mots', description: 'Les mots peuvent compter sur vous.', level: 45 },
+  { id: 'gardien-des-mots', name: 'Gardien des mots', description: 'Les mots peuvent compter sur toi.', level: 45 },
   { id: 'legende-de-motman', name: 'Légende de MotMan', description: 'Le plus haut titre de la progression.', level: 50 },
 ] as const
 

@@ -65,7 +65,7 @@ export async function getAnonymousCaptchaToken(): Promise<string | null> {
   return new Promise<string>((resolve, reject) => {
     let widgetId = ''
     let settled = false
-    const timeout = window.setTimeout(() => finish(new Error('La vérification de sécurité a expiré. Réessayez.')), 30_000)
+    const timeout = window.setTimeout(() => finish(new Error('La vérification de sécurité a expiré. Réessaie.')), 30_000)
     const cleanup = () => {
       window.clearTimeout(timeout)
       if (widgetId) {
@@ -89,8 +89,8 @@ export async function getAnonymousCaptchaToken(): Promise<string | null> {
         size: 'flexible',
         appearance: 'interaction-only',
         callback: (token: string) => finish(token),
-        'error-callback': () => finish(new Error('La vérification de sécurité a échoué. Réessayez.')),
-        'timeout-callback': () => finish(new Error('La vérification de sécurité a expiré. Réessayez.')),
+        'error-callback': () => finish(new Error('La vérification de sécurité a échoué. Réessaie.')),
+        'timeout-callback': () => finish(new Error('La vérification de sécurité a expiré. Réessaie.')),
       })
     } catch (error) {
       finish(error instanceof Error ? error : new Error('La vérification de sécurité est indisponible.'))

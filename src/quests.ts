@@ -47,7 +47,7 @@ export const QUEST_POOL: readonly Quest[] = [
   { id: 'chevalet-1', counter: 'chevalet', target: 1, title: 'Réussir un chevalet complet', hint: 'Les 5 lettres justes au même tour.' },
   { id: 'partie-1', counter: 'partie', target: 1, title: 'Terminer une partie', hint: 'Gagnée ou perdue, elle compte.' },
   { id: 'sans-indice-1', counter: 'sans-indice', target: 1, title: 'Finir une partie sans indice', hint: 'Sans toucher au bouton Indice.' },
-  { id: 'mots-5', counter: 'mots', target: 5, title: 'Compléter 5 mots', hint: 'Un mot est à vous si vous posez sa dernière lettre.' },
+  { id: 'mots-5', counter: 'mots', target: 5, title: 'Compléter 5 mots', hint: 'Un mot est à toi si tu poses sa dernière lettre.' },
   { id: 'images-3', counter: 'images', target: 3, title: 'Compléter 3 mots en image', hint: 'Ceux dont la définition est un dessin.' },
 ]
 

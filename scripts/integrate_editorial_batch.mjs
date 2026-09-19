@@ -210,7 +210,7 @@ if (themes.length) {
     : { genre: 'theme', titre: `${themes.length} nouveaux thèmes`, texte: `${enumerer(themes)} rejoignent le défi du jour.` })
 }
 if (normales) {
-  rapports.push({ genre: 'grilles', titre: `${normales} nouvelles grilles`, texte: `Les parties normales en comptent désormais ${rotation} : vous retomberez moins souvent sur la même.` })
+  rapports.push({ genre: 'grilles', titre: `${normales} nouvelles grilles`, texte: `Les parties normales en comptent désormais ${rotation} : tu retomberas moins souvent sur la même.` })
 }
 const { ajouterRapport } = await import('./lib/rapports.mjs')
 for (const rapport of rapports) {

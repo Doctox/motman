@@ -181,9 +181,9 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       return sendJson(response, 200, lobbyState(playerId))
     }
     if (pace === 'realtime' && activeMatches(playerId, 'realtime').length)
-      return sendJson(response, 409, { error: 'Vous avez déjà une partie en temps réel.' })
+      return sendJson(response, 409, { error: 'Tu as déjà une partie en temps réel.' })
     if (pace === 'async' && activeMatches(playerId, 'async').length >= MAX_ASYNC_MATCHES)
-      return sendJson(response, 409, { error: 'Vous avez déjà trois parties asynchrones.' })
+      return sendJson(response, 409, { error: 'Tu as déjà trois parties asynchrones.' })
     const candidate = [...database.searches]
       .filter(search => search.playerId !== playerId && search.pace === pace)
       .filter(search => pace === 'realtime'
@@ -247,7 +247,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     return sendJson(response, 200, publicMatch(match))
   }
 
-  if (match.currentPlayerId !== playerId) return sendJson(response, 409, { error: 'Ce n’est pas votre tour.', match: publicMatch(match) })
+  if (match.currentPlayerId !== playerId) return sendJson(response, 409, { error: 'Ce n’est pas ton tour.', match: publicMatch(match) })
   if (!hasTurnStarted(Date.now(), new Date(match.turnStartedAt).getTime())) {
     return sendJson(response, 409, { error: 'Le prochain tour commence après les résultats.', match: publicMatch(match) })
   }

@@ -56,7 +56,7 @@ export function BottomNav({ page, setPage, basketAffordable = false }: { page: M
       // Assez de plumes pour un panier : une pastille le rappelle, sauf quand on
       // est déjà dans l'Épicerie.
       const badge = id === 'shop' && basketAffordable && page !== 'shop'
-      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à votre portée` : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
+      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à ta portée` : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
     })}
   </nav>
 }
@@ -71,7 +71,7 @@ export function RankProgress({ progress, compact = false }: { progress: PlayerPr
   return <section className={`mm-rank-progress ${progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? 'mm-rank-progress-empty' : ''} ${compact ? 'compact' : ''}`} aria-label="Progression classée">
     <img className="mm-rank-image" src={rankImage(division)} alt={`Rang ${division.label}`} />
     <div className="mm-rank-copy"><strong>{division.label}</strong><span>{progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? rankedPlacementLabel(progress.rankedMatches) : `${progress.rankedPoints} pt`}</span></div>
-    <div className="mm-progress"><small>{next ? progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? 'Terminez vos placements' : `${next.minimum - progress.rankedPoints} pt avant ${next.label}` : 'Rang maximum'}</small><i><b style={{ width: `${rankProgress}%` }} /></i></div>
+    <div className="mm-progress"><small>{next ? progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? 'Termine tes placements' : `${next.minimum - progress.rankedPoints} pt avant ${next.label}` : 'Rang maximum'}</small><i><b style={{ width: `${rankProgress}%` }} /></i></div>
   </section>
 }
 

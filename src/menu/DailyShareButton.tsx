@@ -5,7 +5,7 @@ import { shareText, type ShareOutcome } from '../dailyShare'
 const MESSAGES: Record<ShareOutcome, string | null> = {
   shared: null,
   cancelled: null,
-  copied: 'Résultat copié : collez-le dans une conversation.',
+  copied: 'Résultat copié : colle-le dans une conversation.',
   failed: 'Le partage n’a pas fonctionné sur cet appareil.',
 }
 

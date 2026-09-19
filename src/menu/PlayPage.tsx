@@ -61,7 +61,7 @@ function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
   const [relecture, setRelecture] = useState<MatchHistoryEntry | null>(null)
   return <div className="mm-recent-history is-visible">
     <section className="mm-recent-history-card" aria-label="Historique des cinq derniers matchs">
-      <header><span><History /></span><div><h2>Derniers matchs</h2><small>Vos cinq résultats les plus récents</small></div></header>
+      <header><span><History /></span><div><h2>Derniers matchs</h2><small>Tes cinq résultats les plus récents</small></div></header>
       {matches.length ? <div className="mm-recent-match-list">
         {matches.slice(0, 5).map(match => {
           const tone = matchHistoryTone(match.outcome)
@@ -79,7 +79,7 @@ function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
             ? <button type="button" className="mm-recent-match-row is-replayable" key={match.id} onClick={() => setRelecture(match)} aria-label={`Revoir la partie contre ${opponentName}`}>{contenu}</button>
             : <article className="mm-recent-match-row" key={match.id}>{contenu}</article>
         })}
-      </div> : <div className="mm-recent-history-empty"><History /><strong>Aucun match terminé</strong><small>Vos prochaines parties apparaîtront ici.</small></div>}
+      </div> : <div className="mm-recent-history-empty"><History /><strong>Aucun match terminé</strong><small>Tes prochaines parties apparaîtront ici.</small></div>}
     </section>
     {relecture ? <MatchReplay match={relecture} onClose={() => setRelecture(null)} /> : null}
   </div>
@@ -174,7 +174,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         className={onglet === id ? 'is-active' : ''}
         aria-selected={onglet === id}
         aria-controls="mm-play-mode"
-        aria-label={id === 'friends' && invitationEnAttente ? `${label}, une invitation vous attend` : label}
+        aria-label={id === 'friends' && invitationEnAttente ? `${label}, une invitation t’attend` : label}
         onClick={() => choisirOnglet(id)}
       >
         <i aria-hidden="true">{icone}</i>{label}
@@ -185,7 +185,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
     {reprise ? <button type="button" className="mm-play-resume" onClick={() => resumeMatch(reprise.id)}>
       <Avatar label={playerInitials(matchOpponent(reprise, identity.playerId))} small />
       <span className="mm-play-resume-copy">
-        <strong>{matchOpponent(reprise, identity.playerId)} · {reprise.currentPlayerId === identity.playerId ? 'à vous' : 'en attente'}</strong>
+        <strong>{matchOpponent(reprise, identity.playerId)} · {reprise.currentPlayerId === identity.playerId ? 'à toi' : 'en attente'}</strong>
         <small>{reprise.pace === 'async' ? `Illimité · ${asyncTimeLeft(reprise)}` : 'Temps limité'}</small>
       </span>
       <span className="mm-play-resume-go">Reprendre</span>
@@ -195,7 +195,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
           titre="Recherche d’un adversaire…"
-          detail={asyncSearching ? 'Vous pouvez revenir plus tard' : 'Un adversaire vous sera proposé'}
+          detail={asyncSearching ? 'Tu peux revenir plus tard' : 'Un adversaire te sera proposé'}
           depuis={(asyncSearch ?? realtimeSearch)?.createdAt}
           disabled={searchBusy !== null}
           annuler={() => void arreterRecherche(asyncSearching ? 'async' : 'realtime')}
@@ -218,7 +218,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </header>
         <div className="mm-ranked-status">
           <img src={rankImage(currentRank)} alt="" />
-          <span><small>Votre rang</small><strong>{currentRank.label}</strong><b>{rankedPlacementLabel(ranked.progress.matches)}</b></span>
+          <span><small>Ton rang</small><strong>{currentRank.label}</strong><b>{rankedPlacementLabel(ranked.progress.matches)}</b></span>
           {ranked.progress.matches >= 5 ? <em>{ranked.progress.points} pt</em> : null}
         </div>
         {rankedSearching
@@ -231,9 +231,9 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
             {ranked.status === 'started' ? 'Partie classée en cours' : 'Jouer'} <ChevronRight />
           </button>}
         {rankedTimedOut && !rankedSearching ? <p className="mm-ranked-timeout" role="status">
-          Personne n’a été trouvé en dix minutes — la recherche s’est arrêtée. Vous pouvez la relancer.
+          Personne n’a été trouvé en dix minutes — la recherche s’est arrêtée. Tu peux la relancer.
         </p> : null}
-        <p className="mm-ranked-explainer">La recherche continue en arrière-plan. Si une partie en temps limité est en cours quand un adversaire est trouvé, l’écran de confirmation vous dit ce qu’elle devient avant que vous rejoigniez.</p>
+        <p className="mm-ranked-explainer">La recherche continue en arrière-plan. Si une partie en temps limité est en cours quand un adversaire est trouvé, l’écran de confirmation te dit ce qu’elle devient avant que tu rejoignes.</p>
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </section> : null}
 
@@ -241,7 +241,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         <section className="mm-play-card is-coral">
           <header>
             <span className="mm-play-card-icon" aria-hidden="true"><Users /></span>
-            <span><h2>Amis</h2><small>{amisEnLigne ? `${amisEnLigne} ami${amisEnLigne > 1 ? 's' : ''} en ligne` : 'Invitez un proche à une partie'}</small></span>
+            <span><h2>Amis</h2><small>{amisEnLigne ? `${amisEnLigne} ami${amisEnLigne > 1 ? 's' : ''} en ligne` : 'Invite un proche à une partie'}</small></span>
           </header>
           <PaceChoice pace={friendPace} setPace={setFriendPace} label="Choisir le rythme de la partie entre amis" />
         </section>
@@ -256,7 +256,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         {lobby.outgoing.filter(invitation => !social.friends.some(friend => friend.playerId === invitation.guestId)).map(invitation => <div className="mm-friend-line is-waiting" key={invitation.id}>
           <Avatar label={playerInitials(invitation.guest?.displayName ?? 'A')} small />
           <span className="mm-friend-line-copy">
-            <strong>{invitation.guest?.displayName ?? 'Votre ami'}</strong>
+            <strong>{invitation.guest?.displayName ?? 'Ton ami'}</strong>
             <small>{invitation.pace === 'async' ? 'Temps illimité' : 'Temps limité'} · invitation envoyée…</small>
           </span>
           <button type="button" disabled={matchBusy !== null} onClick={async () => { setMatchBusy(invitation.id); await cancelInvite(invitation.id); setMatchBusy(null) }}>Annuler</button>
