@@ -88,5 +88,11 @@
     "titre": "Un partage sans « bot »",
     "texte": "Le message de partage du défi du jour dit votre score et votre rang, sans parler de l’adversaire : « Défi du jour « Jardin » : 60 points 💪 ».",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-09-19T14:31",
+    "titre": "Finitions avant la sortie",
+    "texte": "Le niveau de chaque adversaire s’affiche en partie, le code ami montré est toujours le bon, et les messages d’erreur parlent français. « Tu es toujours là ? » passe devant tout.",
+    "genre": "affichage"
   }
 ]

@@ -30,13 +30,25 @@ export function useTurnPhase(match: MatchState | null): TurnPhase {
     const update = () => setRevision(current => current + 1)
     update()
     if (!match || match.status !== 'active') return
-    const now = serverNow()
     const startsAt = new Date(match.turnStartedAt).getTime()
     const endsAt = new Date(match.turnEndsAt).getTime()
-    const boundaries = [startsAt, match.pace === 'realtime' ? endsAt - 10_000 : 0, endsAt]
-      .filter(boundary => boundary > now)
-      .map(boundary => window.setTimeout(update, boundary - now + 8))
-    return () => boundaries.forEach(timer => window.clearTimeout(timer))
+    const minuteurs = new Set<number>()
+    // Chaque borne est visée sur l'heure du SERVEUR, qu'une réponse peut recaler
+    // en cours de tour. Un minuteur tombé quelques millisecondes trop tôt se
+    // réarme au lieu de laisser la phase figée : sinon la fin du tour n'était
+    // plus vue, et la validation automatique ne partait pas.
+    const viser = (borne: number) => {
+      const reste = borne - serverNow()
+      if (reste < 0) return
+      const minuteur = window.setTimeout(() => {
+        minuteurs.delete(minuteur)
+        if (serverNow() < borne) viser(borne)
+        else update()
+      }, reste + 8)
+      minuteurs.add(minuteur)
+    }
+    for (const borne of [startsAt, match.pace === 'realtime' ? endsAt - 10_000 : 0, endsAt]) viser(borne)
+    return () => minuteurs.forEach(minuteur => window.clearTimeout(minuteur))
   }, [match?.id, match?.pace, match?.status, match?.turnEndsAt, match?.turnNumber, match?.turnStartedAt])
   // Derive the phase from the current match on every render. Keeping the
   // previous turn's phase in state for one effect cycle could otherwise make

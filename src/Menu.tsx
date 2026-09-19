@@ -26,7 +26,7 @@ import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
 import { MatchInvitationPanel, MatchWaitingPanel } from './menu/MatchActivityPanels'
 import { PlayPage, type PlayTabId } from './menu/PlayPage'
-import { EditGuestPanel, ProfilePage, QuickMenu, RankingPage } from './menu/ProfilePanels'
+import { EditGuestPanel, ProfilePage, RankingPage } from './menu/ProfilePanels'
 import { SettingsPanel } from './menu/SettingsPanel'
 import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
@@ -61,7 +61,6 @@ export function MenuApp({
     const hash = location.hash.slice(1)
     return hash === 'jouer' ? 'play' : hash === 'classement' ? 'ranking' : hash === 'profil' ? 'profile' : hash === 'epicerie' ? 'shop' : 'home'
   })
-  const [quickMenu, setQuickMenu] = useState(false)
   const [settings, setSettings] = useState(false)
   const [legalOpen, setLegalOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -83,6 +82,12 @@ export function MenuApp({
   const [theme, setTheme] = useState<Theme>(lireThemeChoisi)
   const toastTimer = useRef<number | null>(null)
   const openingMatch = useRef<string | null>(null)
+  // Recherche normale en cours : les parties qui existaient AVANT, et si le
+  // serveur a déjà enregistré la recherche. Sans ça, le sondage parti pendant
+  // la requête de recherche ne la voyait pas encore, la croyait aboutie, et
+  // ouvrait une ANCIENNE partie au même rythme (relevé le 19/09/2026).
+  const partiesAvantRecherche = useRef<ReadonlySet<string>>(new Set())
+  const rechercheEnregistree = useRef(false)
   const socialPolling = useRef<AdaptivePollingController | null>(null)
   const lobbyPolling = useRef<AdaptivePollingController | null>(null)
   const menuRealtimeConnected = useRef(false)
@@ -191,13 +196,16 @@ export function MenuApp({
           openingMatch.current = liveMatch.id
           onStartMatch(liveMatch.id)
         }
-        else if (pendingSearch && !next.searches.some(search => search.pace === pendingSearch)) {
-          const matched = next.active.find(match => match.mode === 'normal' && match.pace === pendingSearch)
-          if (matched && openingMatch.current !== matched.id) {
-            openingMatch.current = matched.id
-            onStartMatch(matched.id)
-          }
-          setPendingSearch(null)
+        else if (pendingSearch) {
+          const enCours = next.searches.some(search => search.pace === pendingSearch)
+          const nouvelle = next.active.find(match => match.mode === 'normal' && match.pace === pendingSearch && !partiesAvantRecherche.current.has(match.id))
+          if (nouvelle) {
+            if (openingMatch.current !== nouvelle.id) {
+              openingMatch.current = nouvelle.id
+              onStartMatch(nouvelle.id)
+            }
+            setPendingSearch(null)
+          } else if (!enCours && rechercheEnregistree.current) setPendingSearch(null)
         }
       } catch {
         // Le menu reste disponible si le service de partie local est momentanément arrêté.
@@ -345,9 +353,12 @@ export function MenuApp({
   }
 
   const beginNormalSearch = async (pace: MatchPace) => {
+    partiesAvantRecherche.current = new Set(matchLobby.active.map(match => match.id))
+    rechercheEnregistree.current = false
     setPendingSearch(pace)
     try {
       const result = await searchNormalMatch(identity.playerId, pace)
+      rechercheEnregistree.current = true
       setMatchLobby(result.lobby)
       if (result.matchId) {
         setPendingSearch(null)
@@ -400,14 +411,13 @@ export function MenuApp({
   </main>
 
   return <main className="mm-shell">
-    <AppHeader onMenu={() => setQuickMenu(true)} onSettings={() => setSettings(true)} />
+    <AppHeader onSettings={() => setSettings(true)} />
     {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de L’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
-    {quickMenu ? <QuickMenu page={page} navigate={navigate} close={() => setQuickMenu(false)} /> : null}
     {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
     {legalOpen ? <Suspense fallback={null}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}

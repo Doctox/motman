@@ -18,9 +18,9 @@
 //  - LOCAL (ce module) : l'ÉTAT de la série (série, gel, historique, paliers
 //    franchis, tentatives du jour). Clé localStorage 'motman-daily-v1', SÉPARÉE de
 //    'motman-progress-v1' (on ne touche pas à la migration PlayerProgress v4).
-//  - SERVEUR (edge function match-api) : TOUS les VERSEMENTS DE PLUMES — le bonus
-//    de 250 à la victoire (idempotent `daily:<userId>:<date>`) et les 250 plumes
-//    de chaque tranche de 7 jours de série (idempotent
+//  - SERVEUR (edge function match-api) : TOUS les VERSEMENTS — le bonus de 250
+//    plumes à la victoire (idempotent `daily:<userId>:<date>`) et le panier
+//    offert à chaque tranche de 7 jours de série (idempotent
 //    `daily-streak-reward:<userId>:<date>`, voir dailyMilestones.ts).
 //  ⚠️ NE JAMAIS verser de plumes en local : auth.ts fait
 //    savePlayerCosmetics(payload.cosmetics), donc le serveur ÉCRASE le
@@ -30,7 +30,8 @@
 // LE GEL (14/09/2026) : un objet ACHETÉ à l'Épicerie (500 plumes, 3 en poche au
 // plus), tenu par le SERVEUR (player_wallets.streak_freezes). Ici, on ne fait que
 // prévoir sa consommation pour l'affichage immédiat ; le serveur la fait
-// réellement en enregistrant la victoire. Plus de rattrapage, plus de gel offert.
+// réellement à l'OUVERTURE du défi suivant (server_record_daily_play, depuis le
+// 19/09/2026). Plus de rattrapage, plus de gel offert.
 // La règle elle-même vit dans `dailyStreakRule.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -411,7 +412,8 @@ export function dailyResultForMatch(
  * le 19/09/2026 le dernier jour JOUÉ.
  */
 export function isDailyWon(state: DailyChallengeState, day: string): boolean {
-  if (state.today && state.today.day === day) return state.today.won
+  // Perdu ici puis gagné sur un autre appareil : le serveur le sait.
+  if (state.today?.day === day && state.today.won) return true
   return (state.serverWinDays ?? []).includes(day)
 }
 

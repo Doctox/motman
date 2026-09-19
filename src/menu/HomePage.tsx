@@ -3,7 +3,7 @@ import { ChevronRight, Copy, Feather, Gamepad2, UserPlus } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import type { PlayerCosmetics } from '../cosmetics'
 import type { MatchLobbyState, MatchState } from '../matches'
-import { playerInitials, type GuestIdentity, shortPlayerId } from '../playerIdentity'
+import { friendCodeOf, playerInitials, type GuestIdentity } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
 import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState } from '../social'
@@ -34,7 +34,7 @@ function activeMatchLabel(match: MatchState): string {
 
 export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
   const firstRequest = social.incoming[0]
-  const codeAmi = shortPlayerId(identity.playerId)
+  const codeAmi = friendCodeOf(identity)
   // Partage natif quand l'appareil le propose, presse-papiers sinon. Les deux
   // peuvent echouer (permission refusee, contexte non securise) : on retombe
   // alors sur l'affichage du code, qui reste utilisable a la main.

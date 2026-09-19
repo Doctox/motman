@@ -5,6 +5,7 @@ import type { GeneratedGrid } from '../generator'
 import { decodeBoardSnapshot } from '../matchBoardSnapshot'
 import { loadHistoryGrid, type MatchHistoryEntry } from '../matches'
 import { matchHistoryResultLabel } from '../matchHistory'
+import { useDialogFocus } from '../useDialogFocus'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RELECTURE D'UNE PARTIE TERMINÉE.
@@ -41,8 +42,12 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
   const lettres = new Map(cases.map(item => [item.cellIndex, item]))
   const posees = cases.filter(item => item.mine).length
   const adversaire = match.opponentName ?? 'Adversaire'
+  // Une vraie fenêtre : focus, tabulation piégée, et Échap — que le retour
+  // Android envoie (nativeBackButton.tsx) — la ferme. Sans ça, le retour ne
+  // faisait rien tant que la relecture était ouverte (relevé le 19/09/2026).
+  const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
 
-  return <div className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`}>
+  return <div ref={dialogRef} className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`} tabIndex={-1}>
     <section className="mm-replay-panel">
       <header>
         <div>

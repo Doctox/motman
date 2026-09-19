@@ -24,7 +24,8 @@ export function GameResultScreen({
   opponentScore: number
   playerName?: string
   opponentName: string
-  award: ExperienceAward | null
+  /** `undefined` : encore en route. `null` : rien à montrer (aucune récompense, ou lecture impossible). */
+  award: ExperienceAward | null | undefined
   children: ReactNode
 }) {
   return <section className={`game-result-screen result-${outcome}`} aria-labelledby="game-result-title">
@@ -45,7 +46,9 @@ export function GameResultScreen({
       <span className="game-result-score-side opponent-score"><strong>{opponentScore}</strong><small>{opponentName}</small></span>
     </div>
 
-    {award ? <ExperienceReward award={award} /> : <p className="experience-pending">Calcul de l’expérience…</p>}
+    {/* Une partie sans récompense (bascule vers le classé) ou un compte illisible
+        laissaient « Calcul de l'expérience… » affiché pour toujours. */}
+    {award ? <ExperienceReward award={award} /> : award === undefined ? <p className="experience-pending">Calcul de l’expérience…</p> : null}
     {children}
   </section>
 }

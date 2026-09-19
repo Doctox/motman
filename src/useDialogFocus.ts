@@ -11,6 +11,30 @@ const FOCUSABLE_SELECTOR = [
 
 let bodyLockCount = 0
 let previousBodyOverflow = ''
+/**
+ * Les fenêtres ouvertes, de la plus ancienne à celle du dessus. Chacune écoute
+ * le clavier sur toute la page : sans cette pile, Échap — que le retour Android
+ * envoie — fermait d'un coup TOUTES les fenêtres empilées (le signalement ET le
+ * panneau Amis dessous), et la tabulation se disputait entre elles. Seule celle
+ * du dessus répond (19/09/2026).
+ */
+const openDialogs: HTMLElement[] = []
+
+/**
+ * La fenêtre est-elle celle du dessus ? Une fenêtre CONTENUE dans une autre est
+ * au-dessus d'elle, quel que soit l'ordre d'ouverture (quand les deux
+ * apparaissent dans le même rendu, React installe l'enfant avant le parent).
+ * Sinon, c'est la dernière ouverte qui gagne.
+ */
+function isTopDialog(dialog: HTMLElement): boolean {
+  const index = openDialogs.indexOf(dialog)
+  return openDialogs.every((other, otherIndex) => {
+    if (other === dialog) return true
+    if (dialog.contains(other)) return false
+    if (other.contains(dialog)) return true
+    return otherIndex < index
+  })
+}
 
 function visibleFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
@@ -47,7 +71,10 @@ export function useDialogFocus<T extends HTMLElement>(onClose?: () => void): Ref
       ;(safePreferred ?? firstNonTypingControl ?? dialog).focus({ preventScroll: true })
     })
 
+    openDialogs.push(dialog)
+
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isTopDialog(dialog)) return
       if (event.key === 'Escape' && closeRef.current) {
         event.preventDefault()
         closeRef.current()
@@ -77,6 +104,8 @@ export function useDialogFocus<T extends HTMLElement>(onClose?: () => void): Ref
     return () => {
       window.cancelAnimationFrame(focusFrame)
       document.removeEventListener('keydown', handleKeyDown)
+      const index = openDialogs.lastIndexOf(dialog)
+      if (index >= 0) openDialogs.splice(index, 1)
       bodyLockCount = Math.max(0, bodyLockCount - 1)
       if (bodyLockCount === 0) document.body.style.overflow = previousBodyOverflow
       if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true })

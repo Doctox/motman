@@ -1,5 +1,6 @@
 import type { MatchState } from './matches'
 import type { PollVisibility } from './adaptivePolling'
+import { serverNow } from './serverClock'
 
 type MatchPollDelayOptions = {
   match: MatchState | null
@@ -23,7 +24,10 @@ export function matchPollDelay({
   realtimeConnected,
   unchangedPolls,
   failureCount,
-  now = Date.now(),
+  // L'heure du SERVEUR, comme `turnEndsAt` : avec celle du téléphone, un
+  // appareil en avance voyait chaque tour déjà fini et sondait toutes les
+  // 350 ms toute la partie — assez pour buter sur « Trop de requêtes ».
+  now = serverNow(),
 }: MatchPollDelayOptions): number {
   if (visibility === 'hidden' || match?.status === 'finished') return -1
 

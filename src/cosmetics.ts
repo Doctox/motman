@@ -258,7 +258,9 @@ export function loadPlayerCosmetics(playerId: string): PlayerCosmetics {
 }
 
 export function savePlayerCosmetics(cosmetics: PlayerCosmetics): PlayerCosmetics {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cosmetics))
+  // Stockage bloqué (navigateur qui refuse les données de site) : le jeu doit
+  // quand même démarrer, le serveur reste la source de vérité.
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cosmetics)) } catch { /* voir ci-dessus */ }
   window.dispatchEvent(new CustomEvent<PlayerCosmetics>('motman:cosmetics', { detail: cosmetics }))
   return cosmetics
 }

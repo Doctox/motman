@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowLeft, Ban, Check, Copy, Search, Shield, UserMinus, UserPlus, Users, X } from 'lucide-react'
-import { shortPlayerId, type GuestIdentity } from '../playerIdentity'
+import { friendCodeOf, type GuestIdentity } from '../playerIdentity'
 import {
   reportPlayer,
   respondToFriendRequest,
@@ -42,7 +42,8 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
   const [reportReason, setReportReason] = useState<'pseudo' | 'comportement' | 'triche' | 'harcelement' | 'autre'>('comportement')
   const [reportDetails, setReportDetails] = useState('')
   const [reportBusy, setReportBusy] = useState(false)
-  const ownCode = shortPlayerId(identity.playerId)
+  const [reportError, setReportError] = useState<string | null>(null)
+  const ownCode = friendCodeOf(identity)
   const dialogRef = useDialogFocus<HTMLElement>(close)
 
   const run = async (key: string, action: () => Promise<SocialState>, success?: string) => {
@@ -104,13 +105,15 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
   const submitReport = async (event: FormEvent) => {
     event.preventDefault()
     if (!reportTarget || reportBusy) return
-    setReportBusy(true); setError(null)
+    setReportBusy(true); setReportError(null)
     try {
       await reportPlayer(reportTarget.playerId, reportReason, reportDetails)
       notify('Signalement transmis à la modération')
       setReportTarget(null); setReportDetails(''); setManagedFriend(null)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Signalement impossible.')
+      // Dans la fenêtre du signalement : affichée dans le panneau Amis, sous
+      // le voile, l'erreur restait invisible (relevé le 19/09/2026).
+      setReportError(reason instanceof Error ? reason.message : 'Signalement impossible.')
     } finally { setReportBusy(false) }
   }
 
@@ -120,7 +123,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
       <div className="mm-friends-scroll">
         <form className="mm-add-friend mm-friend-search" onSubmit={submitFriendSearch}>
           <label htmlFor="friend-search">Rechercher par pseudo</label>
-          <p>Entre au moins {SOCIAL_SEARCH_MIN_LENGTH} caractères.</p>
+          <p>Entrez au moins {SOCIAL_SEARCH_MIN_LENGTH} caractères.</p>
           <div><input id="friend-search" value={friendSearch} onChange={event => {
             setFriendSearch(event.target.value)
             setSearchPerformed(false)
@@ -195,17 +198,30 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
         {social.blocked.length ? <details className="mm-blocked-list"><summary>Joueurs bloqués ({social.blocked.length})</summary>{social.blocked.map(user => <article className="mm-social-row" key={user.playerId}><SocialPortrait user={user} small /><span><strong>{user.displayName}</strong><small>Bloqué</small></span><button type="button" className="text-action" disabled={busy !== null} onClick={() => void run(user.playerId, () => updateFriend(identity.playerId, user.playerId, 'unblock'), 'Joueur débloqué')}>Débloquer</button></article>)}</details> : null}
       </div>
     </section>
-    {reportTarget ? <div className="mm-modal-layer mm-report-layer" role="presentation">
-      <form className="mm-settings mm-report-panel" role="dialog" aria-modal="true" aria-label={`Signaler ${reportTarget.displayName}`} onSubmit={submitReport}>
-        <header><h2>Signaler {reportTarget.displayName}</h2><button type="button" onClick={() => setReportTarget(null)} aria-label="Fermer"><X /></button></header>
+    {reportTarget ? <ReportDialog title={`Signaler ${reportTarget.displayName}`} close={() => { setReportTarget(null); setReportError(null) }} onSubmit={submitReport}>
+        <header><h2>Signaler {reportTarget.displayName}</h2><button type="button" onClick={() => { setReportTarget(null); setReportError(null) }} aria-label="Fermer"><X /></button></header>
         <label htmlFor="report-reason">Motif</label>
         <select id="report-reason" value={reportReason} onChange={event => setReportReason(event.target.value as typeof reportReason)}>
           <option value="pseudo">Pseudo inapproprié</option><option value="comportement">Comportement</option><option value="triche">Triche</option><option value="harcelement">Harcèlement</option><option value="autre">Autre</option>
         </select>
         <label htmlFor="report-details">Précisions facultatives</label>
         <textarea id="report-details" maxLength={500} value={reportDetails} onChange={event => setReportDetails(event.target.value)} placeholder="Décrivez brièvement le problème." />
+        {reportError ? <p className="mm-account-error" role="alert">{reportError}</p> : null}
         <button className="mm-save-guest" type="submit" disabled={reportBusy}>{reportBusy ? 'Envoi…' : 'Envoyer le signalement'}</button>
-      </form>
-    </div> : null}
+    </ReportDialog> : null}
+  </div>
+}
+
+/**
+ * La fenêtre du signalement, avec sa propre gestion du focus : sans elle,
+ * Échap et le retour Android fermaient tout le panneau Amis au lieu du seul
+ * signalement.
+ */
+function ReportDialog({ title, close, onSubmit, children }: { title: string; close: () => void; onSubmit: (event: FormEvent) => void; children: ReactNode }) {
+  const dialogRef = useDialogFocus<HTMLFormElement>(close)
+  return <div className="mm-modal-layer mm-report-layer" role="presentation">
+    <form ref={dialogRef} className="mm-settings mm-report-panel" role="dialog" aria-modal="true" aria-label={title} onSubmit={onSubmit} tabIndex={-1}>
+      {children}
+    </form>
   </div>
 }

@@ -3,7 +3,7 @@ import { hasSupabaseSession } from './supabaseClient'
 import { invokeSupabaseFunction } from './supabaseFunctions'
 
 export type PresenceActivity = 'offline' | 'online' | 'playing'
-export type SocialUser = { playerId: string; displayName: string; code: string; online: boolean; activity: PresenceActivity; avatarId?: string; frameId?: string; animationId?: string }
+export type SocialUser = { playerId: string; displayName: string; code: string; online: boolean; activity: PresenceActivity; avatarId?: string; frameId?: string; animationId?: string; /** Niveau du joueur, dans une partie seulement (match-api `view`). */ level?: number }
 export type SocialSearchResult = Omit<SocialUser, 'code'> & { relation: 'available' | 'friend' | 'incoming' | 'outgoing' }
 export type SocialRequest = { id: string; createdAt: string; user: SocialUser }
 export type Friend = SocialUser & { since: string }

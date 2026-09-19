@@ -10,6 +10,7 @@ import { invokeSupabaseFunction } from './supabaseFunctions'
 import { isNativeRuntime, NATIVE_AUTH_REDIRECT, openNativeAuthentication } from './nativeRuntime'
 import { getAnonymousCaptchaToken } from './turnstile'
 import { parseGoogleAuthIssue, takeRememberedGoogleAuthIssue, type GoogleAuthIssue } from './googleAuthCallback'
+import { messageAuth } from './authErrors'
 
 const recoveryListeners = new Set<() => void>()
 let passwordRecoveryPending = false
@@ -45,7 +46,31 @@ export type AuthResponse = {
   emailConfirmationRequired?: boolean
 }
 
+/** Le joueur dont les données sont sur l'appareil, sans en créer un s'il manque. */
+function joueurSurLAppareil(): string | null {
+  try {
+    const stocke = JSON.parse(localStorage.getItem('motman-player-v1') ?? 'null') as { playerId?: unknown } | null
+    return typeof stocke?.playerId === 'string' ? stocke.playerId : null
+  } catch {
+    return null
+  }
+}
+
 function store(payload: AuthResponse): AuthResponse {
+  // UN AUTRE COMPTE SUR CET APPAREIL (connexion à un compte existant, par
+  // e-mail ou Google) : l'état du défi du jour et le texte de partage sont
+  // ceux du joueur précédent. Sans ce ménage, le nouveau compte héritait de sa
+  // série (le rapprochement garde le maximum), de son « réussi » ou de son
+  // « fermé » du jour — plus de bouton Jouer — et de son partage (19/09/2026).
+  // Le passage d'une identité locale `guest_…` à l'identifiant du serveur, au
+  // tout premier démarrage, ne trouve rien à effacer.
+  const precedent = joueurSurLAppareil()
+  if (precedent && !precedent.startsWith('guest_') && precedent !== payload.identity.playerId) {
+    try {
+      localStorage.removeItem('motman-daily-v1')
+      localStorage.removeItem('motman-daily-share-v1')
+    } catch { /* Stockage indisponible : rien à hériter non plus. */ }
+  }
   if (payload.quests) saveQuestBoard(payload.quests)
   if (payload.progress) savePlayerProgress(payload.progress)
   if (payload.cosmetics) savePlayerCosmetics(payload.cosmetics)
@@ -63,17 +88,13 @@ function store(payload: AuthResponse): AuthResponse {
 }
 
 function clearPlayerDataFromDevice(): void {
-  localStorage.removeItem('motman-player-v1')
-  localStorage.removeItem('motman-progress-v1')
-  localStorage.removeItem('motman-cosmetics-v1')
-  localStorage.removeItem('motman-recent-solo-grids-v4')
-  // La série du défi du jour DOIT partir avec le compte. Elle ne le faisait pas,
-  // et c'était sans conséquence tant qu'elle était décorative. Depuis qu'elle
-  // vaut jusqu'à 4 500 plumes de paliers, la laisser en place ferait hériter le
-  // joueur suivant de la série du précédent sur un appareil partagé — et
-  // `reconcileServerDailyStreak` ne prenant que le maximum, il la garderait.
-  localStorage.removeItem('motman-daily-v1')
-  localStorage.removeItem('entrelignes-feedback')
+  // La série du défi du jour et son partage DOIVENT partir avec le compte : sur
+  // un appareil partagé, le joueur suivant en hériterait — le rapprochement avec
+  // le serveur ne garde que le maximum. Les anciennes clés du Solo et des avis
+  // de fin de partie ne sont plus écrites, mais peuvent traîner sur un appareil.
+  for (const cle of ['motman-player-v1', 'motman-progress-v1', 'motman-cosmetics-v1', 'motman-daily-v1', 'motman-daily-share-v1', 'motman-recent-solo-grids-v4', 'entrelignes-feedback']) {
+    try { localStorage.removeItem(cle) } catch { /* Stockage indisponible : rien à effacer. */ }
+  }
 }
 
 async function accountAction(action: string, body: Record<string, unknown> = {}): Promise<AuthResponse> {
@@ -113,7 +134,7 @@ export async function bootstrapPlayerSession(): Promise<GuestIdentity> {
   if (!sessionData.session) {
     const captchaToken = await getAnonymousCaptchaToken()
     const { data, error } = await supabase.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined)
-    if (error || !data.session) throw new Error(error?.message || 'Création de la session MotMan impossible.')
+    if (error || !data.session) throw new Error(messageAuth(error, 'Création de la session MotMan impossible. Réessayez.'))
     sessionData = { session: data.session }
   }
   const response = await accountAction('bootstrap', { identity: legacyIdentity })
@@ -149,14 +170,14 @@ export async function createPlayerAccount(email: string): Promise<AuthResponse> 
     ? NATIVE_AUTH_REDIRECT
     : `${location.origin}${location.pathname}#profil`
   const { error } = await supabase.auth.updateUser({ email: email.trim() }, { emailRedirectTo })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(messageAuth(error, 'Création du compte impossible. Réessayez.'))
   const state = await accountAction('state')
   return { ...state, emailConfirmationRequired: true }
 }
 
 export async function finishPlayerAccount(password: string): Promise<AuthResponse> {
   const { error } = await supabase.auth.updateUser({ password })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(messageAuth(error, 'Mot de passe non enregistré. Réessayez.'))
   return accountAction('state')
 }
 
@@ -169,7 +190,9 @@ export async function loginPlayerAccount(email: string, password: string): Promi
     if (isNativeRuntime()) {
       void import('./nativePushNotifications').then(module => module.syncStoredPushDevice()).catch(() => undefined)
     }
-    throw new Error('E-mail ou mot de passe incorrect.')
+    // Seuls de mauvais identifiants disent « incorrect » : un réseau coupé ou
+    // une limite de tentatives ont leur propre message.
+    throw new Error(messageAuth(error, 'E-mail ou mot de passe incorrect.'))
   }
   const account = await accountAction('state')
   if (isNativeRuntime()) {
@@ -190,7 +213,7 @@ export async function authenticateWithGoogle(mode: 'link' | 'sign-in' = 'link'):
   const { data, error } = shouldLink
     ? await supabase.auth.linkIdentity({ provider: 'google', options })
     : await supabase.auth.signInWithOAuth({ provider: 'google', options })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(messageAuth(error, 'Connexion Google impossible. Réessayez.'))
   if (data?.url) {
     if (native) await openNativeAuthentication(data.url)
     else location.assign(data.url)
@@ -202,14 +225,22 @@ export async function recoverPlayerAccount(email: string): Promise<void> {
     ? NATIVE_AUTH_REDIRECT
     : `${location.origin}${location.pathname}#profil`
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(messageAuth(error, 'Envoi du lien impossible. Réessayez.'))
 }
 
 export async function logoutPlayerAccount(): Promise<GuestIdentity> {
   if (isNativeRuntime()) {
     await import('./nativePushNotifications').then(module => module.detachStoredPushDevice()).catch(() => undefined)
   }
-  await supabase.auth.signOut()
+  // CET appareil seulement (`local`) : la portée par défaut déconnectait aussi
+  // le compte sur tous les autres téléphones et navigateurs. Et un échec (réseau)
+  // garde la session : on s'arrête là, au lieu d'effacer l'appareil puis de
+  // recharger le même compte en annonçant « Déconnecté » (19/09/2026).
+  const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
+  if (signOutError) {
+    if (isNativeRuntime()) void import('./nativePushNotifications').then(module => module.syncStoredPushDevice()).catch(() => undefined)
+    throw new Error(messageAuth(signOutError, 'Déconnexion impossible. Vérifiez votre connexion, puis réessayez.'))
+  }
   clearPlayerDataFromDevice()
   const identity = await bootstrapPlayerSession()
   if (isNativeRuntime()) {

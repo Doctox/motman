@@ -3,20 +3,13 @@ import { Check, Clock3, ShieldX, Swords } from 'lucide-react'
 import { rankImage, rankedDivision } from './ranked'
 import type { RankedMatchmakingState } from './rankedMatchmaking'
 import { useDialogFocus } from './useDialogFocus'
+import { serverNow } from './serverClock'
 
 function secondsUntil(expiresAt: string, now: number): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 1000))
 }
 
-export function RankedReadyOverlay({
-  state,
-  currentMatchId = null,
-  currentMatchPace = null,
-  busy,
-  error,
-  accept,
-  decline,
-}: {
+type RankedReadyProps = {
   state: RankedMatchmakingState
   /** Partie ouverte au moment où l'écran de confirmation apparaît, s'il y en a une. */
   currentMatchId?: string | null
@@ -26,31 +19,51 @@ export function RankedReadyOverlay({
   error: string | null
   accept: () => void
   decline: () => void
-}) {
-  const ready = state.ready
-  const [now, setNow] = useState(Date.now())
+}
+
+/**
+ * Monté en permanence (App.tsx) : la fenêtre n'existe que quand un adversaire
+ * est trouvé. Elle vit donc dans son propre composant, monté à ce moment-là —
+ * sans quoi `useDialogFocus` s'exécutait au démarrage de l'appli, sur une
+ * fenêtre absente, et « Adversaire trouvé ! » n'avait ni focus ni piège de
+ * tabulation (relevé le 19/09/2026).
+ */
+export function RankedReadyOverlay(props: RankedReadyProps) {
+  const ready = props.state.ready
+  return ready ? <RankedReadyDialog key={ready.id} {...props} ready={ready} /> : null
+}
+
+function RankedReadyDialog({
+  state,
+  ready,
+  currentMatchId = null,
+  currentMatchPace = null,
+  busy,
+  error,
+  accept,
+  decline,
+}: RankedReadyProps & { ready: NonNullable<RankedMatchmakingState['ready']> }) {
+  // `expiresAt` vient du serveur : on le compare à son heure, pas à celle du téléphone.
+  const [now, setNow] = useState(serverNow)
   const dialogRef = useDialogFocus<HTMLElement>(() => undefined)
 
   useEffect(() => {
-    if (!ready) return
-    setNow(Date.now())
-    const interval = window.setInterval(() => setNow(Date.now()), 250)
+    const interval = window.setInterval(() => setNow(serverNow()), 250)
     return () => window.clearInterval(interval)
-  }, [ready?.id])
+  }, [])
 
-  const seconds = ready ? secondsUntil(ready.expiresAt, now) : 0
+  const seconds = secondsUntil(ready.expiresAt, now)
   const division = useMemo(
     () => rankedDivision(state.progress.points, state.progress.matches),
     [state.progress.matches, state.progress.points],
   )
-  if (!ready) return null
 
   return <div className="ranked-ready-layer" role="presentation">
     <section ref={dialogRef} className="ranked-ready-dialog" role="dialog" aria-modal="true" aria-labelledby="ranked-ready-title" tabIndex={-1}>
       <div className="ranked-ready-emblems" aria-hidden="true">
         <img src={rankImage(division)} alt="" />
         <Swords />
-        <span>{ready.opponent?.avatarId ? <span className="ranked-ready-opponent-avatar">{ready.opponent.displayName.slice(0, 1)}</span> : ready.opponent?.displayName.slice(0, 1) ?? '?'}</span>
+        <span>{ready.opponent?.displayName.slice(0, 1) ?? '?'}</span>
       </div>
       <small>Partie classée · 45 s par tour</small>
       <h2 id="ranked-ready-title">Adversaire trouvé !</h2>
@@ -67,7 +80,8 @@ export function RankedReadyOverlay({
       {!ready.pausedMatchId && currentMatchId && currentMatchPace === 'realtime' ? <p className="ranked-ready-loss-note" role="alert">
         Attention : votre partie en cours sera perdue si vous rejoignez. Elle compte comme un abandon — aucune plume, aucune expérience.
       </p> : null}
-      <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`} aria-live="polite"><Clock3 /><b>{seconds}</b><span>secondes</span></div>
+      {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde. */}
+      <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`}><Clock3 /><b>{seconds}</b><span>secondes</span></div>
       {state.status === 'accepted' ? <div className="ranked-ready-waiting"><Check />Accepté · En attente de l’autre joueur</div> : <div className="ranked-ready-actions">
         <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Quitter</button>
         <button type="button" className="ranked-ready-accept" disabled={busy || seconds === 0} onClick={accept}><Check />Rejoindre</button>
@@ -84,9 +98,10 @@ export function RankedMatchPausedOverlay({
   opponentName: string
   expiresAt: string
 }) {
-  const [now, setNow] = useState(Date.now())
+  // `expiresAt` vient du serveur : on le compare à son heure, pas à celle du téléphone.
+  const [now, setNow] = useState(serverNow)
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 250)
+    const interval = window.setInterval(() => setNow(serverNow()), 250)
     return () => window.clearInterval(interval)
   }, [expiresAt])
   const seconds = secondsUntil(expiresAt, now)

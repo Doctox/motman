@@ -61,10 +61,13 @@ function absenceDetail(pace: string, won: boolean, opponentName: string): string
   return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'Vous n’avez pas répondu à temps : la partie est perdue.'
 }
 
+/** La partie normale close d'office quand un joueur rejoint un match classé confirmé. */
+const DETAIL_BASCULE_CLASSEE = 'La partie normale est déclarée égale car un joueur rejoint le match classé confirmé. Aucun gain ni perte n’est appliqué.'
+
 export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void }) {
   const [leaving, setLeaving] = useState(false)
   const [leavingError, setLeavingError] = useState<string | null>(null)
-  const [experienceAward, setExperienceAward] = useState<ExperienceAward | null>(null)
+  const [experienceAward, setExperienceAward] = useState<ExperienceAward | null | undefined>(undefined)
   const [dailyEffects, setDailyEffects] = useState<DailyAdvanceEffects | null>(null)
   const [dailyShare, setDailyShare] = useState<string | null>(null)
   const won = match.winnerId === playerId
@@ -72,7 +75,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
   const draw = match.winnerId === null && (match.finishReason === 'completed' || administrativeDraw)
   const title = draw ? 'Égalité !' : won ? 'Victoire !' : 'Partie terminée'
   const detail = administrativeDraw
-    ? 'La partie normale est déclarée égale car un joueur rejoint le match classé confirmé. Aucun gain ni perte n’est appliqué.'
+    ? DETAIL_BASCULE_CLASSEE
     : match.finishReason === 'timeout'
     ? absenceDetail(match.pace, won, opponentName)
     : match.finishReason === 'forfeit'
@@ -99,7 +102,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     // Demandée dès la fin de partie (matchRewardPrefetch.ts) : souvent déjà là.
     void recompenseDuMatch(match.id).then(award => {
       if (active) setExperienceAward(award)
-    }).catch(() => undefined)
+    }).catch(() => { if (active) setExperienceAward(null) })
     haptic(won ? [18, 32, 18, 55, 28] : 24)
     playEffect(won ? 'word' : 'score')
     const reduceMotion = motionReduced()
@@ -271,12 +274,16 @@ export function PendingResultPanel({
 }) {
   const [acknowledging, setAcknowledging] = useState(false)
   const [acknowledgeError, setAcknowledgeError] = useState<string | null>(null)
-  const [experienceAward, setExperienceAward] = useState<ExperienceAward | null>(null)
+  const [experienceAward, setExperienceAward] = useState<ExperienceAward | null | undefined>(undefined)
   const won = result.outcome === 'win' || result.outcome === 'opponent-abandoned'
   const draw = result.outcome === 'draw'
   const opponentName = result.opponentName ?? 'Votre adversaire'
   const title = draw ? 'Égalité !' : won ? 'Victoire !' : 'Partie terminée'
-  const detail = result.finishReason === 'timeout'
+  // Même texte que l'écran de fin : sans lui, une bascule vers le classé
+  // s'affichait « Vous terminez avec le même score », scores différents ou non.
+  const detail = result.finishReason === 'ranked_transfer'
+    ? DETAIL_BASCULE_CLASSEE
+    : result.finishReason === 'timeout'
     ? absenceDetail(result.pace, won, opponentName)
     : result.finishReason === 'forfeit'
       ? won ? `${opponentName} a quitté la partie.` : 'Vous avez abandonné la partie.'
@@ -286,7 +293,7 @@ export function PendingResultPanel({
     let active = true
     void recompenseDuMatch(result.matchId).then(award => {
       if (active) setExperienceAward(award)
-    }).catch(() => undefined)
+    }).catch(() => { if (active) setExperienceAward(null) })
     haptic(won ? [18, 32, 18, 55, 28] : 24)
     playEffect(won ? 'word' : 'score')
     const reduceMotion = motionReduced()

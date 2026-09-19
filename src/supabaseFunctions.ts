@@ -16,7 +16,8 @@ export const FUNCTION_TIMEOUT_MS = 20_000
 
 function timeoutFailure(name: string): FunctionFailure {
   return Object.assign(
-    new Error(`Le service ${name} ne répond pas. Vérifiez votre connexion, puis réessayez.`),
+    // Le nom interne de la fonction (« match-api ») n'a rien à faire à l'écran.
+    new Error('Le serveur ne répond pas. Vérifiez votre connexion, puis réessayez.'),
     { payload: { code: 'REQUEST_TIMEOUT' as const }, status: 0 },
   ) as FunctionFailure
 }
@@ -96,7 +97,11 @@ async function callSupabaseFunction<T>(name: string, body: Record<string, unknow
       try { payload = await context.clone().json() as Record<string, unknown> } catch { /* Réponse non JSON. */ }
     }
   }
-  const message = typeof payload?.error === 'string' ? payload.error : error?.message || `Le service ${name} est indisponible.`
+  // Seuls les messages écrits POUR le joueur (le champ `error` de nos
+  // fonctions) passent tels quels. Une réponse sans ce champ — page HTML d'une
+  // passerelle en 502, par exemple — donnait le texte anglais de supabase-js :
+  // « Edge Function returned a non-2xx status code » (relevé le 19/09/2026).
+  const message = typeof payload?.error === 'string' ? payload.error : 'Le serveur est momentanément indisponible. Réessayez dans un instant.'
   if (status === 426 || payload?.code === 'APP_UPDATE_REQUIRED') {
     window.dispatchEvent(new CustomEvent('motman:update-required', { detail: payload }))
   }

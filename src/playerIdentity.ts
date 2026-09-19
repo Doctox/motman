@@ -69,7 +69,9 @@ export function loadPlayerIdentity(): GuestIdentity {
 }
 
 export function savePlayerIdentity(identity: GuestIdentity): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(identity))
+  // Stockage bloqué (navigateur qui refuse les données de site) : le jeu doit
+  // quand même démarrer, le serveur reste la source de vérité.
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(identity)) } catch { /* voir ci-dessus */ }
   window.dispatchEvent(new CustomEvent<GuestIdentity>('motman:identity', { detail: identity }))
 }
 
@@ -86,6 +88,17 @@ export function playerInitials(displayName: string): string {
   if (!words.length) return 'IN'
   if (words.length === 1 || /^\d+$/.test(words[1])) return words[0].slice(0, 2).toUpperCase()
   return `${words[0][0]}${words[1][0]}`.toUpperCase()
+}
+
+/**
+ * Le code ami à MONTRER : celui que le serveur a attribué. Il n'est pas
+ * toujours tiré de l'identifiant — quand le pseudo « Invité XXXX » est déjà
+ * pris, le serveur en tire un autre au hasard (migration 20260803190706) — et
+ * l'accueil et le panneau Amis affichaient alors un code qui ne menait à
+ * personne. Le calcul local ne sert que de repli, avant la première réponse.
+ */
+export function friendCodeOf(identity: Pick<GuestIdentity, 'playerId' | 'friendCode'>): string {
+  return identity.friendCode ?? shortPlayerId(identity.playerId)
 }
 
 export function shortPlayerId(playerId: string): string {

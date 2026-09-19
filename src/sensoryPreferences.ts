@@ -37,7 +37,9 @@ export function loadSensoryPreferences(): SensoryPreferences {
 }
 
 export function saveSensoryPreferences(preferences: SensoryPreferences): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
+  // Stockage bloqué (navigateur qui refuse les données de site) : le jeu doit
+  // quand même démarrer, le serveur reste la source de vérité.
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences)) } catch { /* voir ci-dessus */ }
   window.dispatchEvent(new CustomEvent<SensoryPreferences>(CHANGE_EVENT, { detail: preferences }))
 }
 

@@ -150,7 +150,9 @@ function migratePlayerProgress(value: unknown, playerId: string): PlayerProgress
 }
 
 export function savePlayerProgress(progress: PlayerProgress): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+  // Stockage bloqué (navigateur qui refuse les données de site) : le jeu doit
+  // quand même démarrer, le serveur reste la source de vérité.
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)) } catch { /* voir ci-dessus */ }
   window.dispatchEvent(new CustomEvent<PlayerProgress>('motman:progress', { detail: progress }))
 }
 

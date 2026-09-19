@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, Feather, Gamepad2, Home, Pencil, Trophy, User, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { BarChart3, ChevronRight, Feather, Gamepad2, Pencil, Trophy, User, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { getAnimation, getAvatar, getFrame, type PlayerCosmetics } from '../cosmetics'
 import { PLAYER_NAME_MAX_LENGTH, validatePlayerName } from '../playerNamePolicy'
-import { shortPlayerId, type GuestIdentity } from '../playerIdentity'
+import { friendCodeOf, type GuestIdentity } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
 import { rankImage, rankedDivision } from '../ranked'
 import { EMPTY_PLAYER_STATS, loadPlayerStats, type PlayerStats } from '../playerStats'
@@ -11,7 +11,6 @@ import { loadRankedLeaderboard, type RankedLeaderboard } from '../rankedMatchmak
 import { useDialogFocus } from '../useDialogFocus'
 import { DailyLeaderboardPanel } from './DailyChallenge'
 import { RankProgress, SocialPortrait } from './MenuChrome'
-import type { MenuPage } from './types'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -143,21 +142,7 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openAccount }
         <strong>{frenchNumber.format(cosmetics.plumes)} plume{cosmetics.plumes > 1 ? 's' : ''}</strong>
       </span>
     </section>
-    <button type="button" className="mm-account" onClick={openAccount}><User /><span><strong>{identity.accountType === 'account' ? 'Compte connecté' : 'Compte invité'}</strong><small>Code ami {identity.friendCode ?? shortPlayerId(identity.playerId)}</small></span><b>{identity.accountType === 'account' ? 'Gérer' : 'Créer un compte'}</b><ChevronRight /></button>
-  </div>
-}
-
-export function QuickMenu({ page, navigate, close }: { page: MenuPage; navigate: (page: MenuPage) => void; close: () => void }) {
-  const items: Array<[MenuPage, string, ReactNode]> = [
-    ['home', 'Accueil', <Home />], ['play', 'Jouer', <Gamepad2 />],
-    ['ranking', 'Classement', <BarChart3 />], ['profile', 'Profil', <User />],
-  ]
-  const dialogRef = useDialogFocus<HTMLElement>(close)
-  return <div className="mm-modal-layer mm-quick-menu-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
-    <section ref={dialogRef} className="mm-quick-menu" role="dialog" aria-modal="true" aria-label="Menu principal" tabIndex={-1}>
-      <header><h2>Menu</h2><button type="button" aria-label="Fermer" onClick={close}><X /></button></header>
-      <nav>{items.map(([id, label, icon]) => <button type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} onClick={() => { navigate(id); close() }} key={id}>{icon}<span>{label}</span><ChevronRight /></button>)}</nav>
-    </section>
+    <button type="button" className="mm-account" onClick={openAccount}><User /><span><strong>{identity.accountType === 'account' ? 'Compte connecté' : 'Compte invité'}</strong><small>Code ami {friendCodeOf(identity)}</small></span><b>{identity.accountType === 'account' ? 'Gérer' : 'Créer un compte'}</b><ChevronRight /></button>
   </div>
 }
 
@@ -186,7 +171,7 @@ export function EditGuestPanel({ identity, progress, cosmetics, close, save }: {
       void save(normalized, avatarId, frameId, animationId, titleId).catch(reason => setError(reason instanceof Error ? reason.message : 'Enregistrement impossible.')).finally(() => setBusy(false))
     }}>
       <header><div><small>Votre identité</small><h2>Modifier le profil</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
-      <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de votre avatar" /><span><strong>{normalized || 'Votre pseudo'}</strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `ID ${shortPlayerId(identity.playerId)}`}</small></span></div>
+      <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de votre avatar" /><span><strong>{normalized || 'Votre pseudo'}</strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `Code ami ${friendCodeOf(identity)}`}</small></span></div>
       <div className="mm-profile-editor-scroll">
       <label htmlFor="guest-display-name">Pseudo</label>
       <input id="guest-display-name" value={displayName} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" aria-invalid={!nameValidation.valid} aria-describedby="guest-display-name-help" onChange={event => setDisplayName(event.target.value)} />
