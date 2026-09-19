@@ -163,7 +163,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Chaque jour',
     title: 'Le défi du jour et votre série',
-    description: 'Une grille à thème, la même pour tout le monde, jusqu’à minuit. Gagnez-la chaque jour pour faire grimper votre série : toutes les 7 victoires, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
+    description: 'Une grille à thème, la même pour tout le monde, renouvelée chaque jour. Jouez-la chaque jour pour faire grimper votre série : toutes les 7 victoires, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
     visual: <StreakVisual />,
     note: <><Flame /> Touchez la flamme sur la carte du défi pour voir votre semaine.</>,
   },
@@ -186,7 +186,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Choisir un mode',
     title: 'À chacun sa façon de jouer',
-    description: 'Normal vous trouve un adversaire de votre niveau, sans rien risquer au classement. Amis se joue sur invitation. Le Classé vous oppose à un rang proche et fait évoluer vos points.',
+    description: 'Normal vous trouve un adversaire au hasard, sans rien risquer au classement. Amis se joue sur invitation. Le Classé vous oppose à un rang proche et fait évoluer vos points.',
     visual: <ModesVisual />,
   },
   {

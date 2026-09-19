@@ -8,7 +8,8 @@ import { claimQuest, type ClaimedQuestReward } from '../auth'
 import { loadPlayerCosmetics } from '../cosmetics'
 import { loadPlayerIdentity } from '../playerIdentity'
 import { motionReduced } from '../sensoryPreferences'
-import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, type QuestCounter, type QuestView } from '../quests'
+import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, WEEKLY_QUEST_PLUMES_IF_FULL, type QuestCounter, type QuestView } from '../quests'
+import { MAX_STREAK_FREEZES } from '../dailyStreakRule'
 import { useQuestBoard } from '../questBoardState'
 import { useDialogFocus } from '../useDialogFocus'
 import { useDailyCountdown } from './DailyChallenge'
@@ -121,6 +122,11 @@ function QuestsPanel({ close }: { close: () => void }) {
   }
 
   const finies = board ? board.day.filter(quest => quest.done).length : 0
+  // Poche de gels pleine : le serveur verse des plumes à la place du gel
+  // (src/quests.ts). L'annonce dit la même chose que le versement.
+  const pochePleine = (() => {
+    try { return loadPlayerCosmetics(loadPlayerIdentity().playerId).streakFreezes >= MAX_STREAK_FREEZES } catch { return false }
+  })()
 
   return createPortal(
     <div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) close() }}>
@@ -156,7 +162,9 @@ function QuestsPanel({ close }: { close: () => void }) {
               quest={board.week}
               eyebrow="Quête de la semaine"
               decoupee
-              reward={<><Snowflake aria-hidden="true" /><b>1 gel</b> de série</>}
+              reward={pochePleine
+                ? <><Feather aria-hidden="true" /><b>+{WEEKLY_QUEST_PLUMES_IF_FULL}</b> plumes (poche de gels pleine)</>
+                : <><Snowflake aria-hidden="true" /><b>1 gel</b> de série</>}
               gagnee={gagnees[board.week.id]}
               enCours={enCours === board.week.id}
               recuperer={() => void recuperer(board.week, 'week')}

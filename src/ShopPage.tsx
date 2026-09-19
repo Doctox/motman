@@ -292,7 +292,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
           <div className="mm-object-copy">
             <small>Objet · défi du jour</small>
             <strong>Gel de série</strong>
-            <p>Il protège une journée de défi manquée : votre série continue, sans compter de victoire. Il s’utilise tout seul à votre victoire suivante.</p>
+            <p>Il protège une journée de défi manquée : votre série continue, sans compter de victoire. Il s’utilise tout seul au prochain défi du jour que vous ouvrez.</p>
             <span className="mm-object-stock" aria-label={`${enPoche} gel${enPoche > 1 ? 's' : ''} en poche sur ${MAX_STREAK_FREEZES}`}>
               {Array.from({ length: MAX_STREAK_FREEZES }, (_, index) => <i key={index} className={index < enPoche ? 'is-owned' : ''}><Snowflake /></i>)}
               <em>En poche : {enPoche}/{MAX_STREAK_FREEZES}</em>

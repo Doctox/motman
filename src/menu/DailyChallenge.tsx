@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Flame, Gift, Grid2x2Check, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { ChevronRight, Flame, Gift, Grid2x2Check, Medal, RotateCcw, Snowflake } from 'lucide-react'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
 import { loadDailyShare } from '../dailyShare'
@@ -189,7 +189,8 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle} · tentative {attempts}</small>
         <h2 className="mm-daily-title">Pas cette fois — on retente ?</h2>
-        <p className="mm-daily-note">Vous avez jusqu’à minuit pour le battre</p>
+        {/* Pas « jusqu'à minuit » : la bascule est à minuit À PARIS (voir msUntilNextDailyGrid). */}
+        <p className="mm-daily-note">Vous pouvez retenter jusqu’à la prochaine grille, dans {countdown}</p>
         <button type="button" className="mm-daily-cta" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}`}>
           <RotateCcw aria-hidden="true" />Réessayer <ChevronRight aria-hidden="true" />
         </button>

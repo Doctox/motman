@@ -56,7 +56,7 @@ export function validatePlayerName(value: string): PlayerNameValidation {
   if (!/^[\p{L}\p{N}](?:[\p{L}\p{N} _'’\-]*[\p{L}\p{N}])?$/u.test(normalized)) {
     return { valid: false, normalized, error: 'Lettres, chiffres, espace, tiret ou apostrophe uniquement.' }
   }
-  if (/([ _'’\-])\1/u.test(normalized)) return { valid: false, normalized, error: 'Évite les séparateurs répétés.' }
+  if (/([ _'’\-])\1/u.test(normalized)) return { valid: false, normalized, error: 'Évitez les séparateurs répétés.' }
   if (/\d{6,}/.test(normalized) || /(?:https?|www|discord|telegram|snapchat|instagram|tiktok|gmail|hotmail|outlook)/i.test(normalized)) {
     return { valid: false, normalized, error: 'Les coordonnées et liens ne sont pas autorisés.' }
   }
@@ -72,7 +72,7 @@ export function validatePlayerName(value: string): PlayerNameValidation {
   if (UNAMBIGUOUS_BLOCKED_MARKERS.some(marker => moderationForms.some(form => form.includes(collapseRepeatedCharacters(marker)))) ||
     (isBlockedAbbreviation(compact) || isBlockedAbbreviation(literalCompact)) ||
     SHORT_BLOCKED_WORDS.some(word => tokens.includes(word) || compact === word || new RegExp(`^${word}\\d{1,3}$`).test(compact) || new RegExp(`^${word}\\d{1,3}$`).test(literalCompact))) {
-    return { valid: false, normalized, error: 'Choisis un pseudo respectueux.' }
+    return { valid: false, normalized, error: 'Choisissez un pseudo respectueux.' }
   }
   return { valid: true, normalized }
 }

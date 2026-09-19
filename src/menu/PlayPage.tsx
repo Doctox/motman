@@ -195,7 +195,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
           titre="Recherche d’un adversaire…"
-          detail={asyncSearching ? 'Vous pouvez revenir plus tard' : 'Un adversaire de votre niveau vous sera proposé'}
+          detail={asyncSearching ? 'Vous pouvez revenir plus tard' : 'Un adversaire vous sera proposé'}
           depuis={(asyncSearch ?? realtimeSearch)?.createdAt}
           disabled={searchBusy !== null}
           annuler={() => void arreterRecherche(asyncSearching ? 'async' : 'realtime')}
@@ -233,7 +233,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         {rankedTimedOut && !rankedSearching ? <p className="mm-ranked-timeout" role="status">
           Personne n’a été trouvé en dix minutes — la recherche s’est arrêtée. Vous pouvez la relancer.
         </p> : null}
-        <p className="mm-ranked-explainer">La recherche continue en arrière-plan. Une partie normale limitée sera seulement mise en pause pendant la confirmation.</p>
+        <p className="mm-ranked-explainer">La recherche continue en arrière-plan. Si une partie en temps limité est en cours quand un adversaire est trouvé, l’écran de confirmation vous dit ce qu’elle devient avant que vous rejoigniez.</p>
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </section> : null}
 
