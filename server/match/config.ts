@@ -14,7 +14,7 @@ export const TURN_READY_DURATION_MS = numericEnvironment('MOTMAN_TURN_READY_DURA
 // joueurs lisent la grille avant que le chronomètre du premier ne parte. Doit
 // valoir FIRST_TURN_READING_MS (supabase/functions/match-api/matchSetup.ts) ;
 // `matchTiming.test.ts` le vérifie.
-export const FIRST_TURN_READING_MS = numericEnvironment('MOTMAN_FIRST_TURN_READING_MS', 15_000, 0)
+export const FIRST_TURN_READING_MS = numericEnvironment('MOTMAN_FIRST_TURN_READING_MS', 30_000, 0)
 
 // A short server grace period lets a phone submit the move displayed at 00:00
 // without a simultaneous polling request turning it into a timeout first.

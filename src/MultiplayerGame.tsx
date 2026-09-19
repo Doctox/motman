@@ -167,7 +167,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
 
   const assignedToMe = match?.status === 'active' && !match.pause && match.currentPlayerId === playerId
   const turnPhase = useTurnPhase(match)
-  // Les dix secondes de lecture avant le premier tour (game/ReadingWindow.tsx).
+  // La fenêtre de lecture avant le premier tour, 30 s depuis le 19/09/2026 (game/ReadingWindow.tsx).
   const lectureRestante = useReadingWindow(match)
   // Trois appuis sur le chronometre ouvrent le releve d'affichage (temporaire).
   const turnHasStarted = turnPhase.started

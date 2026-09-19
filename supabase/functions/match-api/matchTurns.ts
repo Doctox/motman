@@ -149,22 +149,27 @@ export function forfeitAbsentPlayer(row: MatchRow, absent = row.current_player_i
  * joueur ne perdait qu'un tour avant une nouvelle fenêtre de 30 s. Ouvrir le
  * défi, fermer l'appli, chercher les réponses, revenir : c'était possible.
  *
- * En temps limité, une partie que PERSONNE n'a fait avancer depuis 90 s est
- * donc perdue par l'humain absent. Le plus long silence d'une partie suivie est
- * d'environ 68 s : lecture de la grille (15 s), tour de 45 s, délai de grâce du
- * serveur (8 s) ; après quoi le serveur écrit le tour manqué. Tant qu'une appli
- * est ouverte, cette règle ne se déclenche donc jamais. Trois minutes au départ
- * (19/09/2026), ramenées à 90 s le même jour à la demande du propriétaire.
+ * En temps limité, une partie dont le tour est ÉCHU depuis 45 s sans que
+ * personne ne l'ait fait avancer est donc perdue par l'humain absent. Quand une
+ * appli est ouverte, le serveur écrit le tour manqué 8 s après l'échéance
+ * (délai de grâce) : l'échéance avance, et cette règle ne se déclenche jamais.
+ * Mesurée depuis l'échéance, elle ne dépend ni de la fenêtre de lecture (30 s
+ * depuis le 19/09/2026) ni de la durée du tour. Un joueur parti perd au plus
+ * 90 s après le début de son tour.
+ *
+ * Histoire du même jour : trois minutes depuis la dernière écriture d'abord,
+ * jugées trop longues par le propriétaire, puis 90 s — que la lecture passée à
+ * 30 s aurait approchées (30 + 45 + 8 = 83 s de silence normal).
  */
-export const ABSENCE_SANS_TEMOIN_MS = 90_000
+export const ABSENCE_SANS_TEMOIN_MS = 45_000
 
 /** L'humain déclaré absent : celui dont c'est le tour, ou celui qui affronte le bot. Null si la partie vit. */
 export function absentSansTemoin(
-  row: Pick<MatchRow, 'status' | 'pace' | 'paused_at' | 'updated_at' | 'current_player_id' | 'state'>,
+  row: Pick<MatchRow, 'status' | 'pace' | 'paused_at' | 'turn_ends_at' | 'current_player_id' | 'state'>,
   now = Date.now(),
 ): string | null {
   if (row.status !== 'active' || row.pace !== 'realtime' || row.paused_at) return null
-  if (now - Date.parse(row.updated_at) < ABSENCE_SANS_TEMOIN_MS) return null
+  if (now - Date.parse(row.turn_ends_at) < ABSENCE_SANS_TEMOIN_MS) return null
   const bot = row.state.bot?.playerId
   if (row.current_player_id && row.current_player_id !== bot) return row.current_player_id
   return row.state.playerIds.find(id => id !== bot) ?? null

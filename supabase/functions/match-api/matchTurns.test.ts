@@ -249,13 +249,13 @@ Deno.test('une case mal formée dans le catalogue est refusée à la constructio
 
 // ── Personne n'est là (19/09/2026) ──────────────────────────────────────────
 // Appli fermée contre le bot, la partie ne bougeait plus : au retour, un seul
-// tour perdu puis une nouvelle fenêtre de 30 s. Trois minutes sans que personne
-// ne la fasse avancer, et l'humain absent perd.
+// tour perdu puis une nouvelle fenêtre de 30 s. Un tour échu depuis 45 s sans
+// que personne ne le fasse avancer, et l'humain absent perd.
 const ilYa = (ms: number) => new Date(Date.now() - ms).toISOString()
 const BOT = { playerId: ADVERSAIRE, displayName: 'Léa', level: 3, skill: 'regular', avatarId: 'a', frameId: 'f' } as unknown as State['bot']
 
 Deno.test('trois minutes sans personne : l’humain face au bot perd, même pendant le tour du bot', () => {
-  const partie = match({ bot: BOT }, { current_player_id: ADVERSAIRE, updated_at: ilYa(ABSENCE_SANS_TEMOIN_MS + 1_000) })
+  const partie = match({ bot: BOT }, { current_player_id: ADVERSAIRE, turn_ends_at: ilYa(ABSENCE_SANS_TEMOIN_MS + 1_000) })
   egal(absentSansTemoin(partie), JOUEUR, 'l’humain est l’absent')
   forfeitAbsentPlayer(partie, JOUEUR)
   egal(partie.status, 'finished', 'partie close')
@@ -264,11 +264,15 @@ Deno.test('trois minutes sans personne : l’humain face au bot perd, même pend
 })
 
 Deno.test('entre deux humains, c’est celui dont c’est le tour qui est absent', () => {
-  egal(absentSansTemoin(match({}, { updated_at: ilYa(ABSENCE_SANS_TEMOIN_MS + 1_000) })), JOUEUR, 'le joueur au trait')
+  egal(absentSansTemoin(match({}, { turn_ends_at: ilYa(ABSENCE_SANS_TEMOIN_MS + 1_000) })), JOUEUR, 'le joueur au trait')
 })
 
 Deno.test('une partie suivie ne déclenche jamais la règle', () => {
-  egal(absentSansTemoin(match({}, { updated_at: ilYa(ABSENCE_SANS_TEMOIN_MS - 5_000) })), null, 'moins de trois minutes')
-  egal(absentSansTemoin(match({}, { pace: 'async', updated_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'l’illimité a sa règle de 24 h')
-  egal(absentSansTemoin(match({}, { paused_at: nowIso(), updated_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'une partie en pause attend')
+  // Le serveur écrit le tour manqué 8 s après l'échéance quand une appli est ouverte.
+  egal(absentSansTemoin(match({}, { turn_ends_at: ilYa(8_000) })), null, 'dans le délai de grâce')
+  egal(absentSansTemoin(match({}, { turn_ends_at: ilYa(ABSENCE_SANS_TEMOIN_MS - 5_000) })), null, 'échu depuis moins de 45 s')
+  // Une longue fenêtre de lecture n'y change rien : le tour n'est pas échu.
+  egal(absentSansTemoin(match({}, { updated_at: ilYa(80_000), turn_ends_at: new Date(Date.now() + 40_000).toISOString() })), null, 'tour en cours')
+  egal(absentSansTemoin(match({}, { pace: 'async', turn_ends_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'l’illimité a sa règle de 24 h')
+  egal(absentSansTemoin(match({}, { paused_at: nowIso(), turn_ends_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'une partie en pause attend')
 })

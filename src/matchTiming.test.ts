@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 // ─────────────────────────────────────────────────────────────────────────────
 // LA FENÊTRE DE LECTURE EST ÉCRITE TROIS FOIS.
 //
-// Le premier tour d'une partie en temps limité ne démarre qu'après dix secondes
-// de lecture. Cette durée vit dans trois langages, parce qu'aucun n'importe les
+// Le premier tour d'une partie en temps limité ne démarre qu'après trente
+// secondes de lecture. Cette durée vit dans trois langages, parce qu'aucun n'importe les
 // autres :
 //
 //   • `matchSetup.ts` (fonction edge, Deno) — les parties normales et le défi ;
@@ -40,8 +40,8 @@ describe('la fenêtre de lecture du premier tour', () => {
   const lectureMs = nombre(reglage, /FIRST_TURN_READING_MS = ([\d_]+)/)
   const tourMs = nombre(modele, /REALTIME_TURN_MS = ([\d_]+)/)
 
-  it('dure quinze secondes, et le tour garde ses quarante-cinq', () => {
-    expect(lectureMs).toBe(15_000)
+  it('dure trente secondes, et le tour garde ses quarante-cinq', () => {
+    expect(lectureMs).toBe(30_000)
     expect(tourMs).toBe(45_000)
   })
 
@@ -56,7 +56,7 @@ describe('la fenêtre de lecture du premier tour', () => {
     const debut = nombre(sql, /turn_started_at = pg_catalog\.clock_timestamp\(\) \+ interval '(\d+(?:\.\d+)?) seconds'/)
     const fin = nombre(sql, /turn_ends_at = pg_catalog\.clock_timestamp\(\) \+ interval '(\d+(?:\.\d+)?) seconds'/)
     expect(debut * 1_000).toBe(lectureMs)
-    // Le tour entier court APRÈS la lecture : 10 s + 45 s.
+    // Le tour entier court APRÈS la lecture : 30 s + 45 s.
     expect(fin * 1_000).toBe(lectureMs + tourMs)
   })
 

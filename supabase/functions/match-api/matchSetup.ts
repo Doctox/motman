@@ -54,8 +54,10 @@ export const READY_MS = 1_800
  * Remarque d'un testeur, le 17/09/2026, et elle est juste : le désavantage est
  * structurel, pas une impression.
  *
- * Le tour n°1 ne court donc pour personne pendant ces quinze secondes. Les deux
- * joueurs lisent, puis le premier joue ses quarante-cinq secondes entières.
+ * Le tour n°1 ne court donc pour personne pendant ces trente secondes (quinze
+ * jusqu'au 19/09/2026 : pas assez pour lire toute la grille, selon le
+ * propriétaire). Les deux joueurs lisent, puis le premier joue ses quarante-cinq
+ * secondes entières.
  *
  * Ce n'est pas un mécanisme neuf : c'est READY_MS, la fenêtre qui existait déjà
  * avant chaque tour, allongée pour le premier. Le client sait depuis le
@@ -65,7 +67,7 @@ export const READY_MS = 1_800
  * migration qui démarre les parties classées, en plpgsql. `matchTiming.test.ts`
  * tient les trois d'accord.
  */
-export const FIRST_TURN_READING_MS = 15_000
+export const FIRST_TURN_READING_MS = 30_000
 
 export async function activeMatchesForPlayers(
   admin: AdminClient,
