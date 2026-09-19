@@ -6,8 +6,6 @@ import { addDays, mondayOf, nextStreakRewardDay, streakDayMarks, weekDays, weekL
 // LE CALENDRIER DE SÉRIE.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const suite = (debut: string, nombre: number) => Array.from({ length: nombre }, (_, index) => addDays(debut, index))
-
 describe('la semaine', () => {
   it('commence le lundi, même un dimanche ou à un changement de mois', () => {
     expect(mondayOf('2026-09-14')).toBe('2026-09-14') // lundi

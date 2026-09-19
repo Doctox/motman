@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { ChevronRight, LogOut, Moon, Pause, RefreshCw, Settings, ShieldAlert, Sun, Vibrate, Volume2, X } from 'lucide-react'
+import { ChevronRight, LogOut, Moon, ShieldAlert, Sun, Vibrate, Volume2, X } from 'lucide-react'
 import { useSensoryPreferences } from './sensoryPreferences'
 import { useDialogFocus } from './useDialogFocus'
 import './game-options.css'
@@ -22,7 +22,7 @@ function Toggle({ icon, label, checked, setChecked }: {
   return <label className="mm-setting-row"><span>{icon}{label}</span><input type="checkbox" checked={checked} onChange={event => setChecked(event.target.checked)} /><i /></label>
 }
 
-export function GameOptionsOverlay({ close, newGrid, report, leaveMatch }: { close: () => void; newGrid?: () => void; report?: () => void; leaveMatch?: () => void }) {
+export function GameOptionsOverlay({ close, report, leaveMatch }: { close: () => void; report?: () => void; leaveMatch?: () => void }) {
   const [theme, setTheme] = useState<Theme>(lireThemeChoisi)
   const { preferences, setPreference } = useSensoryPreferences()
   const dialogRef = useDialogFocus<HTMLElement>(close)
@@ -34,7 +34,6 @@ export function GameOptionsOverlay({ close, newGrid, report, leaveMatch }: { clo
       <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button></div>
       <Toggle icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
       <Toggle icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => setPreference('vibration', value)} />
-      {newGrid ? <button className="mm-settings-link" type="button" onClick={() => { newGrid(); close() }}><RefreshCw /><span>Nouvelle grille<small>Recommencer une partie</small></span><ChevronRight /></button> : null}
       {report ? <button className="mm-settings-link" type="button" onClick={() => { close(); report() }}><ShieldAlert /><span>Signaler l’adversaire<small>Prévenir la modération</small></span><ChevronRight /></button> : null}
       {leaveMatch ? <button className="mm-settings-link danger" type="button" onClick={() => { close(); leaveMatch() }}><LogOut /><span>Abandonner la partie<small>Cette action donnera la victoire à l’adversaire</small></span><ChevronRight /></button> : null}
     </section>
@@ -70,9 +69,4 @@ export function ReportPlayerOverlay({ playerName, close, submit }: {
       <button className="mm-save-guest" type="submit" disabled={busy}>{busy ? 'Envoi…' : 'Envoyer le signalement'}</button>
     </form>
   </div>
-}
-
-export function PauseOverlay({ resume, quit }: { resume: () => void; quit: () => void }) {
-  const dialogRef = useDialogFocus<HTMLElement>(resume)
-  return <div className="mm-modal-layer mm-pause-layer" role="presentation"><section ref={dialogRef} className="mm-pause" role="dialog" aria-modal="true" aria-label="Partie en pause" tabIndex={-1}><Pause /><h2>Partie en pause</h2><p>Le chrono est arrêté.</p><button type="button" data-dialog-autofocus onClick={resume}>Reprendre</button><button type="button" className="secondary" onClick={quit}>Quitter la partie</button></section></div>
 }

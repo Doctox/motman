@@ -30,7 +30,7 @@
      • `max-height:520px`, qu'aucun ordinateur de bureau n'atteint.
    Seul l'écran de partie est concerné ; le menu, lui, s'adapte déjà.        */
 @media (orientation: landscape) and (max-height: 520px) {
-  .multiplayer-shell > *:not(.mm-rotate-hint) { display: none !important; }
+  .multiplayer-shell > * { display: none !important; }
   .multiplayer-shell::after {
     content: "Tournez votre appareil à la verticale pour jouer.";
     position: fixed;

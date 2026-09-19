@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { largestFittingSize, lignesQuiTiennent, MIN_FONT_PX, MIN_UNIFORM_FONT_PX, planHyphenation, uniformClueSizes } from './clueAutoFit'
+import { largestFittingSize, lignesQuiTiennent, MIN_FONT_PX, planHyphenation, uniformClueSizes } from './clueAutoFit'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LA TAILLE DES DÉFINITIONS.

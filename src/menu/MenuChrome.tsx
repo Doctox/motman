@@ -28,7 +28,7 @@ export function presenceLabel(activity: 'offline' | 'online' | 'playing'): strin
   return activity === 'playing' ? 'En jeu' : activity === 'online' ? 'En ligne' : 'Hors ligne'
 }
 
-export function AppHeader({ onSettings }: { onMenu?: () => void; onSettings: () => void }) {
+export function AppHeader({ onSettings }: { onSettings: () => void }) {
   // Premier maillon de la piste de pastilles (src/nouveautes.ts) : une entrée
   // non lue allume la roue crantée, puis l'enveloppe du menu, puis l'entrée.
   const nouveauteEnAttente = useNouveauteEnAttente()

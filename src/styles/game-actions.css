@@ -45,12 +45,6 @@
 }
 .reroll-button:hover:not(:disabled){box-shadow:inset 0 1px 0 #ffffff35,0 9px 19px #073f3632!important}
 
-.reasons button{
-  border-color:#d8c39a!important;border-radius:999px!important;background:#fffaf0!important;
-  box-shadow:0 3px 8px #49391f0a;color:#47615a;
-}
-.reasons button:hover{transform:translateY(-1px);border-color:#c29f4d!important;background:#fffdf8!important}
-
 .clue-popover-close{
   border:1px solid var(--game-button-secondary-border)!important;border-radius:50%!important;
   background:var(--game-button-secondary)!important;color:var(--green)!important;box-shadow:0 4px 12px #49391f12!important;
@@ -97,7 +91,6 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
 }
 .native-runtime .multiplayer-shell:not(.is-finished)>header,
 .native-runtime .multiplayer-shell:not(.is-finished)>.scoreboard,
-.native-runtime .multiplayer-shell:not(.is-finished)>.instruction,
 .native-runtime .multiplayer-shell:not(.is-finished)>.rack-area,
 .native-runtime .multiplayer-shell:not(.is-finished)>.turn-actions{
   flex:0 0 auto;
@@ -133,7 +126,6 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:40px;height:40px;flex-basis:40px}
   .native-runtime .multiplayer-shell:not(.is-finished) .turn{width:62px;height:62px;min-height:62px}
   .native-runtime .multiplayer-shell:not(.is-finished) .turn-timer{font-size:1.75rem}
-  .native-runtime .multiplayer-shell:not(.is-finished)>.instruction{margin-bottom:5px;font-size:0.6875rem}
   .native-runtime .multiplayer-shell:not(.is-finished)>.board-wrap{margin-bottom:5px}
   .native-runtime .multiplayer-shell:not(.is-finished)>.rack-area{padding-top:4px}
   .native-runtime .multiplayer-shell:not(.is-finished) .rack-heading{margin-bottom:4px}

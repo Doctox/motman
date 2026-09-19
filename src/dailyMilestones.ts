@@ -27,7 +27,8 @@ export function freeBasketsLabel(count: number): string {
 }
 
 /**
- * Nombre de tranches de 7 jours franchies par UNE victoire.
+ * Nombre de tranches de 7 jours franchies par UN jour de série (un défi ouvert,
+ * depuis le 19/09/2026 ; une victoire avant).
  *
  * `previousStreak` est la série au moment de la victoire précédente, `streak`
  * la série après celle-ci. La différence dit ce qui s'est passé :

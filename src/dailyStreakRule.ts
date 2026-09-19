@@ -2,7 +2,10 @@
 // LA RÈGLE DE SÉRIE DU DÉFI DU JOUR — SOURCE UNIQUE côté TypeScript.
 //
 // 14/09/2026, décision du propriétaire :
-//   • la série compte des VICTOIRES consécutives ;
+//   • la série compte des jours consécutifs — des VICTOIRES jusqu'au 19/09/2026,
+//     des jours où le défi a été OUVERT depuis (gagné, perdu ou abandonné). Les
+//     noms `winDays` et `lastWin` datent de la première règle : le moteur, lui,
+//     compte des « jours actifs », et c'est l'appelant qui lui passe les bons ;
 //   • le RATTRAPAGE (le « pont » qui relevait une série cassée par deux victoires
 //     d'affilée) DISPARAÎT : il était invisible et incompris (« pourquoi mon
 //     cadeau jeudi et pas mercredi ? ») ;

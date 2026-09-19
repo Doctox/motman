@@ -6,7 +6,7 @@
    -------------------------------------------------------------------------- */
 body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .app-shell{overscroll-behavior:contain}
-.player,.turn,.rack,.board,.feedback-panel{backface-visibility:hidden}
+.player,.turn,.rack,.board{backface-visibility:hidden}
 .score-value{
   display:block;font-variant-numeric:tabular-nums;
   transform-origin:50% 70%;animation:scoreSettle .52s var(--motion) both;
@@ -60,7 +60,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   .scoreboard .game-portrait,.scoreboard .player .avatar{width:42px;height:42px;flex-basis:42px}
 }
 
-.provisional-letter,.confirmed-board-letter.provisional-effect{
+.confirmed-board-letter.provisional-effect{
   animation:letterSettle .4s var(--motion) both;
 }
 @keyframes letterSettle{0%{opacity:.25;transform:translateY(-9px) scale(.9)}68%{opacity:1;transform:translateY(1px) scale(1.025)}100%{transform:none}}
@@ -79,8 +79,6 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
 .board-effects-layer>.reward-bubble{animation-duration:1.72s}
 .board-word-highlight{animation-duration:1.62s}
-.feedback-panel,.multiplayer-result{animation:resultSettle .58s var(--motion) both}
-@keyframes resultSettle{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
 
 .hint-button:disabled,.validate:disabled,.reroll-button:disabled{
   filter:saturate(.35);opacity:.48;transform:none!important;
@@ -96,7 +94,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .clue-popover{animation-duration:.36s}
 .clue-zoom-backdrop{animation-duration:.24s}
 
-html[data-motion="off"] .score-value,html[data-motion="off"] .provisional-letter,html[data-motion="off"] .confirmed-board-letter.provisional-effect,html[data-motion="off"] .feedback-panel,html[data-motion="off"] .multiplayer-result{animation:none!important}
+html[data-motion="off"] .score-value,html[data-motion="off"] .confirmed-board-letter.provisional-effect{animation:none!important}
 html[data-motion="off"] .turn.urgent .turn-timer{animation:none!important}
 html[data-motion="off"] .validate:after,html[data-motion="off"] .new-game:after{display:none!important}
 

@@ -28,7 +28,7 @@
    de `transition`, jamais d'`animation`.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-html[data-motion="off"] .app-shell button:not(:disabled),html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data-motion="off"] .new-game,html[data-motion="off"] .end-game-home,html[data-motion="off"] .reroll-button,html[data-motion="off"] .feedback-actions button,html[data-motion="off"] .reasons button{transition:
+html[data-motion="off"] .app-shell button:not(:disabled),html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data-motion="off"] .new-game,html[data-motion="off"] .end-game-home,html[data-motion="off"] .reroll-button{transition:
       transform var(--mm-t-quick, 180ms) var(--mm-ease-out, ease),
       background-color var(--mm-t-quick, 180ms) ease,
       border-color var(--mm-t-quick, 180ms) ease,

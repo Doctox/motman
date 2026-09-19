@@ -1,4 +1,4 @@
-import { Clock3, Hourglass, Swords, X } from 'lucide-react'
+import { Clock3, Hourglass, Swords } from 'lucide-react'
 import type { MatchInvitation } from '../matches'
 import { playerInitials } from '../playerIdentity'
 import { useDialogFocus } from '../useDialogFocus'

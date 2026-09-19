@@ -1,4 +1,3 @@
-import type { MatchPace } from '../matches'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 
 export type MenuPage = 'home' | 'play' | 'ranking' | 'profile' | 'shop'

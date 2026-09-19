@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowLeft, BookOpen, ChevronRight, FileText, LogIn, Mail, Moon, Settings, SlidersHorizontal, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, FileText, LogIn, Mail, Moon, SlidersHorizontal, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
 import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
 import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
 import { isNativeRuntime } from '../nativeRuntime'

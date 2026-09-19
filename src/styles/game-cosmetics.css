@@ -103,7 +103,6 @@
   animation:resultContentRise .52s .44s var(--motion) both;
 }
 .game-result-screen .result-feedback-error{margin:8px 0 0;color:#a44132;font-size:0.6875rem}
-.game-result-screen .reasons{margin-top:10px}
 .game-result-screen .end-game-actions{
   margin-top:auto;padding-top:2px;display:grid;grid-template-columns:1fr;gap:9px;
   animation:resultContentRise .48s .64s var(--motion) both;

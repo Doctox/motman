@@ -32,16 +32,6 @@
 html[data-motion="off"] .board.has-clue-focus .slot,html[data-motion="off"] .app-shell.is-resolving .rack-area{transition:none!important}
 html[data-motion="off"] .drag-ghost{rotate:0deg!important;transition:none!important}
 
-.app-shell.is-finished .feedback-panel>*{
-  animation:finishContentIn .48s var(--motion) both;
-}
-.app-shell.is-finished .feedback-panel>*:nth-child(2){animation-delay:.08s}
-.app-shell.is-finished .feedback-panel>*:nth-child(3){animation-delay:.16s}
-.app-shell.is-finished .feedback-panel>*:nth-child(4){animation-delay:.24s}
-.app-shell.is-finished .feedback-panel>*:nth-child(n+5){animation-delay:.3s}
-@keyframes finishContentIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
-html[data-motion="off"] .app-shell.is-finished .feedback-panel>*{animation:none!important}
-
 /* Mobile scroll remains available when a gesture starts on the board. */
 body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .app-shell{overflow:visible}
@@ -78,8 +68,6 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 }
 
 /* The result screen offers the next action immediately without making grid feedback mandatory. */
-.solo-result,.multiplayer-result{display:grid;gap:13px}
-.solo-result h2,.multiplayer-result h2{margin-bottom:0}
 .experience-pending{min-height:86px;display:grid;place-items:center;margin:0;color:#71817b!important}
 .end-game-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:2px}
 .end-game-actions .new-game,.end-game-home{width:100%;height:45px;margin:0;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:700;cursor:pointer}

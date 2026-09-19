@@ -54,9 +54,7 @@
   .mm-search-cancel,
   .mm-live-activity>button,
   .mm-match-invite-actions .secondary,
-  .mm-match-waiting>.secondary,
-  .mm-pause>button.secondary,
-  .mm-match-friend-row.waiting>button
+  .mm-pause>button.secondary
 ){
   border:1px solid var(--mm-button-secondary-border);border-radius:999px;
   background:var(--mm-button-secondary);color:var(--mm-ink);
@@ -67,9 +65,7 @@
   .mm-search-cancel,
   .mm-live-activity>button,
   .mm-match-invite-actions .secondary,
-  .mm-match-waiting>.secondary,
-  .mm-pause>button.secondary,
-  .mm-match-friend-row.waiting>button
+  .mm-pause>button.secondary
 ):hover{transform:translateY(-1px);background:#fffdf7;border-color:#caa451;box-shadow:0 7px 16px #49391f16}
 
 /* Destructive actions stay readable without shouting. */
@@ -86,7 +82,6 @@
   box-shadow:var(--mm-button-shadow-soft)!important;font-weight:600!important;
 }
 .mm-home-friends>header button:hover,.mm-profile-hero button:hover{transform:translateY(-1px);border-color:#c8a34e!important;background:#fffdf8!important}
-.mm-match-friend-row:not(.waiting)>button:not(:disabled){border-color:var(--mm-button-primary-border);background:var(--mm-button-primary-bottom);box-shadow:0 4px 10px #073f3619}
 .mm-social-row :is(.accept,.decline){border:1px solid transparent;box-shadow:0 3px 9px #49391f0c}
 .mm-social-row .accept{border-color:#9bc4ae;background:#e8f3e9}
 .mm-social-row .decline{border-color:#edb9a8;background:#fff0e9}
@@ -121,20 +116,20 @@
 .mm-segmented button:first-child{border-radius:999px 0 0 999px}.mm-segmented button:last-child{border-radius:0 999px 999px 0}
 
 /* Circular utility controls use the same enamel-and-paper treatment. */
-.mm-settings>header button,.mm-friends-panel>header button,.mm-quick-menu>header button,.mm-guest-editor>header button,.mm-shop-toolbar>button{
+.mm-settings>header button,.mm-friends-panel>header button,.mm-guest-editor>header button,.mm-shop-toolbar>button{
   width:44px;height:44px;border:1px solid var(--mm-button-secondary-border)!important;border-radius:50%!important;
   background:var(--mm-button-secondary)!important;color:var(--mm-ink)!important;
   box-shadow:0 4px 12px #49391f10!important;
 }
-.mm-settings>header button:hover,.mm-friends-panel>header button:hover,.mm-quick-menu>header button:hover,.mm-guest-editor>header button:hover,.mm-shop-toolbar>button:hover{
+.mm-settings>header button:hover,.mm-friends-panel>header button:hover,.mm-guest-editor>header button:hover,.mm-shop-toolbar>button:hover{
   transform:translateY(-1px);background:#fffdf8!important;border-color:#c6a149!important;box-shadow:0 7px 16px #49391f18!important;
 }
 
 /* Navigation rows remain rows, but inherit the same polished response. */
-.mm-mode-row,.mm-settings-link,.mm-account,.mm-current-match-card,.mm-home-add-first{
+.mm-settings-link,.mm-account,.mm-current-match-card,.mm-home-add-first{
   transition:transform .2s var(--mm-ease),background .2s ease,border-color .2s ease,box-shadow .2s ease;
 }
-.mm-mode-row:hover,.mm-settings-link:hover,.mm-account:hover,.mm-current-match-card:hover,.mm-home-add-first:hover:hover{
+.mm-settings-link:hover,.mm-account:hover,.mm-current-match-card:hover,.mm-home-add-first:hover:hover{
   transform:translateY(-1px);border-color:#bda96d;background:color-mix(in srgb,var(--mm-sage-soft) 60%,var(--mm-surface));box-shadow:0 7px 17px #49391f12;
 }
 

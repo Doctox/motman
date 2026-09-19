@@ -186,8 +186,6 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-streak-week li.is-missed .mm-streak-day-mark { color: var(--mm-coral); }
 .mm-streak-week li.is-frozen .mm-streak-day { border-color: #8fb8d0; background: color-mix(in srgb, #8fb8d0 22%, transparent); }
 .mm-streak-week li.is-frozen .mm-streak-day-mark { color: #4f89ad; }
-.mm-streak-week li.is-recovered .mm-streak-day { border-color: var(--mm-gold); background: color-mix(in srgb, var(--mm-gold) 18%, transparent); }
-.mm-streak-week li.is-recovered .mm-streak-day-mark { color: var(--mm-gold); }
 .mm-streak-week li.is-future .mm-streak-day, .mm-streak-week li.is-none .mm-streak-day { color: var(--mm-muted); opacity: .6; }
 .mm-streak-week li.is-current .mm-streak-day { box-shadow: 0 0 0 2px var(--mm-paper), 0 0 0 4px var(--mm-coral); }
 .mm-streak-day-reward {
