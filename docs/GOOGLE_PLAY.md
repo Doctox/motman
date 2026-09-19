@@ -149,6 +149,13 @@ téléchargeable partout : ces joueurs resteraient bloqués sans issue.
   et ne vend rien. Les plumes se gagnent en jouant ; les paniers s'ouvrent
   uniquement avec des plumes, jamais avec de l'argent. Leurs probabilités sont
   affichées avant chaque ouverture.
+  **Le jour où un achat revient** (un pass en euros, par exemple — piste du
+  plan de revenus du 14/09/2026) : Google Play Billing devient obligatoire pour
+  tout bien numérique vendu dans l'appli ; déclarer « Contient des achats
+  intégrés » dans la fiche ; ajouter les achats à la sécurité des données et à
+  la politique de confidentialité ; refaire le questionnaire IARC. Les paniers,
+  eux, ne doivent jamais s'acheter en euros : ce serait un objet aléatoire
+  payant, à déclarer comme tel.
 - Questionnaire IARC : jeu de mots, multijoueur en ligne, interactions entre
   joueurs (pseudos, amis, invitations, signalements), pas de discussion libre,
   ni violence, ni sexe, ni drogue, ni langage grossier, ni jeu d'argent. Aucun
