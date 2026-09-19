@@ -54,10 +54,11 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 34],
-      // v34 (18/09) : révision « revision-simples », 186 définitions trop dures
-      // réécrites dans 100 grilles normales. Aucune grille créée : 262 comme en v33
-      // (lot « normales-8 » : 26 grilles de rotation, 187 pour les parties normales).
+      ['version', catalog.version, 35],
+      // v35 (19/09) : les 413 dessins assainis (sans <title>, octets neufs), aucune
+      // grille ni définition touchée. v34 (18/09) : révision « revision-simples »,
+      // 186 définitions trop dures réécrites dans 100 grilles normales. 262
+      // grilles comme en v33 (lot « normales-8 » : 26 grilles de rotation).
       ['grilles', catalog.grids.length, 262],
       // 412 en v33 ; SEL prend la salière déjà en jeu : 413.
       ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 413],
@@ -71,6 +72,18 @@ try {
       } else {
         assert.equal(obtenu, attendu, `Catalogue réel — ${libelle} : ${obtenu}, attendu ${attendu}.`)
       }
+    }
+  }
+  // Aucun dessin ne part avec un titre ou une description (19/09/2026) : neuf en
+  // portaient un, deux y écrivaient la réponse (« Fer à repasser »). La
+  // projection les assainit (scripts/lib/dessinsIndices.mjs) ; ceci le vérifie,
+  // en CI aussi, sur le catalogue tiré de la base.
+  for (const grid of catalog.grids) {
+    for (const word of grid.words) {
+      const asset = String(word.image?.asset ?? '')
+      if (!asset.startsWith('data:image/svg+xml;base64,')) continue
+      const svg = Buffer.from(asset.slice(asset.indexOf(',') + 1), 'base64').toString('utf8')
+      assert.ok(!/<title|<desc/i.test(svg), `Un dessin de ${grid.id} porte encore un titre ou une description.`)
     }
   }
   assert.ok(catalog.grids.every(grid => grid.columns === 7 && grid.rows === 8 && grid.size === undefined))

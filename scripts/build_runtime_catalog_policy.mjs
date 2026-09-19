@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+import { assainirDessin } from './lib/dessinsIndices.mjs'
+
 const sourcePath = resolve('src/data/editorial.blacklist.json')
 const targetPath = resolve('src/data/runtime.catalog-policy.json')
 const catalogSourcePath = resolve('src/data/grid.catalog.json')
@@ -46,7 +48,11 @@ const runtimeCatalog = {
       wordId: word.wordId,
       answer: word.answer,
       clue: word.clue,
-      ...(word.image ? { image: word.image } : {}),
+      // Le dessin part ASSAINI (scripts/lib/dessinsIndices.mjs) : sans son
+      // `<title>`, qui écrivait parfois la réponse, et avec des octets qui ne
+      // correspondent plus aux anciennes copies publiées. Le catalogue source,
+      // privé, garde le dessin d'origine.
+      ...(word.image ? { image: { ...word.image, asset: assainirDessin(word.image.asset) } } : {}),
       direction: word.direction,
       arrow: word.arrow,
       clueCell: word.clueCell,
