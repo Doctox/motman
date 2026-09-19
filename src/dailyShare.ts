@@ -6,10 +6,14 @@
 // qui ne connaît pas MotMan. Le message est maintenant une provocation amicale,
 // courte, qui se lit d'un coup d'œil dans une conversation :
 //
-//     J'ai battu le bot 76 à 60 sur la grille « Corps humain » 💪
+//     Défi du jour « Jardin » : 60 points 💪
 //     🥈 2e sur 7 joueurs aujourd'hui
 //
 //     Tu fais mieux ? 👉 https://www.doctox.fr/motman/
+//
+// PAS D'ADVERSAIRE DANS LE MESSAGE (propriétaire, 19/09/2026). « J'ai battu le
+// bot » cassait l'adversaire à prénom que le jeu présente ; le score du joueur
+// suffit, et le rang dit la compétition — celle du classement du jour.
 //
 // AUCUNE RÉPONSE NE SORT D'ICI : ni lettre, ni définition, ni forme de grille.
 // Le rang vient du classement du SERVEUR ; il n'est dit que pour le premier
@@ -25,10 +29,9 @@ const STORAGE_KEY = 'motman-daily-share-v1'
 export type DailyShareInput = {
   /** Thème annoncé ce jour-là, null un jour générique. */
   theme: string | null
-  /** Vainqueur : le joueur, le bot, ou personne (égalité). */
+  /** Vainqueur : le joueur, son adversaire, ou personne (égalité). */
   outcome: 'win' | 'loss' | 'draw'
   score: number
-  opponentScore: number
   /** Tentative du jour (1 = premier essai). */
   attempt: number
   /** Place au classement du jour, quand le serveur l'a donnée. */
@@ -44,12 +47,13 @@ function medaille(position: number): string {
 }
 
 export function dailyShareText(input: DailyShareInput): string {
-  const grille = input.theme ? `la grille « ${input.theme} »` : 'la grille du jour'
+  const defi = input.theme ? `Défi du jour « ${input.theme} »` : 'Défi du jour'
+  const points = `${input.score} point${input.score > 1 ? 's' : ''}`
   const resultat = input.outcome === 'win'
-    ? `J'ai battu le bot ${input.score} à ${input.opponentScore} sur ${grille} 💪`
+    ? `${defi} : ${points} 💪`
     : input.outcome === 'draw'
-      ? `Égalité ${input.score} partout avec le bot sur ${grille} 🤝`
-      : `Le bot m'a eu ${input.score} à ${input.opponentScore} sur ${grille} 😤`
+      ? `${defi} : ${points} 🤝`
+      : `${defi} : ${points}… 😤`
   const rang = input.attempt === 1 && input.rank && input.rank.position > 0 && input.rank.total > 0
     ? `${medaille(input.rank.position)} ${ordinal(input.rank.position)} sur ${input.rank.total} joueur${input.rank.total > 1 ? 's' : ''} aujourd'hui`
     : ''

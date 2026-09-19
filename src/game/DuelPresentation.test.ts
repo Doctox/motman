@@ -69,7 +69,8 @@ describe('le partage en fin de défi du jour', () => {
     await act(async () => { afficher(partie()) })
     expect(boutonPartage()).toBeTruthy()
     const garde = JSON.parse(localStorage.getItem('motman-daily-share-v1') ?? '{}') as { text?: string }
-    expect(garde.text).toContain("J'ai battu le bot 42 à 31")
+    expect(garde.text).toMatch(/^Défi du jour.* : 42 points 💪/)
+    expect(garde.text).not.toMatch(/\bbot\b/i)
     expect(garde.text).toContain("🥉 3e sur 9 joueurs aujourd'hui")
     expect(garde.text).not.toContain('⬛')
   })

@@ -10,16 +10,15 @@ const entree = (modifs: Partial<DailyShareInput> = {}): DailyShareInput => ({
   theme: 'Corps humain',
   outcome: 'win',
   score: 76,
-  opponentScore: 60,
   attempt: 1,
   rank: { position: 2, total: 7 },
   ...modifs,
 })
 
 describe('le texte partagé', () => {
-  it('une victoire : score, grille, rang et invitation', () => {
+  it('une victoire : défi, score, rang et invitation', () => {
     expect(dailyShareText(entree())).toBe([
-      "J'ai battu le bot 76 à 60 sur la grille « Corps humain » 💪",
+      'Défi du jour « Corps humain » : 76 points 💪',
       "🥈 2e sur 7 joueurs aujourd'hui",
       '',
       'Tu fais mieux ? 👉 https://www.doctox.fr/motman/',
@@ -27,13 +26,20 @@ describe('le texte partagé', () => {
   })
 
   it('une défaite se dit aussi, avec le sourire', () => {
-    expect(dailyShareText(entree({ outcome: 'loss', score: 60, opponentScore: 76 })).split('\n')[0])
-      .toBe("Le bot m'a eu 60 à 76 sur la grille « Corps humain » 😤")
+    expect(dailyShareText(entree({ outcome: 'loss', score: 29 })).split('\n')[0])
+      .toBe('Défi du jour « Corps humain » : 29 points… 😤')
   })
 
-  it('sans thème, « la grille du jour » ; égalité dite comme telle', () => {
-    expect(dailyShareText(entree({ theme: null, outcome: 'draw', score: 50, opponentScore: 50 })).split('\n')[0])
-      .toBe('Égalité 50 partout avec le bot sur la grille du jour 🤝')
+  it('sans thème, « Défi du jour » seul ; égalité dite comme telle', () => {
+    expect(dailyShareText(entree({ theme: null, outcome: 'draw', score: 50 })).split('\n')[0])
+      .toBe('Défi du jour : 50 points 🤝')
+  })
+
+  // Le jeu présente un adversaire à prénom : le message n'en dit rien (19/09/2026).
+  it('aucun adversaire, et surtout pas « le bot »', () => {
+    for (const outcome of ['win', 'loss', 'draw'] as const) {
+      expect(dailyShareText(entree({ outcome })).toLowerCase()).not.toMatch(/\bbot\b|adversaire/)
+    }
   })
 
   it('1er, et un joueur seul au singulier', () => {
@@ -42,7 +48,7 @@ describe('le texte partagé', () => {
 
   it('pas de rang sans classement, ni pour un nouvel essai (le classement ne retient que le premier)', () => {
     const sansRang = dailyShareText(entree({ rank: null }))
-    expect(sansRang).toBe("J'ai battu le bot 76 à 60 sur la grille « Corps humain » 💪\n\nTu fais mieux ? 👉 https://www.doctox.fr/motman/")
+    expect(sansRang).toBe('Défi du jour « Corps humain » : 76 points 💪\n\nTu fais mieux ? 👉 https://www.doctox.fr/motman/')
     expect(dailyShareText(entree({ attempt: 2 }))).not.toContain('sur 7')
   })
 })

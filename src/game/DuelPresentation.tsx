@@ -130,12 +130,10 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
       setDailyEffects(effects)
       // Le résultat à partager, calculé une fois et gardé pour l'accueil.
       const jour = match.dailyDate
-      const adversaire = match.playerIds.find(id => id !== playerId) ?? ''
       const partage: DailyShareInput = {
         theme: dailyThemeFor(jour),
         outcome: match.winnerId === playerId ? 'win' : match.winnerId === null && match.finishReason === 'completed' ? 'draw' : 'loss',
         score: match.scores[playerId] ?? 0,
-        opponentScore: match.scores[adversaire] ?? 0,
         attempt: Math.max(1, attempts),
       }
       const publier = (texte: string) => { saveDailyShare(jour, texte); setDailyShare(texte) }
