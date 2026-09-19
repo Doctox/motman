@@ -1,22 +1,29 @@
 import { useState } from 'react'
-import { BookOpen, FileText, Scale, ShieldCheck, X } from 'lucide-react'
+import { BookOpen, FileText, Info, MessageSquareText, Paperclip, Scale, Send, ShieldCheck, X } from 'lucide-react'
 import { useDialogFocus } from './useDialogFocus'
 import { assetUrl } from './assetUrl'
+import { appVersion, appVersionDisplay } from './appVersion'
+import { CONTACT_EMAIL, CONTACT_SUJETS, contactMailto, decrireAppareil, joindreTechnique, type ContactSujet, type ContactTechnique } from './contactMail'
+import { isNativeRuntime } from './nativeRuntime'
+import type { GuestIdentity } from './playerIdentity'
 
-type LegalTab = 'privacy' | 'terms' | 'credits'
+type LegalTab = 'contact' | 'privacy' | 'terms' | 'credits'
 
-export function LegalPanel({ close }: { close: () => void }) {
-  const [tab, setTab] = useState<LegalTab>('privacy')
+export function LegalPanel({ close, identity }: { close: () => void; identity?: GuestIdentity }) {
+  // « Nous écrire » d'abord : c'est ce qu'on vient chercher le plus souvent ici.
+  const [tab, setTab] = useState<LegalTab>('contact')
   const dialogRef = useDialogFocus<HTMLElement>(close)
   return <div className="mm-modal-layer mm-legal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
-    <section ref={dialogRef} className="mm-legal-panel" role="dialog" aria-modal="true" aria-label="Informations légales" tabIndex={-1}>
+    <section ref={dialogRef} className="mm-legal-panel" role="dialog" aria-modal="true" aria-label="Informations" tabIndex={-1}>
       <header><div><small>MotMan · version bêta</small><h2>Informations</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
-      <div className="mm-legal-tabs" role="tablist" aria-label="Documents légaux">
+      <div className="mm-legal-tabs" role="tablist" aria-label="Rubriques">
+        <button type="button" role="tab" aria-selected={tab === 'contact'} className={tab === 'contact' ? 'active' : ''} onClick={() => setTab('contact')}><MessageSquareText />Contact</button>
         <button type="button" role="tab" aria-selected={tab === 'privacy'} className={tab === 'privacy' ? 'active' : ''} onClick={() => setTab('privacy')}><ShieldCheck />Confidentialité</button>
         <button type="button" role="tab" aria-selected={tab === 'terms'} className={tab === 'terms' ? 'active' : ''} onClick={() => setTab('terms')}><Scale />Conditions</button>
         <button type="button" role="tab" aria-selected={tab === 'credits'} className={tab === 'credits' ? 'active' : ''} onClick={() => setTab('credits')}><BookOpen />Crédits</button>
       </div>
       <div className="mm-legal-scroll">
+        {tab === 'contact' ? <ContactForm identity={identity} /> : null}
         {tab === 'privacy' ? <article>
           <h3>Politique de confidentialité</h3><p className="mm-legal-version">Version du 17 août 2026</p>
           <h4>Données utilisées</h4><p>MotMan traite les informations nécessaires au compte et au jeu : adresse e-mail lorsque vous créez un compte, pseudo, apparence du profil, progression, collection, parties, scores, amis, avis de grille, éventuels signalements et jeton technique de notification si vous les autorisez. En cas de plantage, un rapport technique est aussi transmis : modèle de l’appareil, version du système, identifiant technique et trace de l’erreur. Il ne contient ni le contenu de vos parties, ni vos messages.</p>
@@ -48,4 +55,45 @@ export function LegalPanel({ close }: { close: () => void }) {
       </div>
     </section>
   </div>
+}
+
+/**
+ * « Nous écrire » : le formulaire prépare l'e-mail, la messagerie du joueur
+ * l'envoie (voir src/contactMail.ts). Un lien `mailto:` plutôt qu'un appel
+ * JavaScript : dans l'appli installée, c'est la navigation vers ce lien que
+ * Capacitor confie à la messagerie du téléphone.
+ */
+function ContactForm({ identity }: { identity?: GuestIdentity }) {
+  const [sujet, setSujet] = useState<ContactSujet>('bug')
+  const [message, setMessage] = useState('')
+  const choisi = CONTACT_SUJETS.find(entree => entree.id === sujet) ?? CONTACT_SUJETS[0]
+  const pret = message.trim().length >= 3
+  const technique: ContactTechnique = {
+    version: `${appVersionDisplay.updateLabel} · code ${appVersion.buildSha}`,
+    support: isNativeRuntime() ? 'appli' : 'site',
+    appareil: decrireAppareil(navigator.userAgent),
+    ecran: `${window.innerWidth}×${window.innerHeight}`,
+    joueur: identity ? { nom: identity.displayName, code: identity.friendCode } : null,
+  }
+  return <article className="mm-contact">
+    <h3>Nous écrire</h3>
+    <p>Un bug, une idée, une question ou une demande professionnelle ? Votre messagerie s’ouvre avec le message prêt : il ne reste qu’à l’envoyer.</p>
+    <div className="mm-contact-sujets" role="radiogroup" aria-label="Sujet du message">
+      {CONTACT_SUJETS.map(entree => <label key={entree.id} className={entree.id === sujet ? 'active' : ''}>
+        <input type="radio" name="mm-contact-sujet" value={entree.id} checked={entree.id === sujet} onChange={() => setSujet(entree.id)} />
+        {entree.libelle}
+      </label>)}
+    </div>
+    <label className="mm-contact-message">
+      <span>Votre message</span>
+      <textarea rows={6} maxLength={3000} placeholder={choisi.invite} value={message} onChange={event => setMessage(event.target.value)} />
+    </label>
+    {joindreTechnique(sujet) ? <p className="mm-contact-note"><Info aria-hidden="true" />La version du jeu et le modèle de votre appareil sont ajoutés au message, pour retrouver le bug plus vite.</p> : null}
+    {/* Un `mailto:` ne porte aucun fichier : c'est la messagerie qui s'en charge. */}
+    <p className="mm-contact-note"><Paperclip aria-hidden="true" />Une capture d’écran ou un PDF ? Ajoutez-la en pièce jointe dans l’e-mail qui s’ouvre.</p>
+    {pret
+      ? <a className="mm-contact-envoyer" href={contactMailto(sujet, message, technique)}><Send aria-hidden="true" />Préparer l’e-mail</a>
+      : <button className="mm-contact-envoyer" type="button" disabled><Send aria-hidden="true" />Préparer l’e-mail</button>}
+    <p className="mm-contact-direct">Ou écrivez directement à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
+  </article>
 }

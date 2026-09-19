@@ -400,7 +400,7 @@ export function MenuApp({
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
     {quickMenu ? <QuickMenu page={page} navigate={navigate} close={() => setQuickMenu(false)} /> : null}
     {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
-    {legalOpen ? <Suspense fallback={null}><LazyLegalPanel close={() => setLegalOpen(false)} /></Suspense> : null}
+    {legalOpen ? <Suspense fallback={null}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}
     {editingGuest ? <EditGuestPanel identity={identity} progress={progress} cosmetics={cosmetics} close={() => setEditingGuest(false)} save={saveGuestProfile} /> : null}

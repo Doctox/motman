@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Check, Feather, Flame, Gamepad2, Image as ImageIcon, LightbulbOff, ListChecks,
@@ -155,6 +155,7 @@ function QuestsPanel({ close }: { close: () => void }) {
             <QuestRow
               quest={board.week}
               eyebrow="Quête de la semaine"
+              decoupee
               reward={<><Snowflake aria-hidden="true" /><b>1 gel</b> de série</>}
               gagnee={gagnees[board.week.id]}
               enCours={enCours === board.week.id}
@@ -170,10 +171,12 @@ function QuestsPanel({ close }: { close: () => void }) {
   )
 }
 
-function QuestRow({ quest, reward, eyebrow, gagnee, enCours, recuperer }: {
+function QuestRow({ quest, reward, eyebrow, decoupee = false, gagnee, enCours, recuperer }: {
   quest: QuestView
   reward: ReactNode
   eyebrow?: string
+  /** Une case par étape (quête de la semaine : un défi = une case), au lieu d'une barre continue. */
+  decoupee?: boolean
   gagnee?: ClaimedQuestReward
   enCours: boolean
   recuperer: () => void
@@ -194,9 +197,12 @@ function QuestRow({ quest, reward, eyebrow, gagnee, enCours, recuperer }: {
 
     <span className="mm-quest-count" aria-hidden="true">{quest.progress}/{quest.target}</span>
 
-    {prise ? null : <div className="mm-quest-bar" role="progressbar" aria-valuemin={0} aria-valuemax={quest.target} aria-valuenow={quest.progress}
-      aria-label={`${quest.title} : ${quest.progress} sur ${quest.target}`}>
-      <i style={{ width: `${pourcentage}%` }} />
+    {prise ? null : <div className={`mm-quest-bar ${decoupee ? 'is-decoupee' : ''}`} role="progressbar" aria-valuemin={0} aria-valuemax={quest.target} aria-valuenow={quest.progress}
+      aria-label={`${quest.title} : ${quest.progress} sur ${quest.target}`}
+      style={decoupee ? { '--mm-quest-cases': quest.target } as CSSProperties : undefined}>
+      {decoupee
+        ? Array.from({ length: quest.target }, (_, index) => <i key={index} className={index < quest.progress ? 'is-faite' : ''} />)
+        : <i style={{ width: `${pourcentage}%` }} />}
     </div>}
 
     {gagnee ? <p className="mm-quest-gagnee" role="status">

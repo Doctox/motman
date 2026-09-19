@@ -64,5 +64,17 @@
     "titre": "Des définitions plus simples",
     "texte": "186 définitions des grilles ont été réécrites pour qu’on trouve le mot plus facilement.",
     "genre": "grilles"
+  },
+  {
+    "ajoute": "2026-09-19T12:28",
+    "titre": "Nous écrire",
+    "texte": "Un bug, une idée, une question ? Menu → Informations → Contact : choisissez le sujet, écrivez, et votre messagerie s’ouvre avec le message prêt à partir.",
+    "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-09-19T12:28",
+    "titre": "La quête de la semaine, case par case",
+    "texte": "Sa barre est découpée en quatre : une case se remplit à chaque défi du jour joué.",
+    "genre": "affichage"
   }
 ]

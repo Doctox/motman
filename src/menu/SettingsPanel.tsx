@@ -75,7 +75,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder votre progression'}</small></span><ChevronRight /></button>
       <InstallAppRow invite={identity.accountType !== 'account'} openAccount={openAccount} />
-      <button className="mm-settings-link" type="button" onClick={openLegal}><FileText /><span>Informations<small>Confidentialité · conditions · crédits</small></span><ChevronRight /></button>
+      <button className="mm-settings-link" type="button" onClick={openLegal}><FileText /><span>Informations<small>Nous écrire · confidentialité · crédits</small></span><ChevronRight /></button>
       <footer className="mm-settings-version" aria-label={versionAccessibleLabel}>
         <strong>{revisionLabel}</strong>
         <span>{appVersionDisplay.buildLabel}</span>

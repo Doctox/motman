@@ -128,6 +128,23 @@
 }
 .mm-quest-bar i { display: block; height: 100%; border-radius: 999px; background: var(--mm-ink-soft, var(--mm-ink)); transition: width .4s ease; }
 
+/* Barre découpée (quête de la semaine) : une case par défi joué, plus haute
+   pour que chaque case se compte d'un coup d'œil. */
+.mm-quest-bar.is-decoupee {
+  display: grid;
+  grid-template-columns: repeat(var(--mm-quest-cases, 4), minmax(0, 1fr));
+  gap: 5px;
+  height: 9px;
+  background: transparent;
+  overflow: visible;
+}
+.mm-quest-bar.is-decoupee i {
+  background: color-mix(in srgb, var(--mm-ink) 11%, transparent);
+  transition: background-color .4s ease;
+}
+.mm-quest-bar.is-decoupee i.is-faite { background: var(--mm-ink-soft, var(--mm-ink)); }
+.mm-quest.is-done .mm-quest-bar.is-decoupee i.is-faite { background: color-mix(in srgb, var(--mm-gold) 78%, var(--mm-ink)); }
+
 .mm-quest-reward {
   grid-column: 2 / -1;
   display: flex; align-items: center; gap: 6px; margin: 0;
@@ -214,4 +231,4 @@
 html[data-motion="off"] .mm-quests-badge,html[data-motion="off"] .mm-quest-claim,html[data-motion="off"] .mm-quests-gain{animation: none;}
 html[data-motion="off"] .mm-quest-gagnee b,html[data-motion="off"] .mm-quest.is-won,html[data-motion="off"] .mm-quest.is-won::after,html[data-motion="off"] .mm-quest.is-won .mm-quest-icon{animation: none;}
 html[data-motion="off"] .mm-quest.is-won::after{display: none;}
-html[data-motion="off"] .mm-quest-bar i{transition: none;}
+html[data-motion="off"] .mm-quest-bar i,html[data-motion="off"] .mm-quest-bar.is-decoupee i{transition: none;}
