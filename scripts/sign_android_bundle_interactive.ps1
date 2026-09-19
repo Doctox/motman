@@ -64,7 +64,10 @@ try {
     Push-Location $projectRoot
     try {
         Remove-Item -LiteralPath $logPath -ErrorAction SilentlyContinue
-        & powershell -ExecutionPolicy Bypass -File scripts\build_android_bundle.ps1 -SkipSync 2>&1 |
+        # Toujours avec la synchronisation : sans elle (-SkipSync), l'AAB
+        # embarquait le site copié dans android/ lors du DERNIER `cap sync`,
+        # quel qu'il soit — pas celui du commit qu'on croit publier.
+        & powershell -ExecutionPolicy Bypass -File scripts\build_android_bundle.ps1 2>&1 |
             Tee-Object -FilePath $logPath
         if ($LASTEXITCODE -ne 0) {
             throw "La construction signée a échoué (code $LASTEXITCODE)."

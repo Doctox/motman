@@ -20,6 +20,9 @@ export const E2E_PRESENCE_WINDOW_MS = 8_000
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // Un `test.only` oublié ferait passer la chaîne en ne jouant qu'UN test. En
+  // CI, il fait échouer la suite au lieu de la réduire en silence.
+  forbidOnly: !!process.env.CI,
   fullyParallel: false,
   workers: 1,
   timeout: 75_000,

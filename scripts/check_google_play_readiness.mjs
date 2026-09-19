@@ -150,9 +150,8 @@ if (!staticOnly) {
   }
 
   record('manual', 'Firebase serveur', 'Vérifier FIREBASE_SERVICE_ACCOUNT_JSON dans les secrets Edge Functions')
-  record('manual', 'Google Play Billing', 'Obligatoire avant de vendre des plumes ; non implémenté actuellement')
   record('manual', 'Fiche Play Store', 'Icône 512, bannière 1024×500 et captures téléphone/tablette à fournir')
-  record('manual', 'Play Console', 'Data Safety, IARC, audience, accès test et test fermé à compléter')
+  record('manual', 'Play Console', 'Public 16 ans et plus, aucun achat intégré, sécurité des données à jour (voir docs/GOOGLE_PLAY.md)')
 }
 
 const icons = { ok: 'OK', blocker: 'BLOQUANT', manual: 'MANUEL' }

@@ -44,16 +44,34 @@ try {
   assert.equal(validation.score, 100)
 
   // Les chiffres du catalogue publié ne valent que pour lui, pas pour la fixture.
+  //
+  // Et ils ne bloquent que sur la machine du propriétaire. En CI, le catalogue
+  // est TIRÉ DE LA BASE (pull_runtime_catalog.mjs) : publier un nouveau
+  // catalogue depuis l'atelier change ces chiffres sans qu'aucun commit touche
+  // ce fichier, et ferait échouer tous les déploiements suivants — correctifs
+  // urgents compris — jusqu'à ce qu'on les recopie ici. En CI, un écart est
+  // donc SIGNALÉ (avertissement dans le journal) sans bloquer ; les contrôles
+  // de structure qui suivent restent bloquants partout.
   if (reel) {
-    assert.equal(catalog.version, 34)
-    // v34 (18/09) : révision « revision-simples », 186 définitions trop dures
-    // réécrites dans 100 grilles normales. Aucune grille créée : 262 comme en v33
-    // (lot « normales-8 » : 26 grilles de rotation, 187 pour les parties normales).
-    assert.equal(catalog.grids.length, 262)
-    // 412 en v33 ; SEL prend la salière déjà en jeu : 413.
-    assert.equal(catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 413)
-    // Les grilles à thème du défi du jour : inchangées, « normales-8 » n'en crée aucune.
-    assert.equal(catalog.grids.filter(grid => grid.dailyOnly).length, 75)
+    const attendus = [
+      ['version', catalog.version, 34],
+      // v34 (18/09) : révision « revision-simples », 186 définitions trop dures
+      // réécrites dans 100 grilles normales. Aucune grille créée : 262 comme en v33
+      // (lot « normales-8 » : 26 grilles de rotation, 187 pour les parties normales).
+      ['grilles', catalog.grids.length, 262],
+      // 412 en v33 ; SEL prend la salière déjà en jeu : 413.
+      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 413],
+      // Les grilles à thème du défi du jour : inchangées, « normales-8 » n'en crée aucune.
+      ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 75],
+    ]
+    for (const [libelle, obtenu, attendu] of attendus) {
+      if (obtenu === attendu) continue
+      if (process.env.CI) {
+        console.log(`::warning::Catalogue réel — ${libelle} : ${obtenu}, ce script en attend ${attendu}. Nouveau catalogue publié ? Recopier les chiffres dans scripts/test_grid_dimensions.mjs (non bloquant en CI).`)
+      } else {
+        assert.equal(obtenu, attendu, `Catalogue réel — ${libelle} : ${obtenu}, attendu ${attendu}.`)
+      }
+    }
   }
   assert.ok(catalog.grids.every(grid => grid.columns === 7 && grid.rows === 8 && grid.size === undefined))
   assert.ok(catalog.grids.every(grid => grid.difficulty === undefined))

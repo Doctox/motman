@@ -92,6 +92,12 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      # Les scripts de surveillance et le banc de charge ont leurs propres tests
+      # (`scripts/tests/*.test.mjs`, lanceur de Node) : vitest ne lit que
+      # `src/`, et personne ne les lançait.
+      - name: Script tests
+        run: npm run test:scripts
+
       # Trois règles du jeu sont écrites DEUX FOIS, faute de pouvoir importer du
       # TypeScript dans plpgsql : la série du défi du jour, la courbe d'XP et les
       # paliers de classe. Les tests unitaires ci-dessus ne couvrent que la
@@ -199,6 +205,9 @@ jobs:
         if: github.event_name != 'pull_request'
         # Un incident sur le canal de mise à jour ne doit pas bloquer le site.
         # Sans danger : le script s'arrête AVANT de publier si l'audit échoue.
+        # Sans rester muet pour autant : si le secret existe et que le
+        # manifeste manque une fois le site en ligne, le contrôle d'après
+        # déploiement (smoke_test_deployment.mjs) fait échouer la chaîne.
         continue-on-error: true
         env:
           VITE_BASE_PATH: /
@@ -263,3 +272,7 @@ jobs:
         run: npm run smoke:deployment
         env:
           MOTMAN_DEPLOYMENT_URL: ${{ steps.deployment.outputs.page_url }}
+          # « true » ou « false », jamais la clé elle-même : avec le secret, un
+          # manifeste de mise à jour absent devient un échec, plus un simple
+          # avertissement.
+          MOTMAN_UPDATE_SIGNING_KEY_CONFIGURED: ${{ secrets.MOTMAN_UPDATE_SIGNING_KEY != '' }}

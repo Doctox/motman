@@ -1,135 +1,219 @@
-# Préparation Google Play de MotMan
+# Publier MotMan sur Google Play — version 1.1.0
 
-## Mise à jour Android obligatoire
+Version de production : **1.1.0, `versionCode 11`**, publiée le 20/09/2026 en
+France, Belgique, Suisse, Luxembourg et Monaco. Le plus petit APK encore servi
+en ligne est la **1.0.8 (`versionCode 9`)**.
 
-MotMan distingue désormais :
+Les corrections du site (JS, CSS, images) n'ont pas besoin de ce document :
+elles arrivent sur les téléphones par les mises à jour embarquées
+(`docs/MOBILE.md`). Un nouvel AAB, et donc un nouveau numéro, n'est nécessaire
+que si le **natif** change : module Capacitor, permission, manifeste Android,
+`capacitor.config.json`.
 
-- la dernière version disponible (`android_version_code`) ;
-- la version minimale encore autorisée en ligne (`minimum_android_version_code`).
+## Les numéros
 
-Le bundle `1.0.3` utilise le `versionCode 4`. Tant qu’il n’est pas réellement
-disponible sur Google Play, conserver le minimum serveur à `3`.
+Trois sources doivent dire la même chose, sinon `npm run check:version` (lancé
+avant chaque build) arrête tout :
 
-Une fois la release `1.0.3` accessible aux testeurs :
+- `package.json` → `version` ;
+- `android/app/build.gradle` → `versionCode` et `versionName` ;
+- `src/clientVersion.ts` → `ANDROID_VERSION_CODE` et `ANDROID_VERSION_NAME`.
+
+Après `x.y.9` vient `x.(y+1).0`, jamais `x.y.10`. Le `versionCode` monte de 1 à
+chaque AAB envoyé, sans exception : Google refuse un code déjà utilisé.
+
+## Construire l'AAB
+
+**Seulement depuis un commit déjà poussé sur `main` dont le run `deploy-pages`
+a réussi** (et `verify-android` aussi), dans une copie de travail propre :
+`git status --short` ne doit rien afficher. `mobile:aab` construit ce qui est
+sur le disque, pas le commit : un fichier modifié ou non suivi partirait dans
+l'AAB sans être passé par aucun test.
+
+Prérequis sur la machine :
+
+- `android/app/google-services.json` (Crashlytics et notifications) — hors Git ;
+  sans lui, le script refuse de construire ;
+- `.env.local` avec `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` et
+  `VITE_TURNSTILE_SITE_KEY` de production ;
+- le JDK 21 d'Android Studio (détecté automatiquement) et le SDK Android 36.
+
+```powershell
+git status --short          # doit être vide
+git log -1 --oneline        # le commit dont deploy-pages a réussi
+
+# Facultatif mais recommandé : le numéro du run deploy-pages de CE commit
+# (le « #N » de GitHub Actions, ou `gh run list --workflow deploy-pages.yml`).
+$env:GITHUB_RUN_NUMBER = '<N>'
+
+npm run mobile:aab -- -InteractiveSigning
+```
+
+`-InteractiveSigning` demande les deux mots de passe dans la fenêtre et prend
+par défaut la clé d'upload et l'alias `motman-upload` connus du script. Autre
+possibilité : poser les quatre variables avant `npm run mobile:aab` —
+`MOTMAN_KEYSTORE_PATH`, `MOTMAN_KEYSTORE_PASSWORD`, `MOTMAN_KEY_ALIAS`,
+`MOTMAN_KEY_PASSWORD`. Ne jamais les écrire dans un fichier du dépôt.
+
+Le script régénère les icônes, construit le site (`npm run build`, qui finit par
+`audit:security` : un site qui contiendrait des grilles privées est refusé),
+synchronise Capacitor, lance `gradlew :app:bundleRelease` et vérifie la
+signature. Résultat : `android/app/build/outputs/bundle/release/app-release.aab`.
+
+**Pourquoi `GITHUB_RUN_NUMBER`.** Le site embarqué porte un numéro de
+construction ; construit sur la machine, il vaut « local », que l'application
+compte comme 0. Or l'installation d'un nouvel APK repart toujours du site
+embarqué (`resetWhenUpdate`) : au premier lancement, la 1.1.0 téléchargerait
+alors la mise à jour embarquée `#N` — environ 15 Mo — pour obtenir exactement le
+code qu'elle contient déjà. Avec le numéro du run, elle se sait à jour. Ne poser
+QUE cette variable : `GITHUB_REPOSITORY` ferait construire le site pour
+`/motman/`, et l'APK ne trouverait plus ses fichiers.
+
+**Après la construction**, dans la même fenêtre :
+
+```powershell
+npm run audit:play     # doit finir sur « 0 blocage(s) »
+New-Item -ItemType Directory -Force "$HOME\MotMan-versions" | Out-Null
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.0-code11.aab"
+Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.0-code11.aab" -Algorithm SHA256
+```
+
+`audit:play` contrôle la configuration Android, Firebase, les pages légales et
+la signature de l'AAB le plus récent : il se lance APRÈS la construction. La
+copie archivée (hors du dépôt : les `.aab` y sont ignorés) est celle qu'on
+envoie ; `app-release.aab` sera écrasé au prochain build. Noter son empreinte.
+
+Pour un diagnostic local seulement, `-AllowUnsigned` et `-AllowWithoutFirebase`
+lèvent les deux refus. Un tel AAB ne doit jamais partir sur Google Play.
+
+La clé d'upload signe l'envoi ; Google re-signe l'application (Play App
+Signing). Perdre la clé d'upload se répare auprès de Google, la divulguer non :
+elle reste hors du dépôt, comme ses mots de passe.
+
+## Tester avant la production
+
+Installer l'AAB archivé depuis la piste de test interne, puis sur un téléphone :
+
+1. premier lancement : en bas des paramètres, « Application à jour » (si
+   `GITHUB_RUN_NUMBER` était posé) et le numéro `#N` attendu ;
+2. compte invité, connexion Google, protection par e-mail ;
+3. partie normale, classée, entre amis sur deux téléphones, défi du jour ;
+4. notifications de tour et d'invitation ;
+5. coupure réseau puis reconnexion ;
+6. suppression du compte depuis Paramètres → Compte, avec un compte de test.
+
+## Publier, puis basculer le serveur
+
+1. Envoyer `MotMan-1.1.0-code11.aab` sur la piste **Production**, pays France,
+   Belgique, Suisse, Luxembourg et Monaco.
+2. Attendre que la version soit **réellement téléchargeable** dans les cinq pays
+   (examen de Google terminé, fiche Play Store qui propose la 1.1.0).
+3. Alors seulement, déclarer la nouvelle version au serveur :
 
 ```sql
 update public.server_app_config
-set minimum_android_version_code = 4,
+set android_version_code = 11,
+    android_version_name = '1.1.0',
     updated_at = now()
 where id = 'motman';
 ```
 
-Après cette bascule :
+C'est une donnée, pas un schéma : l'éditeur SQL du tableau de bord convient.
+Les fonctions relisent ce réglage toutes les 30 secondes.
 
-- le nouvel AAB continue normalement ;
-- l’ancien AAB `versionCode 3` reçoit HTTP 426 pour les services en ligne ;
-- les versions intégrant le garde-fou affichent un écran bloquant avec un
-  bouton vers Google Play ;
-- la suppression de compte reste disponible même depuis une ancienne version.
+`minimum_android_version_code` **reste à 9** sauf décision contraire. Les trois
+valeurs se lisent ainsi :
 
-Ne jamais augmenter le minimum avant que le nouvel AAB soit téléchargeable.
+- `android_version_code` / `android_version_name` : la dernière version publiée,
+  affichée par l'écran de mise à jour obligatoire. Le nom doit avoir la forme
+  `x.y.z`, sinon l'application rejette toute la configuration ;
+- `minimum_android_version_code` : en dessous, les services en ligne répondent
+  HTTP 426 et l'application affiche un écran bloquant avec un bouton vers
+  Google Play — la suppression de compte, elle, reste toujours possible ;
+- une contrainte impose `minimum_android_version_code ≤ android_version_code` :
+  déclarer la version d'abord, relever le minimum ensuite, jamais l'inverse.
 
-## État technique
+Relever le minimum (à 11 par exemple) oblige tous les joueurs des APK plus
+anciens à passer par le Play Store. Ne jamais le faire avant que l'AAB soit
+téléchargeable partout : ces joueurs resteraient bloqués sans issue.
 
-- Identifiant Android : `com.motman.game`.
-- `compileSdk` et `targetSdk` : API 36.
-- Format de publication : Android App Bundle (`.aab`).
-- Sauvegarde Android désactivée : le compte Supabase reste la source de vérité
-  pour la progression et les achats.
-- Suppression du compte disponible dans l'application et publiquement sur
-  `https://doctox.github.io/MotMan/legal/suppression-compte.html`.
-- Confidentialité publique :
-  `https://doctox.github.io/MotMan/legal/confidentialite.html`.
-- Icône adaptative, icône monochrome Android 13 et splash MotMan présents.
+## Play Console
 
-## Construire le bundle
+### Public cible et contenu
 
-Créer une clé d'upload dans Android Studio ou avec `keytool`, puis conserver le
-fichier hors du dépôt. Exposer uniquement pendant la compilation :
+- Tranches d'âge : **16-17 ans et 18 ans et plus**, comme les conditions
+  d'utilisation (« 16 ans et plus, pas destiné aux enfants »). Aucune tranche
+  plus jeune.
+- Publicités : aucune.
+- **Achats intégrés : aucun.** L'application n'intègre pas Google Play Billing
+  et ne vend rien. Les plumes se gagnent en jouant ; les paniers s'ouvrent
+  uniquement avec des plumes, jamais avec de l'argent. Leurs probabilités sont
+  affichées avant chaque ouverture.
+- Questionnaire IARC : jeu de mots, multijoueur en ligne, interactions entre
+  joueurs (pseudos, amis, invitations, signalements), pas de discussion libre,
+  ni violence, ni sexe, ni drogue, ni langage grossier, ni jeu d'argent. Aucun
+  objet aléatoire ne s'achète avec de l'argent réel.
 
-```powershell
-$env:MOTMAN_KEYSTORE_PATH='C:\chemin\motman-upload.jks'
-$env:MOTMAN_KEYSTORE_PASSWORD='...'
-$env:MOTMAN_KEY_ALIAS='motman-upload'
-$env:MOTMAN_KEY_PASSWORD='...'
-npm run mobile:aab
-```
+La classification finale vient de l'IARC ; ne pas écrire de classement PEGI à
+la main dans la fiche.
 
-Le bundle est produit sous
-`android/app/build/outputs/bundle/release/app-release.aab`. L'inscription à
-Play App Signing se fait ensuite dans la Play Console lors du premier envoi.
-Ne jamais commiter le keystore ou ses mots de passe.
+### Sécurité des données
 
-## Firebase et suivi des crashs
+Données collectées, à reporter dans les catégories les plus proches du
+formulaire :
 
-Crashlytics est activé automatiquement lorsque
-`android/app/google-services.json` est présent. Ajouter l'application Android
-`com.motman.game` au projet Firebase MotMan, télécharger ce fichier puis lancer
-une version candidate sur un appareil. Un premier crash de test contrôlé doit
-être envoyé avant publication pour vérifier le tableau Crashlytics. Le fichier
-`google-services.json` reste hors Git.
+- **Informations de compte** : identifiant du compte, pseudo, adresse e-mail
+  (seulement pour un compte protégé par e-mail ou Google — facultatif).
+- **Activité dans l'application** : progression, scores, parties, collection,
+  avis de grille.
+- **Relations sociales** : amis, invitations, blocages, et signalements (dont le
+  texte rédigé par le joueur).
+- **Identifiants de l'appareil** : jeton de notification FCM, seulement si le
+  joueur autorise les notifications ; identifiant d'installation Firebase, joint
+  aux rapports de plantage.
+- **Diagnostics** : rapports de plantage Crashlytics (actif dans les versions de
+  publication) — modèle de l'appareil, version du système, identifiant
+  d'installation, trace de l'erreur. Ni le contenu des parties ni les messages.
 
-## Sécurité des données
+Ce qui n'est **pas** collecté :
 
-Préparer les déclarations suivantes dans la Play Console, puis les comparer une
-dernière fois au comportement de la version candidate :
+- rien par le formulaire de contact : « Nous écrire » prépare un e-mail dans
+  l'application de messagerie du joueur (`mailto:contact@doctox.fr`) ; MotMan ne
+  reçoit que ce que le joueur envoie lui-même ;
+- rien vers Capgo : dans la 1.1.0, `statsUrl` est vide (`capacitor.config.json`)
+  et le module de mise à jour n'envoie aucune statistique. Les APK antérieurs
+  gardent le réglage par défaut du module, qui en envoie à `plugin.capgo.app` ;
+- ni localisation, ni contacts, ni photos, ni publicité, ni revente.
 
-- informations de compte : adresse e-mail, identifiant utilisateur et pseudo ;
-- activité dans l'application : progression, scores, parties et interactions ;
-- relations sociales : amis, invitations, blocages et signalements ;
-- identifiant d'appareil : jeton de notification FCM lorsque l'autorisation est
-  accordée ;
-- diagnostics : crashs, ANR et informations techniques via Crashlytics une fois
-  celui-ci activé ;
-- finalités : fonctionnement du jeu, synchronisation, sécurité, modération,
-  notifications et amélioration des grilles ;
-- chiffrement en transit : oui ;
-- suppression des données : oui, dans l'application et via la page publique.
+Autres réponses :
 
-Supabase, Cloudflare Turnstile et Firebase agissent comme prestataires
-techniques. Vérifier dans le formulaire si Google les considère comme
-« prestataires de service » plutôt que comme partage à des tiers selon la
-configuration finale.
+- chiffrement en transit : oui (HTTPS seulement, trafic en clair interdit) ;
+- suppression des données : oui, dans l'application (Paramètres → Compte →
+  Supprimer mon compte) et sur la page publique ci-dessous ; les comptes invités
+  inactifs depuis 30 jours sont supprimés automatiquement ;
+- partage avec des tiers : non. Supabase (hébergement en France), Cloudflare
+  Turnstile (protection contre les robots), Firebase Cloud Messaging et
+  Crashlytics, Google Sign-In agissent comme prestataires techniques.
 
-## Contenu, âge et monétisation
+Relire ces réponses contre `public/legal/confidentialite.html` avant d'envoyer
+le formulaire : les deux doivent dire la même chose.
 
-- Public annoncé : à partir de 7 ans, avec accord parental applicable aux
-  comptes et achats des mineurs.
-- Questionnaire IARC : jeu de mots, multijoueur en ligne, pseudos modérés, pas
-  de violence, sexe, drogue, langage grossier ni chat libre.
-- Achats intégrés : les plumes seront payantes et le panier contient des objets
-  aléatoires. Déclarer explicitement **Achats intégrés avec objets aléatoires**
-  et afficher les probabilités avant chaque ouverture.
-- Activer l'authentification Google Play pour les achats et prévoir un contrôle
-  parental. Ne pas présenter la monnaie virtuelle comme de l'argent réel.
+### Fiche Play Store
 
-La classification finale est attribuée par l'IARC après le questionnaire ; ne
-pas écrire manuellement un classement PEGI dans la fiche avant ce résultat.
+- Site : `https://www.doctox.fr/motman/`
+- Confidentialité : `https://www.doctox.fr/motman/legal/confidentialite.html`
+- Suppression du compte : `https://www.doctox.fr/motman/legal/suppression-compte.html`
+- E-mail de contact : `contact@doctox.fr`
+- Icône 512 × 512 sans masque ajouté, bannière 1 024 × 500, au moins deux
+  captures de téléphone faites sur la version candidate.
+- Accès pour l'examen : le jeu s'ouvre en compte invité, sans identifiants.
 
-## Fiche de boutique
+Toujours `www.doctox.fr` : l'ancienne adresse GitHub Pages n'est plus l'adresse
+publique du jeu.
 
-À produire sur la version candidate stable :
+## Après la mise en production
 
-- icône 512 × 512 sans masque ajouté ;
-- bannière 1 024 × 500 ;
-- au moins deux captures de téléphone ;
-- captures tablette 7 et 10 pouces si ces appareils restent pris en charge ;
-- description courte, description complète et e-mail de support ;
-- lien confidentialité et lien suppression du compte ;
-- accès de test pour l'équipe de validation si une connexion bloque une partie
-  du contenu.
-
-## Contrôles avant envoi
-
-1. `npm run test:ci`
-2. `npm run audit:play`
-3. `npm run mobile:aab`
-4. Installer le bundle depuis une piste de test interne.
-5. Tester compte invité, Google, suppression, achat de test, notifications,
-   mode hors-ligne/reconnexion et deux téléphones en multijoueur.
-6. Vérifier Crashlytics et les ANR dans la Play Console après le test fermé.
-
-`npm run mobile:aab` refuse désormais de fabriquer un candidat Play si la
-signature ou `android/app/google-services.json` manque. Pour un diagnostic
-local sans publication, il reste possible d'appeler directement le script avec
-`-AllowUnsigned` et/ou `-AllowWithoutFirebase`.
+- Suivre Crashlytics et les ANR de la Play Console les premiers jours.
+- Ne relever `minimum_android_version_code` que sur décision, par exemple le
+  jour où un changement natif monte `LIVE_UPDATE_MIN_NATIVE_VERSION_CODE`
+  (`src/liveUpdateManifest.ts`) au-dessus de 9.

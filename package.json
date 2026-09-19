@@ -26,6 +26,7 @@
     "smoke:deployment": "node scripts/smoke_test_deployment.mjs",
     "pretest:unit": "npm run check:version",
     "test:unit": "vitest run",
+    "test:scripts": "cd scripts/tests && node --test",
     "test:e2e": "node scripts/reset_e2e_state.mjs && playwright test",
     "test:online": "node scripts/test_supabase_online.mjs",
     "test:load:staging": "node scripts/load_test_supabase_staging.mjs --env=.env.loadtest.local",

@@ -1,4 +1,4 @@
-import { expect, request as playwrightRequest, test } from '@playwright/test'
+import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 
 // Le serveur de test, au port choisi par playwright.config.ts (MOTMAN_E2E_PORT).
@@ -182,19 +182,22 @@ test('l’API locale supprime le profil et révoque sa session', async () => {
     baseURL: SERVEUR_TEST,
     extraHTTPHeaders: { Origin: SERVEUR_TEST },
   })
-  const playerId = `guest_${randomUUID()}`
-  const bootstrap = await api.post('/api/auth/bootstrap', { data: { identity: { playerId, displayName: 'Suppression QA' } } })
-  expect(bootstrap.ok()).toBe(true)
+  try {
+    const playerId = `guest_${randomUUID()}`
+    const bootstrap = await api.post('/api/auth/bootstrap', { data: { identity: { playerId, displayName: 'Suppression QA' } } })
+    expect(bootstrap.ok()).toBe(true)
 
-  const refused = await api.post('/api/auth/delete', { data: { confirmation: 'NON' } })
-  expect(refused.status()).toBe(400)
-  expect((await api.get('/api/auth/session')).ok()).toBe(true)
+    const refused = await api.post('/api/auth/delete', { data: { confirmation: 'NON' } })
+    expect(refused.status()).toBe(400)
+    expect((await api.get('/api/auth/session')).ok()).toBe(true)
 
-  const deleted = await api.post('/api/auth/delete', { data: { confirmation: 'SUPPRIMER' } })
-  expect(deleted.ok()).toBe(true)
-  expect(await deleted.json()).toEqual({ deleted: true })
-  expect((await api.get('/api/auth/session')).status()).toBe(401)
-  await api.dispose()
+    const deleted = await api.post('/api/auth/delete', { data: { confirmation: 'SUPPRIMER' } })
+    expect(deleted.ok()).toBe(true)
+    expect(await deleted.json()).toEqual({ deleted: true })
+    expect((await api.get('/api/auth/session')).status()).toBe(401)
+  } finally {
+    await api.dispose()
+  }
 })
 
 test('L’Épicerie ne monte que les animations visibles', async ({ page }, testInfo) => {
@@ -384,12 +387,14 @@ test('la recherche d’un adversaire compte son attente, et elle seule l’affic
     // s'apparie avec le projet suivant, qui ouvre alors une partie au lieu de
     // la carte de recherche.
     await api.post('/api/matches/search/cancel', { data: { playerId: identity.playerId, pace: 'realtime' } })
+    await api.dispose()
   }
 })
 
-test('l’accueil montre huit amis, connectés en tête, sans les comprimer', async ({ browser }) => {
+test('l’accueil garde tous les amis, sur deux lignes, sans les comprimer', async ({ browser }) => {
   // La rangée n'en montrait que trois, et les absents disparaissaient (demande
-  // du propriétaire, 17/09/2026). Six désormais, déconnectés compris.
+  // du propriétaire, 17/09/2026). Tous y sont désormais, déconnectés compris :
+  // dix ici, et c'est la rangée qui décide combien ses deux lignes en montrent.
   function identite(nom: string) {
     return {
       version: 1,
@@ -400,8 +405,11 @@ test('l’accueil montre huit amis, connectés en tête, sans les comprimer', as
       createdAt: new Date().toISOString(),
     }
   }
+  // Les contextes d'API ouverts pour préparer la scène, refermés à la fin.
+  const sessions: APIRequestContext[] = []
   async function session(identity: ReturnType<typeof identite>) {
     const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+    sessions.push(api)
     expect((await api.post('/api/auth/bootstrap', { data: { identity } })).ok()).toBe(true)
     expect((await api.post('/api/social/register', { data: { displayName: identity.displayName } })).ok()).toBe(true)
     return api
@@ -429,7 +437,8 @@ test('l’accueil montre huit amis, connectés en tête, sans les comprimer', as
     await page.goto('/#accueil')
     const visages = page.locator('.mm-home-friend')
     await expect(visages.first()).toBeVisible()
-    // Aucun nombre figé : la rangée montre ce que deux lignes acceptent.
+    // Aucun nombre figé : les dix amis sont DANS la rangée, qui n'en laisse
+    // voir que ce que deux lignes acceptent (mesuré plus bas).
     await expect(visages).toHaveCount(10)
 
     // Et sans les écraser : la grille les comprimait pour tenir sur une ligne,
@@ -445,12 +454,12 @@ test('l’accueil montre huit amis, connectés en tête, sans les comprimer', as
         .map(enfant => enfant.getBoundingClientRect())
         .filter(boite => boite.height > 0 && boite.bottom <= rangee.getBoundingClientRect().bottom + 1)
         .map(boite => Math.round(boite.top - hautDeLaRangee)))
-      return { lignesVisibles: lignesVisibles.size, hauteur: Math.round(rangee.getBoundingClientRect().height) }
+      return { lignesVisibles: lignesVisibles.size }
     })
     expect(mesure.lignesVisibles).toBe(2)
-    console.log('RANGEE=', JSON.stringify(mesure))
   } finally {
     await context.close()
+    await Promise.all(sessions.map(api => api.dispose()))
   }
 })
 
@@ -509,6 +518,7 @@ test('l’accueil tient quand le téléphone agrandit le texte', async ({ browse
     expect(await pseudo.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
   } finally {
     await context.close()
+    await api.dispose()
   }
 })
 
@@ -549,6 +559,7 @@ test('sur un écran court, la barre de navigation reste visible', async ({ brows
     expect(mesure.contenuDefile).toBe(true)
   } finally {
     await context.close()
+    await api.dispose()
   }
 })
 
@@ -583,6 +594,7 @@ test('une partie qui n’existe plus ramène à l’accueil, au lieu de piéger 
     await expect(page).toHaveURL(/#accueil$/)
   } finally {
     await context.close()
+    await api.dispose()
   }
 })
 

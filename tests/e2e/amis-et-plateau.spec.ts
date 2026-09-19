@@ -87,6 +87,7 @@ test('deux amis qui s’invitent en même temps entrent dans la même partie', a
     expect(autre.outgoing).toHaveLength(0)
   } finally {
     await context.close()
+    await Promise.all([apiAlba.dispose(), apiBruno.dispose()])
   }
 })
 
@@ -112,6 +113,7 @@ test('une invitation envoyée reste sur la ligne de l’ami, avec de quoi l’an
     await expect(lignes).toHaveCount(1)
   } finally {
     await context.close()
+    await Promise.all([apiHote.dispose(), apiAmie.dispose()])
   }
 })
 
@@ -131,6 +133,7 @@ test('toucher un ami à l’accueil ouvre Jouer sur l’onglet Amis', async ({ b
     await expect(page.getByRole('button', { name: `Inviter ${ami.displayName}` })).toBeVisible()
   } finally {
     await context.close()
+    await Promise.all([apiHote.dispose(), apiAmi.dispose()])
   }
 })
 

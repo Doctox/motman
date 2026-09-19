@@ -406,7 +406,10 @@ test('seul le cadre de résultat natif défile pour rendre toutes les actions ac
     data: { playerId: second.playerId, matchId },
   })
   expect(finished.ok()).toBe(true)
-  const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 620 }, false)
+  // 540 px de haut : assez court pour que l'écran de fin déborde. À 620, il
+  // tient pile depuis que « Calcul de l'expérience… » ne reste plus affiché pour
+  // une partie sans récompense (19/09/2026) — et le test n'éprouvait plus rien.
+  const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 540 }, false)
 
   try {
     await page.evaluate(() => document.documentElement.classList.add('native-runtime'))
@@ -1013,15 +1016,14 @@ test('sans réponse à « Tu es toujours là ? », la partie est perdue pour l�
 })
 
 test('une quête finie pendant la partie s’annonce au coup qui la termine', async ({ browser, request }) => {
-  // Le test le plus lourd de la suite : il joue des tours a l'ecran, un par un,
-  // jusqu'a ce qu'une quete se termine. Il a depasse son budget trois fois sur la
-  // machine de CI -- 30 % plus lente que celle de developpement -- et fait
-  // echouer autant de deploiements. `slow()` triple le delai ; ce qu'il verifie
-  // ne change pas d'un iota.
-  test.slow()
-  // Une vraie partie, jouée tour par tour À L'ÉCRAN : chaque tour coûte l'éclair
-  // « À vous ! », deux clics par lettre et un aller-retour serveur. WebKit
-  // dépassait la minute par défaut.
+  // Le test le plus lourd de la suite : une vraie partie, jouée tour par tour
+  // À L'ÉCRAN, jusqu'à ce qu'une quête se termine. Chaque tour coûte l'éclair
+  // « À vous ! », deux clics par lettre et un aller-retour serveur : WebKit
+  // dépassait la minute par défaut, et le test a dépassé son budget trois fois
+  // sur la machine de CI — 30 % plus lente que celle de développement —, faisant
+  // échouer autant de déploiements. D'où 150 s, fixées ici et nulle part
+  // ailleurs. (Un `test.slow()` les précédait : sans effet, `setTimeout`
+  // remplaçait aussitôt le délai qu'il venait de tripler.)
   test.setTimeout(150_000)
   // Les trois quêtes du jour sont tirées de la date (src/quests.ts) : certaines
   // ne peuvent se terminer qu'à la clôture (« sans indice »), d'autres sont hors
