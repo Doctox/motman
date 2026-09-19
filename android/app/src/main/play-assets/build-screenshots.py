@@ -18,19 +18,38 @@ def font(path,size,weight):
     except Exception: pass
     return f
 
-# Barre d'etat et barre de navigation d'Android, mesurees sur les captures de JM
-# (Samsung, 945 x 2048 apres passage par WhatsApp). Valeurs fixes plutot que
-# detection automatique : la detection par luminosite se trompait sur la capture
-# de victoire, dont le bas est occupe par un bouton vert sombre. Si le telephone
-# ou la definition changent, remesurer ces deux nombres.
-BARRE_ETAT = 85
-DEBUT_BARRE_NAVIGATION = 1930
+# Barre d'etat et barre de navigation d'Android, mesurees par definition de
+# capture. Valeurs fixes plutot que detection automatique : la detection par
+# luminosite se trompait sur la capture de victoire, dont le bas est occupe par
+# un bouton vert sombre. Si le telephone ou la definition changent, remesurer.
+#   945 x 2048  : captures du 28/08/2026, Samsung passe par WhatsApp ;
+#   1440 x 3120 : captures du 19/09/2026 par `adb exec-out screencap` sur le
+#                 Galaxy S24 Ultra du proprietaire (sans compression).
+BARRES = {
+    (945, 2048): (85, 1930),
+    (1440, 3120): (130, 2951),
+}
 
 def rogner_barres(im):
     """Retire l'heure, l'operateur, la batterie et les touches systeme : ils
     n'apportent rien a la fiche et datent la capture."""
     w, h = im.size
-    return im.crop((0, BARRE_ETAT, w, min(DEBUT_BARRE_NAVIGATION, h)))
+    if (w, h) not in BARRES:
+        raise SystemExit(f'definition inconnue {w}x{h} : mesurer les barres et les ajouter a BARRES')
+    haut, bas = BARRES[(w, h)]
+    return effacer_poignee(im.crop((0, haut, w, min(bas, h))))
+
+# Largeur de la poignee du panneau lateral Samsung (barre grise collee au bord
+# gauche de l'ecran, sur les captures du 19/09/2026). On la recouvre avec la
+# colonne voisine : le fond de l'appli y est uni.
+POIGNEE = 12
+
+def effacer_poignee(im):
+    im = im.convert('RGB')
+    colonne = im.crop((POIGNEE, 0, POIGNEE + 1, im.height))
+    for x in range(POIGNEE):
+        im.paste(colonne, (x, 0))
+    return im
 
 def ajuster(d,texte,chemin,taille,poids,largeur_max):
     while taille>20:
@@ -67,18 +86,22 @@ def composer(source,titre,soustitre,sortie):
 # sources sont ceux des captures du 28/08 : les remplacer par ceux des
 # nouvelles captures, même écran pour même bandeau.
 if __name__ == '__main__':
+    # src : dossier des captures brutes, nommees duel / defi / victoire /
+    # classement / epicerie (.png ou .jpeg) ; dst : dossier des visuels.
     src=sys.argv[1]; dst=sys.argv[2]
     plan=[
-      ('WhatsApp Image 2026-08-28 at 18.46.00 (1).jpeg','1-duel.png',
+      ('duel','1-duel.png',
        "Deux joueurs, une grille","Chacun son tour, sur la même grille."),
-      ('WhatsApp Image 2026-08-28 at 18.46.00 (2).jpeg','2-defi.png',
+      ('defi','2-defi.png',
        "Un défi chaque jour","Une grille à thème, la même pour tous. Ta série grandit."),
-      ('WhatsApp Image 2026-08-28 at 18.46.01 (2).jpeg','3-victoire.png',
+      ('victoire','3-victoire.png',
        "Gagne, monte, débloque","Expérience et plumes à chaque partie."),
-      ('WhatsApp Image 2026-08-28 at 18.46.01.jpeg','4-classement.png',
+      ('classement','4-classement.png',
        "Où en es-tu ?","Classement général, ou seulement entre amis."),
-      ('WhatsApp Image 2026-08-28 at 18.46.01 (1).jpeg','5-epicerie.png',
+      ('epicerie','5-epicerie.png',
        "Tout est cosmétique","Avatars, cadres, animations. Aucun avantage en jeu."),
     ]
-    for fichier,nom,titre,soustitre in plan:
+    for base,nom,titre,soustitre in plan:
+        fichier=next((f for f in os.listdir(src) if os.path.splitext(f)[0]==base), None)
+        if not fichier: raise SystemExit(f'capture {base} absente de {src}')
         composer(os.path.join(src,fichier), titre, soustitre, os.path.join(dst,nom))
