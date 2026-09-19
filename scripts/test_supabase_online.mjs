@@ -156,9 +156,13 @@ try {
   }, 400)
   await invoke(alice, 'social-api', { action: 'report', targetId: bob.user.id, reason: 'comportement', details: 'Test automatisé' })
 
-  const created = await invoke(alice, 'match-api', { action: 'solo', difficulty: 'normal', pace: 'realtime' })
+  // Une partie contre le bot : le défi du jour, depuis que l'action `solo` a
+  // disparu (19/09/2026). Son abandon ci-dessous le ferme pour la journée, ce
+  // qui est sans conséquence : les comptes de test sont supprimés à la fin.
+  const created = await invoke(alice, 'match-api', { action: 'daily' })
   const match = created.match
   assert.equal(match.mode, 'solo')
+  assert.equal(match.isDaily, true)
   assert.ok(match.grid && match.grid.columns === 7 && match.grid.rows === 8)
   assert.ok(match.grid.words.every(word => /^•+$/.test(word.answer)), 'Une réponse réelle a fui dans la grille publique')
   assert.ok(match.grid.cells.every(cell => cell.kind !== 'letter' || cell.solution === ''), 'Une solution de cellule a fui')
@@ -220,13 +224,6 @@ try {
   assert.equal(awards[0].plumesEarned, 0, 'Un abandon ne doit donner aucune plume')
   assert.equal(finalAccount.progress.losses, 1, 'Un abandon doit compter comme une défaite')
 
-  const feedback = await invoke(alice, 'match-api', {
-    action: 'feedback', matchId: match.id, quality: 'yes', reason: 'Rotation QA',
-  })
-  assert.equal(feedback.recorded, true, 'L’avis de grille doit être enregistré côté serveur')
-  assert.equal(feedback.popularity.positive_reviews >= 1, true)
-  assert.equal(Number.isFinite(Number(feedback.popularity.popularity_score)), true)
-
   const gridUsage = await invoke(alice, 'grid-usage-api', { action: 'snapshot' })
   assert.equal(gridUsage.schema, 'motman-grid-usage-snapshot')
   assert.equal(gridUsage.version, 1)
@@ -236,9 +233,9 @@ try {
     assert.equal(privateKey in gridUsage, false, `L’instantané Grid Studio expose ${privateKey}`)
   }
 
-  const rotated = await invoke(alice, 'match-api', { action: 'solo', difficulty: 'normal', pace: 'realtime' })
-  assert.notEqual(rotated.match.gridId, match.gridId, 'La grille précédente doit sortir de la rotation récente')
-  await invoke(alice, 'match-api', { action: 'forfeit', matchId: rotated.match.id })
+  // Abandonné, le défi du jour ne se retente plus avant minuit (19/09/2026).
+  const refus = await invoke(alice, 'match-api', { action: 'daily' }, 409)
+  assert.equal(refus.code, 'DAILY_CLOSED', 'Un défi abandonné ne doit pas se rouvrir le même jour')
 
   const socialMenuProbe = menuBroadcastProbe(bob.client, bob.user.id, 'social')
   const socialMenuChannel = await socialMenuProbe.ready

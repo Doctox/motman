@@ -177,9 +177,10 @@ export async function cancelNormalSearch(playerId: string, pace: MatchPace): Pro
   return (await supabaseMatch<{ lobby: MatchLobbyState }>('search-cancel', { pace })).lobby
 }
 
-// `createSoloMatch` a disparu le 16/09/2026 avec le bouton Solo. L'action 'solo'
-// reste servie par match-api : les APK déjà installés l'appellent encore tant
-// qu'ils n'ont pas pris la mise à jour embarquée.
+// `createSoloMatch` a disparu le 16/09/2026 avec le bouton Solo, et l'action
+// 'solo' de match-api le 19/09/2026 : tout APK servi (1.0.8 et plus) prend la
+// mise à jour embarquée, plus rien ne l'appelait. Même sort pour l'avis de
+// grille de fin de partie (`feedback`, `result-feedback`).
 
 // Défi du jour. Le client n'envoie RIEN : le SERVEUR dérive la dateKey (horloge
 // serveur), choisit la grille (calendrier du jour), le niveau du bot (d'après

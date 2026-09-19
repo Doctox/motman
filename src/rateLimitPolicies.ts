@@ -50,12 +50,9 @@ export function actionRateLimits(
   if (api === 'match' && action === 'ranked-leaderboard') {
     return [{ bucket: 'match:ranked-leaderboard', maxRequests: 30, windowSeconds: 60 }]
   }
-  if (api === 'match' && action === 'solo') {
-    return [{ bucket: 'match:solo', maxRequests: isAnonymous ? 20 : 40, windowSeconds: 600 }]
-  }
-  // Le défi du jour est volontairement rejouable jusqu'à minuit : le plafond ne
+  // Le défi du jour se retente jusqu'à minuit après une défaite : le plafond ne
   // sert qu'à empêcher la création en boucle de parties, pas à limiter les
-  // tentatives d'un joueur normal. Même ordre de grandeur que le solo.
+  // tentatives d'un joueur normal.
   if (api === 'match' && action === 'daily') {
     return [{ bucket: 'match:daily', maxRequests: isAnonymous ? 20 : 40, windowSeconds: 600 }]
   }
@@ -82,9 +79,6 @@ export function actionRateLimits(
   }
   if (api === 'match' && action === 'daily-leaderboard') {
     return [{ bucket: 'match:daily-leaderboard', maxRequests: isAnonymous ? 20 : 60, windowSeconds: 300 }]
-  }
-  if (api === 'match' && action === 'feedback') {
-    return [{ bucket: 'match:feedback', maxRequests: 20, windowSeconds: 3600 }]
   }
   // Catalogue complet servi à l'atelier de fabrication. Réservé aux comptes
   // `admin`, appelé une fois au démarrage — d'où un quota serré. Sans cette

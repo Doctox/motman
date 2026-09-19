@@ -1,4 +1,3 @@
-import type { BotSkill } from '../../../src/botOpponents.ts'
 import { canUseHint, canUseReroll, hintCandidates } from '../../../src/gameRules.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { dailyGridIdFor, parisDateKey } from '../_shared/dailyCalendar.ts'
@@ -269,14 +268,6 @@ Deno.serve(async request => {
       return json(200, await lobby())
     }
 
-    if (action === 'solo') {
-      const pace: Pace = body.pace === 'async' ? 'async' : 'realtime'
-      const skill: BotSkill = body.difficulty === 'easy' ? 'beginner' : body.difficulty === 'hard' ? 'expert' : 'regular'
-      const bot = createBot(`${user.id}:solo:${Date.now()}`, skill)
-      const created = await createMatch(admin, user.id, bot.playerId, 'solo', pace, null, bot)
-      return json(200, { match: await view(admin, created.row, user.id, created.grid) })
-    }
-
     // Structure de la grille d'une partie TERMINÉE, pour la relecture.
     //
     // Passe par `publicGrid`, donc SANS les solutions : le client reçoit la
@@ -541,22 +532,6 @@ Deno.serve(async request => {
       return json(200, { lobby: await lobby() })
     }
 
-    if (action === 'result-feedback') {
-      const resultId = typeof body.resultId === 'string' ? body.resultId : ''
-      const quality = body.quality === 'yes' ? 1 : body.quality === 'no' ? -1 : 0
-      if (!resultId || !quality) return json(400, { error: 'Avis invalide.' })
-      const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 120) : ''
-      const { data: feedbackRow, error: feedbackError } = await admin.from('grid_player_history').update({
-        feedback: quality,
-        feedback_reason: reason || null,
-        feedback_at: nowIso(),
-        updated_at: nowIso(),
-      }).eq('id', resultId).eq('user_id', user.id).select('id').maybeSingle()
-      if (feedbackError) throw feedbackError
-      if (!feedbackRow) return json(404, { error: 'Résultat introuvable.' })
-      return json(200, { recorded: true })
-    }
-
     const matchId = typeof body.matchId === 'string' ? body.matchId : ''
     const { data: participant } = await admin.from('match_participants').select('match_id').eq('match_id', matchId).eq('user_id', user.id).maybeSingle()
     if (!participant) return json(404, { error: 'Partie introuvable.' })
@@ -564,24 +539,6 @@ Deno.serve(async request => {
     if (!found) return json(404, { error: 'Partie introuvable.' })
     let row = await resolveRow(found as MatchRow)
     const grid = await getGrid(admin, row.grid_id)
-    if (action === 'feedback') {
-      if (row.status !== 'finished') return json(409, { error: 'La partie doit être terminée avant de noter sa grille.' })
-      const quality = body.quality === 'yes' ? 1 : body.quality === 'no' ? -1 : 0
-      if (!quality) return json(400, { error: 'Avis invalide.' })
-      const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 120) : ''
-      await recordMatchHistory(admin, row, user.id)
-      const { error: feedbackError } = await admin.from('grid_player_history').update({
-        feedback: quality,
-        feedback_reason: reason || null,
-        feedback_at: nowIso(),
-        updated_at: nowIso(),
-      }).eq('user_id', user.id).eq('play_key', `match:${row.id}`)
-      if (feedbackError) throw feedbackError
-      const { data: popularity } = await admin.from('grid_popularity')
-        .select('plays,completions,positive_reviews,negative_reviews,popularity_score')
-        .eq('grid_id', row.grid_id).maybeSingle()
-      return json(200, { recorded: true, popularity })
-    }
     if (action === 'match') {
       // A ranked ready-check closes the interrupted casual match atomically in
       // PostgreSQL. If the accepting request disappears before its follow-up

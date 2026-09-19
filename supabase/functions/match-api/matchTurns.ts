@@ -149,13 +149,14 @@ export function forfeitAbsentPlayer(row: MatchRow, absent = row.current_player_i
  * joueur ne perdait qu'un tour avant une nouvelle fenêtre de 30 s. Ouvrir le
  * défi, fermer l'appli, chercher les réponses, revenir : c'était possible.
  *
- * En temps limité, une partie que PERSONNE n'a fait avancer depuis trois
- * minutes est donc perdue par l'humain absent. Trois minutes, c'est plus du
- * double du plus long silence d'une partie suivie (lecture de la grille, tour
- * de 45 s, délai de grâce, fenêtre de 30 s) : tant qu'une appli est ouverte,
- * cette règle ne se déclenche jamais.
+ * En temps limité, une partie que PERSONNE n'a fait avancer depuis 90 s est
+ * donc perdue par l'humain absent. Le plus long silence d'une partie suivie est
+ * d'environ 68 s : lecture de la grille (15 s), tour de 45 s, délai de grâce du
+ * serveur (8 s) ; après quoi le serveur écrit le tour manqué. Tant qu'une appli
+ * est ouverte, cette règle ne se déclenche donc jamais. Trois minutes au départ
+ * (19/09/2026), ramenées à 90 s le même jour à la demande du propriétaire.
  */
-export const ABSENCE_SANS_TEMOIN_MS = 3 * 60_000
+export const ABSENCE_SANS_TEMOIN_MS = 90_000
 
 /** L'humain déclaré absent : celui dont c'est le tour, ou celui qui affronte le bot. Null si la partie vit. */
 export function absentSansTemoin(
