@@ -63,19 +63,22 @@ def composer(source,titre,soustitre,sortie):
     toile.save(sortie,'PNG',optimize=True)
     print(os.path.basename(sortie), toile.size, f"{os.path.getsize(sortie)//1024} ko")
 
+# Bandeaux au « tu » depuis le 19/09/2026, comme l'appli. Les noms de fichiers
+# sources sont ceux des captures du 28/08 : les remplacer par ceux des
+# nouvelles captures, même écran pour même bandeau.
 if __name__ == '__main__':
     src=sys.argv[1]; dst=sys.argv[2]
     plan=[
       ('WhatsApp Image 2026-08-28 at 18.46.00 (1).jpeg','1-duel.png',
        "Deux joueurs, une grille","Chacun son tour, sur la même grille."),
       ('WhatsApp Image 2026-08-28 at 18.46.00 (2).jpeg','2-defi.png',
-       "Un défi chaque jour","La même grille pour tout le monde. Votre série grandit."),
+       "Un défi chaque jour","Une grille à thème, la même pour tous. Ta série grandit."),
       ('WhatsApp Image 2026-08-28 at 18.46.01 (2).jpeg','3-victoire.png',
-       "Gagnez, montez, débloquez","Expérience et plumes à chaque partie."),
+       "Gagne, monte, débloque","Expérience et plumes à chaque partie."),
       ('WhatsApp Image 2026-08-28 at 18.46.01.jpeg','4-classement.png',
-       "Où en êtes-vous ?","Classement général, ou seulement entre amis."),
+       "Où en es-tu ?","Classement général, ou seulement entre amis."),
       ('WhatsApp Image 2026-08-28 at 18.46.01 (1).jpeg','5-epicerie.png',
-       "Tout est cosmétique","Avatars, cadres, animations. Aucun avantage à acheter."),
+       "Tout est cosmétique","Avatars, cadres, animations. Aucun avantage en jeu."),
     ]
     for fichier,nom,titre,soustitre in plan:
         composer(os.path.join(src,fichier), titre, soustitre, os.path.join(dst,nom))
