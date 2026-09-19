@@ -152,8 +152,11 @@ téléchargeable partout : ces joueurs resteraient bloqués sans issue.
   **Le jour où un achat revient** (un pass en euros, par exemple — piste du
   plan de revenus du 14/09/2026) : Google Play Billing devient obligatoire pour
   tout bien numérique vendu dans l'appli ; déclarer « Contient des achats
-  intégrés » dans la fiche ; ajouter les achats à la sécurité des données et à
-  la politique de confidentialité ; refaire le questionnaire IARC. Les paniers,
+  intégrés » dans la fiche ; retirer « Pas d'achat intégré : rien ne se paie en
+  euros » et « Les plumes ne s'achètent pas » de la description (texte de
+  référence : `MotMan Contexte/MotMan_Fiche_PlayStore.md`) ; ajouter les achats
+  à la sécurité des données et à la politique de confidentialité ; refaire le
+  questionnaire IARC. Les paniers,
   eux, ne doivent jamais s'acheter en euros : ce serait un objet aléatoire
   payant, à déclarer comme tel.
 - Questionnaire IARC : jeu de mots, multijoueur en ligne, interactions entre
