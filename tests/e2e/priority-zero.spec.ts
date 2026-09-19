@@ -1055,7 +1055,21 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
     if (ouverture.currentPlayerId === first.playerId) await submitTurn(request, ouverture, [])
 
     const bandeau = page.locator('.mm-quest-achieved')
-    for (let tour = 0; tour < 14 && !(await bandeau.isVisible()); tour += 1) {
+    // Le bandeau s'efface seul au bout de 3,2 s. Le relire après coup ratait sa
+    // fenêtre sur WebKit, plus lent (19/09/2026) : on note son texte À
+    // L'INSTANT où il paraît, et c'est ce relevé qu'on vérifie.
+    await page.evaluate(() => {
+      const vus: string[] = []
+      ;(window as unknown as { __bandeauxDeQuete: string[] }).__bandeauxDeQuete = vus
+      new MutationObserver(() => {
+        for (const element of document.querySelectorAll('.mm-quest-achieved')) {
+          const texte = element.textContent ?? ''
+          if (texte && !vus.includes(texte)) vus.push(texte)
+        }
+      }).observe(document.body, { childList: true, subtree: true, characterData: true })
+    })
+    const bandeauxVus = () => page.evaluate(() => (window as unknown as { __bandeauxDeQuete: string[] }).__bandeauxDeQuete)
+    for (let tour = 0; tour < 14 && (await bandeauxVus()).length === 0; tour += 1) {
       const etat = await loadMatch(request, first.playerId, matchId)
       if (etat.status !== 'active') break
       if (etat.currentPlayerId === first.playerId) {
@@ -1083,9 +1097,9 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
       }
     }
 
-    await expect(bandeau).toBeVisible()
-    await expect(bandeau).toContainText('Quête accomplie')
-    await expect(bandeau).toContainText(suivie!.title)
+    const vus = (await bandeauxVus()).join(' | ')
+    expect(vus).toContain('Quête accomplie')
+    expect(vus).toContain(suivie!.title)
     // Le bandeau s'efface tout seul : il ne doit pas rester sur le plateau.
     await expect(bandeau).toBeHidden({ timeout: 8_000 })
   } finally {

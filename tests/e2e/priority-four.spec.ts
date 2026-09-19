@@ -116,8 +116,23 @@ test('les informations légales restent lisibles sur mobile', async ({ page }, t
   await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Informations/ }).click()
 
-  const panel = page.getByRole('dialog', { name: 'Informations légales' })
+  const panel = page.getByRole('dialog', { name: 'Informations' })
   await expect(panel).toBeVisible()
+  // « Nous écrire » s'ouvre d'abord (19/09/2026) : le message préparé part vers
+  // la messagerie du joueur, avec le sujet choisi et, pour un bug, la version.
+  await expect(panel.getByRole('heading', { name: 'Nous écrire' })).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Préparer l’e-mail' })).toBeDisabled()
+  await panel.getByRole('textbox', { name: 'Votre message' }).fill('La grille ne s’ouvre plus.')
+  const lien = await panel.getByRole('link', { name: 'Préparer l’e-mail' }).getAttribute('href')
+  expect(lien).toMatch(/^mailto:contact@doctox\.fr\?subject=MotMan%20%C2%B7%20Bug&body=/)
+  expect(decodeURIComponent(lien!.split('&body=')[1])).toContain('Version : ')
+  // Le bouton radio est caché sous sa pastille : le joueur touche la pastille.
+  await panel.locator('.mm-contact-sujets label', { hasText: 'Demande pro' }).click()
+  await expect(panel.getByRole('radio', { name: 'Demande pro' })).toBeChecked()
+  const pro = await panel.getByRole('link', { name: 'Préparer l’e-mail' }).getAttribute('href')
+  expect(decodeURIComponent(pro!.split('&body=')[1])).toBe('La grille ne s’ouvre plus.')
+
+  await panel.getByRole('tab', { name: 'Confidentialité' }).click()
   await expect(panel.getByRole('heading', { name: 'Politique de confidentialité' })).toBeVisible()
   await panel.getByRole('tab', { name: 'Conditions' }).click()
   await expect(panel.getByRole('heading', { name: 'Conditions d’utilisation' })).toBeVisible()
