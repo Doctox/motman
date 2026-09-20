@@ -348,7 +348,9 @@ Deno.serve(async request => {
       const { data: profil, error: profilError } = await admin.from('profiles').select('role').eq('id', user.id).single()
       if (profilError) throw profilError
       if (profil?.role !== 'admin') return json(403, { error: 'Réservé au propriétaire.' })
-      const { data: pouls, error: poulsError } = await admin.rpc('server_game_pulse')
+      // Lui exclu de ses propres chiffres : il lit ce cadre depuis l'appli, donc
+      // il y serait toujours compté (propriétaire, 20/09/2026).
+      const { data: pouls, error: poulsError } = await admin.rpc('server_game_pulse', { p_moi: user.id })
       if (poulsError) throw poulsError
       return json(200, { pulse: pouls })
     }

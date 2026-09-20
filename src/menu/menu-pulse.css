@@ -1,13 +1,25 @@
 /* Le pouls du jeu, visible du seul propriétaire (20/09/2026). Discret : c'est
    un instrument de bord, pas une carte de jeu — il ne doit pas voler la
-   vedette au défi du jour. */
-.mm-pulse{margin-top:11px;padding:11px 13px;border:1px dashed var(--mm-line);border-radius:13px;background:color-mix(in srgb,var(--mm-sage) 30%,var(--mm-paper))}
-.mm-pulse>header{display:grid;grid-template-columns:18px 1fr 30px;gap:8px;align-items:center;margin-bottom:9px}
-.mm-pulse>header svg{width:16px;height:16px;color:var(--mm-muted)}
-.mm-pulse>header strong{font:700 0.6875rem/1 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mm-muted)}
-.mm-shell .mm-pulse>header button{width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--mm-muted)}
-.mm-pulse-chiffres{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
-.mm-pulse-chiffres span{display:flex;flex-direction:column;gap:1px}
-.mm-pulse-chiffres b{font:700 1.25rem/1 'Playfair Display',serif;color:var(--mm-ink)}
-.mm-pulse-chiffres small{color:var(--mm-muted);font-size:0.5625rem;line-height:1.2}
-.mm-pulse-pied{margin:9px 0 0;color:var(--mm-muted);font-size:0.625rem;line-height:1.35}
+   vedette au défi du jour. L'accueil n'en garde qu'UNE LIGNE ; le reste vit
+   dans la fenêtre, rangé par période (« là c'est le bordel », 20/09/2026). */
+.mm-shell .mm-pulse{width:100%;margin-top:11px;padding:9px 13px;display:grid;grid-template-columns:17px auto 1fr 17px;gap:9px;align-items:center;text-align:left;border:1px dashed var(--mm-line);border-radius:13px;background:color-mix(in srgb,var(--mm-sage) 30%,var(--mm-paper));color:var(--mm-muted)}
+.mm-pulse>svg{width:16px;height:16px}
+.mm-pulse>svg:last-child{width:15px;height:15px;justify-self:end}
+.mm-pulse b{font:700 1.125rem/1 'Playfair Display',serif;color:var(--mm-ink)}
+.mm-pulse span{font-size:0.6875rem;letter-spacing:.03em}
+
+.mm-pulse-layer{align-items:center;padding:18px}
+.mm-pulse-dialog{width:min(100%,330px);max-height:82vh;overflow-y:auto;padding:18px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 18px 55px #0005}
+.mm-pulse-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:3px}
+.mm-pulse-dialog h2{display:flex;align-items:center;gap:8px;margin:0;font:600 1.1875rem 'Playfair Display',serif}
+.mm-pulse-dialog h2 svg{flex:none;width:19px;height:19px;color:var(--mm-muted)}
+.mm-shell .mm-pulse-dialog>header button{flex:none;width:32px;height:32px;display:grid;place-items:center;padding:0;border:0;border-radius:9px;background:transparent;color:var(--mm-muted)}
+.mm-pulse-dialog>header button svg{width:16px;height:16px}
+.mm-pulse-note{margin:0 0 14px;color:var(--mm-muted);font-size:0.6875rem}
+.mm-pulse-dialog h3{margin:0 0 5px;font:700 0.625rem/1 'DM Sans',sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--mm-muted)}
+.mm-pulse-dialog dl{margin:0 0 15px}
+.mm-pulse-dialog dl>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--mm-line)}
+.mm-pulse-dialog dl>div:last-child{border-bottom:0}
+.mm-pulse-dialog dt{font-size:0.8125rem}
+.mm-pulse-dialog dd{margin:0;font:700 1rem/1 'Playfair Display',serif;font-variant-numeric:tabular-nums}
+.mm-shell .mm-pulse-fermer{width:100%;min-height:46px;margin-top:3px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.875rem/1 'DM Sans',sans-serif}
