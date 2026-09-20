@@ -294,10 +294,8 @@ html[data-motion="off"] .hint-button[data-idle-cue]::after,html[data-motion="off
 .ranked-seeker-dialog{width:min(390px,100%);display:flex;flex-direction:column;align-items:center;padding:24px 22px 20px;border:1px solid #d5bb75;border-radius:22px;background:var(--mm-surface,#fffdf7);color:var(--mm-ink,#073f37);box-shadow:0 26px 75px #001c1633;text-align:center;animation:ranked-seeker-entree .22s cubic-bezier(.22,1,.36,1)}
 .ranked-seeker-embleme{display:grid;place-items:center;width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fbeee0,#f4dcc4);border:1px solid #e3c791;box-shadow:inset 0 2px 6px #fff8}
 .ranked-seeker-embleme svg{width:32px;height:32px;color:#b54b30}
-.ranked-seeker-dialog>small{margin-top:12px;color:#b54b30;font-weight:800;font-size:0.6875rem;letter-spacing:.08em;text-transform:uppercase}
-.ranked-seeker-dialog h2{margin:5px 0 7px;font:700 1.5rem/1.2 'Playfair Display',serif}
-.ranked-seeker-dialog>p{margin:0;font-size:0.8125rem;line-height:1.45;color:var(--mm-muted,#6d7773)}
-.ranked-seeker-cout{margin-top:12px!important;padding:9px 12px;border:1px solid #e7dcc0;border-radius:10px;background:#faf3e3;color:#7a6326;font-size:0.75rem!important;font-weight:600}
+.ranked-seeker-dialog h2{margin:14px 0 0;font:700 1.5rem/1.2 'Playfair Display',serif}
+.ranked-seeker-cout{margin:14px 0 0;padding:9px 12px;border:1px solid #e7dcc0;border-radius:10px;background:#faf3e3;color:#7a6326;font-size:0.75rem!important;font-weight:600}
 .ranked-seeker-actions{width:100%;display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin-top:18px}
 .ranked-seeker-actions button{min-height:52px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;font:800 0.9375rem/1 'DM Sans',sans-serif;cursor:pointer}
 .ranked-seeker-actions svg{width:18px;height:18px}

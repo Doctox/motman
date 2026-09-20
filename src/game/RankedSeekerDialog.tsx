@@ -48,10 +48,11 @@ export function RankedSeekerDialog({ pace, rejoindre, refuser }: {
         aria-describedby="ranked-seeker-cout"
         tabIndex={-1}
       >
+        {/* Trois éléments, pas un de plus (propriétaire, 20/09/2026) : le titre,
+            ce que ça coûte, et le choix. Le reste — « cinq parties de placement,
+            puis une division » — était du discours pendant une partie. */}
         <span className="ranked-seeker-embleme" aria-hidden="true"><Swords /></span>
-        <small>L’arène s’ouvre</small>
-        <h2 id="ranked-seeker-title">Un joueur cherche un duel classé</h2>
-        <p>Il attend un adversaire, maintenant. Cinq parties de placement, puis une division.</p>
+        <h2 id="ranked-seeker-title">L’arène classée s’ouvre</h2>
         <p id="ranked-seeker-cout" className="ranked-seeker-cout">{coutDuDepart(pace)}</p>
         <div className="ranked-seeker-actions">
           <button type="button" className="ranked-seeker-refuser" data-dialog-autofocus onClick={refuser}>Non</button>
