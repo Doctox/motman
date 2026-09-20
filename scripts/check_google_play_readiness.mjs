@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import process from 'node:process'
@@ -130,6 +130,31 @@ if (!staticOnly) {
   if (!bundlePath) {
     record('blocker', 'Bundle candidat', 'Exécuter npm run mobile:aab')
   } else {
+    // UN VIEUX BUNDLE NE PASSE PLUS POUR UN NEUF (20/09/2026). Cet audit prenait
+    // le .aab le plus récent des trois emplacements et n'en vérifiait que la
+    // signature : lancé sans reconstruire, il annonçait « 0 blocage » en validant
+    // le bundle de la version précédente, encore sur le disque. On le compare
+    // donc à la dernière modification des sources qui entrent dedans.
+    const sourcesDuBundle = ['src', 'public', 'index.html', 'package.json', 'android/app/build.gradle', 'android/app/src/main', 'capacitor.config.json']
+    const plusRecente = (cible) => {
+      const complet = path.join(root, cible)
+      if (!existsSync(complet)) return 0
+      const info = statSync(complet)
+      if (!info.isDirectory()) return info.mtimeMs
+      return readdirSync(complet, { withFileTypes: true })
+        .filter(entree => entree.name !== 'node_modules' && !entree.name.startsWith('.'))
+        .reduce((max, entree) => Math.max(max, plusRecente(path.join(cible, entree.name))), info.mtimeMs)
+    }
+    const sourceLaPlusRecente = sourcesDuBundle.reduce((max, cible) => Math.max(max, plusRecente(cible)), 0)
+    const ageBundle = statSync(bundlePath).mtimeMs
+    const dateBundle = new Date(ageBundle).toLocaleString('fr-FR')
+    if (ageBundle < sourceLaPlusRecente) {
+      record('blocker', 'Fraîcheur du bundle', `${path.relative(root, bundlePath)} date du ${dateBundle}, avant la dernière modification des sources : reconstruire avec npm run mobile:aab`)
+    } else {
+      record('blocker', 'Fraîcheur du bundle', `construit le ${dateBundle}, après la dernière modification des sources`)
+      results.at(-1).status = 'ok'
+    }
+
     const javaRoots = [
       process.env.JAVA_HOME,
       'C:\\Program Files\\Android\\Android Studio1\\jbr',
