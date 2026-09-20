@@ -15,6 +15,7 @@ import {
   respondToMatchInvitation, searchNormalMatch, type MatchLobbyState, type MatchPace,
 } from './matches'
 import { PendingResultPanel } from './game/DuelPresentation'
+import { clearDeliveredPushNotifications } from './nativePushNotifications'
 import { loadPlayerIdentity, type GuestIdentity } from './playerIdentity'
 import { loadPlayerProgress, type PlayerProgress } from './playerProgress'
 import { presenceHeartbeatDelay } from './presencePolicy'
@@ -392,6 +393,10 @@ export function MenuApp({
     try {
       const next = await respondToMatchInvitation(identity.playerId, invitationId, decision)
       setMatchLobby(next)
+      // L'invitation est traitée : la notification du tiroir Android n'a plus
+      // rien à annoncer. Le retour d'arrière-plan nettoie déjà ; ceci couvre le
+      // cas où elle est arrivée alors que le joueur était devant l'écran.
+      void clearDeliveredPushNotifications()
       const acceptedMatch = next.active.find(match => match.invitationId === invitationId)
       if (acceptedMatch) {
         openingMatch.current = acceptedMatch.id

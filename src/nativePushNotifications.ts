@@ -16,6 +16,33 @@ export function pushNotificationRoute(data: unknown): string | null {
   return null
 }
 
+/**
+ * VIDER LE TIROIR DES NOTIFICATIONS (20/09/2026).
+ *
+ * Défaut relevé par le propriétaire : sa femme l'invite, il reçoit la
+ * notification, il accepte DANS L'APPLI… et la notification reste dans le
+ * tiroir du téléphone. Elle survivait à ce qu'elle annonçait, et le joueur la
+ * balayait à la main — ou la retouchait plus tard pour rouvrir une partie déjà
+ * jouée.
+ *
+ * La règle est simple : quand le joueur est DANS l'appli, les notifications
+ * MotMan n'ont plus rien à lui apprendre — il voit ses parties, ses
+ * invitations et ses tours à l'écran. On efface donc celles déjà délivrées à
+ * l'ouverture et à chaque retour au premier plan.
+ *
+ * Sans effet hors natif, et silencieuse en cas d'échec : un tiroir qui ne se
+ * vide pas ne doit jamais empêcher de jouer.
+ */
+export async function clearDeliveredPushNotifications(): Promise<void> {
+  if (!isNativeRuntime()) return
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications')
+    await PushNotifications.removeAllDeliveredNotifications()
+  } catch {
+    /* Le tiroir reste tel quel : sans conséquence sur la partie. */
+  }
+}
+
 async function registerToken(token: string): Promise<void> {
   localStorage.setItem(TOKEN_STORAGE_KEY, token)
   await invokeSupabaseFunction('account-api', {
@@ -68,6 +95,14 @@ export function initializeNativePushNotifications(): Promise<void> {
       permission = await PushNotifications.requestPermissions()
     }
     if (permission.receive === 'granted') await PushNotifications.register()
+
+    // Le tiroir se vide à l'ouverture, puis à chaque retour au premier plan :
+    // c'est le moment exact où les notifications deviennent inutiles.
+    await clearDeliveredPushNotifications()
+    const { App } = await import('@capacitor/app')
+    await App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void clearDeliveredPushNotifications()
+    })
   })()
   return initialization
 }
