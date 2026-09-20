@@ -610,6 +610,33 @@ Deno.serve(async request => {
       if (acknowledgePresence(row, user.id)) row = await persist(admin, row)
       return json(200, { match: await view(admin, row, user.id, grid) })
     }
+    // QUITTER POUR L'ARÈNE VAUT ÉGALITÉ (20/09/2026). Le joueur qui rejoint un
+    // match classé laisse une partie derrière lui ; elle était ABANDONNÉE — donc
+    // perdue — pour tout ce qui n'était pas une normale entre humains. Elle est
+    // désormais déclarée ÉGALE, comme celles que le RPC classé clôt déjà.
+    //
+    // Le contrôle vit en base (`server_finish_match_for_ranked_transfer`) : le
+    // match classé doit exister, être classé, et être celui de ce joueur. Sans
+    // ça, l'action offrirait à n'importe qui une sortie sans défaite.
+    if (action === 'ranked-transfer') {
+      const rankedMatchId = typeof body.rankedMatchId === 'string' ? body.rankedMatchId : ''
+      if (!UUID_PATTERN.test(rankedMatchId)) return json(400, { error: 'Match classé invalide.' })
+      const { data: ferme, error: transferError } = await admin.rpc('server_finish_match_for_ranked_transfer', {
+        p_user_id: user.id,
+        p_match_id: row.id,
+        p_ranked_match_id: rankedMatchId,
+      })
+      if (transferError) throw transferError
+      if (ferme) {
+        const { data: refreshed, error: refreshError } = await admin.from('server_matches').select('*').eq('id', row.id).single()
+        if (refreshError) throw refreshError
+        row = refreshed as MatchRow
+        // `ranked_transfer` fait partie des fins récompensées : l'expérience et
+        // les plumes de ce qui a été joué restent acquises (awards.ts).
+        await awardFinished(admin, row)
+      }
+      return json(200, { match: await view(admin, row, user.id, grid) })
+    }
     if (action === 'forfeit') {
       finish(row.state, row, row.state.playerIds.find(id => id !== user.id)!, 'forfeit')
       row = await persist(admin, row); await awardFinished(admin, row)

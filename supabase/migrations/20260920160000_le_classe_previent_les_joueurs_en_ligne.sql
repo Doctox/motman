@@ -16,6 +16,15 @@
 -- écran affiche « crée un compte pour le rejoindre ». C'est le seul moment où
 -- cette invitation tombe juste — quelqu'un attend, de l'autre côté.
 --
+-- DEUX EXCLUSIONS, demandées par le propriétaire :
+--  - le joueur déjà dans une partie CLASSÉE n'a rien à rejoindre ;
+--  - le joueur en plein DÉFI DU JOUR n'est pas dérangé : depuis le 20/09/2026
+--    il n'a qu'une tentative, et quitter le défi la consommerait.
+--
+-- Et seule la PREMIÈRE recherche ouverte réveille les autres. Sans cette
+-- condition, le troisième joueur qui rejoint — celui que l'appariement n'a pas
+-- pris — déclenchait une deuxième vague de fenêtres chez tout le monde.
+--
 -- On réutilise le canal qui existe : `private.broadcast_user_menu_wakeup`
 -- (migration du 29/07) pousse un réveil au menu du joueur, qui relit son état.
 -- Le chercheur lui-même est exclu.
@@ -41,20 +50,34 @@ begin
     return new;
   end if;
 
+  -- Une file déjà ouverte : les autres ont vu passer la première fenêtre, on ne
+  -- la rejoue pas pour chaque arrivant.
+  if exists (
+    select 1
+    from public.server_ranked_searches autre
+    where autre.user_id <> new.user_id
+      and autre.created_at > pg_catalog.now() - interval '10 minutes'
+  ) then
+    return new;
+  end if;
+
   for compte in
     select p.id
     from public.profiles p
     where p.id <> new.user_id
       and p.status = 'active'
       and p.last_seen > now() - interval '75 seconds'
-      -- Déjà dans une partie classée : il joue, il n'a rien à rejoindre.
+      -- Déjà dans une partie classée, ou en plein défi du jour : on le laisse.
       and not exists (
         select 1
         from public.match_participants mp
         join public.server_matches m on m.id = mp.match_id
         where mp.user_id = p.id
           and m.status = 'active'
-          and m.mode = 'ranked'
+          and (
+            m.mode = 'ranked'
+            or coalesce((m.state -> 'isDaily')::boolean, false)
+          )
       )
   loop
     perform private.broadcast_user_menu_wakeup(compte, 'lobby');

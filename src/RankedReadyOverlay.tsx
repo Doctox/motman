@@ -70,15 +70,15 @@ function RankedReadyDialog({
       <p><strong>{ready.opponent?.displayName ?? 'Ton adversaire'}</strong> est prêt à rejoindre l’arène.</p>
       {ready.pausedMatchId ? <p className="ranked-ready-pause-note">Ta partie normale est mise en pause. Elle reprendra intacte si le match classé ne démarre pas.</p> : null}
       {/* Le serveur ne met en pause que les parties normales en temps limité
-          entre humains. Pour le solo, le défi du jour et les parties entre amis
-          en temps limité, rejoindre l'arène signifie perdre la partie en cours.
-          Ne rien dire, c'était laisser le joueur le découvrir après coup.
-          
-          Une partie en 24 h, elle, n'est PAS perdue : un match classé dure
-          quelques minutes, et elle attend tranquillement le retour du joueur.
-          L'avertir serait lui mentir — et l'inquiéter pour rien. */}
+          entre humains. Le défi du jour et les parties entre amis en temps
+          limité, eux, se terminent quand le match classé s'ouvre — en ÉGALITÉ
+          depuis le 20/09/2026, plus en abandon : le joueur n'a rien fui, il a
+          rejoint l'arène. Ne rien dire, c'était le lui laisser découvrir après.
+
+          Une partie en 24 h n'est PAS touchée : un match classé dure quelques
+          minutes, et elle attend tranquillement le retour du joueur. */}
       {!ready.pausedMatchId && currentMatchId && currentMatchPace === 'realtime' ? <p className="ranked-ready-loss-note" role="alert">
-        Attention : ta partie en cours sera perdue si tu rejoins. Elle compte comme un abandon — aucune plume, aucune expérience.
+        Ta partie en cours sera déclarée égale si tu rejoins : ni gain, ni perte. Ce qui y a été joué reste acquis.
       </p> : null}
       {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde. */}
       <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`}><Clock3 /><b>{seconds}</b><span>secondes</span></div>

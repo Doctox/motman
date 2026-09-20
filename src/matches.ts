@@ -248,6 +248,19 @@ export async function confirmMatchPresence(playerId: string, matchId: string): P
   return (await supabaseMatch<{ match: MatchState }>('present', { matchId })).match
 }
 
+/**
+ * La partie qu'on laisse derrière soi en rejoignant l'arène : déclarée ÉGALE,
+ * jamais perdue (règle du propriétaire, 20/09/2026). Le serveur vérifie que le
+ * match classé existe et qu'il est bien celui de ce joueur — l'action ne peut
+ * donc pas servir de sortie de secours sans défaite.
+ *
+ * Le serveur de test local ne connaît pas le classé : on ne l'appelle pas.
+ */
+export async function transferMatchToRanked(matchId: string, rankedMatchId: string): Promise<void> {
+  if (localTestServer) return
+  await supabaseMatch<{ match: MatchState }>('ranked-transfer', { matchId, rankedMatchId })
+}
+
 export async function forfeitMatch(playerId: string, matchId: string, knownUpdatedAt?: string): Promise<MatchState> {
   if (localTestServer) return localMatch('forfeit', { playerId, matchId, knownUpdatedAt })
   void playerId

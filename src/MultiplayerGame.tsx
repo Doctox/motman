@@ -15,11 +15,12 @@ import { canUseReroll, gameWordCellIndexes, REWARD_EFFECT_LIFETIME_MS } from './
 import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
-  confirmMatchPresence, forfeitMatch, loadMatch, playMatchTurn, requestMatchHint, rerollMatchRack,
+  confirmMatchPresence, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn, requestMatchHint, rerollMatchRack,
   type MatchState, type MatchTurn,
   type MatchPace,
 } from './matches'
 import { subscribeToMatchUpdates } from './matchRealtime'
+import { subscribeToMenuUpdates } from './menuRealtime'
 import { matchPollDelay } from './matchSyncPolicy'
 import { noteServerTime, serverNow } from './serverClock'
 import { loadPlayerIdentity, playerInitials } from './playerIdentity'
@@ -40,6 +41,7 @@ import { StableBoardLetters } from './game/StableBoardLetters'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
 import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
 import { StillThereDialog } from './game/StillThereDialog'
+import { RankedSeekerDialog } from './game/RankedSeekerDialog'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 import { ReadingWindow, useReadingWindow } from './game/ReadingWindow'
 import { prechargerRecompense } from './game/matchRewardPrefetch'
@@ -68,10 +70,17 @@ export function isRoutineTurnStatus(status: string): boolean {
   return !/Temps écoulé|n’a pas joué|Tour passé| passe$|pause|terminée/.test(status)
 }
 
-export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }: {
+export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, onRejoindreClasse }: {
   matchId: string
   onExit: () => void
   onHome: () => void
+  /**
+   * « Rejoindre » depuis la fenêtre « un joueur cherche une partie classée » :
+   * l'application quitte l'écran de jeu et ouvre le classé. La partie en cours
+   * n'est close qu'une fois le match classé RÉELLEMENT ouvert (App.tsx) — si
+   * personne n'apparie ce joueur, il la retrouve intacte.
+   */
+  onRejoindreClasse?: () => void
   /**
    * Rythme de la partie ouverte, remonté à l'application.
    *
@@ -125,6 +134,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   // L'info du bonus de chevalet, dépliée au doigt : le `title` d'un `span` ne
   // s'affiche jamais sur téléphone, et personne ne pouvait apprendre la règle.
   const [bonusExplique, setBonusExplique] = useState(false)
+  // « Un joueur cherche une partie classée », pendant la partie (20/09/2026).
+  // L'écran de jeu ne lit pas le menu : il s'abonne au réveil que le serveur
+  // envoie quand une recherche s'ouvre, et ne va chercher l'état du menu QUE
+  // dans ce cas — jamais dans le sondage de partie, qui est le chemin chaud.
+  const [classeCherche, setClasseCherche] = useState(false)
+  const classeRefuse = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [displayedScores, setDisplayedScores] = useState<Record<string, number>>({})
   const [turnAlert, setTurnAlert] = useState(false)
@@ -756,6 +771,23 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     onExit()
   }
 
+  // Le réveil du menu pendant une partie : un joueur cherche une partie classée.
+  // On ne déclenche rien pendant une partie CLASSÉE (on y est déjà) ni pendant
+  // le DÉFI DU JOUR — le serveur ne réveille d'ailleurs pas ces joueurs-là, ceci
+  // est la ceinture côté écran.
+  const partieClassee = match?.mode === 'ranked'
+  const partieDuJour = Boolean(match?.isDaily)
+  useEffect(() => {
+    if (!match || match.status !== 'active' || partieClassee || partieDuJour) return
+    return subscribeToMenuUpdates(playerId, scope => {
+      if (scope !== 'lobby' && scope !== 'all') return
+      if (classeRefuse.current) return
+      void loadMatchLobby(playerId)
+        .then(lobby => { if ((lobby.rankedSeekers ?? 0) > 0) setClasseCherche(true) })
+        .catch(() => undefined)
+    })
+  }, [match, match?.status, partieClassee, partieDuJour, playerId])
+
   // Un compteur redescendu (le joueur a rejoué) efface la confirmation d'avant.
   const missedByMe = match?.inactivity[playerId] ?? 0
   useEffect(() => { setStillThereAck(ack => acknowledgedAfter(ack, missedByMe)) }, [missedByMe])
@@ -894,6 +926,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
     {optionsOpen ? <GameOptionsOverlay close={() => setOptionsOpen(false)} report={match.bot ? undefined : () => setReportOpen(true)} leaveMatch={match.status === 'active' ? () => setLeaveOpen(true) : undefined} /> : null}
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}
+    {/* Une VRAIE fenêtre, qui attend oui ou non (propriétaire, 20/09/2026).
+        Elle passe sous « Tu es toujours là ? », qui décide d'une partie en cours. */}
+    {classeCherche && match.status === 'active' ? <RankedSeekerDialog
+      pace={match.pace === 'async' ? 'async' : 'realtime'}
+      refuser={() => { classeRefuse.current = true; setClasseCherche(false) }}
+      rejoindre={() => { setClasseCherche(false); onRejoindreClasse?.() }}
+    /> : null}
     {stillThere ? <StillThereDialog prompt={stillThere} isDaily={Boolean(match.isDaily)} envoi={presenceEnvoi === stillThere.missed} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
   </main>
 }

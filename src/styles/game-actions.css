@@ -283,3 +283,25 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
 @keyframes idleAssistRing{0%,100%{opacity:.45}50%{opacity:1}}
 [data-theme="dark"] .hint-button[data-idle-cue]::after,[data-theme="dark"] .reroll-button[data-idle-cue]::after{border-color:#f0c766;box-shadow:0 0 12px #f0c76659}
 html[data-motion="off"] .hint-button[data-idle-cue]::after,html[data-motion="off"] .reroll-button[data-idle-cue]::after{animation:none!important;opacity:1}
+
+/* « Un joueur cherche un duel classé », en pleine partie (20/09/2026).
+   Une VRAIE fenêtre, qui attend une réponse : un bandeau se laisse ignorer, et
+   le joueur d'en face attend. Échap et le retour Android valent « Non ».
+   Même habillage que « Adversaire trouvé ! » (styles/ranked.css) : l'arène a
+   son identité, or et terre cuite sur papier, et elle doit se reconnaître d'un
+   coup d'œil au milieu d'une partie. */
+.ranked-seeker-layer{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:calc(20px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));background:#062d28cc;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.ranked-seeker-dialog{width:min(390px,100%);display:flex;flex-direction:column;align-items:center;padding:24px 22px 20px;border:1px solid #d5bb75;border-radius:22px;background:var(--mm-surface,#fffdf7);color:var(--mm-ink,#073f37);box-shadow:0 26px 75px #001c1633;text-align:center;animation:ranked-seeker-entree .22s cubic-bezier(.22,1,.36,1)}
+.ranked-seeker-embleme{display:grid;place-items:center;width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fbeee0,#f4dcc4);border:1px solid #e3c791;box-shadow:inset 0 2px 6px #fff8}
+.ranked-seeker-embleme svg{width:32px;height:32px;color:#b54b30}
+.ranked-seeker-dialog>small{margin-top:12px;color:#b54b30;font-weight:800;font-size:0.6875rem;letter-spacing:.08em;text-transform:uppercase}
+.ranked-seeker-dialog h2{margin:5px 0 7px;font:700 1.5rem/1.2 'Playfair Display',serif}
+.ranked-seeker-dialog>p{margin:0;font-size:0.8125rem;line-height:1.45;color:var(--mm-muted,#6d7773)}
+.ranked-seeker-cout{margin-top:12px!important;padding:9px 12px;border:1px solid #e7dcc0;border-radius:10px;background:#faf3e3;color:#7a6326;font-size:0.75rem!important;font-weight:600}
+.ranked-seeker-actions{width:100%;display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin-top:18px}
+.ranked-seeker-actions button{min-height:52px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:13px;font:800 0.9375rem/1 'DM Sans',sans-serif;cursor:pointer}
+.ranked-seeker-actions svg{width:18px;height:18px}
+.ranked-seeker-refuser{border:1px solid #d7d1c2;background:transparent;color:var(--mm-ink,#073f37)}
+.ranked-seeker-rejoindre{border:1px solid #a33d1f;background:linear-gradient(180deg,#d95b33,#c1461f);color:#fff;box-shadow:0 6px 16px #c1461f3d}
+@keyframes ranked-seeker-entree{from{opacity:0;transform:translateY(10px) scale(.97)}}
+html[data-motion="off"] .ranked-seeker-dialog{animation:none}

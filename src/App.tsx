@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { startAdaptivePolling } from './adaptivePolling'
 import { subscribeToMenuUpdates, type MenuRealtimeStatus, type MenuWakeupScope } from './menuRealtime'
-import { forfeitMatch, type MatchPace } from './matches'
+import { transferMatchToRanked, type MatchPace } from './matches'
 import { loadPlayerIdentity, type GuestIdentity } from './playerIdentity'
 import { RankedReadyOverlay } from './RankedReadyOverlay'
 import { RequiredAppUpdateScreen } from './RequiredAppUpdate'
@@ -95,7 +95,10 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
   const enterRankedMatch = useCallback((nextMatchId: string) => {
     const sacrifice = reclamerSacrifice(nextMatchId)
     if (sacrifice) {
-      void forfeitMatch(playerId, sacrifice)
+      // ÉGALITÉ, pas abandon (20/09/2026) : le joueur n'a rien fui, il a rejoint
+      // l'arène. Le serveur ne clôt qu'une fois le match classé ouvert — c'est
+      // pour ça qu'on lui passe son identifiant.
+      void transferMatchToRanked(sacrifice, nextMatchId)
         .catch(reason => console.error('Clôture de la partie interrompue impossible', reason))
     }
     openMatch(nextMatchId)
@@ -226,7 +229,16 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
 
   return <>
     {matchId ? <Suspense fallback={<AppLoading label="Préparation du duel…" />}>
-      <MultiplayerGameScreen matchId={matchId} onExit={exitMatch} onHome={returnHome} onPaceChange={setOpenMatchPace} />
+      <MultiplayerGameScreen
+        matchId={matchId}
+        onExit={exitMatch}
+        onHome={returnHome}
+        onPaceChange={setOpenMatchPace}
+        // « Rejoindre » depuis la fenêtre en jeu : on retourne au menu ET on se
+        // met en file. La partie quittée n'est close qu'au moment où l'arène
+        // s'ouvre vraiment — si l'appariement n'aboutit pas, elle est intacte.
+        onRejoindreClasse={() => { returnHome(); void beginRankedSearch() }}
+      />
     </Suspense> : <Suspense fallback={<AppLoading />}>
       <MenuApp
         onStartMatch={openMatch}
