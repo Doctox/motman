@@ -139,14 +139,20 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
         score: match.scores[playerId] ?? 0,
         attempt: Math.max(1, attempts),
       }
-      const publier = (texte: string) => { saveDailyShare(jour, texte); setDailyShare(texte) }
-      publier(dailyShareText(partage))
+      // Le texte à partager ET de quoi fêter la victoire sur l'accueil (score,
+      // place du jour) : la carte « Défi réussi ! » les relit.
+      const publier = (entree: DailyShareInput) => {
+        const texte = dailyShareText(entree)
+        saveDailyShare(jour, texte, localStorage, { score: entree.score, rank: entree.rank ?? null })
+        setDailyShare(texte)
+      }
+      publier(partage)
       // Le rang arrive du serveur un instant plus tard. On le demande DÈS
       // l'écran de fin, pas au toucher du bouton : Safari n'ouvre la feuille de
       // partage que dans la foulée immédiate du geste, sans attente réseau.
       if (partage.attempt === 1) {
         void loadDailyLeaderboard(jour).then(classement => {
-          if (classement.me && classement.total > 0) publier(dailyShareText({ ...partage, rank: { position: classement.me.position, total: classement.total } }))
+          if (classement.me && classement.total > 0) publier({ ...partage, rank: { position: classement.me.position, total: classement.total } })
         }).catch(() => undefined)
       }
     } catch {

@@ -3,7 +3,7 @@ import { AlertTriangle, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflak
 import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
-import { loadDailyShare } from '../dailyShare'
+import { loadDailyResume, loadDailyShare } from '../dailyShare'
 import { DailyShareButton } from './DailyShareButton'
 import { dailyDateKey } from '../dailyDate'
 import { dailyThemeFor } from '../dailyThemeSchedule'
@@ -161,11 +161,13 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
 
   if (status === 'won') {
     return (
-      <section className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
+      <section className="mm-daily-hero is-done is-won" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
-        <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
-        <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
+        {/* La victoire se fête : la carte disait « Déjà joué aujourd'hui », le
+            même texte que pour un défi joué ailleurs (20/09/2026). */}
+        <h2 className="mm-daily-title">Défi réussi !</h2>
+        <DailyWonScore day={day} countdown={countdown} />
         <DailyShareHero day={day} />
       </section>
     )
@@ -252,6 +254,20 @@ function DailyOneShotDialog({ theme, close, play }: { theme: string | null; clos
       </div>
     </div>
   )
+}
+
+/**
+ * Le score du jour, quand la partie a été jouée sur cet appareil. Ailleurs (ou
+ * après un vidage du stockage), on n'invente rien : seul le compte à rebours
+ * reste.
+ */
+function DailyWonScore({ day, countdown }: { day: string; countdown: string }) {
+  const resume = loadDailyResume(day)
+  if (!resume) return <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
+  const place = resume.rank && resume.rank.position > 0 && resume.rank.total > 0
+    ? ` · ${resume.rank.position}e sur ${resume.rank.total}`
+    : ''
+  return <p className="mm-daily-note"><strong>{resume.score} point{resume.score > 1 ? 's' : ''}</strong>{place} · nouvelle grille dans {countdown}</p>
 }
 
 /** Le résultat de la victoire du jour, s'il a été joué sur cet appareil. */

@@ -115,8 +115,32 @@ export async function shareText(
  * Le dernier résultat partageable du jour, pour le proposer encore depuis
  * l'accueil une fois l'écran de fin quitté. Un seul, écrasé à chaque partie.
  */
-export function saveDailyShare(day: string, text: string, storage: Pick<Storage, 'setItem'> = localStorage): void {
-  try { storage.setItem(STORAGE_KEY, JSON.stringify({ day, text })) } catch { /* confort seulement */ }
+export function saveDailyShare(day: string, text: string, storage: Pick<Storage, 'setItem'> = localStorage, resume?: DailyResume): void {
+  try { storage.setItem(STORAGE_KEY, JSON.stringify({ day, text, ...(resume ?? {}) })) } catch { /* confort seulement */ }
+}
+
+/** Le score du jour, et la place s'il y en a une : de quoi fêter la victoire sur l'accueil. */
+export type DailyResume = { score: number; rank?: { position: number; total: number } | null }
+
+/**
+ * Le résultat du jour tel qu'il a été joué SUR CET APPAREIL. Sert à la carte
+ * « Défi réussi ! » de l'accueil, qui se contentait de dire « Déjà joué » —
+ * exactement comme la carte d'un défi joué ailleurs (20/09/2026).
+ */
+export function loadDailyResume(day: string, storage: Pick<Storage, 'getItem'> = localStorage): DailyResume | null {
+  try {
+    const stored = JSON.parse(storage.getItem(STORAGE_KEY) ?? 'null') as { day?: unknown; score?: unknown; rank?: unknown } | null
+    if (!stored || stored.day !== day || typeof stored.score !== 'number') return null
+    const rank = stored.rank as { position?: unknown; total?: unknown } | null | undefined
+    return {
+      score: stored.score,
+      rank: rank && typeof rank.position === 'number' && typeof rank.total === 'number'
+        ? { position: rank.position, total: rank.total }
+        : null,
+    }
+  } catch {
+    return null
+  }
 }
 
 export function loadDailyShare(day: string, storage: Pick<Storage, 'getItem'> = localStorage): string | null {

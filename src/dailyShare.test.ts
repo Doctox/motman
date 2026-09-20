@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { dailyShareText, loadDailyShare, saveDailyShare, shareText, type DailyShareInput } from './dailyShare'
+import { dailyShareText, loadDailyResume, loadDailyShare, saveDailyShare, shareText, type DailyShareInput } from './dailyShare'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LE PARTAGE DU DÉFI DU JOUR : un défi lancé, court, sans aucune réponse.
@@ -106,5 +106,36 @@ describe('le dernier résultat du jour', () => {
     saveDailyShare('2026-09-14', 'résultat', storage)
     expect(loadDailyShare('2026-09-14', storage)).toBe('résultat')
     expect(loadDailyShare('2026-09-15', storage)).toBeNull()
+  })
+})
+
+describe('résumé du jour (carte « Défi réussi ! »)', () => {
+  const storage = () => {
+    let valeur: string | null = null
+    return {
+      getItem: () => valeur,
+      setItem: (_: string, next: string) => { valeur = next },
+    }
+  }
+
+  it('garde le score et la place à côté du texte à partager', () => {
+    const memoire = storage()
+    saveDailyShare('2026-09-20', 'résultat', memoire, { score: 60, rank: { position: 2, total: 7 } })
+    expect(loadDailyShare('2026-09-20', memoire)).toBe('résultat')
+    expect(loadDailyResume('2026-09-20', memoire)).toEqual({ score: 60, rank: { position: 2, total: 7 } })
+    // Un autre jour ne réutilise jamais le score de la veille.
+    expect(loadDailyResume('2026-09-21', memoire)).toBeNull()
+  })
+
+  it('accepte un partage sans score : la carte affichera juste le compte à rebours', () => {
+    const memoire = storage()
+    saveDailyShare('2026-09-20', 'résultat', memoire)
+    expect(loadDailyResume('2026-09-20', memoire)).toBeNull()
+  })
+
+  it('ignore un rang mal formé plutôt que d’afficher n’importe quoi', () => {
+    const memoire = storage()
+    memoire.setItem('motman-daily-share-v1', JSON.stringify({ day: '2026-09-20', text: 'x', score: 42, rank: { position: 'deux' } }))
+    expect(loadDailyResume('2026-09-20', memoire)).toEqual({ score: 42, rank: null })
   })
 })
