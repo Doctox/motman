@@ -24,7 +24,8 @@ d.text((x,120),"MotMan",font=title,fill=GREEN)
 d.text((x,236),"Duel de mots fléchés",font=tag,fill=GREEN)
 d.rectangle([x,300,x+64,305],fill=ORANGE)
 d.text((x,330),"Un défi chaque jour.",font=sub,fill=GREEN)
-d.text((x,362),"Sans publicité, sans pay-to-win.",font=sub,fill=GREEN)
+# « Sans publicité, sans pay-to-win » retiré le 19/09/2026 à la demande du propriétaire.
+d.text((x,362),"En direct ou à ton rythme.",font=sub,fill=GREEN)
 
 # --- grille 4 x 3, sans case de definition (choix de JM)
 C=100; COLS,ROWS=4,3

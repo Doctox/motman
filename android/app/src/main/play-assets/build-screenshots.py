@@ -87,7 +87,10 @@ def composer(source,titre,soustitre,sortie):
 # nouvelles captures, même écran pour même bandeau.
 if __name__ == '__main__':
     # src : dossier des captures brutes, nommees duel / defi / victoire /
-    # classement / epicerie (.png ou .jpeg) ; dst : dossier des visuels.
+    # quetes / epicerie (.png ou .jpeg) ; dst : dossier des visuels.
+    # Jamais le compte du proprietaire ni un vrai joueur a l'ecran : un profil
+    # de test neutre (APK de debogage), et pas de classement, qui affiche
+    # forcement de vrais pseudos. Les quetes le remplacent depuis le 19/09/2026.
     src=sys.argv[1]; dst=sys.argv[2]
     plan=[
       ('duel','1-duel.png',
@@ -96,10 +99,10 @@ if __name__ == '__main__':
        "Un défi chaque jour","Une grille à thème, la même pour tous. Ta série grandit."),
       ('victoire','3-victoire.png',
        "Gagne, monte, débloque","Expérience et plumes à chaque partie."),
-      ('classement','4-classement.png',
-       "Où en es-tu ?","Classement général, ou seulement entre amis."),
+      ('quetes','4-quetes.png',
+       "Des quêtes chaque jour","Trois par jour, une par semaine, des plumes à gagner."),
       ('epicerie','5-epicerie.png',
-       "Tout est cosmétique","Avatars, cadres, animations. Aucun avantage en jeu."),
+       "Compose ton profil","Avatars, cadres, animations. Aucun avantage en jeu."),
     ]
     for base,nom,titre,soustitre in plan:
         fichier=next((f for f in os.listdir(src) if os.path.splitext(f)[0]==base), None)
