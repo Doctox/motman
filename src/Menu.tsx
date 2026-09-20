@@ -426,7 +426,7 @@ export function MenuApp({
 
   return <main className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => navigate('play', 'ranked')} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}

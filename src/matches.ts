@@ -124,8 +124,14 @@ export type MatchLobbyState = {
   searches: MatchSearch[]
   recent: MatchHistoryEntry[]
   pendingResults: PendingMatchResult[]
+  /**
+   * Joueurs qui cherchent une partie classée en ce moment, moi excepté
+   * (20/09/2026). Absent d'une réponse d'un serveur pas encore déployé : les
+   * écrans le lisent donc avec `?? 0`.
+   */
+  rankedSeekers?: number
 }
-export const EMPTY_MATCH_LOBBY: MatchLobbyState = { incoming: [], outgoing: [], active: [], searches: [], recent: [], pendingResults: [] }
+export const EMPTY_MATCH_LOBBY: MatchLobbyState = { incoming: [], outgoing: [], active: [], searches: [], recent: [], pendingResults: [], rankedSeekers: 0 }
 const localTestServer = import.meta.env.VITE_MOTMAN_LOCAL_TEST_SERVER === 'true'
 
 async function localMatch<T>(path: string, body?: Record<string, unknown>): Promise<T> {

@@ -9,6 +9,7 @@ import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero, DailyRankTeaser } from './DailyChallenge'
+import { RankedSeekerBanner } from './RankedSeekerBanner'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -32,7 +33,7 @@ function activeMatchLabel(match: MatchState): string {
   return 'Match normal'
 }
 
-export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
+export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
   const firstRequest = social.incoming[0]
   const codeAmi = friendCodeOf(identity)
   // Partage natif quand l'appareil le propose, presse-papiers sinon. Les deux
@@ -95,6 +96,13 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
     <section className="mm-attention">
       <DailyChallengeHero onPlay={playDaily} />
       <DailyRankTeaser onOpenRanking={openRanking} />
+      <RankedSeekerBanner
+        seekers={lobby.rankedSeekers ?? 0}
+        estUnCompte={identity.accountType === 'account'}
+        dejaEnClasse={lobby.active.some(partie => partie.mode === 'ranked')}
+        rejoindre={playRanked}
+        creerCompte={openAccount}
+      />
       <header className="mm-attention-heading">
         <h2>Partie</h2>
         {currentMatches.length ? <span aria-label={`${currentMatches.length} partie${currentMatches.length > 1 ? 's' : ''} en cours`}>{currentMatches.length} en cours</span> : null}

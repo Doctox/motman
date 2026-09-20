@@ -18,6 +18,9 @@ const MANUAL_SUBMIT_GRACE_MS = 2_000
 // Doit rester égal au seuil de `server_create_bot_match_atomic` (migration
 // 20260914090000) : en dessous, le RPC répond `waiting` et rien ne se passe.
 const BOT_SEARCH_MS = 15_000
+// Durée de vie d'une recherche classée, côté affichage : la même que celle que
+// le client applique (src/rankedMatchmaking.ts).
+const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 // Bonus du défi du jour, versé une seule fois par joueur et par jour. Valeur
 // AUTORITAIRE et unique : le client ne la duplique plus, il lit le montant
 // réellement crédité (account-api → ExperienceAward.dailyBonusPlumes).
@@ -221,6 +224,22 @@ Deno.serve(async request => {
         finishReason: item.finish_reason ?? (item.outcome === 'abandon' || item.outcome === 'opponent-abandoned' ? 'forfeit' : 'completed'),
         feedbackSent: item.feedback !== null,
       }))
+      // COMBIEN DE JOUEURS CHERCHENT UNE PARTIE CLASSÉE, à part moi (20/09/2026).
+      // Le classé demande deux humains en même temps ; avec onze comptes, ils ne
+      // se croisaient jamais. Un joueur EN LIGNE voit maintenant qu'une recherche
+      // est ouverte et peut la rejoindre d'un geste — le déclencheur SQL
+      // (migration 20260920160000) réveille son menu pour qu'il le voie tout de
+      // suite. Aucune notification poussée : on ne réveille pas un téléphone
+      // rangé dans une poche pour ça.
+      //
+      // La fenêtre est celle de la recherche elle-même (10 min, RANKED_SEARCH_TIMEOUT_MS) :
+      // une ligne plus vieille est expirée, l'annoncer serait mentir.
+      const { count: rankedSeekers, error: seekersError } = await admin.from('server_ranked_searches')
+        .select('user_id', { count: 'exact', head: true })
+        .neq('user_id', user.id)
+        .eq('status', 'searching')
+        .gt('created_at', new Date(Date.now() - RANKED_SEARCH_TIMEOUT_MS).toISOString())
+      if (seekersError) throw seekersError
       return {
         incoming: (incomingRows ?? []).map(invitationView),
         outgoing: (outgoingRows ?? []).map(invitationView),
@@ -228,6 +247,7 @@ Deno.serve(async request => {
         searches: (searches ?? []).map(item => ({ id: item.id, pace: item.pace, createdAt: item.created_at })),
         recent,
         pendingResults,
+        rankedSeekers: rankedSeekers ?? 0,
       }
     }
 
