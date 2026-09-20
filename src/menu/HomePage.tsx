@@ -10,6 +10,7 @@ import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero, DailyRankTeaser } from './DailyChallenge'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
+import { GamePulse } from './GamePulse'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -96,6 +97,9 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
     <section className="mm-attention">
       <DailyChallengeHero onPlay={playDaily} />
       <DailyRankTeaser onOpenRanking={openRanking} />
+      {/* Réservé au propriétaire : le serveur revérifie le rôle et refuse tout
+          autre compte. Placé en haut, c'est la première chose qu'il regarde. */}
+      {identity.admin ? <GamePulse /> : null}
       <RankedSeekerBanner
         seekers={lobby.rankedSeekers ?? 0}
         estUnCompte={identity.accountType === 'account'}

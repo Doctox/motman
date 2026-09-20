@@ -7,6 +7,12 @@ export type GuestIdentity = {
   accountType: 'guest' | 'account'
   friendCode?: string
   createdAt: string
+  /**
+   * Le compte du propriétaire (`profiles.role = 'admin'`). Le serveur ne l'envoie
+   * qu'à lui, et il n'ouvre rien tout seul : chaque action réservée revérifie le
+   * rôle en base. Ici, il ne sert qu'à montrer ou taire le compteur d'audience.
+   */
+  admin?: true
 }
 
 const STORAGE_KEY = 'motman-player-v1'

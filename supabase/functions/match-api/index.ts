@@ -340,6 +340,19 @@ Deno.serve(async request => {
     // voix au chapitre, sans quoi il suffirait d'avancer sa montre pour lire un
     // classement qui n'existe pas encore.
     // Statistiques de jeu du lecteur. Lecture seule, sur SES lignes uniquement.
+    // LE POULS DU JEU, POUR LE PROPRIÉTAIRE SEUL (20/09/2026). Des nombres, pas
+    // des pseudos : combien jouent, combien sont là maintenant. Le rôle est
+    // revérifié EN BASE à chaque appel — le drapeau `admin` que le client
+    // reçoit ne sert qu'à afficher ou taire la carte, il n'ouvre rien.
+    if (action === 'game-pulse') {
+      const { data: profil, error: profilError } = await admin.from('profiles').select('role').eq('id', user.id).single()
+      if (profilError) throw profilError
+      if (profil?.role !== 'admin') return json(403, { error: 'Réservé au propriétaire.' })
+      const { data: pouls, error: poulsError } = await admin.rpc('server_game_pulse')
+      if (poulsError) throw poulsError
+      return json(200, { pulse: pouls })
+    }
+
     if (action === 'player-stats') {
       return json(200, await loadPlayerStats(admin, user.id))
     }

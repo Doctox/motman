@@ -256,6 +256,28 @@ export async function confirmMatchPresence(playerId: string, matchId: string): P
  *
  * Le serveur de test local ne connaît pas le classé : on ne l'appelle pas.
  */
+/**
+ * Les nombres d'audience du jour, réservés au propriétaire (`profiles.role =
+ * 'admin'`). Le serveur revérifie le rôle et répond 403 à tout le monde
+ * d'autre ; la réponse ne contient aucun pseudo, aucun identifiant.
+ */
+export type GamePulse = {
+  jour: string
+  enLigne: number
+  actifsDuJour: number
+  actifsSeptJours: number
+  nouveauxDuJour: number
+  comptes: number
+  partiesDuJour: number
+  defisDuJour: number
+  classeesSeptJours: number
+}
+
+export async function loadGamePulse(): Promise<GamePulse> {
+  if (localTestServer) throw new Error('Le serveur de test local ne compte pas l’audience.')
+  return (await supabaseMatch<{ pulse: GamePulse }>('game-pulse')).pulse
+}
+
 export async function transferMatchToRanked(matchId: string, rankedMatchId: string): Promise<void> {
   if (localTestServer) return
   await supabaseMatch<{ match: MatchState }>('ranked-transfer', { matchId, rankedMatchId })

@@ -201,6 +201,10 @@ async function accountState(admin: AdminClient, userId: string) {
       accountType: profile.account_kind,
       friendCode: profile.friend_code,
       createdAt: profile.created_at,
+      // Le rôle ne sort QUE s'il vaut 'admin' (20/09/2026) : un joueur ordinaire
+      // n'a pas à savoir qu'un rôle existe, et l'écran d'accueil a besoin de ce
+      // seul bit pour montrer — ou taire — le compteur du propriétaire.
+      ...(profile.role === 'admin' ? { admin: true as const } : {}),
     },
     progress: {
       version: 4, playerId: userId, level: progress.level, xp: progress.xp,

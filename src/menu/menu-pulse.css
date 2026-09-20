@@ -1,0 +1,13 @@
+/* Le pouls du jeu, visible du seul propriétaire (20/09/2026). Discret : c'est
+   un instrument de bord, pas une carte de jeu — il ne doit pas voler la
+   vedette au défi du jour. */
+.mm-pulse{margin-top:11px;padding:11px 13px;border:1px dashed var(--mm-line);border-radius:13px;background:color-mix(in srgb,var(--mm-sage) 30%,var(--mm-paper))}
+.mm-pulse>header{display:grid;grid-template-columns:18px 1fr 30px;gap:8px;align-items:center;margin-bottom:9px}
+.mm-pulse>header svg{width:16px;height:16px;color:var(--mm-muted)}
+.mm-pulse>header strong{font:700 0.6875rem/1 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--mm-muted)}
+.mm-shell .mm-pulse>header button{width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--mm-muted)}
+.mm-pulse-chiffres{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.mm-pulse-chiffres span{display:flex;flex-direction:column;gap:1px}
+.mm-pulse-chiffres b{font:700 1.25rem/1 'Playfair Display',serif;color:var(--mm-ink)}
+.mm-pulse-chiffres small{color:var(--mm-muted);font-size:0.5625rem;line-height:1.2}
+.mm-pulse-pied{margin:9px 0 0;color:var(--mm-muted);font-size:0.625rem;line-height:1.35}
