@@ -779,14 +779,28 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const partieDuJour = Boolean(match?.isDaily)
   useEffect(() => {
     if (!match || match.status !== 'active' || partieClassee || partieDuJour) return
-    return subscribeToMenuUpdates(playerId, scope => {
-      if (scope !== 'lobby' && scope !== 'all') return
-      if (classeRefuse.current) return
+    // La fenêtre SUIT l'état de la file : elle s'ouvre quand quelqu'un cherche
+    // et se referme toute seule quand il annule (défaut relevé par le
+    // propriétaire le 20/09/2026 — le message restait à promettre un adversaire
+    // qui n'attendait plus). Le serveur réveille les menus à l'ouverture ET à
+    // la fermeture ; le filet de dix secondes couvre le réveil perdu.
+    let vivant = true
+    const relire = () => {
       void loadMatchLobby(playerId)
-        .then(lobby => { if ((lobby.rankedSeekers ?? 0) > 0) setClasseCherche(true) })
+        .then(lobby => {
+          if (!vivant) return
+          const cherche = (lobby.rankedSeekers ?? 0) > 0
+          if (!cherche) classeRefuse.current = false
+          setClasseCherche(cherche && !classeRefuse.current)
+        })
         .catch(() => undefined)
+    }
+    const arreter = subscribeToMenuUpdates(playerId, scope => {
+      if (scope === 'lobby' || scope === 'all') relire()
     })
-  }, [match, match?.status, partieClassee, partieDuJour, playerId])
+    const filet = window.setInterval(() => { if (classeCherche) relire() }, 10_000)
+    return () => { vivant = false; window.clearInterval(filet); arreter() }
+  }, [classeCherche, match, match?.status, partieClassee, partieDuJour, playerId])
 
   // Un compteur redescendu (le joueur a rejoué) efface la confirmation d'avant.
   const missedByMe = match?.inactivity[playerId] ?? 0
