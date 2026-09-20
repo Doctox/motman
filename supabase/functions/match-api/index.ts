@@ -298,9 +298,9 @@ Deno.serve(async request => {
     //  - la grille vient du calendrier gravé, donc partagée par tous ;
     //  - la force du bot vient de player_progress.level, lu en base ;
     //  - le rythme est le TEMPS LIMITÉ, toujours (voir ci-dessous).
-    // Le défi se retente jusqu'à minuit après une DÉFAITE ; un abandon le ferme
-    // (voir plus bas). Le bonus de 250 plumes, lui, reste versé une seule fois
-    // par jour (idempotence `daily:<user>:<date>` dans awardFinished).
+    // UNE SEULE TENTATIVE par jour depuis le 20/09/2026, quelle qu'en soit
+    // l'issue (voir plus bas). Le bonus de 250 plumes est lui aussi versé une
+    // seule fois par jour (idempotence `daily:<user>:<date>` dans awardFinished).
     // Classement du défi du jour. Lecture seule, et volontairement placée AVANT
     // l'action `daily` : un joueur doit pouvoir consulter le tableau sans avoir
     // encore joué, ni déclencher la création d'une partie.
@@ -342,22 +342,31 @@ Deno.serve(async request => {
       // et son bot : pendant qu'on jouait l'un, l'autre comptait des tours
       // manqués (« Tu es toujours là ? ») et l'écran passait d'un plateau à
       // l'autre (lettres « revenues en arrière »). Un défi encore actif est
-      // donc repris, jamais doublé. Un défi terminé (perdu) se rejoue, comme avant.
+      // donc repris, jamais doublé — et c'est aussi ce qui permet de reprendre
+      // une partie coupée sans perdre sa tentative du jour.
       const enCours = (await activeRows()).find(row => row.state.isDaily === true && row.state.dailyDate === dateKey)
       if (enCours) {
         const repris = await resolveRow(enCours)
         return json(200, { match: await view(admin, repris, user.id, await getGrid(admin, repris.grid_id)) })
       }
-      // ABANDONNÉ = FERMÉ JUSQU'À MINUIT (décision du propriétaire, 19/09/2026).
-      // Une défaite en fin de grille se retente ; un abandon — le bouton, ou
-      // l'absence restée sans réponse (« Tu es toujours là ? ») — non : sinon
-      // abandonner dès que le bot mène suffirait à rejouer la grille qu'on vient
-      // de découvrir. `playerOutcome` (awards.ts) range les deux sous
-      // `abandon`, et l'historique en garde la trace avec le jour du défi.
-      const { data: abandon } = await admin.from('grid_player_history').select('match_id')
-        .eq('user_id', user.id).eq('daily_date', dateKey).eq('outcome', 'abandon').limit(1)
-      if (abandon?.length) {
-        return json(409, { error: 'Défi du jour abandonné : il revient demain.', code: 'DAILY_CLOSED' })
+      // UNE SEULE TENTATIVE PAR JOUR (décision du propriétaire, 20/09/2026).
+      // Gagné, perdu ou abandonné : un défi TERMINÉ ne se rejoue pas avant
+      // minuit. Jusqu'au 19/09 une défaite se retentait ; le classement du jour
+      // s'en trouvait faussé — recommencer jusqu'au bon score n'est pas jouer
+      // la même grille que tout le monde, et c'est le sens même du défi.
+      //
+      // `recordMatchHistory` (awards.ts) écrit UNE ligne par défi terminé avec
+      // son `daily_date` : sa présence suffit, quel que soit l'`outcome`. Un
+      // défi encore EN COURS est repris plus haut, jamais bloqué ici — fermer
+      // l'appli au milieu d'une partie ne perd pas la tentative.
+      //
+      // L'erreur se lève au lieu d'être ignorée : sans ça, une base
+      // momentanément indisponible rouvrait le défi (relecture du 20/09/2026).
+      const { data: dejaJoue, error: dejaJoueError } = await admin.from('grid_player_history').select('match_id')
+        .eq('user_id', user.id).eq('daily_date', dateKey).limit(1)
+      if (dejaJoueError) throw dejaJoueError
+      if (dejaJoue?.length) {
+        return json(409, { error: 'Défi du jour déjà joué : il revient demain.', code: 'DAILY_CLOSED' })
       }
       const skill = botSkillForLevel(await playerLevel(admin, user.id))
       const bot = createBot(`${user.id}:daily:${dateKey}:${Date.now()}`, skill)

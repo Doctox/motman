@@ -98,4 +98,15 @@ Deno.test('l’indice utilisé retire la quête sans indice, et le défi nourrit
   egal(compteurs.chevalet, 2, 'les chevalets complets')
   egal(compteurs.defi, 1, 'le défi du jour compte, même perdu')
   verifie(compteurs.partie === 1, 'une défaite reste une partie terminée')
+
+  // Le défi ABANDONNÉ compte aussi pour la semaine (20/09/2026) : une seule
+  // tentative par jour, donc le refuser rendait la quête infinissable.
+  const abandonne = questIncrements(row, MOI, 'abandon')
+  egal(abandonne.defi, 1, 'le défi abandonné nourrit quand même la semaine')
+  egal(abandonne.partie, undefined, 'mais ce n’est pas une partie menée')
+  egal(abandonne['sans-indice'], undefined, 'ni une partie sans indice')
+
+  // Une partie encore en cours n'apporte rien à la semaine.
+  row.status = 'active'
+  egal(questIncrements(row, MOI, 'loss').defi, undefined, 'un défi en cours ne compte pas encore')
 })

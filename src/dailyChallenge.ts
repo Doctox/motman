@@ -7,12 +7,16 @@
 //    libellés gardent « victoires de série », et la victoire garde ce qui la
 //    distingue : le bonus de 250 plumes, l'état « réussi », sa marque au
 //    calendrier ;
-//  - une DÉFAITE en fin de grille ouvre une nouvelle tentative, jusqu'à minuit
-//    (Europe/Paris) ;
-//  - un ABANDON — le bouton, ou l'absence restée sans réponse — FERME le défi
-//    jusqu'à minuit. Le serveur le refuse (`DAILY_CLOSED`), ce module le retient
-//    pour l'affichage ;
-//  - une fois gagné, le défi est verrouillé pour la journée.
+//  - UNE SEULE TENTATIVE PAR JOUR depuis le 20/09/2026 : gagné, perdu ou
+//    abandonné, le défi TERMINÉ ne se rejoue pas avant minuit (Europe/Paris).
+//    Une défaite se retentait jusque-là, ce qui faussait le classement du jour
+//    — celui qui recommence jusqu'au bon score ne joue pas la même grille que
+//    les autres. Le serveur refuse la seconde tentative (`DAILY_CLOSED`), ce
+//    module le retient pour l'affichage ;
+//  - une partie COUPÉE (appli fermée) n'est pas terminée : le serveur la reprend
+//    là où elle en était, la tentative n'est pas perdue ;
+//  - l'écran distingue encore perdu et abandonné, mais aucun des deux ne propose
+//    de rejouer.
 //
 // PARTAGE LOCAL / SERVEUR (arbitrage JM) :
 //  - LOCAL (ce module) : l'ÉTAT de la série (série, gel, historique, paliers
@@ -49,8 +53,12 @@ export const HISTORY_LIMIT = 90
 // locale ne doit pouvoir le contredire.
 
 export type DailyResult = 'win' | 'loss' | 'abandon'
-/** À faire / perdu (retentable) / gagné / abandonné (fermé jusqu'à minuit). */
-export type DailyStatus = 'todo' | 'lost' | 'won' | 'closed'
+/**
+ * À faire / perdu / gagné / abandonné. Depuis le 20/09/2026, les trois derniers
+ * sont TERMINAUX : la grille du jour ne se rejoue pas. `lost` et `closed` ne
+ * diffèrent plus que par le texte de la carte.
+ */
+export type DailyStatus = 'todo' | 'lost' | 'won' | 'closed' | 'done'
 
 export type DailyHistoryEntry = { day: string; gridId: string; theme: string | null }
 
@@ -58,8 +66,15 @@ export type DailyToday = {
   day: string
   attempts: number
   won: boolean
-  /** Abandonné (bouton ou absence) : plus de tentative avant minuit. */
+  /** Le défi est TERMINÉ : plus de tentative avant minuit (20/09/2026). */
   closed?: boolean
+  /**
+   * Comment il s'est terminé, pour le texte de la carte. `unknown` = le serveur
+   * a refusé une tentative sans qu'on sache comment le jour s'est joué (autre
+   * appareil, appli fermée). Absent d'un état écrit avant le 20/09/2026, où
+   * `closed` voulait dire « abandonné » : c'est le repli de lecture.
+   */
+  ended?: 'loss' | 'abandon' | 'unknown'
 }
 
 export type DailyChallengeState = {
@@ -340,8 +355,9 @@ function todayFor(state: DailyChallengeState, day: string): DailyToday {
  *  - Fait avancer la série au PREMIER défi du jour, QUEL QUE SOIT le résultat :
  *    tout défi ouvert compte (19/09/2026). `advanceStreak` est idempotent, les
  *    tentatives suivantes du même jour ne recomptent rien.
- *  - Une victoire verrouille le défi (won=true) ; un abandon le ferme jusqu'à
- *    minuit (closed=true) ; une défaite laisse retenter.
+ *  - Le défi terminé ne se rejoue pas : une victoire le verrouille (won=true),
+ *    une défaite comme un abandon le ferment jusqu'à minuit (closed=true). La
+ *    défaite laissait retenter jusqu'au 19/09/2026.
  *
  * NE VERSE AUCUNE PLUME. Les 250 et les paniers de série sont versés par le
  * serveur (voir en-tête).
@@ -355,7 +371,12 @@ export function recordDailyResult(
   const today = todayFor(current, input.day)
   const attempts = today.attempts + 1
   const won = today.won || input.result === 'win'
-  const closed = !won && (Boolean(today.closed) || input.result === 'abandon')
+  // Terminé = fermé, quelle qu'en soit l'issue (20/09/2026). `ended` ne sert
+  // qu'au texte de la carte ; un abandon déjà enregistré garde le sien.
+  const closed = !won
+  const ended: DailyToday['ended'] | undefined = won
+    ? undefined
+    : today.ended === 'abandon' || input.result === 'abandon' ? 'abandon' : 'loss'
 
   const { state: advanced, effects } = advanceStreak(current, input.day)
   const history = [
@@ -364,17 +385,18 @@ export function recordDailyResult(
   ].slice(-HISTORY_LIMIT)
   const next: DailyChallengeState = {
     ...advanced,
-    today: { day: input.day, attempts, won, ...(closed ? { closed: true } : {}) },
+    today: { day: input.day, attempts, won, ...(closed ? { closed: true, ended } : {}) },
     history,
   }
   saveDailyChallengeState(next, storage)
-  return { state: next, effects, attempts, status: won ? 'won' : closed ? 'closed' : 'lost' }
+  return { state: next, effects, attempts, status: won ? 'won' : ended === 'abandon' ? 'closed' : 'lost' }
 }
 
 /**
- * Le serveur a refusé une nouvelle tentative (`DAILY_CLOSED`) : le défi du jour
- * a été abandonné, peut-être sur un autre appareil ou pendant que l'appli était
- * fermée. On le retient pour que l'accueil cesse de proposer « Jouer ».
+ * Le serveur a refusé une tentative (`DAILY_CLOSED`) : le défi du jour est déjà
+ * joué, peut-être sur un autre appareil ou pendant que l'appli était fermée. On
+ * le retient pour que l'accueil cesse de proposer « Jouer ». L'issue, elle, est
+ * inconnue de cet appareil : la carte le dit sans inventer ni défaite ni abandon.
  */
 export function markDailyClosed(
   day: string,
@@ -384,7 +406,7 @@ export function markDailyClosed(
   const current = loadDailyChallengeState(storage)
   const today = todayFor(current, day)
   if (today.closed || today.won) return current
-  const next: DailyChallengeState = { ...current, today: { ...today, attempts: Math.max(1, today.attempts), closed: true } }
+  const next: DailyChallengeState = { ...current, today: { ...today, attempts: Math.max(1, today.attempts), closed: true, ended: today.ended ?? 'unknown' } }
   saveDailyChallengeState(next, storage)
   return next
 }
@@ -421,10 +443,19 @@ export function dailyAttempts(state: DailyChallengeState, day: string): number {
   return state.today && state.today.day === day ? state.today.attempts : 0
 }
 
-/** État d'affichage du défi pour `day` : à faire / perdu (retentable) / gagné / abandonné. */
+/**
+ * État d'affichage du défi pour `day` : à faire / perdu / gagné / abandonné /
+ * déjà joué (issue inconnue de cet appareil). Depuis le 20/09/2026, tous les
+ * états sauf `todo` sont terminaux : la carte ne propose plus de rejouer.
+ *
+ * Un état écrit avant cette date ne porte pas `ended` : son `closed` voulait
+ * dire « abandonné », et c'est ce qu'on lit alors.
+ */
 export function dailyStatus(state: DailyChallengeState, day: string): DailyStatus {
   if (isDailyWon(state, day)) return 'won'
-  if (state.today?.day === day && state.today.closed) return 'closed'
+  const today = state.today?.day === day ? state.today : null
+  if (today?.closed) return today.ended === 'loss' ? 'lost' : today.ended === 'unknown' ? 'done' : 'closed'
+  // Tentative enregistrée sans fermeture : un état d'avant le 20/09/2026.
   return dailyAttempts(state, day) > 0 ? 'lost' : 'todo'
 }
 

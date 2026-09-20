@@ -198,8 +198,9 @@ export async function createDailyMatch(): Promise<MatchState> {
 }
 
 /**
- * Le serveur refuse une nouvelle tentative : le défi du jour a été abandonné
- * (bouton ou absence) et reste fermé jusqu'à minuit — règle du 19/09/2026.
+ * Le serveur refuse une tentative : le défi du jour est déjà joué et reste
+ * fermé jusqu'à minuit. Depuis le 20/09/2026, une seule tentative par jour,
+ * quelle qu'en soit l'issue — jusque-là, seul l'abandon fermait le défi.
  */
 export function isDailyClosedError(reason: unknown): boolean {
   return (reason as { payload?: { code?: unknown } } | null)?.payload?.code === 'DAILY_CLOSED'

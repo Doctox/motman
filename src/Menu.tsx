@@ -7,7 +7,7 @@ import type { GoogleAuthIssue } from './googleAuthCallback'
 import { startAdaptivePolling, type AdaptivePollingController } from './adaptivePolling'
 import { BASKETS, basketPriceFor, loadPlayerCosmetics, type PlayerCosmetics } from './cosmetics'
 import { markDailyClosed } from './dailyChallenge'
-import { dailyDateKey } from './dailyDate'
+import { currentDailyDateKey } from './dailyDate'
 import type { MenuRealtimeStatus, MenuWakeupScope } from './menuRealtime'
 import { BOT_SEARCH_MS, BOT_SEARCH_WAKE_MARGIN_MS, lobbyMenuPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
 import {
@@ -283,11 +283,14 @@ export function MenuApp({
       const match = await createDailyMatch()
       onStartMatch(match.id)
     } catch (reason) {
-      // Abandonné plus tôt — ici, sur un autre appareil, ou par absence pendant
-      // que l'appli était fermée : l'accueil cesse de proposer « Jouer ».
+      // Déjà joué — ici, sur un autre appareil, ou pendant que l'appli était
+      // fermée : l'accueil cesse de proposer « Jouer ». Le jour se lit sur
+      // l'horloge SERVEUR (`currentDailyDateKey`) : avec celle du téléphone, un
+      // décalage près de minuit écrivait le refus sur un jour que la carte ne
+      // relisait jamais, et l'accueil reproposait « Jouer » à l'infini.
       if (isDailyClosedError(reason)) {
-        markDailyClosed(dailyDateKey(Date.now()))
-        notify('Défi du jour abandonné : il revient demain.')
+        markDailyClosed(currentDailyDateKey())
+        notify('Défi du jour déjà joué : il revient demain.')
         return
       }
       // Tant que l'action 'daily' n'est pas déployée, l'edge function répond

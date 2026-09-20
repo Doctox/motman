@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, Flame, Gift, Grid2x2Check, Medal, RotateCcw, Snowflake } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflake } from 'lucide-react'
+import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
 import { loadDailyShare } from '../dailyShare'
@@ -152,7 +153,8 @@ export function DailyStreakChip() {
  * calendrier de série (place demandée par le propriétaire le 16/09/2026).
  */
 export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
-  const { day, status, streak, freezes, attempts, theme } = useDailyChallenge()
+  const { day, status, streak, freezes, theme } = useDailyChallenge()
+  const [avertir, setAvertir] = useState(false)
   const libelle = dailyChallengeLabel(theme)
   const pourLecteur = theme ? `, thème ${theme}` : ''
   const countdown = useDailyCountdown()
@@ -183,17 +185,29 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
     )
   }
 
+  // Perdu : terminé lui aussi depuis le 20/09/2026. Le ton reste celui d'une
+  // invitation à revenir demain, jamais celui d'une sanction.
   if (status === 'lost') {
     return (
-      <section className="mm-daily-hero is-lost">
+      <section className="mm-daily-hero is-lost" aria-label={`Défi du jour${pourLecteur} perdu. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
-        <small className="mm-daily-eyebrow">{libelle} · tentative {attempts}</small>
-        <h2 className="mm-daily-title">Pas cette fois — on retente ?</h2>
+        <small className="mm-daily-eyebrow">{libelle}</small>
+        <h2 className="mm-daily-title">Pas cette fois</h2>
         {/* Pas « jusqu'à minuit » : la bascule est à minuit À PARIS (voir msUntilNextDailyGrid). */}
-        <p className="mm-daily-note">Tu peux retenter jusqu’à la prochaine grille, dans {countdown}</p>
-        <button type="button" className="mm-daily-cta" onClick={onPlay} aria-label={`Réessayer le défi du jour${pourLecteur}, tentative ${attempts + 1}`}>
-          <RotateCcw aria-hidden="true" />Réessayer <ChevronRight aria-hidden="true" />
-        </button>
+        <p className="mm-daily-note">Il compte pour ta série · nouvelle grille dans {countdown}</p>
+      </section>
+    )
+  }
+
+  // Déjà joué, mais cet appareil ne sait pas comment : le serveur a refusé la
+  // tentative (partie menée ailleurs, ou appli fermée pendant la partie).
+  if (status === 'done') {
+    return (
+      <section className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} déjà joué. Nouvelle grille dans ${countdown}.`}>
+        <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
+        <small className="mm-daily-eyebrow">{libelle}</small>
+        <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
+        <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
       </section>
     )
   }
@@ -204,10 +218,39 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
       <small className="mm-daily-eyebrow">{libelle}</small>
       <h2 className="mm-daily-title">Grille du jour</h2>
       {freezes > 0 ? <p className="mm-daily-note"><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} de série en réserve</p> : null}
-      <button type="button" className="mm-daily-cta" onClick={onPlay} aria-label={`Jouer la grille du jour${pourLecteur}. ${streakLabel(streak)}.`}>
+      <button type="button" className="mm-daily-cta" onClick={() => setAvertir(true)} aria-label={`Jouer la grille du jour${pourLecteur}. ${streakLabel(streak)}.`}>
         <Grid2x2Check aria-hidden="true" />Jouer la grille <ChevronRight aria-hidden="true" />
       </button>
+      {avertir ? <DailyOneShotDialog theme={theme} close={() => setAvertir(false)} play={() => { setAvertir(false); onPlay() }} /> : null}
     </section>
+  )
+}
+
+/**
+ * « Une seule fois par jour » — avertissement avant la première tentative
+ * (demandé par le propriétaire le 20/09/2026). Le joueur doit savoir AVANT de
+ * commencer que la partie comptera de toute façon : c'est ce qui rend le
+ * classement du jour comparable d'un joueur à l'autre.
+ */
+function DailyOneShotDialog({ theme, close, play }: { theme: string | null; close: () => void; play: () => void }) {
+  const dialogRef = useDialogFocus<HTMLDivElement>(close)
+  return (
+    <div className="mm-modal-layer mm-daily-warning-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
+      <div ref={dialogRef} className="mm-daily-warning" role="dialog" aria-modal="true" aria-labelledby="daily-warning-title" tabIndex={-1}>
+        <h2 id="daily-warning-title"><AlertTriangle aria-hidden="true" />Une seule fois par jour</h2>
+        <p>
+          {theme ? `La grille « ${theme} » ne se joue qu’une fois. ` : 'La grille du jour ne se joue qu’une fois. '}
+          Gagnée, perdue ou abandonnée, ta partie compte pour le classement du jour et pour ta série.
+        </p>
+        <p className="mm-daily-warning-note">Prends ton temps : le chrono ne démarre qu’après la lecture de la grille.</p>
+        <div className="mm-daily-warning-actions">
+          <button type="button" className="mm-daily-warning-cancel" onClick={close}>Plus tard</button>
+          <button type="button" className="mm-daily-cta" data-dialog-autofocus onClick={play}>
+            <Grid2x2Check aria-hidden="true" />C’est parti <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

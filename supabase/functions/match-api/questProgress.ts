@@ -28,9 +28,14 @@ export function questIncrements(row: MatchRow, playerId: string, outcome: string
   if (menee) {
     compteurs.partie = 1
     if (!state.hintUsed[playerId]) compteurs['sans-indice'] = 1
-    // Le défi du jour nourrit la quête de la semaine, qu'il soit gagné ou non :
-    // le gel récompense l'assiduité, pas la performance.
-    if (state.isDaily) compteurs.defi = 1
   }
+  // Le défi du jour nourrit la quête de la semaine dès qu'il est TERMINÉ, y
+  // compris abandonné : le gel récompense l'assiduité, pas la performance. Il
+  // était rangé sous `menee` (donc refusé à l'abandon) jusqu'au 20/09/2026 ;
+  // depuis qu'une seule tentative est permise par jour, la quête « Jouer le défi
+  // du jour 4 fois » devenait infinissable pour qui abandonne — le jour est
+  // consommé, le compteur ne bougeait pas. Abandonner reste sans intérêt : la
+  // quête compte les JOURS, un abandon ferme le défi jusqu'à minuit.
+  if (row.status === 'finished' && state.isDaily) compteurs.defi = 1
   return compteurs
 }

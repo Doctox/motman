@@ -107,21 +107,45 @@ describe('advanceStreak (victoire)', () => {
 })
 
 describe('recordDailyResult (tentatives + verrou victoire)', () => {
-  // Tout défi ouvert compte pour la série (propriétaire, 19/09/2026).
-  it('une défaite compte pour la série, une fois par jour, et laisse retenter', () => {
+  // Tout défi ouvert compte pour la série (propriétaire, 19/09/2026), et une
+  // seule tentative est permise par jour (propriétaire, 20/09/2026).
+  it('une défaite compte pour la série et ferme le défi, comme une victoire', () => {
     const storage = memoryStorage()
     const first = recordDailyResult({ day: '2026-03-01', result: 'loss', gridId: 'g', theme: 'Animaux' }, { storage })
     expect(first.status).toBe('lost')
     expect(first.attempts).toBe(1)
     expect(first.effects.changed).toBe(true)
     expect(first.state.currentStreak).toBe(1)
-    const second = recordDailyResult({ day: '2026-03-01', result: 'loss', gridId: 'g', theme: 'Animaux' }, { storage })
-    expect(second.attempts).toBe(2)
-    expect(second.effects.changed).toBe(false)
-    expect(second.state.currentStreak).toBe(1)
-    expect(dailyStatus(second.state, '2026-03-01')).toBe('lost')
+    // Terminé : l'accueil ne propose plus de rejouer.
+    expect(first.state.today?.closed).toBe(true)
+    expect(dailyStatus(first.state, '2026-03-01')).toBe('lost')
     // Le défi joué n'est pas pour autant réussi.
-    expect(isDailyWon(second.state, '2026-03-01')).toBe(false)
+    expect(isDailyWon(first.state, '2026-03-01')).toBe(false)
+    // Le lendemain, tout se rouvre.
+    expect(dailyStatus(first.state, '2026-03-02')).toBe('todo')
+  })
+
+  it('distingue perdu, abandonné et « déjà joué » sans jamais rouvrir le jour', () => {
+    const perdu = memoryStorage()
+    recordDailyResult({ day: '2026-03-01', result: 'loss', gridId: 'g', theme: null }, { storage: perdu })
+    expect(dailyStatus(perdu.read()!, '2026-03-01')).toBe('lost')
+
+    const abandonne = memoryStorage()
+    recordDailyResult({ day: '2026-03-01', result: 'abandon', gridId: 'g', theme: null }, { storage: abandonne })
+    expect(dailyStatus(abandonne.read()!, '2026-03-01')).toBe('closed')
+
+    // Refus du serveur sans que cet appareil sache comment le jour s'est joué.
+    const ailleurs = memoryStorage()
+    expect(dailyStatus(markDailyClosed('2026-03-01', { storage: ailleurs }), '2026-03-01')).toBe('done')
+
+    // Un état écrit avant le 20/09/2026 (closed sans `ended`) voulait dire
+    // « abandonné » : on continue de le lire ainsi.
+    const ancien = memoryStorage()
+    ancien.setItem(DAILY_STORAGE_KEY, JSON.stringify({
+      ...emptyDailyChallengeState(),
+      today: { day: '2026-03-01', attempts: 1, won: false, closed: true },
+    }))
+    expect(dailyStatus(ancien.read()!, '2026-03-01')).toBe('closed')
   })
 
   it('un abandon compte pour la série et ferme le défi jusqu’à minuit', () => {
@@ -140,7 +164,9 @@ describe('recordDailyResult (tentatives + verrou victoire)', () => {
   it('le refus du serveur ferme le défi à l’écran', () => {
     const storage = memoryStorage()
     const ferme = markDailyClosed('2026-03-01', { storage })
-    expect(dailyStatus(ferme, '2026-03-01')).toBe('closed')
+    // « Déjà joué » : cet appareil ne sait pas si c'était gagné, perdu ou
+    // abandonné — il ne l'invente pas.
+    expect(dailyStatus(ferme, '2026-03-01')).toBe('done')
     // Rien d'autre ne bouge : la série vient du serveur.
     expect(ferme.currentStreak).toBe(0)
     // Un défi déjà gagné ne se ferme pas.
