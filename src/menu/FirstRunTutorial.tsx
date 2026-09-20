@@ -78,7 +78,7 @@ function StreakVisual() {
         {index === 6 ? <em><Gift /></em> : null}
       </span>)}
     </div>
-    <span className="reward"><Gift /><strong>1 panier offert</strong><small>toutes les 7 victoires de série</small></span>
+    <span className="reward"><Gift /><strong>1 panier offert</strong><small>tous les 7 jours de série</small></span>
   </div>
 }
 
@@ -163,7 +163,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'Chaque jour',
     title: 'Le défi du jour et ta série',
-    description: 'Une grille à thème, la même pour tout le monde, renouvelée chaque jour. Joue-la chaque jour pour faire grimper ta série : toutes les 7 victoires, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
+    description: 'Une grille à thème, la même pour tout le monde, renouvelée chaque jour. Joue-la pour faire grimper ta série : tous les 7 jours, un panier offert. Un jour d’absence ? Un gel de série, en vente à l’Épicerie, le protège.',
     visual: <StreakVisual />,
     note: <><Flame /> Touche la flamme sur la carte du défi pour voir ta semaine.</>,
   },

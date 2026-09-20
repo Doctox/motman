@@ -203,7 +203,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         : <section className="mm-play-card">
           <header>
             <span className="mm-play-card-icon" aria-hidden="true"><Trophy /></span>
-            <span><h2>Normal</h2><small>Adversaire au hasard · sans classement</small></span>
+            <span><h2>Normal</h2><small>Adversaire au hasard · sans classement</small><small>Personne de libre en 15 s ? Un bot à ton niveau prend la place.</small></span>
           </header>
           <PaceChoice pace={normalPace} setPace={setNormalPace} label="Choisir le rythme de la partie" />
           <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale()}>

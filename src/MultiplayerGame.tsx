@@ -122,6 +122,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const [rackBonusEffect, setRackBonusEffect] = useState<RackBonusEffect | null>(null)
   const [wordHighlight, setWordHighlight] = useState<BoardWordHighlightState | null>(null)
   const [leaveOpen, setLeaveOpen] = useState(false)
+  // L'info du bonus de chevalet, dépliée au doigt : le `title` d'un `span` ne
+  // s'affiche jamais sur téléphone, et personne ne pouvait apprendre la règle.
+  const [bonusExplique, setBonusExplique] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [displayedScores, setDisplayedScores] = useState<Record<string, number>>({})
   const [turnAlert, setTurnAlert] = useState(false)
@@ -135,6 +138,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   // « Tu es toujours là ? » : le compte de tours manqués déjà confirmé par le
   // joueur, et le tour auquel il a ouvert la partie (voir game/stillThere.ts).
   const [stillThereAck, setStillThereAck] = useState(0)
+  /** Le tour dont la réponse « Je suis là » est en cours d'envoi, s'il y en a une. */
+  const [presenceEnvoi, setPresenceEnvoi] = useState<number | null>(null)
   const openingTurn = useRef<{ matchId: string; turnNumber: number } | null>(null)
   // « Quête accomplie » : annoncé au coup qui la termine, jamais payé ici.
   // Voir questLiveProgress.ts — le serveur reste seul à compter pour de vrai.
@@ -495,7 +500,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
 
   useEffect(() => {
     if (!match || resolving) return
-    const next = match.status === 'finished' ? 'Partie terminée' : match.pause ? 'Partie en pause' : isMyTurn ? 'À toi de jouer' : `Au tour de ${opponentName}`
+    const next = match.status === 'finished' ? 'Partie terminée' : match.pause ? 'Partie en pause' : lectureRestante !== null ? 'Lecture de la grille' : isMyTurn ? 'À toi de jouer' : `Au tour de ${opponentName}`
     const remaining = emptyTurnNoticeUntil.current - Date.now()
     if (match.status === 'active' && !match.pause && remaining > 0) {
       const timer = window.setTimeout(() => setStatus(next), remaining)
@@ -755,6 +760,14 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
   const missedByMe = match?.inactivity[playerId] ?? 0
   useEffect(() => { setStillThereAck(ack => acknowledgedAfter(ack, missedByMe)) }, [missedByMe])
 
+  // UNE FENÊTRE S'OUVRE : la définition agrandie se referme (20/09/2026).
+  // La loupe se pose au-dessus du plateau et y restait tant qu'on ne la fermait
+  // pas ; « Tu es toujours là ? » s'ouvrait DERRIÈRE, décompte compris, et la
+  // partie se perdait sans que rien ne se voie. Le tour manqué ne prévient pas :
+  // c'est l'écran qui doit dégager la vue.
+  const fenetreOuverte = Boolean(leaveOpen || optionsOpen || reportOpen || match?.pause) || missedByMe > 0
+  useEffect(() => { if (fenetreOuverte) setExpandedClue(null) }, [fenetreOuverte])
+
   // Une sortie visible des qu'une erreur s'affiche : sans elle, l'ecran de
   // chargement est un cul-de-sac, et l'adresse `#partie=<id>` y ramene a chaque
   // actualisation.
@@ -804,11 +817,22 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     })
     : null
   const repondrePresent = (missed: number) => {
-    setStillThereAck(missed)
     noterActivite()
-    // Le serveur fait tomber l'échéance ; s'il répond que c'était trop tard, la
-    // partie revient terminée et l'écran de fin le dit.
-    void confirmMatchPresence(playerId, match.id).then(applyMatchState).catch(() => pollingRef.current?.wake())
+    // On ne referme la fenêtre QU'À la confirmation du serveur (20/09/2026).
+    // Elle se fermait d'abord, avant l'aller-retour : sur un réseau qui hoquette,
+    // le joueur voyait sa réponse acceptée, le serveur n'avait rien reçu, et la
+    // partie tombait « Tu n'as pas répondu à temps » quinze secondes plus tard.
+    // En attendant, le bouton montre qu'il travaille (`presenceEnvoi`).
+    setPresenceEnvoi(missed)
+    void confirmMatchPresence(playerId, match.id)
+      .then(etat => { setStillThereAck(missed); applyMatchState(etat) })
+      .catch(() => {
+        // Échec : la fenêtre reste ouverte avec son décompte, et le sondage
+        // reprend la main. Le joueur peut retoucher le bouton.
+        setError('Ta réponse n’est pas partie. Réessaie.')
+        pollingRef.current?.wake()
+      })
+      .finally(() => setPresenceEnvoi(null))
   }
 
   return <main className={`app-shell multiplayer-shell ${turnAlert ? 'turn-alerting' : ''} ${resolving ? 'is-resolving' : ''} ${presentationPhase === 'result' ? 'is-finished' : ''}`}>
@@ -819,7 +843,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revealingPlayerId ? revealingPlayerId === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div><DuelPlayer name="Toi" detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revealingPlayerId ? revealingPlayerId === playerId : isMyTurn)} player /></section>
     </> : null}
     {questDone ? <QuestAchieved key={questDone.cle} titre={questDone.titre} close={() => setQuestDone(null)} /> : null}
-    {error ? <p className="duel-error" role="alert">{error}</p> : null}
+    {/* Le bandeau ne survit pas à la partie : plus aucun sondage ne vient
+        l'effacer une fois le match terminé (matchPollDelay rend -1), et
+        « Connexion interrompue » restait collé sous l'écran de victoire
+        (relevé le 20/09/2026). */}
+    {error && showGame ? <p className="duel-error" role="alert">{error}</p> : null}
     {showGame ? <section className="board-wrap" aria-label="Grille multijoueur" style={{ '--board-columns': grid.columns, '--board-rows': grid.rows } as CSSProperties}><div ref={fitBoardRef} className={`board ${focusedWordCells.size ? 'has-clue-focus' : ''}`} style={{ '--board-columns': grid.columns, '--board-rows': grid.rows, '--board-aspect': `${grid.columns} / ${grid.rows}` } as CSSProperties}>
       {grid.cells.map((cell, index) => {
         // Case noire (grilles à thème) : rien à y poser, rien à y lire.
@@ -851,12 +879,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn ? 'duel-rack-waiting' : ''}`}>
-        {lectureRestante !== null ? <ReadingWindow /> : null}<div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : lectureRestante !== null ? 'Lecture de la grille' : `${opponentName} joue…`}{isMyTurn ? <span className="rack-bonus-info" title="Pose correctement les 5 lettres du chevalet sans indice pendant ce tour pour gagner 5 points" aria-label="Bonus: 5 lettres correctes sans indice pour +5 points">i</span> : null}</strong><span>{isMyTurn ? '' : 'Prépare ton prochain coup'}</span></div><div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
+        {lectureRestante !== null ? <ReadingWindow /> : null}<div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : lectureRestante !== null ? 'Lecture de la grille' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Bonus chevalet : pose les 5 lettres justes sans indice pour gagner 5 points" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? '' : 'Prépare ton prochain coup'}</span></div><div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
         {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
-      <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Indice déjà utilisé pendant cette partie' : 'Utiliser un indice'}><Lightbulb />Indice</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
+      <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} aria-label={hintUsedInMatch ? 'Indice déjà utilisé pendant cette partie' : 'Utiliser un indice'} title={hintUsedInMatch ? 'Indice déjà utilisé pendant cette partie' : 'Utiliser un indice'}><Lightbulb />Indice</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} />}
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
@@ -866,6 +894,6 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange }:
     {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
     {optionsOpen ? <GameOptionsOverlay close={() => setOptionsOpen(false)} report={match.bot ? undefined : () => setReportOpen(true)} leaveMatch={match.status === 'active' ? () => setLeaveOpen(true) : undefined} /> : null}
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}
-    {stillThere ? <StillThereDialog prompt={stillThere} isDaily={Boolean(match.isDaily)} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
+    {stillThere ? <StillThereDialog prompt={stillThere} isDaily={Boolean(match.isDaily)} envoi={presenceEnvoi === stillThere.missed} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
   </main>
 }

@@ -39,7 +39,10 @@ const LazyLegalPanel = lazy(() => import('./LegalPanel').then(module => ({ defau
 
 function useResolvedTheme(theme: Theme) {
   useEffect(() => {
-    localStorage.setItem('motman-theme', theme)
+    // Stockage refusé (mode privé, données de site bloquées, quota) : le thème
+    // s'applique quand même. Sans ce garde-fou, l'exception remontait de l'effet
+    // jusqu'à l'AppErrorBoundary et emportait tout l'écran (20/09/2026).
+    try { localStorage.setItem('motman-theme', theme) } catch { /* voir ci-dessus */ }
     document.documentElement.dataset.theme = theme
   }, [theme])
 }
@@ -410,7 +413,15 @@ export function MenuApp({
   }
 
   if (pendingResult) return <main className="app-shell multiplayer-shell is-finished pending-result-shell">
-    <PendingResultPanel result={pendingResult} playerId={identity.playerId} acknowledge={acknowledgePendingResult} />
+    <PendingResultPanel
+      result={pendingResult}
+      playerId={identity.playerId}
+      acknowledge={acknowledgePendingResult}
+      // Sortie de secours : on retire le résultat de la liste locale sans le
+      // valider côté serveur. Le menu revient, et le résultat se represente au
+      // prochain rafraîchissement du lobby.
+      skip={() => setMatchLobby(lobby => ({ ...lobby, pendingResults: (lobby.pendingResults ?? []).filter(item => item.id !== pendingResult.id) }))}
+    />
   </main>
 
   return <main className="mm-shell">
@@ -419,10 +430,10 @@ export function MenuApp({
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
-    {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de L’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
+    {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de l’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
     {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
-    {legalOpen ? <Suspense fallback={null}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
+    {legalOpen ? <Suspense fallback={<div className="mm-page mm-route-loading" role="status">Ouverture des informations…</div>}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}
     {editingGuest ? <EditGuestPanel identity={identity} progress={progress} cosmetics={cosmetics} close={() => setEditingGuest(false)} save={saveGuestProfile} /> : null}

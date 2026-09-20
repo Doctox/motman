@@ -12,7 +12,10 @@
 type ErreurAuth = { code?: unknown; status?: unknown; name?: unknown; message?: unknown } | null | undefined
 
 const PAR_CODE: Record<string, string> = {
-  weak_password: 'Le mot de passe doit contenir au moins 6 caractères.',
+  // 10, comme le formulaire du panneau Compte : Supabase en accepte 6, MotMan
+  // en exige 10, et deux règles contradictoires laissaient le joueur essayer un
+  // mot de passe que l'écran refusait ensuite (relevé le 20/09/2026).
+  weak_password: 'Le mot de passe doit contenir au moins 10 caractères.',
   same_password: 'Choisis un mot de passe différent de l’actuel.',
   email_address_invalid: 'Cette adresse e-mail n’est pas valide.',
   email_exists: 'Cette adresse e-mail est déjà utilisée par un autre compte.',

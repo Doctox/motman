@@ -59,3 +59,7 @@
 /* Relecture : la case noire d'une grille à thème. */
 .mm-replay-cell.blocked{background:var(--mm-ink)}
 /* Titre de section dans les Paramètres (« Système » : effets, vibrations, animations). */
+/* Repli du formulaire de contact : copier le message quand l'appareil n'a pas
+   d'application de messagerie (20/09/2026). */
+.mm-contact-copier{width:100%;min-height:44px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.8125rem/1 'DM Sans',sans-serif}
+.mm-contact-copier svg{width:16px;height:16px}

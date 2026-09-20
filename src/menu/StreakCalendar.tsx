@@ -94,7 +94,7 @@ export function StreakCalendar({ state, today, streak, freezes, countedToday, cl
         <span className="mm-streak-calendar-flame" aria-hidden="true"><Flame /></span>
         {/* Une phrase d'un seul tenant, puis les gels en dessous : mélanger deux
             typographies sur la même ligne se voyait comme un défaut d'alignement. */}
-        <strong>{streak} victoire{streak > 1 ? 's' : ''} de série</strong>
+        <strong>{streak} jour{streak > 1 ? 's' : ''} de série</strong>
         <small className="mm-streak-calendar-gels" aria-label={`${freezes} gel${freezes > 1 ? 's' : ''} sur ${MAX_STREAK_FREEZES} en poche`}>
           <Snowflake aria-hidden="true" /><span aria-hidden="true">{freezes}/{MAX_STREAK_FREEZES}</span>
         </small>
@@ -106,8 +106,8 @@ export function StreakCalendar({ state, today, streak, freezes, countedToday, cl
         </div>
         <p>{recompenseAujourdhui
           ? <><Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b> gagné aujourd’hui !</>
-          : <>Encore <b>{restantes} victoire{restantes > 1 ? 's' : ''}</b> pour <Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b></>}</p>
-        <small>Toutes les {STREAK_REWARD_EVERY_DAYS} victoires de série, sans limite.</small>
+          : <>Encore <b>{restantes} jour{restantes > 1 ? 's' : ''}</b> pour <Gift aria-hidden="true" /><b>{freeBasketsLabel(STREAK_REWARD_FREE_BASKETS)}</b></>}</p>
+        <small>Tous les {STREAK_REWARD_EVERY_DAYS} jours de série, sans limite.</small>
       </div>
 
       <nav className="mm-streak-week-nav" aria-label="Changer de semaine">
@@ -135,7 +135,7 @@ export function StreakCalendar({ state, today, streak, freezes, countedToday, cl
         })}
       </ol>
 
-      <p className="mm-streak-freeze-note"><Snowflake aria-hidden="true" /><span><b>Gel de série</b> : il protège une journée manquée. La série continue, sans compter de victoire. À l’Épicerie · {STREAK_FREEZE_PRICE} plumes · {MAX_STREAK_FREEZES} au plus.</span></p>
+      <p className="mm-streak-freeze-note"><Snowflake aria-hidden="true" /><span><b>Gel de série</b> : il protège une journée manquée. La série continue, sans compter de jour manqué. À l’Épicerie · {STREAK_FREEZE_PRICE} plumes · {MAX_STREAK_FREEZES} au plus.</span></p>
 
       <ul className="mm-streak-legend" aria-hidden="true">
         <li><Check />réussi</li>

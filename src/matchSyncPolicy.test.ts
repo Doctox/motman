@@ -24,7 +24,7 @@ describe('matchPollDelay', () => {
 
   it('reste plus réactif sans websocket et pendant la réflexion du bot', () => {
     expect(matchPollDelay({ match: match(), playerId: 'player', visibility: 'visible', realtimeConnected: false, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(2_000)
-    const botMatch = match({ bot: { playerId: 'opponent', displayName: 'Camille', level: 4, skill: 'regular', avatarId: 'plume', frameId: 'cadre-ivoire' } })
+    const botMatch = match({ bot: { playerId: 'opponent', displayName: 'Camille', level: 4, avatarId: 'plume', frameId: 'cadre-ivoire' } })
     expect(matchPollDelay({ match: botMatch, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(1_250)
   })
 

@@ -28,7 +28,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, Etat> {
     const nouvelleVersion = isChunkLoadError(this.state.erreur)
     return <main className="app-loading app-loading-error" role="alert">
       <strong>{nouvelleVersion ? 'Une nouvelle version de MotMan est en ligne' : 'MotMan a rencontré un problème'}</strong>
-      <span>{nouvelleVersion ? 'Recharge pour continuer là où tu en étais.' : 'Recharge la page. Si cela se reproduit, signale-le depuis les paramètres.'}</span>
+      <span>{nouvelleVersion ? 'Recharge pour continuer là où tu en étais.' : 'Recharge la page. Si cela se reproduit, écris-nous depuis Menu → Informations.'}</span>
       <button type="button" onClick={() => location.reload()}>Recharger</button>
     </main>
   }

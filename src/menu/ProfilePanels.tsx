@@ -61,7 +61,7 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
           <span className="mm-ranking-rank"><img src={rankImage(division)} alt="" /><b>{entry.points} <small>pt</small></b></span>
         </div>
       })}
-      {!entries.length ? <div className="mm-empty-ranking"><Trophy /><strong>{loading ? 'Chargement du classement…' : tab === 'general' ? progress.rankedMatches < 5 ? 'Placements en cours' : 'Aucun joueur classé' : 'Aucun ami classé'}</strong><span>{loading ? 'Les meilleurs joueurs arrivent.' : tab === 'general' ? progress.rankedMatches < 5 ? `Encore ${5 - progress.rankedMatches} partie${5 - progress.rankedMatches > 1 ? 's' : ''} de placement.` : 'Sois le premier à terminer tes cinq placements.' : 'Tes amis apparaîtront ici après leurs placements.'}</span></div> : null}
+      {!entries.length ? <div className="mm-empty-ranking"><Trophy /><strong>{loading ? 'Chargement du classement…' : tab === 'general' ? progress.rankedMatches < 5 ? 'Placements en cours' : 'Aucun joueur classé' : 'Aucun ami classé'}</strong><span>{loading ? 'Les meilleurs joueurs arrivent.' : tab === 'general' ? progress.rankedMatches < 5 ? `Encore ${5 - progress.rankedMatches} partie${5 - progress.rankedMatches > 1 ? 's' : ''} de placement.` : 'Tu es le premier classé — les autres arrivent.' : 'Tes amis apparaîtront ici après leurs placements.'}</span></div> : null}
     </section>
     </>}
   </div>

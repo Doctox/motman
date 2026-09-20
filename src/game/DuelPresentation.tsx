@@ -267,10 +267,13 @@ export function PendingResultPanel({
   result,
   playerId,
   acknowledge,
+  skip,
 }: {
   result: PendingMatchResult
   playerId: string
   acknowledge: (resultId: string) => Promise<void>
+  /** Sortie locale, proposée seulement si la validation a échoué (20/09/2026). */
+  skip?: () => void
 }) {
   const [acknowledging, setAcknowledging] = useState(false)
   const [acknowledgeError, setAcknowledgeError] = useState<string | null>(null)
@@ -324,6 +327,13 @@ export function PendingResultPanel({
   >
     <div className="end-game-actions pending-result-actions">
       <button type="button" className="end-game-home" disabled={acknowledging} onClick={() => void confirmHome()}><House />Retour à l’accueil</button>
+      {/* SORTIE LOCALE (20/09/2026). Cet écran prend toute l'appli et sa seule
+          issue appelait le serveur : si `acknowledge-result` échouait — session
+          expirée, 500, ligne déjà soldée —, le joueur relisait son résultat en
+          boucle, sans menu, sans réglages, sans « Nous écrire », et relancer
+          l'appli le ramenait au même endroit. Ce second bouton ferme l'écran
+          sans rien valider ; le résultat reviendra au prochain passage. */}
+      {acknowledgeError && skip ? <button type="button" className="end-game-secondary" onClick={skip}>Voir plus tard</button> : null}
     </div>
     {acknowledgeError ? <p className="result-feedback-error" role="alert">{acknowledgeError}</p> : null}
   </GameResultScreen>

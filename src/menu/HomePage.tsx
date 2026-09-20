@@ -139,7 +139,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
           <small>{presenceLabel(friend.activity)}</small>
         </button>)}
       </div> : <>
-        <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter ton premier ami</strong><small>Jouez bientôt ensemble sur MotMan.</small></div><ChevronRight /></button>
+        <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter ton premier ami</strong><small>Pour jouer ensemble sur MotMan.</small></div><ChevronRight /></button>
         {/* Un joueur sans aucun ami doit pouvoir DONNER son code, pas seulement
             en saisir un : jusqu'ici il fallait ouvrir les paramètres pour le
             trouver (suggestion S-04, rapport 6766). C'est le seul moment où ce

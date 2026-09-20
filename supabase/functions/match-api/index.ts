@@ -79,7 +79,7 @@ Deno.serve(async request => {
 
     if (action === 'ranked-state' || action === 'ranked-search') {
       if (action === 'ranked-search' && user.is_anonymous === true) {
-        return json(403, { error: 'Le mode classé nécessite un compte. Connecte-toi avec Google pour y accéder.', code: 'RANKED_REQUIRES_ACCOUNT' })
+        return json(403, { error: 'Le mode classé demande un compte. Crée-le avec ton e-mail ou avec Google, depuis Menu → Compte.', code: 'RANKED_REQUIRES_ACCOUNT' })
       }
       const current = await rankedSnapshot(admin, user.id)
       if (action === 'ranked-search' || current.status === 'searching') {
@@ -139,7 +139,18 @@ Deno.serve(async request => {
     }
 
     const lobby = async () => {
-      let rows = await activeRows(); rows = await Promise.all(rows.map(resolveRow))
+      // UNE PARTIE CASSÉE N'ÉTEINT PAS LE MENU (20/09/2026). C'était un
+      // `Promise.all` : la moindre partie qui refusait de se résoudre — grille
+      // disparue du catalogue, RPC de points classés en échec — faisait répondre
+      // 500 à `state`, donc plus de lobby, plus d'invitations, plus de file,
+      // jusqu'à la purge à 26 h. On écarte la partie fautive, on la journalise,
+      // et le reste du menu s'affiche.
+      const resolues = await Promise.allSettled((await activeRows()).map(resolveRow))
+      const rows = resolues.flatMap(issue => {
+        if (issue.status === 'fulfilled') return [issue.value]
+        logServerError('match-api:lobby-partie', issue.reason, { userId: user.id })
+        return []
+      })
       const [
         { data: incomingRows, error: incomingError },
         { data: outgoingRows, error: outgoingError },

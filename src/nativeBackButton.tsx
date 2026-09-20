@@ -39,7 +39,11 @@ export function decideBackAction(context: BackContext): BackAction {
 }
 
 const boutonRetourDuJeu = () => document.querySelector<HTMLButtonElement>(
-  '.multiplayer-shell:not(.is-finished) > header > button:first-child, .multiplayer-shell.is-finished .end-game-home',
+  // L'écran de chargement du duel (`.duel-loading`) compte comme la partie : il
+  // n'a ni barre du bas ni `.multiplayer-shell`, et le retour proposait donc de
+  // QUITTER MOTMAN à un joueur bloqué sur « Connexion à la partie… », alors
+  // qu'un bouton « Retour à l'accueil » l'attendait juste en dessous (20/09/2026).
+  '.multiplayer-shell:not(.is-finished) > header > button:first-child, .multiplayer-shell.is-finished .end-game-home, .duel-loading .duel-loading-home',
 )
 const boutonAccueil = () => [...document.querySelectorAll<HTMLButtonElement>('.mm-bottom-nav button')]
   .find(bouton => bouton.textContent?.trim().startsWith('Accueil')) ?? null
@@ -49,7 +53,7 @@ export function readBackContext(): BackContext {
   const pageActive = document.querySelector<HTMLButtonElement>('.mm-bottom-nav button[aria-current="page"]')
   return {
     dialogOpen: Boolean(document.querySelector('[aria-modal="true"]')),
-    inGame: Boolean(document.querySelector('.multiplayer-shell')),
+    inGame: Boolean(document.querySelector('.multiplayer-shell, .duel-loading')),
     gameBackAvailable: Boolean(retourJeu && !retourJeu.disabled),
     menuPage: document.querySelector('.mm-bottom-nav')
       ? pageActive && pageActive !== boutonAccueil() ? 'other' : 'home'

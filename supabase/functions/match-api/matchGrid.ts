@@ -41,12 +41,40 @@ export function dimensions(grid: CatalogGrid) {
  * insoluble découverte par le joueur.
  */
 export function wordCells(word: CatalogWord, gridId: string): readonly (readonly [number, number])[] {
+  if (word.cells.length !== word.answer.length) {
+    // Une case en trop ou en moins et la grille ne se termine jamais : la case
+    // orpheline n'entre dans aucune lettre attendue, ou `answer[offset]` vaut
+    // `undefined` et la case sort du compte (relevé le 20/09/2026).
+    throw new Error(`Mot mal formé dans ${gridId} (« ${word.answer} ») : ${word.cells.length} cases pour ${word.answer.length} lettres`)
+  }
   return word.cells.map(cell => {
     if (cell.length !== 2 || !Number.isInteger(cell[0]) || !Number.isInteger(cell[1])) {
       throw new Error(`Case invalide dans ${gridId} (mot « ${word.answer} ») : ${JSON.stringify(cell)}`)
     }
     return [cell[0], cell[1]] as const
   })
+}
+
+/**
+ * L'index de la case de DÉFINITION d'un mot, vérifié.
+ *
+ * `wordCells` validait les cases à remplir, jamais `clueCell` : une coordonnée
+ * à un seul élément ou hors grille donnait un index `NaN`, donc un accès à
+ * `undefined.entries` — un 500 sur `match`, `state` ET `history-grid`, et la
+ * partie définitivement bloquée pour les deux joueurs. Une définition posée sur
+ * une case à remplir ne plantait pas mais disparaissait de l'écran, rendant le
+ * mot injouable : elle est refusée ici aussi (20/09/2026).
+ */
+export function clueCellIndex(word: CatalogWord, gridId: string, columns: number, rows: number): number {
+  const cell = word.clueCell
+  if (!Array.isArray(cell) || cell.length !== 2 || !Number.isInteger(cell[0]) || !Number.isInteger(cell[1])) {
+    throw new Error(`Case de définition invalide dans ${gridId} (mot « ${word.answer} ») : ${JSON.stringify(cell)}`)
+  }
+  const [row, col] = cell
+  if (row < 0 || col < 0 || row >= rows || col >= columns) {
+    throw new Error(`Case de définition hors grille dans ${gridId} (mot « ${word.answer} ») : ${JSON.stringify(cell)}`)
+  }
+  return row * columns + col
 }
 
 export function ruleGrid(grid: CatalogGrid): GameRuleGrid {
@@ -75,20 +103,26 @@ export function publicGrid(grid: CatalogGrid) {
   }
   const words = grid.words.map((word, index) => {
     const id = word.wordId ?? `${grid.id}:word:${index}`
-    const clueIndex = word.clueCell[0] * columns + word.clueCell[1]
+    const clueIndex = clueCellIndex(word, grid.id, columns, rows)
     const clue = cells[clueIndex]
+    if (clue.kind !== 'clue') {
+      throw new Error(`Case de définition occupée dans ${grid.id} (mot « ${word.answer} ») : ${JSON.stringify(word.clueCell)}`)
+    }
     const entries = Array.isArray(clue.entries) ? clue.entries as unknown[] : []
     // Le dessin et une description sans la réponse, rien d'autre (src/publicClue.ts).
     const image = publicClueImage(word.image, word.answer)
     const text = publicClueText(word)
     entries.push({ text, image, direction: word.direction, arrow: word.arrow ?? (word.direction === 'across' ? 'right' : 'down'), wordId: id })
     clue.entries = entries
-    for (const [row, col] of word.cells) {
+    // `wordCells` vérifie les coordonnées ET qu'il y a autant de cases que de
+    // lettres : la grille publique se construisait, elle, sur `word.cells` brut.
+    const cases = wordCells(word, grid.id)
+    for (const [row, col] of cases) {
       const cell = cells[row * columns + col]
       const wordIds = Array.isArray(cell.wordIds) ? cell.wordIds as string[] : []
       wordIds.push(id); cell.wordIds = wordIds
     }
-    const [row, col] = word.cells[0]
+    const [row, col] = cases[0]
     return { id, answer: '•'.repeat(word.answer.length), clue: text, image, difficulty: 1, theme: 'catalogue', row, col, direction: word.direction, length: word.answer.length }
   })
   return { id: grid.id, columns, rows, difficulty: 'normal', cells, words, seed: hash(grid.id), version: 'supabase-v1', validation: { valid: true, errors: [], score: 100 } }

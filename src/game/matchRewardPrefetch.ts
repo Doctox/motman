@@ -32,7 +32,14 @@ export function prechargerRecompense(matchId: string): Promise<AuthResponse> {
 /** La récompense de cette partie, telle que le compte la rapporte (ou null). */
 export async function recompenseDuMatch(matchId: string): Promise<ExperienceAward | null> {
   const compte = await prechargerRecompense(matchId)
-  return compte.progress?.experienceAwards.find(candidate => candidate.id === `server:match:${matchId}`) ?? null
+  const recompense = compte.progress?.experienceAwards.find(candidate => candidate.id === `server:match:${matchId}`) ?? null
+  // Une réponse SANS récompense n'est pas un résultat définitif : le serveur ne
+  // l'avait peut-être pas encore écrite. La garder en cache condamnait le cadre
+  // XP/plumes de cette partie pour toute la session, y compris si l'écran de fin
+  // était rouvert (relevé le 20/09/2026). On oublie, la prochaine lecture
+  // redemandera.
+  if (!recompense) demandes.delete(matchId)
+  return recompense
 }
 
 /** Pour les bancs d'essai : repartir d'un cache vide. */

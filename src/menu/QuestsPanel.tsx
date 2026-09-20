@@ -190,7 +190,8 @@ function QuestRow({ quest, reward, eyebrow, decoupee = false, gagnee, enCours, r
   recuperer: () => void
 }) {
   const prise = Boolean(gagnee) || quest.claimed
-  const pourcentage = Math.round(100 * Math.min(1, quest.progress / quest.target))
+  // `target` vient du serveur : à 0, la division donnait « NaN% » dans le style.
+  const pourcentage = quest.target > 0 ? Math.round(100 * Math.min(1, quest.progress / quest.target)) : 0
 
   return <li className={`mm-quest ${prise ? 'is-claimed' : quest.done ? 'is-done' : ''} ${gagnee ? 'is-won' : ''}`}>
     <span className="mm-quest-icon" aria-hidden="true">{prise ? <Check /> : ICONES[quest.counter]}</span>
@@ -209,7 +210,9 @@ function QuestRow({ quest, reward, eyebrow, decoupee = false, gagnee, enCours, r
       aria-label={`${quest.title} : ${quest.progress} sur ${quest.target}`}
       style={decoupee ? { '--mm-quest-cases': quest.target } as CSSProperties : undefined}>
       {decoupee
-        ? Array.from({ length: quest.target }, (_, index) => <i key={index} className={index < quest.progress ? 'is-faite' : ''} />)
+        // Borne dure : `target` vient du serveur, et un nombre aberrant
+        // construirait ici un tableau de plusieurs milliers d'éléments.
+        ? Array.from({ length: Math.min(20, Math.max(0, quest.target)) }, (_, index) => <i key={index} className={index < quest.progress ? 'is-faite' : ''} />)
         : <i style={{ width: `${pourcentage}%` }} />}
     </div>}
 

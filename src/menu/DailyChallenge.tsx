@@ -60,7 +60,7 @@ export function useDailyChallenge() {
 }
 
 function streakLabel(streak: number): string {
-  return streak > 1 ? `Série de ${streak} victoires` : streak === 1 ? 'Série de 1 victoire' : 'Commence ta série'
+  return streak > 1 ? `Série de ${streak} jours` : streak === 1 ? 'Série de 1 jour' : 'Commence ta série'
 }
 
 /**
@@ -271,10 +271,10 @@ export function DailyStreakReward({ effects }: { effects: DailyAdvanceEffects })
   // Même règle que le serveur, qui verse réellement le panier offert.
   const tranches = streakRewardsEarned(effects.previousStreak, effects.streak)
   return (
-    <section className="mm-daily-reward" aria-label={`Série du défi du jour : ${effects.streak} victoire${effects.streak > 1 ? 's' : ''}`}>
+    <section className="mm-daily-reward" aria-label={`Série du défi du jour : ${effects.streak} jour${effects.streak > 1 ? 's' : ''}`}>
       <div className="mm-daily-reward-heading">
         <span><Flame aria-hidden="true" />Série</span>
-        <strong>{effects.streak} victoire{effects.streak > 1 ? 's' : ''}</strong>
+        <strong>{effects.streak} jour{effects.streak > 1 ? 's' : ''}</strong>
       </div>
       {effects.usedFreeze ? <p className="mm-daily-reward-note"><Snowflake aria-hidden="true" />{effects.frozenDays.length > 1 ? `${effects.frozenDays.length} gels utilisés` : 'Gel de série utilisé'} — série protégée</p> : null}
       {tranches > 0 ? <p className="mm-daily-reward-milestone"><Gift aria-hidden="true" />{effects.streak} victoires de série · {freeBasketsLabel(tranches * STREAK_REWARD_FREE_BASKETS)} à l’Épicerie</p> : null}

@@ -84,8 +84,12 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
     try { await authenticateWithGoogle(googleMode) }
     catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Connexion Google indisponible.')
-      setBusy(false)
     }
+    // Sur Android, Google s'ouvre dans un navigateur intégré et l'appli reste
+    // vivante : sans ce `finally`, revenir en arrière sans se connecter laissait
+    // tout le panneau grisé, sans un mot, jusqu'à le fermer et le rouvrir
+    // (relevé le 20/09/2026). Une page web, elle, quitte l'appli de toute façon.
+    finally { setBusy(false) }
   }
 
   return <div className="mm-modal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
@@ -125,7 +129,7 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
         </div>
         <label htmlFor="account-email">E-mail</label>
         <input id="account-email" type="email" required value={email} autoComplete="email" onChange={event => setEmail(event.target.value)} />
-        {mode === 'create' ? <p>Ton profil invité sera conservé. Un lien protégera le compte avant de choisir son mot de passe.</p> : null}
+        {mode === 'create' ? <p>Ton profil invité sera conservé. Tu recevras un lien pour confirmer ton adresse, puis tu choisiras ton mot de passe.</p> : null}
         {mode === 'login' ? <><label htmlFor="account-login-password">Mot de passe</label><input id="account-login-password" type="password" required minLength={10} maxLength={128} value={password} autoComplete="current-password" onChange={event => setPassword(event.target.value)} /></> : null}
         {mode === 'recover' ? <p>Nous enverrons un lien sécurisé pour choisir un nouveau mot de passe.</p> : null}
         {error ? <p className="mm-account-error" role="alert">{error}</p> : null}

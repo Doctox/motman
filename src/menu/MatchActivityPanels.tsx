@@ -12,7 +12,10 @@ export function MatchInvitationPanel({ invitation, busy, accept, decline }: {
 }) {
   const hostName = invitation.host?.displayName ?? 'Un ami'
   const isAsync = invitation.pace === 'async'
-  const dialogRef = useDialogFocus<HTMLElement>()
+  // Échap et le retour Android refusent l'invitation : sans `onClose`, la
+  // fenêtre était la seule du jeu dont on ne pouvait pas sortir au clavier ni
+  // au bouton retour, et une réponse en échec la laissait plantée là (20/09/2026).
+  const dialogRef = useDialogFocus<HTMLElement>(decline)
   return <div className="mm-modal-layer mm-match-invite-layer" role="presentation">
     <section ref={dialogRef} className="mm-match-invite" role="dialog" aria-modal="true" aria-label="Invitation à jouer" tabIndex={-1}>
       <span className="mm-match-emblem"><Swords /></span>

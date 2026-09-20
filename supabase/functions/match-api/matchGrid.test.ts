@@ -97,3 +97,46 @@ Deno.test('les règles ne comptent que les vraies lettres', () => {
     verifie(regles.cells[index(case_)].kind !== 'letter', `case noire ${case_} comptée comme lettre`)
   }
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNE GRILLE MAL FORMÉE EST REFUSÉE, PAS SERVIE À MOITIÉ (20/09/2026).
+// `wordCells` validait les cases à remplir ; `clueCell`, elle, ne l'était pas.
+// Une coordonnée hors grille donnait un accès à `undefined` : 500 sur `match`,
+// `state` et `history-grid`, donc partie bloquée pour les deux joueurs.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function refuse(grille: CatalogGrid, pourquoi: string): void {
+  try {
+    publicGrid(grille)
+  } catch {
+    return
+  }
+  throw new Error(`grille servie alors qu'elle est cassée : ${pourquoi}`)
+}
+
+const avecMotModifie = (patch: Partial<CatalogGrid['words'][number]>): CatalogGrid => ({
+  ...GRILLE,
+  words: [{ ...GRILLE.words[0], ...patch }, ...GRILLE.words.slice(1)],
+})
+
+Deno.test('une case de définition mal formée fait refuser la grille', () => {
+  refuse(avecMotModifie({ clueCell: [0] as unknown as number[] }), 'coordonnée à un seul nombre')
+  refuse(avecMotModifie({ clueCell: [99, 0] }), 'ligne hors grille')
+  refuse(avecMotModifie({ clueCell: [0, COLONNES] }), 'colonne hors grille')
+  refuse(avecMotModifie({ clueCell: [1.5, 0] as unknown as number[] }), 'coordonnée non entière')
+  // Définition posée sur une case à remplir : elle disparaîtrait de l'écran et
+  // le mot deviendrait injouable.
+  refuse(avecMotModifie({ clueCell: [2, 3] }), 'définition sur une case à remplir')
+})
+
+Deno.test('un mot dont les cases ne collent pas à la réponse fait refuser la grille', () => {
+  const mot = GRILLE.words[0]
+  refuse(avecMotModifie({ cells: mot.cells.slice(1) }), 'une case de moins que de lettres')
+  refuse(avecMotModifie({ answer: `${mot.answer}Z` }), 'une lettre de plus que de cases')
+})
+
+Deno.test('la grille saine, elle, passe toujours', () => {
+  const grille = publicGrid(GRILLE)
+  verifie(grille.words.length === GRILLE.words.length, 'tous les mots sont servis')
+  verifie(ruleGrid(GRILLE).words.length === GRILLE.words.length, 'les règles aussi')
+})

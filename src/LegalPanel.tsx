@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { BookOpen, FileText, Info, MessageSquareText, Paperclip, Scale, Send, ShieldCheck, X } from 'lucide-react'
+import { BookOpen, Copy, FileText, Info, MessageSquareText, Paperclip, Scale, Send, ShieldCheck, X } from 'lucide-react'
 import { useDialogFocus } from './useDialogFocus'
 import { assetUrl } from './assetUrl'
 import { appVersion, appVersionDisplay } from './appVersion'
-import { CONTACT_EMAIL, CONTACT_SUJETS, contactMailto, decrireAppareil, joindreTechnique, type ContactSujet, type ContactTechnique } from './contactMail'
+import { CONTACT_EMAIL, CONTACT_SUJETS, contactCorps, contactMailto, decrireAppareil, joindreTechnique, type ContactSujet, type ContactTechnique } from './contactMail'
 import { isNativeRuntime } from './nativeRuntime'
 import type { GuestIdentity } from './playerIdentity'
 
@@ -26,11 +26,12 @@ export function LegalPanel({ close, identity }: { close: () => void; identity?: 
         {tab === 'contact' ? <ContactForm identity={identity} /> : null}
         {tab === 'privacy' ? <article>
           <h3>Politique de confidentialité</h3><p className="mm-legal-version">Version du 20 septembre 2026</p>
-          <h4>Données utilisées</h4><p>MotMan traite les informations nécessaires au compte et au jeu : adresse e-mail lorsque vous créez un compte, pseudo, apparence du profil, progression, collection, parties, scores, amis, avis de grille, éventuels signalements et jeton technique de notification si vous les autorisez. En cas de plantage, un rapport technique est aussi transmis : modèle de l’appareil, version du système, identifiant technique et trace de l’erreur. Il ne contient ni le contenu de vos parties, ni vos messages.</p>
+          <h4>Données utilisées</h4><p>MotMan traite les informations nécessaires au compte et au jeu : adresse e-mail lorsque vous protégez un compte, pseudo, apparence du profil, progression, collection, parties, scores, amis, éventuels signalements et jeton technique de notification si vous les autorisez. En cas de plantage, un rapport technique est aussi transmis : modèle de l’appareil, version du système, identifiant technique et trace de l’erreur. Il ne contient ni le contenu de vos parties, ni vos messages.</p>
           <h4>Pourquoi</h4><p>Ces données servent à authentifier les joueurs, synchroniser leur progression, organiser les parties, prévenir les abus, répondre aux signalements, diagnostiquer les pannes et améliorer la qualité des grilles.</p>
           <h4>Stockage et partage</h4><p>Les données en ligne sont hébergées par Supabase, dans un centre de données situé en France. Cloudflare Turnstile protège la création des comptes invités contre les robots et les abus. Firebase Cloud Messaging, service de Google, achemine les notifications de tours et d’invitations vers les appareils qui les autorisent. Firebase Crashlytics, également de Google, reçoit les rapports de plantage. La connexion facultative par compte Google s’appuie sur Google Sign-In. L’appareil conserve aussi un cache local pour les préférences et la continuité de jeu. MotMan ne vend pas les données, n’affiche aucune publicité et ne transmet pas les profils à des annonceurs.</p>
           <h4>Durée et droits</h4><p>Les informations sont conservées pendant la durée nécessaire au fonctionnement du compte, à la sécurité et aux obligations applicables. Les comptes invités non liés et inactifs depuis 30 jours sont supprimés automatiquement. Vous pouvez supprimer immédiatement votre compte depuis le Menu (roue crantée, en haut à droite) → « Compte connecté » (ou « Créer ou retrouver un compte » pour un profil invité) → « Supprimer mon compte », ou demander sa suppression hors de l’application.</p>
           <a className="mm-legal-document" href={assetUrl('/legal/suppression-compte.html')} target="_blank" rel="noreferrer"><FileText />Supprimer un compte MotMan</a>
+          <h4>Nous écrire</h4><p>« Nous écrire » ouvre votre application de messagerie avec un message prérempli : rien n’est envoyé ni stocké par MotMan. Le message qui part contient ce que vous écrivez, votre pseudo, votre code ami, la version de l’application et le modèle de votre appareil, pour aider au diagnostic. Ces e-mails sont conservés le temps de traiter la demande.</p>
           <h4>Responsable</h4><p>Le responsable du traitement est Jean-Marie PEETERS, éditeur indépendant de MotMan. Contact : <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
           <h4>Jeunes joueurs</h4><p>MotMan s’adresse aux joueurs de 16 ans et plus et n’est pas destiné aux enfants. Aucun contenu ni service n’y est proposé à destination des mineurs de moins de 16 ans.</p>
         </article> : null}
@@ -47,7 +48,7 @@ export function LegalPanel({ close, identity }: { close: () => void; identity?: 
           <h3>Crédits et licences</h3>
           <h4>Création</h4><p>Concept, direction artistique, sélection éditoriale et développement : Jean-Marie PEETERS, projet indépendant MotMan.</p>
           <h4>Typographies</h4><p>DM Sans et Playfair Display sont auto-hébergées et distribuées sous licence SIL Open Font License 1.1. Les textes complets des licences sont inclus avec l’application.</p>
-          <h4>Illustrations d’indices</h4><p>Une partie des pictogrammes provient de Twemoji, sous licence CC BY 4.0. Les crédits détaillés restent associés aux indices concernés dans le catalogue éditorial.</p>
+          <h4>Illustrations d’indices</h4><p>Les pictogrammes proviennent de Twemoji (CC BY 4.0), Game Icons (CC BY 3.0) et Streamline (CC BY 4.0). Les crédits détaillés restent associés aux indices concernés dans le catalogue éditorial.</p>
           <h4>Ressources lexicales</h4><p>Le travail éditorial s’appuie notamment sur Lexique, des ressources lexicales ouvertes et des références de mots fléchés citées dans le corpus de recherche. Les définitions publiées sont relues ou réécrites pour MotMan.</p>
           <h4>Logiciels libres</h4><p>MotMan utilise notamment React, Vite, Lucide, Supabase, Capacitor et Capgo Capacitor Updater (licence MPL 2.0, source sur github.com/Cap-go/capacitor-updater) selon leurs licences respectives. Les fichiers de licence des polices et les attributions des images sont conservés dans le paquet de l’application.</p>
           <a className="mm-legal-document" href={assetUrl('/legal/credits.html')} target="_blank" rel="noreferrer"><FileText />Ouvrir la version détaillée</a>
@@ -67,6 +68,7 @@ function ContactForm({ identity }: { identity?: GuestIdentity }) {
   const [sujet, setSujet] = useState<ContactSujet>('bug')
   const [message, setMessage] = useState('')
   const choisi = CONTACT_SUJETS.find(entree => entree.id === sujet) ?? CONTACT_SUJETS[0]
+  const [copie, setCopie] = useState(false)
   const pret = message.trim().length >= 3
   const technique: ContactTechnique = {
     version: `${appVersionDisplay.updateLabel} · code ${appVersion.buildSha}`,
@@ -90,10 +92,21 @@ function ContactForm({ identity }: { identity?: GuestIdentity }) {
     </label>
     {joindreTechnique(sujet) ? <p className="mm-contact-note"><Info aria-hidden="true" />La version du jeu et le modèle de ton appareil sont ajoutés au message, pour retrouver le bug plus vite.</p> : null}
     {/* Un `mailto:` ne porte aucun fichier : c'est la messagerie qui s'en charge. */}
-    <p className="mm-contact-note"><Paperclip aria-hidden="true" />Une capture d’écran ou un PDF ? Ajoute-la en pièce jointe dans l’e-mail qui s’ouvre.</p>
+    <p className="mm-contact-note"><Paperclip aria-hidden="true" />Une capture d’écran ou un PDF ? Joins-le à l’e-mail qui s’ouvre.</p>
     {pret
       ? <a className="mm-contact-envoyer" href={contactMailto(sujet, message, technique)}><Send aria-hidden="true" />Préparer l’e-mail</a>
       : <button className="mm-contact-envoyer" type="button" disabled><Send aria-hidden="true" />Préparer l’e-mail</button>}
-    <p className="mm-contact-direct">Ou écris directement à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
+    {!pret ? <p className="mm-contact-direct">Écris quelques mots pour activer le bouton.</p> : null}
+    {/* REPLI SANS MESSAGERIE (20/09/2026). Un appareil sans application de
+        courrier configurée — le cas des tablettes de résidence — ne fait
+        strictement rien au toucher du bouton, et Capacitor avale l'erreur sans
+        un mot. Copier le message laisse au joueur de quoi nous écrire autrement. */}
+    {pret ? <button type="button" className="mm-contact-copier" onClick={() => {
+      const texte = `${CONTACT_EMAIL}
+
+${contactCorps(sujet, message, technique)}`
+      void navigator.clipboard?.writeText(texte).then(() => setCopie(true)).catch(() => setCopie(false))
+    }}><Copy aria-hidden="true" />{copie ? 'Message copié' : 'Copier le message'}</button> : null}
+    <p className="mm-contact-direct">Pas d’application de messagerie ? Écris à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> depuis n’importe où.</p>
   </article>
 }

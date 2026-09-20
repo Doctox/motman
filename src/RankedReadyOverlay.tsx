@@ -82,7 +82,18 @@ function RankedReadyDialog({
       </p> : null}
       {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde. */}
       <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`}><Clock3 /><b>{seconds}</b><span>secondes</span></div>
-      {state.status === 'accepted' ? <div className="ranked-ready-waiting"><Check />Accepté · En attente de l’autre joueur</div> : <div className="ranked-ready-actions">
+      {state.status === 'accepted' ? <>
+        <div className="ranked-ready-waiting"><Check />Accepté · En attente de l’autre joueur</div>
+        {/* SORTIE APRÈS LE DÉCOMPTE (20/09/2026). Une fois accepté, les deux
+            boutons disparaissaient : si le serveur ne faisait jamais repasser
+            l'état (réseau coupé, sondage qui avale ses erreurs), la fenêtre
+            restait plein écran pour toujours et il ne restait qu'à tuer
+            l'appli. Passé le décompte, la partie ne démarrera plus : on rend
+            la main. `decline` retire aussi le joueur de la file côté serveur. */}
+        {seconds === 0 ? <div className="ranked-ready-actions">
+          <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Fermer</button>
+        </div> : null}
+      </> : <div className="ranked-ready-actions">
         <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Quitter</button>
         <button type="button" className="ranked-ready-accept" disabled={busy || seconds === 0} onClick={accept}><Check />Rejoindre</button>
       </div>}
@@ -105,7 +116,9 @@ export function RankedMatchPausedOverlay({
     return () => window.clearInterval(interval)
   }, [expiresAt])
   const seconds = secondsUntil(expiresAt, now)
-  return <div className="ranked-match-paused" role="status" aria-live="polite">
+  // Pas d'aria-live : le décompte change chaque seconde et le lecteur d'écran
+  // répétait « 29 », « 28 »… par-dessus la consigne (20/09/2026).
+  return <div className="ranked-match-paused" role="status">
     <section>
       <Clock3 />
       <h2>Partie en pause</h2>

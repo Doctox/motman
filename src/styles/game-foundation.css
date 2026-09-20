@@ -262,7 +262,10 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 .board .clue{font-family:'DM Sans',sans-serif!important;font-size:0.6875rem!important}
 .board .clue .clue-entry{font-family:'DM Sans',sans-serif!important}
 [data-theme="dark"] .board .clue,[data-theme="dark"] .board .clue .clue-entry{font-family:'DM Sans',sans-serif!important}
-.rack-bonus-info{display:inline-grid;place-items:center;width:17px;height:17px;margin-left:7px;border-radius:50%;background:#f2ead7;border:1px solid #e0d3ad;color:#8a6a1e;font:800 0.6875rem/1 'DM Sans',sans-serif;cursor:help;vertical-align:middle}
+.rack-bonus-info{display:inline-grid;place-items:center;width:17px;height:17px;margin-left:7px;padding:0;cursor:pointer;border-radius:50%;background:#f2ead7;border:1px solid #e0d3ad;color:#8a6a1e;font:800 0.6875rem/1 'DM Sans',sans-serif;cursor:help;vertical-align:middle}
+/* Zone tactile : la pastille fait 17 px, le doigt en demande 32 (20/09/2026). */
+.rack-bonus-info::after{content:"";position:absolute;width:32px;height:32px;margin:auto}
+.rack-bonus-info{position:relative}
 [data-theme="dark"] .rack-bonus-info{background:#2c3a33;border-color:#4a5c53;color:#d9b563}
 
 
@@ -318,7 +321,11 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 
 /* « Tu es toujours là ? » (game/StillThereDialog.tsx) — la fenêtre de pause,
    en plus pressant : l'icône et les points prennent la terre cuite. */
-.still-there-layer{z-index:1200}
+/* Au-dessus de la définition agrandie (`.clue-zoom-backdrop`, 2000) : une carte
+   restée ouverte cachait la fenêtre et son décompte, et le joueur perdait la
+   partie sans jamais voir « Je suis là » (relevé le 20/09/2026). L'écran ferme
+   aussi la loupe à l'ouverture d'une fenêtre ; ceci est la ceinture. */
+.still-there-layer{z-index:2100}
 .still-there>svg{color:var(--mm-coral,#c94d29)}
 .still-there h2{margin-top:8px}
 .still-there p{margin:0 0 6px}

@@ -8,7 +8,10 @@ import { lireThemeChoisi, type Theme } from './menu/types'
 
 function useGameTheme(theme: Theme) {
   useEffect(() => {
-    localStorage.setItem('motman-theme', theme)
+    // Stockage refusé (mode privé, données de site bloquées, quota) : le thème
+    // s'applique quand même. Sans ce garde-fou, l'exception remontait de l'effet
+    // jusqu'à l'AppErrorBoundary et emportait tout l'écran (20/09/2026).
+    try { localStorage.setItem('motman-theme', theme) } catch { /* voir ci-dessus */ }
     document.documentElement.dataset.theme = theme
   }, [theme])
 }

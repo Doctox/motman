@@ -5,7 +5,9 @@ import { messageAuth } from './authErrors'
 describe('les erreurs de connexion, en français', () => {
   it('traduit d’après le code, pas d’après le texte anglais', () => {
     expect(messageAuth({ code: 'weak_password', message: 'Password should be at least 6 characters' }, 'x'))
-      .toBe('Le mot de passe doit contenir au moins 6 caractères.')
+      // 10, comme le formulaire du panneau Compte : Supabase accepte 6, MotMan
+      // en exige 10, et le joueur lisait deux règles contradictoires.
+      .toBe('Le mot de passe doit contenir au moins 10 caractères.')
     expect(messageAuth({ code: 'over_email_send_rate_limit', status: 429 }, 'x')).toMatch(/Trop d’e-mails/)
   })
 

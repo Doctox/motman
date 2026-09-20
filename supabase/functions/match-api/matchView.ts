@@ -66,7 +66,13 @@ export async function view(
     : { data: null }
   return {
     id: row.id, invitationId: state.invitationId, mode: row.mode, pace: row.pace, gridId: row.grid_id,
-    difficulty: state.difficulty, playerIds: state.playerIds, bot: state.bot, players: players.filter(Boolean),
+    // Le bot est annoncé, sa FORCE ne l'est pas : `skill` sortait dans la réponse
+    // réseau et disait à qui la lisait le niveau exact de l'adversaire — y compris
+    // du bot qui remplace un humain après 15 s (20/09/2026). Le client n'a besoin
+    // que du nom, du niveau affiché et de l'identifiant (pour masquer « Signaler »).
+    difficulty: state.difficulty, playerIds: state.playerIds,
+    bot: state.bot ? { playerId: state.bot.playerId, displayName: state.bot.displayName, level: state.bot.level, avatarId: state.bot.avatarId, frameId: state.bot.frameId } : null,
+    players: players.filter(Boolean),
     currentPlayerId: row.current_player_id, turnNumber: row.turn_number, turnStartedAt: row.turn_started_at, turnEndsAt: row.turn_ends_at,
     board: state.board, racks: { [viewerId]: state.racks[viewerId] ?? [] }, scores: state.scores,
     productiveTurns: state.productiveTurns, inactivity: state.inactivity, presenceAck: state.presenceAck ?? {},

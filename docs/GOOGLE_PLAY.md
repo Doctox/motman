@@ -100,7 +100,8 @@ Installer l'AAB archivé depuis la piste de test interne, puis sur un téléphon
 3. partie normale, classée, entre amis sur deux téléphones, défi du jour ;
 4. notifications de tour et d'invitation ;
 5. coupure réseau puis reconnexion ;
-6. suppression du compte depuis Paramètres → Compte, avec un compte de test.
+6. suppression du compte depuis Menu (roue crantée) → « Compte connecté » →
+   Supprimer mon compte, avec un compte de test.
 
 ## Publier, puis basculer le serveur
 
@@ -174,8 +175,9 @@ formulaire :
 
 - **Informations de compte** : identifiant du compte, pseudo, adresse e-mail
   (seulement pour un compte protégé par e-mail ou Google — facultatif).
-- **Activité dans l'application** : progression, scores, parties, collection,
-  avis de grille.
+- **Activité dans l'application** : progression, scores, parties, collection.
+  (L'avis de grille de fin de partie a été retiré le 19/09/2026 : plus rien ne
+  l'envoie, et les textes légaux ne le mentionnent plus.)
 - **Relations sociales** : amis, invitations, blocages, et signalements (dont le
   texte rédigé par le joueur).
 - **Identifiants de l'appareil** : jeton de notification FCM, seulement si le
@@ -198,8 +200,8 @@ Ce qui n'est **pas** collecté :
 Autres réponses :
 
 - chiffrement en transit : oui (HTTPS seulement, trafic en clair interdit) ;
-- suppression des données : oui, dans l'application (Paramètres → Compte →
-  Supprimer mon compte) et sur la page publique ci-dessous ; les comptes invités
+- suppression des données : oui, dans l'application (Menu → « Compte connecté »
+  ou « Créer ou retrouver un compte » → Supprimer mon compte) et sur la page publique ci-dessous ; les comptes invités
   inactifs depuis 30 jours sont supprimés automatiquement ;
 - partage avec des tiers : non. Supabase (hébergement en France), Cloudflare
   Turnstile (protection contre les robots), Firebase Cloud Messaging et

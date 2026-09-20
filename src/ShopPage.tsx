@@ -237,7 +237,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       </div>
       <b><Feather />{cosmetics.plumes.toLocaleString('fr-FR')}</b>
     </section>
-    <div className="mm-shop-tabs" role="tablist" aria-label="Rayons de L’Épicerie">
+    <div className="mm-shop-tabs" role="tablist" aria-label="Rayons de l’Épicerie">
       <button type="button" role="tab" aria-selected={tab === 'baskets'} className={tab === 'baskets' ? 'active' : ''} onClick={() => setTab('baskets')}><ShoppingBasket />Paniers</button>
       <button type="button" role="tab" aria-selected={tab === 'avatars'} className={tab === 'avatars' ? 'active' : ''} onClick={() => setTab('avatars')}><User />Avatars</button>
       <button type="button" role="tab" aria-selected={tab === 'frames'} className={tab === 'frames' ? 'active' : ''} onClick={() => setTab('frames')}><Palette />Cadres</button>
@@ -292,7 +292,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
           <div className="mm-object-copy">
             <small>Objet · défi du jour</small>
             <strong>Gel de série</strong>
-            <p>Il protège une journée de défi manquée : ta série continue, sans compter de victoire. Il s’utilise tout seul au prochain défi du jour que tu ouvres.</p>
+            <p>Il protège une journée de défi manquée : ta série continue, sans compter de jour manqué. Il s’utilise tout seul au prochain défi du jour que tu ouvres.</p>
             <span className="mm-object-stock" aria-label={`${enPoche} gel${enPoche > 1 ? 's' : ''} en poche sur ${MAX_STREAK_FREEZES}`}>
               {Array.from({ length: MAX_STREAK_FREEZES }, (_, index) => <i key={index} className={index < enPoche ? 'is-owned' : ''}><Snowflake /></i>)}
               <em>En poche : {enPoche}/{MAX_STREAK_FREEZES}</em>

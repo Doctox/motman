@@ -94,5 +94,23 @@
     "titre": "Finitions avant la sortie",
     "texte": "Le niveau de chaque adversaire s’affiche en partie, le code ami montré est toujours le bon, et les messages d’erreur parlent français. « Tu es toujours là ? » passe devant tout.",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-09-20T10:59",
+    "titre": "Le défi du jour, une seule fois",
+    "texte": "La grille du jour ne se joue qu'une fois : gagnée, perdue ou abandonnée, ta partie compte pour le classement du jour et pour ta série. L'appli te prévient avant de commencer.",
+    "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-09-20T10:59",
+    "titre": "Trente secondes pour lire la grille",
+    "texte": "Avant le premier tour, personne ne joue : tu as trente secondes pour lire toutes les définitions. Le chrono ne démarre qu'après.",
+    "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-09-20T10:59",
+    "titre": "L'appli te tutoie",
+    "texte": "Tous les textes du jeu passent au « tu ». Seules les pages légales gardent le vouvoiement.",
+    "genre": "affichage"
   }
 ]

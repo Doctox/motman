@@ -86,7 +86,8 @@ export function hoursLeft(turnEndsAt: string, now: number): number {
   return Math.max(1, Math.ceil((new Date(turnEndsAt).getTime() - now) / HEURE_MS))
 }
 
-const duree = (heures: number) => heures === 1 ? 'une heure' : `${heures} h`
+// « Plus qu'une heure », jamais « Plus que une heure » (relevé le 20/09/2026).
+const duree = (heures: number) => heures === 1 ? '1 h' : `${heures} h`
 
 export function reminderMessage(items: readonly ReminderItem[], names: ReadonlyMap<string, string>, now: number): PushMessage {
   const parUrgence = [...items].sort((a, b) => new Date(a.turnEndsAt).getTime() - new Date(b.turnEndsAt).getTime())

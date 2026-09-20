@@ -31,7 +31,8 @@ export type PendingMatchResult = MatchHistoryEntry & {
   finishReason: 'completed' | 'timeout' | 'forfeit' | 'ranked_transfer'
   feedbackSent: boolean
 }
-export type MatchBot = { playerId: string; displayName: string; level: number; skill: 'beginner' | 'regular' | 'expert'; avatarId: string; frameId: string }
+/** Ce que le serveur dit du bot. Sa force (`skill`) ne sort pas : voir matchView.ts. */
+export type MatchBot = { playerId: string; displayName: string; level: number; avatarId: string; frameId: string }
 
 export type MatchInvitation = {
   id: string
