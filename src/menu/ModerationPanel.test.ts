@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { attenteEnClair } from './ModerationPanel'
+import { attenteEnClair, confirmation } from './ModerationPanel'
 
 // Ce que le propriétaire veut lire d'un coup d'œil, c'est « depuis quand ça
 // traîne » — son propre signalement avait attendu quatorze heures sans que
@@ -26,5 +26,22 @@ describe('depuis quand un signalement attend', () => {
     // Une horloge de téléphone en avance ne doit pas produire « il y a -2 h ».
     expect(attenteEnClair('2026-09-21T15:00:00Z', maintenant)).toBe('à l’instant')
     expect(attenteEnClair('pas une date', maintenant)).toBe('à l’instant')
+  })
+})
+
+// « J'ai appuyé sur Avertir, il se passe rien » (propriétaire, 21/09/2026).
+// La décision était passée : c'est l'écran qui ne disait rien. Une action sans
+// retour laisse croire à une panne — et fait recommencer.
+describe('ce qu’on répond après une décision', () => {
+  it('dit qu’un avertissement attend le joueur, et où', () => {
+    expect(confirmation('warn', 'Low')).toBe('Low est averti : le message l’attend dans son menu.')
+  })
+
+  it('dit ce que coûte un bannissement', () => {
+    expect(confirmation('ban', 'Low')).toContain('ne peut plus jouer')
+  })
+
+  it('ne nomme personne quand il n’y a pas de suite', () => {
+    expect(confirmation('dismiss', 'Low')).toBe('Signalement classé sans suite.')
   })
 })

@@ -35,6 +35,19 @@ export function attenteEnClair(depuis: string, maintenant = Date.now()): string 
   return jours === 1 ? 'il y a 1 jour' : `il y a ${jours} jours`
 }
 
+/**
+ * Ce qu'on affiche APRÈS une décision.
+ *
+ * Elle dit ce qui a été fait ET ce qui va se passer pour le joueur : « averti »
+ * tout court ne dit pas si le message part vraiment. Le propriétaire a appuyé
+ * sur Avertir et n'a rien vu ; la décision était pourtant passée.
+ */
+export function confirmation(decision: ModerationDecision, joueur: string): string {
+  if (decision === 'dismiss') return `Signalement classé sans suite.`
+  if (decision === 'warn') return `${joueur} est averti : le message l’attend dans son menu.`
+  return `${joueur} est banni. Son compte ne peut plus jouer.`
+}
+
 const MOTIFS: Record<string, string> = {
   pseudo: 'Pseudo déplacé',
   comportement: 'Comportement',
@@ -58,6 +71,7 @@ export function ModerationPanel({ fermer, charger = loadModerationQueue, tranche
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState<string | null>(null)
   const [aConfirmer, setAConfirmer] = useState<string | null>(null)
+  const [fait, setFait] = useState<string | null>(null)
 
   useEffect(() => {
     let vivant = true
@@ -76,6 +90,11 @@ export function ModerationPanel({ fermer, charger = loadModerationQueue, tranche
       // Traité : il quitte la liste. Le compteur du pouls se remet à jour à la
       // prochaine lecture — inutile de rappeler le serveur pour un nombre.
       setFile(lignes => (lignes ?? []).filter(ligne => ligne.id !== report.id))
+      // DIRE CE QUI VIENT D'ÊTRE FAIT (21/09/2026). Le propriétaire a appuyé
+      // sur Avertir et m'a dit « il se passe rien » : la fiche disparaissait,
+      // et c'était tout. La décision était pourtant passée. Une action sans
+      // retour laisse croire à une panne — et fait recommencer.
+      setFait(confirmation(decision, report.reportedName))
     } catch (raison) {
       setErreur(raison instanceof Error ? raison.message : 'Décision impossible.')
     } finally { setEnCours(null) }
@@ -87,6 +106,7 @@ export function ModerationPanel({ fermer, charger = loadModerationQueue, tranche
         <h2 id="moderation-title"><ShieldAlert aria-hidden="true" />Signalements</h2>
 
         {erreur ? <p className="mm-moderation-erreur" role="alert">{erreur}</p> : null}
+        {fait ? <p className="mm-moderation-fait" role="status">{fait}</p> : null}
         {file === null && !erreur ? <p className="mm-moderation-vide">Lecture des signalements…</p> : null}
         {file?.length === 0 ? <p className="mm-moderation-vide">Rien à traiter. Tout est à jour.</p> : null}
 
