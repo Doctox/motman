@@ -20,3 +20,17 @@
 .mm-shell .mm-moderation-actions button{min-height:40px;padding:0 4px;border:1px solid var(--mm-line);border-radius:10px;background:transparent;color:var(--mm-ink);font:600 0.75rem/1.1 'DM Sans',sans-serif}
 .mm-shell .mm-moderation-actions .mm-moderation-dur{border-color:color-mix(in srgb,var(--mm-coral) 55%,var(--mm-line));color:var(--mm-coral)}
 .mm-shell .mm-moderation-fermer{width:100%;min-height:46px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.875rem/1 'DM Sans',sans-serif}
+
+/* Le casier du joueur visé, sous les yeux au moment de décider. */
+.mm-moderation-casier{display:block;margin-top:3px;color:var(--mm-coral);font:700 0.6875rem/1 'DM Sans',sans-serif;font-style:normal}
+
+/* L'avertissement reçu, en tête de l'enveloppe : le premier message que
+   MotMan adresse à une seule personne (21/09/2026). */
+.mm-avertissements{margin:0 0 16px}
+.mm-avertissements article{padding:13px 14px;border:1px solid color-mix(in srgb,var(--mm-coral) 42%,var(--mm-line));border-radius:14px;background:color-mix(in srgb,var(--mm-coral) 8%,var(--mm-paper))}
+.mm-avertissements article+article{margin-top:10px}
+.mm-avertissements h3{display:flex;align-items:center;gap:8px;margin:0;font:600 1rem 'Playfair Display',serif}
+.mm-avertissements h3 svg{flex:none;width:18px;height:18px;color:var(--mm-coral)}
+.mm-avertissements small{display:block;margin:2px 0 8px;color:var(--mm-muted);font-size:0.6875rem}
+.mm-avertissements p{margin:0 0 7px;font-size:0.8125rem;line-height:1.45}
+.mm-avertissements p:last-child{margin-bottom:0}

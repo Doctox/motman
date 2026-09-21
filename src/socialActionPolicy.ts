@@ -5,6 +5,8 @@ export type SocialActionRoute =
   | 'request'
   | 'respond'
   | 'moderation'
+  /** Les avertissements reçus par le joueur lui-même : lecture, puis « lu ». */
+  | 'warnings'
   | 'target'
   | 'unknown'
 
@@ -17,6 +19,7 @@ export function socialActionRoute(action: string): SocialActionRoute {
   if (action === 'request') return 'request'
   if (action === 'respond') return 'respond'
   if (action === 'moderation-list' || action === 'moderation-resolve') return 'moderation'
+  if (action === 'warnings-list' || action === 'warnings-ack') return 'warnings'
   if (TARGET_ACTIONS.has(action)) return 'target'
   return 'unknown'
 }

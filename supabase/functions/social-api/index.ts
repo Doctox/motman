@@ -15,6 +15,27 @@ import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
 
 /**
+ * Le texte que reçoit un joueur averti.
+ *
+ * Il tutoie, comme tout le reste de l'appli (règle du 19/09/2026) ; seuls les
+ * textes légaux vouvoient, et ceci n'en est pas un — c'est le jeu qui parle à
+ * son joueur. Il ne dit NI le motif, NI qui a signalé : un joueur averti ne
+ * doit pas pouvoir remonter jusqu'à celui qui l'a signalé. Il dit ce qui est
+ * vrai et ce qui peut arriver ensuite, sans menacer plus que nécessaire.
+ *
+ * Stocké TEL QUEL à l'envoi (`player_warnings.message`) : un message déjà reçu
+ * ne doit pas changer de sens parce qu'on a réécrit cette constante plus tard.
+ */
+const AVERTISSEMENT_TEXTE = [
+  'Ton compte a été signalé par un autre joueur, et la modération a retenu le signalement.',
+  '',
+  'Ce message est un avertissement : rien n’est retiré de ton compte aujourd’hui.',
+  'Mais si d’autres signalements sont retenus, ton compte pourra être banni de MotMan.',
+  '',
+  'Si tu penses que c’est une erreur, réponds-nous depuis Réglages → Nous écrire.',
+].join('\n')
+
+/**
  * PRÉVENIR LA MODÉRATION, TOUT DE SUITE (21/09/2026).
  *
  * « Si je fais un signalement d'un joueur il va où ? J'ai signalé ma femme
@@ -197,6 +218,21 @@ Deno.serve(async request => {
         const [left, right] = [user.id, pending.from_user_id].sort()
         await admin.from('friendships').upsert({ left_user_id: left, right_user_id: right })
       }
+    } else if (route === 'warnings') {
+      // Côté JOUEUR, pas côté modération : chacun ne lit que les siens, et
+      // l'identifiant vient de la session, jamais du corps de la requête.
+      if (action === 'warnings-list') {
+        const { data: recus } = await admin.from('player_warnings')
+          .select('id,message,created_at,read_at').eq('user_id', user.id)
+          .order('created_at', { ascending: false }).limit(20)
+        return json(200, { ok: true, warnings: recus ?? [] })
+      }
+      // Lu, mais pas effacé : la ligne reste, c'est elle qui se cumule.
+      const { error: luError } = await admin.from('player_warnings')
+        .update({ read_at: new Date().toISOString() })
+        .eq('user_id', user.id).is('read_at', null)
+      if (luError) throw luError
+      return json(200, { ok: true })
     } else if (route === 'moderation') {
       if (!['moderator', 'admin'].includes(accessProfile?.role ?? 'player')) return json(403, { error: 'Accès modération refusé.' })
       if (action === 'moderation-list') {
@@ -211,12 +247,20 @@ Deno.serve(async request => {
           { normalizeOfflineActivity: true },
         )
         const nom = (id: string) => profils.get(id)?.displayName ?? 'Joueur inconnu'
+        // LE CASIER DU JOUEUR VISÉ. « Au bout de 3 j'aurai assez pour décider
+        // d'un ban » : la décision se prend sur le cumul, pas sur le seul
+        // signalement qu'on a sous les yeux.
+        const { data: passif } = await admin.from('player_warnings')
+          .select('user_id').in('user_id', [...new Set(lignes.map(ligne => ligne.reported_id))])
+        const casier = new Map<string, number>()
+        for (const ligne of passif ?? []) casier.set(ligne.user_id, (casier.get(ligne.user_id) ?? 0) + 1)
         return json(200, {
           ok: true,
           reports: lignes.map(ligne => ({
             ...ligne,
             reporterName: nom(ligne.reporter_id),
             reportedName: nom(ligne.reported_id),
+            reportedWarnings: casier.get(ligne.reported_id) ?? 0,
           })),
         })
       }
@@ -226,8 +270,31 @@ Deno.serve(async request => {
       const { data: report } = await admin.from('reports').select('reported_id').eq('id', reportId).eq('status', 'open').single()
       if (!report) return json(404, { error: 'Signalement introuvable.' })
       if (decision === 'suspend' || decision === 'ban') await admin.from('profiles').update({ status: decision === 'ban' ? 'banned' : 'suspended', updated_at: new Date().toISOString() }).eq('id', report.reported_id)
+      // AVERTIR, C'EST PARLER AU JOUEUR (21/09/2026). Jusqu'ici cette décision
+      // ne faisait que classer le signalement : personne n'était prévenu, et
+      // rien ne se cumulait. Le propriétaire n'avait donc aucun moyen de
+      // s'adresser à un compte, ni de fonder un bannissement sur un dossier.
+      let avertissements = 0
+      if (decision === 'warn') {
+        const { data: compte, error: avertirError } = await admin.rpc('server_warn_player', {
+          p_user: report.reported_id,
+          p_report: reportId,
+          p_by: user.id,
+          p_message: AVERTISSEMENT_TEXTE,
+        })
+        if (avertirError) throw avertirError
+        avertissements = Number((compte as { avertissements?: number } | null)?.avertissements ?? 0)
+        queuePush(sendPushToUser(admin, report.reported_id, {
+          title: 'Un message de MotMan',
+          // Le motif et l'identité de celui qui a signalé ne sortent JAMAIS :
+          // le joueur averti ne doit pas pouvoir remonter jusqu'à lui.
+          body: 'Ton compte a reçu un avertissement. Ouvre MotMan pour le lire.',
+          data: { type: 'player_warning' },
+          tag: 'avertissement',
+        }))
+      }
       await admin.from('reports').update({ status: decision === 'dismiss' ? 'dismissed' : 'actioned', reviewed_at: new Date().toISOString(), reviewed_by: user.id }).eq('id', reportId)
-      return json(200, { ok: true })
+      return json(200, { ok: true, avertissements })
     } else if (route === 'target') {
       const targetId = typeof body.targetId === 'string' && UUID_PATTERN.test(body.targetId) ? body.targetId : ''
       if (!targetId || targetId === user.id) return json(400, { error: 'Joueur invalide.' })

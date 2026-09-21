@@ -98,10 +98,26 @@ export type ModerationReport = {
   match_id: string | null
   reporterName: string
   reportedName: string
+  /** Le casier du joueur visé : c'est le cumul qui fonde un bannissement. */
+  reportedWarnings: number
 }
 
-/** Ce que la modération peut décider d'un signalement. */
-export type ModerationDecision = 'dismiss' | 'warn' | 'suspend' | 'ban'
+/** Un avertissement reçu par le joueur lui-même, lu dans l'enveloppe du menu. */
+export type PlayerWarning = {
+  id: string
+  message: string
+  created_at: string
+  read_at: string | null
+}
+
+/**
+ * Ce que la modération peut décider d'un signalement.
+ *
+ * `suspend` existe encore côté serveur mais n'est plus proposé : il coupait
+ * l'accès sans rien expliquer à personne (propriétaire, 21/09/2026). On avertit
+ * — le joueur reçoit un message et le compteur monte — et on bannit sur dossier.
+ */
+export type ModerationDecision = 'dismiss' | 'warn' | 'ban'
 
 export async function loadModerationQueue(): Promise<ModerationReport[]> {
   if (localTestServer) return []
@@ -111,6 +127,24 @@ export async function loadModerationQueue(): Promise<ModerationReport[]> {
 export async function resolveReport(reportId: string, decision: ModerationDecision): Promise<void> {
   if (localTestServer) return
   await supabaseSocial<{ ok: true }>('moderation-resolve', { reportId, decision })
+}
+
+/**
+ * LES AVERTISSEMENTS REÇUS PAR LE JOUEUR (21/09/2026).
+ *
+ * Le premier message que MotMan adresse à UNE personne : jusqu'ici l'appli ne
+ * savait parler qu'à tout le monde à la fois (les nouveautés, écrites dans le
+ * build). Le serveur ne rend que les siens — l'identifiant vient de la session.
+ */
+export async function loadMyWarnings(): Promise<PlayerWarning[]> {
+  if (localTestServer) return []
+  return (await supabaseSocial<{ warnings: PlayerWarning[] }>('warnings-list')).warnings ?? []
+}
+
+/** Lu, mais pas effacé : la ligne reste, c'est elle qui se cumule. */
+export async function acknowledgeWarnings(): Promise<void> {
+  if (localTestServer) return
+  await supabaseSocial<{ ok: true }>('warnings-ack')
 }
 
 export async function reportPlayer(targetId: string, reason: 'pseudo' | 'comportement' | 'triche' | 'harcelement' | 'autre', details = '', matchId?: string): Promise<void> {

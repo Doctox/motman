@@ -9,6 +9,7 @@ import { useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { TUTORIAL_STEP_COUNT } from './FirstRunTutorial'
 import { InstallAppRow } from './InstallAppRow'
+import { AvertissementsRecus } from './AvertissementsRecus'
 import { NouveautesListe } from './Nouveautes'
 import { useNouveauteEnAttente } from '../nouveautes'
 import type { Theme } from './types'
@@ -48,6 +49,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
           <h2>Nouveautés</h2>
           <button type="button" onClick={close} aria-label="Fermer"><X /></button>
         </header>
+        <AvertissementsRecus />
         <NouveautesListe />
       </> : reglagesOuverts ? <>
         <header>

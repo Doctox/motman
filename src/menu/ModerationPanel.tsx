@@ -13,13 +13,15 @@ import './menu-moderation.css'
 // dormaient en base, annoncés sur une issue GitHub qu'il n'ouvre jamais — le
 // sien a attendu quatorze heures.
 //
-// TROIS DÉCISIONS, PAS QUATRE. Le serveur accepte aussi `warn`, mais rien
-// n'envoie d'avertissement au joueur : le bouton aurait menti. Tant que
-// l'avertissement n'existe pas, il n'est pas proposé.
+// SANS SUITE, AVERTIR, BANNIR — la suspension a été retirée le jour même par
+// le propriétaire : « j'ai aucun moyen de communiquer avec le compte ». Couper
+// l'accès sans rien expliquer ne réglait rien. AVERTIR écrit un vrai message
+// au joueur, qu'il lit dans l'enveloppe du menu, et fait monter son compteur ;
+// au troisième, il y a de quoi décider d'un bannissement sur dossier.
 //
-// UNE CONFIRMATION POUR CE QUI FAIT MAL. Suspendre ou bannir coupe l'accès à
-// quelqu'un ; sur un téléphone, ça se touche par erreur. Le premier appui
-// demande, le second agit.
+// UNE CONFIRMATION POUR CE QUI FAIT MAL. Bannir coupe l'accès à quelqu'un, et
+// sur un téléphone ça se touche par erreur : le premier appui demande, le
+// second agit. Avertir ne demande rien — c'est un message, pas une sanction.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Depuis combien de temps un signalement attend, dit comme on le dirait. */
@@ -96,19 +98,22 @@ export function ModerationPanel({ fermer, charger = loadModerationQueue, tranche
             </header>
             <p className="mm-moderation-qui">
               <b>{report.reporterName}</b> a signalé <b>{report.reportedName}</b>
+              {/* LE CASIER, SOUS LES YEUX AU MOMENT DE DÉCIDER. « Au bout de 3
+                  j'aurai assez pour décider d'un ban » : encore faut-il voir
+                  le compte sans aller le chercher ailleurs. */}
+              {report.reportedWarnings > 0 ? (
+                <em className="mm-moderation-casier">
+                  {report.reportedWarnings} avertissement{report.reportedWarnings > 1 ? 's' : ''} déjà
+                </em>
+              ) : null}
             </p>
             {report.details ? <blockquote>{report.details}</blockquote> : <p className="mm-moderation-vide">Sans commentaire.</p>}
             <div className="mm-moderation-actions">
               <button type="button" disabled={enCours === report.id} onClick={() => decider(report, 'dismiss')}>
                 Sans suite
               </button>
-              <button
-                type="button"
-                className="mm-moderation-dur"
-                disabled={enCours === report.id}
-                onClick={() => decider(report, 'suspend')}
-              >
-                {aConfirmer === `${report.id}:suspend` ? 'Confirmer ?' : 'Suspendre'}
+              <button type="button" disabled={enCours === report.id} onClick={() => decider(report, 'warn')}>
+                Avertir
               </button>
               <button
                 type="button"
