@@ -52,7 +52,21 @@ function loadTurnstile(): Promise<TurnstileWidget> {
   return loading
 }
 
-export async function getAnonymousCaptchaToken(): Promise<string | null> {
+/**
+ * UN JETON ANTI-ROBOT POUR TOUTE ENTRÉE DANS LE COMPTE (21/09/2026).
+ *
+ * Cette fonction ne servait qu'à la création de profil invité, et son nom le
+ * disait. La connexion par e-mail, elle, n'en demandait AUCUN : Supabase la
+ * refusait donc systématiquement — « captcha protection: request disallowed
+ * (no captcha_token found) » — et le joueur lisait « La vérification
+ * anti-robot a échoué », sans que rien n'ait jamais été vérifié. Personne ne
+ * pouvait se reconnecter par mot de passe. Relevé par une testeuse le
+ * 21/09/2026 ; invisible jusque-là parce que tout le monde passait par Google.
+ *
+ * `action` n'est qu'une étiquette pour les statistiques Cloudflare : elle ne
+ * change pas la validité du jeton, mais elle dit quel chemin a été emprunté.
+ */
+export async function getCaptchaToken(action = 'anonymous-sign-in'): Promise<string | null> {
   const sitekey = configuredSiteKey()
   if (!sitekey) return null
 
@@ -84,7 +98,7 @@ export async function getAnonymousCaptchaToken(): Promise<string | null> {
     try {
       widgetId = turnstile.render(host, {
         sitekey,
-        action: 'anonymous-sign-in',
+        action,
         theme: 'auto',
         size: 'flexible',
         appearance: 'interaction-only',

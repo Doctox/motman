@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { AlertTriangle, Trash2, User, X } from 'lucide-react'
+import { AlertTriangle, Mail, Trash2, User, X } from 'lucide-react'
 import { assetUrl } from '../assetUrl'
 import {
   authenticateWithGoogle, createPlayerAccount, deletePlayerAccount, finishPlayerAccount,
@@ -22,6 +22,14 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
   dismissGoogleAuthIssue?: () => void
 }) {
   const [mode, setMode] = useState<AccountMode>('create')
+  /**
+   * Le moyen choisi dans l'onglet courant : `null` tant que le joueur n'a pas
+   * tranché entre Google et l'e-mail. Il se remet à zéro à chaque changement
+   * d'onglet — « créer avec un e-mail » et « se connecter avec un e-mail » ne
+   * sont pas le même geste, et le formulaire ne doit pas rester ouvert de l'un
+   * à l'autre.
+   */
+  const [moyen, setMoyen] = useState<'email' | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [deleteConfirming, setDeleteConfirming] = useState(false)
@@ -110,9 +118,8 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
           <button type="button" disabled={busy} onClick={() => void google('sign-in')}><span aria-hidden="true">G</span>Reprendre mon compte Google</button>
         </div> : null}
         {googleAuthIssue?.kind === 'oauth-error' ? <p className="mm-account-error" role="alert">{googleAuthIssue.message}</p> : null}
-        {googleAuthIssue?.kind !== 'identity-already-linked' ? <button className="mm-google-auth" type="button" disabled={busy} onClick={() => void google('link')}><span aria-hidden="true">G</span>{identity.accountType === 'account' ? 'Lier mon compte Google' : 'Protéger ce profil avec Google'}</button> : null}
-        {identity.accountType === 'guest' && googleAuthIssue?.kind !== 'identity-already-linked' ? <button className="mm-google-existing-account" type="button" disabled={busy} onClick={() => void google('sign-in')}>J’ai déjà un compte Google</button> : null}
-        <div className="mm-account-divider"><span>ou</span></div>
+        {identity.accountType === 'account' && googleAuthIssue?.kind !== 'identity-already-linked' ? <button className="mm-google-auth" type="button" disabled={busy} onClick={() => void google('link')}><span aria-hidden="true">G</span>Lier mon compte Google</button> : null}
+        {identity.accountType === 'account' ? <div className="mm-account-divider"><span>ou</span></div> : null}
         {identity.accountType === 'account' ? <>
         <div className="mm-account-current"><User /><span><strong>{identity.displayName}</strong><small>Synchronisé sur Android, Apple et PC</small></span></div>
         <label htmlFor="account-password">Définir ou changer le mot de passe</label>
@@ -122,11 +129,34 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
         <button className="mm-save-guest" type="submit" disabled={busy || password.length < 10}>Enregistrer le mot de passe</button>
         <button className="mm-account-logout" type="button" disabled={busy} onClick={() => void logout()}>Se déconnecter</button>
         </> : <>
+        {/* L'ONGLET D'ABORD, PUIS LES DEUX FAÇONS DE LE FAIRE (21/09/2026).
+            Une testeuse s'est déconnectée, a voulu revenir, et n'a vu que
+            « Protéger ce profil avec Google » — « me connecter » était un petit
+            lien souligné. Les boutons Google flottaient au-dessus des onglets,
+            sans rapport avec celui qui était choisi. Maintenant on dit d'abord
+            CE QU'ON VEUT (créer, se connecter, récupérer), puis COMMENT :
+            Google, ou l'e-mail. Le même bouton ne veut pas dire la même chose
+            dans « Créer » et dans « Connexion » — son texte suit l'onglet. */}
         <div className="mm-account-tabs" role="tablist" aria-label="Accès au compte">
-          <button type="button" className={mode === 'create' ? 'active' : ''} onClick={() => setMode('create')}>Créer</button>
-          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Connexion</button>
-          <button type="button" className={mode === 'recover' ? 'active' : ''} onClick={() => setMode('recover')}>Récupérer</button>
+          <button type="button" className={mode === 'create' ? 'active' : ''} onClick={() => { setMode('create'); setMoyen(null); setError(null) }}>Créer</button>
+          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setMoyen(null); setError(null) }}>Connexion</button>
+          <button type="button" className={mode === 'recover' ? 'active' : ''} onClick={() => { setMode('recover'); setMoyen(null); setError(null) }}>Récupérer</button>
         </div>
+        {/* DEUX MOYENS, DEUX BOUTONS, AUCUN CHAMP AVANT D'AVOIR CHOISI
+            (propriétaire, 21/09/2026 : « mets pas direct les cases de saisie,
+            genre un bouton pour Google et un bouton pour s'authentifier, que
+            ce soit égalitaire »). Le formulaire posé d'office désignait
+            l'e-mail comme LE chemin, et Google comme une option au-dessus —
+            c'est ce qui a égaré la testeuse. La récupération garde son champ :
+            elle n'a qu'un seul moyen, l'e-mail. */}
+        {mode !== 'recover' && moyen === null ? <div className="mm-account-moyens">
+          {googleAuthIssue?.kind !== 'identity-already-linked' ? <button className="mm-google-auth" type="button" disabled={busy} onClick={() => void google(mode === 'create' ? 'link' : 'sign-in')}><span aria-hidden="true">G</span>{mode === 'create' ? 'Créer avec Google' : 'Me connecter avec Google'}</button> : null}
+          <button className="mm-account-moyen-email" type="button" disabled={busy} onClick={() => setMoyen('email')}><Mail />{mode === 'create' ? 'Créer avec un e-mail' : 'Me connecter avec un e-mail'}</button>
+        </div> : null}
+        {/* Un compte Google n'a pas de mot de passe : sans ce mot, on cherche
+            un lien de récupération qui n'arrivera jamais. */}
+        {mode === 'recover' ? <p className="mm-account-recover-note">Tu t’es inscrit avec Google ? Il n’y a pas de mot de passe à récupérer : reviens sur « Connexion » et utilise le bouton Google.</p> : null}
+        {mode !== 'recover' && moyen === null ? null : <>
         <label htmlFor="account-email">E-mail</label>
         <input id="account-email" type="email" required value={email} autoComplete="email" onChange={event => setEmail(event.target.value)} />
         {mode === 'create' ? <p>Ton profil invité sera conservé. Tu recevras un lien pour confirmer ton adresse, puis tu choisiras ton mot de passe.</p> : null}
@@ -134,6 +164,10 @@ export function AccountPanel({ identity, close, apply, notify, googleAuthIssue, 
         {mode === 'recover' ? <p>Nous enverrons un lien sécurisé pour choisir un nouveau mot de passe.</p> : null}
         {error ? <p className="mm-account-error" role="alert">{error}</p> : null}
         <button className="mm-save-guest" type="submit" disabled={busy || !email.trim() || mode === 'login' && password.length < 10}>{busy ? 'Patiente…' : mode === 'create' ? 'Protéger ce profil' : mode === 'login' ? 'Se connecter' : 'Envoyer le lien'}</button>
+        {/* Revenir sur ses pas sans fermer la fenêtre : s'être trompé de moyen
+            ne doit pas obliger à tout rouvrir. */}
+        {mode !== 'recover' ? <button className="mm-account-autre-moyen" type="button" disabled={busy} onClick={() => { setMoyen(null); setError(null) }}>Choisir un autre moyen</button> : null}
+        </>}
         </>}
         <button className="mm-account-delete-entry" type="button" disabled={busy} onClick={beginDeletion}><Trash2 /><span>Supprimer {identity.accountType === 'account' ? 'mon compte' : 'ce profil invité'}</span></button>
       </>}

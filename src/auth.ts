@@ -8,7 +8,7 @@ import { saveQuestBoard, type QuestBoard } from './questBoardState'
 import { supabase, supabaseConfigured } from './supabaseClient'
 import { invokeSupabaseFunction } from './supabaseFunctions'
 import { isNativeRuntime, NATIVE_AUTH_REDIRECT, openNativeAuthentication } from './nativeRuntime'
-import { getAnonymousCaptchaToken } from './turnstile'
+import { getCaptchaToken } from './turnstile'
 import { parseGoogleAuthIssue, takeRememberedGoogleAuthIssue, type GoogleAuthIssue } from './googleAuthCallback'
 import { messageAuth } from './authErrors'
 
@@ -132,7 +132,7 @@ export async function bootstrapPlayerSession(): Promise<GuestIdentity> {
   if (!supabaseConfigured) throw new Error('MotMan ne trouve pas sa configuration Supabase.')
   let { data: sessionData } = await supabase.auth.getSession()
   if (!sessionData.session) {
-    const captchaToken = await getAnonymousCaptchaToken()
+    const captchaToken = await getCaptchaToken()
     const { data, error } = await supabase.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined)
     if (error || !data.session) throw new Error(messageAuth(error, 'Création de la session MotMan impossible. Réessaie.'))
     sessionData = { session: data.session }
@@ -181,11 +181,31 @@ export async function finishPlayerAccount(password: string): Promise<AuthRespons
   return accountAction('state')
 }
 
+/**
+ * Le jeton, ou un message qui dit la vérité.
+ *
+ * Si Turnstile ne répond pas — réseau coupé, script bloqué —, mieux vaut le
+ * dire que laisser le joueur croire que son mot de passe est faux.
+ */
+async function jetonAntiRobot(action: string): Promise<string | null> {
+  try {
+    return await getCaptchaToken(action)
+  } catch {
+    throw new Error('La vérification de sécurité n’a pas pu se faire. Vérifie ta connexion, puis réessaie.')
+  }
+}
+
 export async function loginPlayerAccount(email: string, password: string): Promise<AuthResponse> {
   if (isNativeRuntime()) {
     await import('./nativePushNotifications').then(module => module.detachStoredPushDevice()).catch(() => undefined)
   }
-  const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+  // SANS CE JETON, LA CONNEXION EST REFUSÉE À TOUT LE MONDE. Supabase protège
+  // aussi cet accès par Turnstile : la requête partait nue, et le joueur lisait
+  // « La vérification anti-robot a échoué » sans avoir rien fait de mal.
+  const captchaToken = await jetonAntiRobot('password-sign-in')
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.trim(), password, options: captchaToken ? { captchaToken } : undefined,
+  })
   if (error) {
     if (isNativeRuntime()) {
       void import('./nativePushNotifications').then(module => module.syncStoredPushDevice()).catch(() => undefined)
@@ -224,7 +244,8 @@ export async function recoverPlayerAccount(email: string): Promise<void> {
   const redirectTo = isNativeRuntime()
     ? NATIVE_AUTH_REDIRECT
     : `${location.origin}${location.pathname}#profil`
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
+  const captchaToken = await jetonAntiRobot('password-recovery')
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo, captchaToken: captchaToken ?? undefined })
   if (error) throw new Error(messageAuth(error, 'Envoi du lien impossible. Réessaie.'))
 }
 
