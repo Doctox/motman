@@ -19,7 +19,7 @@ import type { MatchRow } from './matchModel.ts'
 import { notifyCurrentTurn } from './matchNotifications.ts'
 import { MatchStateConflictError, persist } from './matchSetup.ts'
 import { absentSansTemoin, applyTurn, botPlacements, forfeitAbsentPlayer, presenceExpired, timeoutTurn } from './matchTurns.ts'
-import { getGrid } from './matchView.ts'
+import { gridLoader, type GridLoader } from './matchView.ts'
 
 /** Délai après la fin officielle du tour avant de le déclarer passé : laisse arriver un envoi automatique en retard. */
 export const AUTOMATIC_SUBMIT_GRACE_MS = 8_000
@@ -28,13 +28,15 @@ export function turnExpired(row: Pick<MatchRow, 'turn_ends_at'>, now = Date.now(
   return now >= new Date(row.turn_ends_at).getTime() + AUTOMATIC_SUBMIT_GRACE_MS
 }
 
-export async function resolveMatchRow(admin: AdminClient, row: MatchRow): Promise<MatchRow> {
+export async function resolveMatchRow(admin: AdminClient, row: MatchRow, chargerGrille?: GridLoader): Promise<MatchRow> {
   try {
     if (row.status !== 'active') return row
     if (row.paused_at) return row
     const previousPlayerId = row.current_player_id
     let turnAdvanced = false
-    const grid = await getGrid(admin, row.grid_id)
+    // L'appelant qui aura besoin de la grille juste après nous passe SON
+    // chargeur : la grille n'est alors lue qu'une fois pour toute la requête.
+    const grid = await (chargerGrille ?? gridLoader(admin, row.grid_id))()
     const rules = ruleGrid(grid)
     const initializedBag = ensureSharedLetterBag(rules, row.state)
     const initializedFinale = ensureFinalSprintRacks(rules, row.state)

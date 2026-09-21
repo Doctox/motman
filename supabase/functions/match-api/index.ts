@@ -31,7 +31,7 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 import { ensureFinalSprintRacks, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
 import { acknowledgePresence, applyTurn, finish, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
-import { getGrid, matchConflictResponse, profile, view } from './matchView.ts'
+import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
 import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
 import { atomicResult, botSkillForLevel, createBot, createMatch, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
@@ -78,7 +78,7 @@ Deno.serve(async request => {
     }
 
     // Coup du bot en retard, tour dépassé : voir matchResolve.ts, partagé avec la tâche des rappels.
-    const resolveRow = (row: MatchRow) => resolveMatchRow(admin, row)
+    const resolveRow = (row: MatchRow, chargerGrille?: GridLoader) => resolveMatchRow(admin, row, chargerGrille)
 
     if (action === 'ranked-state' || action === 'ranked-search') {
       if (action === 'ranked-search' && user.is_anonymous === true) {
@@ -392,8 +392,9 @@ Deno.serve(async request => {
       // une partie coupée sans perdre sa tentative du jour.
       const enCours = (await activeRows()).find(row => row.state.isDaily === true && row.state.dailyDate === dateKey)
       if (enCours) {
-        const repris = await resolveRow(enCours)
-        return json(200, { match: await view(admin, repris, user.id, await getGrid(admin, repris.grid_id)) })
+        const chargerGrille = gridLoader(admin, enCours.grid_id)
+        const repris = await resolveRow(enCours, chargerGrille)
+        return json(200, { match: await view(admin, repris, user.id, await chargerGrille()) })
       }
       // UNE SEULE TENTATIVE PAR JOUR (décision du propriétaire, 20/09/2026).
       // Gagné, perdu ou abandonné : un défi TERMINÉ ne se rejoue pas avant
@@ -592,8 +593,11 @@ Deno.serve(async request => {
     if (!participant) return json(404, { error: 'Partie introuvable.' })
     const { data: found } = await admin.from('server_matches').select('*').eq('id', matchId).single()
     if (!found) return json(404, { error: 'Partie introuvable.' })
-    let row = await resolveRow(found as MatchRow)
-    const grid = await getGrid(admin, row.grid_id)
+    // Une seule lecture de grille pour toute la requête : `resolveMatchRow` en
+    // a besoin, la vue aussi, et c'est six kilo-octets à chaque fois.
+    const chargerGrille = gridLoader(admin, (found as MatchRow).grid_id)
+    let row = await resolveRow(found as MatchRow, chargerGrille)
+    const grid = await chargerGrille()
     if (action === 'match') {
       // A ranked ready-check closes the interrupted casual match atomically in
       // PostgreSQL. If the accepting request disappears before its follow-up

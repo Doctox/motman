@@ -102,6 +102,29 @@ export async function view(
   }
 }
 
+/**
+ * UNE SEULE LECTURE DE GRILLE PAR REQUÊTE (21/09/2026).
+ *
+ * Un sondage de partie lisait la grille DEUX FOIS : une fois dans
+ * `resolveMatchRow` (qui en a besoin pour le sac de lettres et le sprint
+ * final), une seconde fois juste après pour la vue. Six kilo-octets à chaque
+ * fois, deux joueurs, un sondage toutes les huit secondes : près d'un
+ * mégaoctet lu en pure perte par partie de dix minutes.
+ *
+ * Ce chargeur ne lit qu'à la première demande et rend ensuite la même réponse.
+ * Il vit le temps d'UNE requête, et pas une seconde de plus : le contenu d'une
+ * grille peut être réécrit sous le même identifiant (`on conflict (id) do
+ * update set payload`), donc un cache qui survivrait à la requête finirait par
+ * servir une grille périmée — et le serveur jugerait les coups sur une grille
+ * que le joueur n'a pas sous les yeux.
+ */
+export type GridLoader = () => Promise<CatalogGrid>
+
+export function gridLoader(admin: AdminClient, gridId: string): GridLoader {
+  let lecture: Promise<CatalogGrid> | null = null
+  return () => (lecture ??= getGrid(admin, gridId))
+}
+
 export async function getGrid(admin: AdminClient, gridId: string): Promise<CatalogGrid> {
   // `active` controls the pool used to create new matches. An already-created
   // match must remain resolvable after a catalogue rotation, otherwise one old
