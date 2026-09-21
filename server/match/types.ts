@@ -81,6 +81,17 @@ export type StoredMatch = {
   turnNumber: number
   turnStartedAt: string
   turnEndsAt: string
+  /**
+   * Durée d'un tour PROPRE À CETTE PARTIE, en millisecondes (serveur de test
+   * seulement). Sans elle, la durée vient du rythme, comme en production.
+   *
+   * Elle existe pour les e2e qui jouent à l'écran : chaque geste de Playwright
+   * — attendre l'éclair, viser une case, valider — coûte du temps réel, et sur
+   * une machine chargée ce temps dépasse le tour. Le test perdait alors la
+   * partie au lieu de vérifier ce qu'il vérifie. Voir `MOTMAN_TURN_DURATION_MS`
+   * pour le réglage global.
+   */
+  turnMs?: number
   board: Record<string, { letter: string; playerId: string }>
   racks: Record<string, string[]>
   letterBag?: string[]

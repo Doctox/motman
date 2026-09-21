@@ -205,8 +205,10 @@ function finishMatch(match: StoredMatch, winnerId: string | null, reason: Stored
   match.turnEndsAt = match.updatedAt
 }
 
-function turnDuration(match: Pick<StoredMatch, 'pace'>): number {
-  return match.pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS
+function turnDuration(match: Pick<StoredMatch, 'pace' | 'turnMs'>): number {
+  // Une durée posée sur la partie l'emporte : c'est le tour long que réclament
+  // les e2e qui jouent à l'écran (voir `StoredMatch.turnMs`).
+  return match.turnMs ?? (match.pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)
 }
 
 function activeMatches(playerId: string, pace?: MatchPace): StoredMatch[] {
@@ -458,15 +460,16 @@ function attenteAvantPremierTour(pace: MatchPace): number {
   return pace === 'realtime' ? FIRST_TURN_READING_MS : TURN_READY_DURATION_MS
 }
 
-function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId: string | null = null, bot: BotProfile | null = null): StoredMatch {
+function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId: string | null = null, bot: BotProfile | null = null, turnMs?: number): StoredMatch {
   const now = new Date()
+  const dureeDuTour = turnMs ?? (pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)
   const grid = selectGridForPlayers(hostId, guestId, sourceId, now)
   const difficulty: StoredMatch['difficulty'] = bot?.skill === 'beginner' ? 'easy' : bot?.skill === 'expert' ? 'hard' : 'normal'
   const match: StoredMatch = {
-    id: randomUUID(), invitationId, mode, pace, gridId: grid.id, difficulty,
+    id: randomUUID(), invitationId, mode, pace, gridId: grid.id, difficulty, turnMs,
     playerIds: [hostId, guestId], bot, currentPlayerId: hostId, turnNumber: 1,
     turnStartedAt: new Date(now.getTime() + attenteAvantPremierTour(pace)).toISOString(),
-    turnEndsAt: new Date(now.getTime() + attenteAvantPremierTour(pace) + (pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)).toISOString(),
+    turnEndsAt: new Date(now.getTime() + attenteAvantPremierTour(pace) + dureeDuTour).toISOString(),
     board: {}, racks: {}, letterBag: [...gridSolution(grid).values()], scores: { [hostId]: 0, [guestId]: 0 },
     productiveTurns: { [hostId]: 0, [guestId]: 0 },
     inactivity: { [hostId]: 0, [guestId]: 0 }, hint: null,

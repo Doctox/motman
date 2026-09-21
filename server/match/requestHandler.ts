@@ -24,7 +24,7 @@ export type MatchRequestContext = {
   ensureFinalSprintRacks(match: StoredMatch): boolean
   publicMatch(match: StoredMatch): unknown
   saveDatabase(): void
-  createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId?: string | null, bot?: BotProfile | null): StoredMatch
+  createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId?: string | null, bot?: BotProfile | null, turnMs?: number): StoredMatch
   finishMatch(match: StoredMatch, winnerId: string | null, reason: StoredMatch['finishReason']): void
   gridForMatch(match: StoredMatch): CatalogGrid
   replenishRack(match: StoredMatch, playerId: string, current: string[], avoidLetters?: Iterable<string>): string[]
@@ -191,7 +191,15 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
         : activeMatches(search.playerId, 'async').length < MAX_ASYNC_MATCHES)
       .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())[0]
     if (candidate) {
-      const match = createMatch(candidate.playerId, playerId, 'normal', pace, candidate.id)
+      // Tour sur mesure, demandé par l'appariement (e2e seulement) : un test qui
+      // joue à l'écran a besoin que ses gestes tiennent dans le tour, quelle que
+      // soit la charge de la machine. Borné pour qu'une valeur folle ne fige pas
+      // une partie du serveur de test.
+      const surMesure = Number(body.turnMs)
+      const turnMs = Number.isFinite(surMesure) && surMesure > 0
+        ? Math.min(Math.max(surMesure, 1_000), 10 * 60_000)
+        : undefined
+      const match = createMatch(candidate.playerId, playerId, 'normal', pace, candidate.id, null, null, turnMs)
       database.matches.push(match)
       database.searches = database.searches.filter(search => search.id !== candidate.id && !(search.playerId === playerId && search.pace === pace))
       saveDatabase()

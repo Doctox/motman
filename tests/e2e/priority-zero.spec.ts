@@ -90,7 +90,12 @@ async function register(request: APIRequestContext, identity: Identity): Promise
   await isolated.dispose()
 }
 
-async function createNormalMatch(request: APIRequestContext, pace: 'realtime' | 'async', label: string) {
+/**
+ * `turnMs` donne à CETTE partie un tour sur mesure (serveur de test seulement).
+ * À réserver aux tests qui jouent à l'écran : le chronomètre court alors
+ * pendant que Playwright clique, et sur une machine chargée il gagne.
+ */
+async function createNormalMatch(request: APIRequestContext, pace: 'realtime' | 'async', label: string, turnMs?: number) {
   const first = newIdentity(`${label} A`)
   await register(request, first)
   const second = newIdentity(`${label} B`)
@@ -98,7 +103,7 @@ async function createNormalMatch(request: APIRequestContext, pace: 'realtime' | 
 
   const waiting = await request.post('/api/matches/search', { data: { playerId: first.playerId, pace } })
   if (!waiting.ok()) throw new Error(`Première recherche refusée (${waiting.status()}) : ${await waiting.text()}`)
-  const paired = await request.post('/api/matches/search', { data: { playerId: second.playerId, pace } })
+  const paired = await request.post('/api/matches/search', { data: { playerId: second.playerId, pace, turnMs } })
   if (!paired.ok()) throw new Error(`Seconde recherche refusée (${paired.status()}) : ${await paired.text()}`)
   const payload = await paired.json() as { matchId: string | null }
   expect(payload.matchId).toBeTruthy()
@@ -227,6 +232,14 @@ async function attendreTourJouable(page: Page, lettre: Locator): Promise<void> {
   // CE QU'IL FAUDRAIT. Se synchroniser sur le TOUR (l'état serveur, que
   // l'appelant connaît déjà) plutôt que sur son annonce à l'écran, puis
   // n'attendre l'éclair que comme confirmation, sans lui laisser le tour.
+  //
+  // CE QU'ON A FAIT EN ATTENDANT (21/09/2026). Plutôt que de toucher à cette
+  // aide — deux tentatives, deux régressions —, on a retiré l'ENJEU : le test
+  // des quêtes se joue maintenant sur un tour de deux minutes (`turnMs`), où
+  // une attente ratée coûte douze secondes au lieu de coûter la partie. Les
+  // autres appelants gardent leurs douze secondes, donc cette aide reste
+  // fragile pour eux : n'appelle-la QUE juste après un changement de tour,
+  // jamais quand le tour est déjà en cours — l'éclair ne reviendra pas.
   const eclair = page.locator('.turn-ready-flash')
   await expect(eclair).toBeVisible()
   await expect(eclair).toBeHidden()
@@ -1026,14 +1039,24 @@ test('sans réponse à « Tu es toujours là ? », la partie est perdue pour l�
 
 test('une quête finie pendant la partie s’annonce au coup qui la termine', async ({ browser, request }) => {
   // Le test le plus lourd de la suite : une vraie partie, jouée tour par tour
-  // À L'ÉCRAN, jusqu'à ce qu'une quête se termine. Chaque tour coûte l'éclair
-  // « À vous ! », deux clics par lettre et un aller-retour serveur : WebKit
-  // dépassait la minute par défaut, et le test a dépassé son budget trois fois
-  // sur la machine de CI — 30 % plus lente que celle de développement —, faisant
-  // échouer autant de déploiements. D'où 150 s, fixées ici et nulle part
-  // ailleurs. (Un `test.slow()` les précédait : sans effet, `setTimeout`
-  // remplaçait aussitôt le délai qu'il venait de tripler.)
+  // À L'ÉCRAN, jusqu'à ce qu'une quête se termine.
+  //
+  // POURQUOI IL A BLOQUÉ CINQ DÉPLOIEMENTS. Le tour durait douze secondes, et
+  // l'attente de l'éclair « À vous ! » en dure douze aussi (`expect.timeout`).
+  // Une machine chargée qui rate la fenêtre de 1,8 s de l'éclair attend donc
+  // EXACTEMENT UN TOUR ENTIER, que le joueur observé laisse expirer. Trois fois
+  // et la partie est perdue : la capture du CI disait « Vous avez laissé
+  // expirer trois de vos tours », 0 à 20. Le test tournait alors en rond
+  // jusqu'à épuiser son budget. On lui donnait des secondes ; il fallait lui
+  // enlever le chronomètre.
+  //
+  // CE TOUR-CI DURE DEUX MINUTES (`turnMs`, serveur de test seulement). Aucun
+  // geste de Playwright, si lente que soit la machine, ne peut plus manger le
+  // tour : une attente ratée coûte douze secondes sur cent vingt, au lieu de
+  // coûter la partie. Ce que le test vérifie — le bandeau paraît au coup qui
+  // termine la quête — ne dépend pas de la durée du tour.
   test.setTimeout(150_000)
+  const TOUR_CONFORTABLE_MS = 120_000
   // Les trois quêtes du jour sont tirées de la date (src/quests.ts) : certaines
   // ne peuvent se terminer qu'à la clôture (« sans indice »), d'autres sont hors
   // de portée du client (les mots en image). Le test ne joue donc que sur une
@@ -1044,10 +1067,7 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
   const suivie = dailyQuests(dailyDateKey(Date.now())).find(quest => quest.counter === 'lettres' || quest.counter === 'mots')
   test.skip(!suivie, 'Aucune quête suivie en cours de partie aujourd’hui.')
 
-  // Temps limité : douze secondes par tour ici. Les gestes à l'écran — attendre
-  // l'éclair, viser une case, valider — doivent tenir dans un tour déjà entamé
-  // par le chargement de la page.
-  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Quete')
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Quete', TOUR_CONFORTABLE_MS)
   const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 844 })
   try {
     // La quête est amenée à une unité de la fin par le serveur de test.
@@ -1060,10 +1080,10 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
     await page.reload()
     await expect(page.locator('.board')).toBeVisible()
 
-    // Si la page s'ouvre sur mon tour, il est déjà bien entamé : on le passe à
-    // vide (aucun compteur touché) pour repartir sur un tour entier.
-    const ouverture = await loadMatch(request, first.playerId, matchId)
-    if (ouverture.currentPlayerId === first.playerId) await submitTurn(request, ouverture, [])
+    // Le tour de deux minutes rend inutile le passage à vide qui servait, avant,
+    // à repartir sur un tour entier : même entamé par le chargement de la page,
+    // il reste largement de quoi jouer. Un tour de moins, c'est aussi une
+    // occasion de moins de finir la partie avant la quête.
 
     const bandeau = page.locator('.mm-quest-achieved')
     // Le bandeau s'efface seul au bout de 3,2 s. Le relire après coup ratait sa
