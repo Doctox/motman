@@ -271,6 +271,10 @@ export type GamePulse = {
   partiesDuJour: number
   defisDuJour: number
   classeesSeptJours: number
+  /** Signalements de joueurs en attente — le seul nombre qui appelle une action. */
+  signalementsOuverts: number
+  /** Depuis combien d'heures attend le plus ancien. */
+  signalementPlusAncienHeures: number
 }
 
 export async function loadGamePulse(): Promise<GamePulse> {

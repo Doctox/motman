@@ -81,6 +81,38 @@ export async function updateFriend(playerId: string, targetId: string, action: E
   return (await supabaseSocial<{ state: SocialState }>(action, { targetId })).state
 }
 
+/**
+ * LA FILE DE MODÉRATION, LUE DEPUIS L'APPLI (21/09/2026).
+ *
+ * L'API existait depuis longtemps ; personne ne l'appelait. Les signalements
+ * dormaient en base, annoncés sur une issue GitHub que le propriétaire n'ouvre
+ * jamais — le sien a attendu quatorze heures. Le serveur revérifie le rôle à
+ * chaque appel et répond 403 à tout le monde d'autre ; ces deux fonctions ne
+ * sont donc appelées que depuis l'écran réservé au propriétaire.
+ */
+export type ModerationReport = {
+  id: string
+  reason: 'pseudo' | 'comportement' | 'triche' | 'harcelement' | 'autre' | string
+  details: string
+  created_at: string
+  match_id: string | null
+  reporterName: string
+  reportedName: string
+}
+
+/** Ce que la modération peut décider d'un signalement. */
+export type ModerationDecision = 'dismiss' | 'warn' | 'suspend' | 'ban'
+
+export async function loadModerationQueue(): Promise<ModerationReport[]> {
+  if (localTestServer) return []
+  return (await supabaseSocial<{ reports: ModerationReport[] }>('moderation-list')).reports ?? []
+}
+
+export async function resolveReport(reportId: string, decision: ModerationDecision): Promise<void> {
+  if (localTestServer) return
+  await supabaseSocial<{ ok: true }>('moderation-resolve', { reportId, decision })
+}
+
 export async function reportPlayer(targetId: string, reason: 'pseudo' | 'comportement' | 'triche' | 'harcelement' | 'autre', details = '', matchId?: string): Promise<void> {
   if (localTestServer) { await localSocial('report', { targetId, reason, details, matchId }); return }
   await supabaseSocial<{ ok: true }>('report', { targetId, reason, details, matchId })

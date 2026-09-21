@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Activity, ChevronRight, RefreshCw } from 'lucide-react'
+import { Activity, ChevronRight, RefreshCw, ShieldAlert } from 'lucide-react'
 import { loadGamePulse, type GamePulse } from '../matches'
 import { useDialogFocus } from '../useDialogFocus'
+import { ModerationPanel } from './ModerationPanel'
 import './menu-pulse.css'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -37,6 +38,11 @@ export function libelleEnLigne(enLigne: number): string {
   return enLigne > 1 ? 'joueurs en ligne' : 'joueur en ligne'
 }
 
+/** « signalement » ou « signalements » : zéro reste au singulier. */
+export function libelleSignalements(nombre: number): string {
+  return nombre > 1 ? 'signalements' : 'signalement'
+}
+
 export function GamePulse() {
   const [pouls, setPouls] = useState<GamePulse | null>(null)
   const [erreur, setErreur] = useState(false)
@@ -60,20 +66,38 @@ export function GamePulse() {
  */
 export function GamePulseCard({ pouls, rafraichir }: { pouls: GamePulse; rafraichir: () => void }) {
   const [ouvert, setOuvert] = useState(false)
+  const [moderation, setModeration] = useState(false)
+  const aTraiter = pouls.signalementsOuverts ?? 0
   return (
     <>
       <button
         type="button"
         className="mm-pulse"
-        aria-label={`${pouls.enLigne} ${libelleEnLigne(pouls.enLigne)} — voir le pouls du jeu`}
+        aria-label={aTraiter > 0
+          ? `${aTraiter} ${libelleSignalements(aTraiter)} à traiter, et ${pouls.enLigne} ${libelleEnLigne(pouls.enLigne)}`
+          : `${pouls.enLigne} ${libelleEnLigne(pouls.enLigne)} — voir le pouls du jeu`}
         onClick={() => setOuvert(true)}
       >
         <Activity aria-hidden="true" />
         <b>{pouls.enLigne}</b>
-        <span>{libelleEnLigne(pouls.enLigne)}</span>
+        <span>
+          {libelleEnLigne(pouls.enLigne)}
+          {/* La pastille est le seul rouge de l'accueil : elle ne se confond
+              avec rien, et elle n'apparaît que s'il y a vraiment à faire. */}
+          {aTraiter > 0 ? <em className="mm-pulse-badge">{aTraiter} {libelleSignalements(aTraiter)}</em> : null}
+        </span>
         <ChevronRight aria-hidden="true" />
       </button>
-      {ouvert && <GamePulseDialog pouls={pouls} fermer={() => setOuvert(false)} rafraichir={rafraichir} />}
+      {ouvert && (
+        <GamePulseDialog
+          pouls={pouls}
+          fermer={() => setOuvert(false)}
+          rafraichir={rafraichir}
+          ouvrirModeration={() => { setOuvert(false); setModeration(true) }}
+        />
+      )}
+      {/* Une seule fenêtre à la fois : la modération remplace le pouls. */}
+      {moderation && <ModerationPanel fermer={() => { setModeration(false); rafraichir() }} />}
     </>
   )
 }
@@ -82,10 +106,11 @@ function Ligne({ nom, valeur }: { nom: string; valeur: number }) {
   return <div><dt>{nom}</dt><dd>{valeur}</dd></div>
 }
 
-function GamePulseDialog({ pouls, fermer, rafraichir }: {
+function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration }: {
   pouls: GamePulse
   fermer: () => void
   rafraichir: () => void
+  ouvrirModeration: () => void
 }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(fermer)
   return (
@@ -103,6 +128,22 @@ function GamePulseDialog({ pouls, fermer, rafraichir }: {
         </header>
         {/* Dit une fois, en haut : sinon chaque nombre devrait le répéter. */}
         <p className="mm-pulse-note">Toi non compté · journée de Paris</p>
+
+        {/* Ce qui appelle une action passe AVANT ce qui informe. */}
+        {(pouls.signalementsOuverts ?? 0) > 0 ? (
+          <button type="button" className="mm-pulse-alerte" onClick={ouvrirModeration}>
+            <ShieldAlert aria-hidden="true" />
+            <span>
+              <b>{pouls.signalementsOuverts} {libelleSignalements(pouls.signalementsOuverts)} à traiter</b>
+              <small>
+                {pouls.signalementPlusAncienHeures >= 1
+                  ? `Le plus ancien attend depuis ${pouls.signalementPlusAncienHeures} h`
+                  : 'Arrivé à l’instant'}
+              </small>
+            </span>
+            <ChevronRight aria-hidden="true" />
+          </button>
+        ) : null}
 
         <h3>En ce moment</h3>
         <dl><Ligne nom="En ligne" valeur={pouls.enLigne} /></dl>

@@ -6,7 +6,15 @@
 .mm-pulse>svg{width:16px;height:16px}
 .mm-pulse>svg:last-child{width:15px;height:15px;justify-self:end}
 .mm-pulse b{font:700 1.125rem/1 'Playfair Display',serif;color:var(--mm-ink)}
-.mm-pulse span{font-size:0.6875rem;letter-spacing:.03em}
+.mm-pulse span{display:flex;align-items:center;gap:8px;font-size:0.6875rem;letter-spacing:.03em}
+/* Le seul rouge de l'accueil : il n'apparaît que s'il y a vraiment à faire. */
+.mm-pulse-badge{margin-left:auto;padding:3px 9px;border-radius:20px;background:var(--mm-coral);color:var(--mm-paper);font:700 0.625rem/1 'DM Sans',sans-serif;font-style:normal;letter-spacing:.02em}
+
+.mm-shell .mm-pulse-alerte{width:100%;margin:0 0 15px;padding:10px 12px;display:grid;grid-template-columns:20px 1fr 16px;gap:10px;align-items:center;text-align:left;border:1px solid color-mix(in srgb,var(--mm-coral) 45%,var(--mm-line));border-radius:12px;background:color-mix(in srgb,var(--mm-coral) 9%,var(--mm-paper));color:var(--mm-ink)}
+.mm-pulse-alerte svg{width:18px;height:18px;color:var(--mm-coral)}
+.mm-pulse-alerte svg:last-child{width:15px;height:15px;color:var(--mm-muted)}
+.mm-pulse-alerte b{display:block;font:700 0.8125rem/1.25 'DM Sans',sans-serif}
+.mm-pulse-alerte small{display:block;margin-top:2px;color:var(--mm-muted);font-size:0.6875rem}
 
 .mm-pulse-layer{align-items:center;padding:18px}
 .mm-pulse-dialog{width:min(100%,330px);max-height:82vh;overflow-y:auto;padding:18px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 18px 55px #0005}

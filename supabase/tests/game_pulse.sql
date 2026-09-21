@@ -120,7 +120,33 @@ begin
       public.server_game_pulse(moi) ->> 'classeesSeptJours', apres ->> 'classeesSeptJours';
   end if;
 
-  -- ── 4. Réservé au service ─────────────────────────────────────────────────
+  -- ── 4. Les signalements se comptent SANS exclusion ────────────────────────
+  -- Le propriétaire doit voir le sien : c'est en signalant lui-même qu'il a
+  -- découvert que rien ne le prévenait (21/09/2026). Ici, `p_moi` sert à
+  -- mesurer l'audience, pas à filtrer la modération.
+  insert into public.reports(reporter_id, reported_id, reason, details, status, created_at)
+  values (moi, autre, 'triche', 'essai', 'open', pg_catalog.now() - interval '5 hours');
+
+  if (public.server_game_pulse(moi) ->> 'signalementsOuverts')::int
+     <> (apres ->> 'signalementsOuverts')::int + 1 then
+    raise exception 'Mon propre signalement doit compter : % contre %',
+      public.server_game_pulse(moi) ->> 'signalementsOuverts', apres ->> 'signalementsOuverts';
+  end if;
+  if (public.server_game_pulse(moi) ->> 'signalementPlusAncienHeures')::int < 5 then
+    raise exception 'Le plus ancien attend depuis 5 h, la fonction dit % h',
+      public.server_game_pulse(moi) ->> 'signalementPlusAncienHeures';
+  end if;
+
+  -- Traité, il sort du compte : c'est ce qui éteint la pastille de l'accueil.
+  update public.reports set status = 'dismissed', reviewed_at = pg_catalog.now(), reviewed_by = moi
+  where reporter_id = moi;
+  if (public.server_game_pulse(moi) ->> 'signalementsOuverts')::int
+     <> (apres ->> 'signalementsOuverts')::int then
+    raise exception 'Un signalement traité doit sortir du compte : % contre %',
+      public.server_game_pulse(moi) ->> 'signalementsOuverts', apres ->> 'signalementsOuverts';
+  end if;
+
+  -- ── 5. Réservé au service ─────────────────────────────────────────────────
   if pg_catalog.has_function_privilege('authenticated', 'public.server_game_pulse(uuid)', 'execute')
      or pg_catalog.has_function_privilege('anon', 'public.server_game_pulse(uuid)', 'execute') then
     raise exception 'Le pouls du jeu doit rester reserve au service';

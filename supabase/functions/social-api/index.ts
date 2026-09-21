@@ -9,9 +9,47 @@ import {
   SOCIAL_SEARCH_RESULT_LIMIT,
 } from '../../../src/socialSearchPolicy.ts'
 import { socialActionRoute } from '../../../src/socialActionPolicy.ts'
+import { queuePush, sendPushToUser } from '../_shared/pushNotifications.ts'
 import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.ts'
 
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
+
+/**
+ * PRÉVENIR LA MODÉRATION, TOUT DE SUITE (21/09/2026).
+ *
+ * « Si je fais un signalement d'un joueur il va où ? J'ai signalé ma femme
+ * hier, j'ai aucun retour. » Le signalement partait bien : en base, puis en
+ * alerte sur une issue GitHub — que le propriétaire n'ouvre jamais. Le sien a
+ * attendu quatorze heures sans que personne le sache.
+ *
+ * La notification part donc sur le téléphone, par le canal qu'il lit déjà.
+ * Elle ne dit NI qui a signalé, NI qui est visé, NI le texte : une notification
+ * s'affiche sur un écran verrouillé, parfois devant quelqu'un d'autre. Elle
+ * annonce qu'il y a quelque chose à traiter ; le détail attend dans l'appli.
+ *
+ * Celui qui signale est prévenu comme les autres s'il est modérateur : c'est
+ * précisément le retour qui manquait au propriétaire quand il a fait son essai.
+ *
+ * Pas d'heures calmes ici, contrairement aux rappels de tour : un signalement
+ * est rare (un seul depuis l'ouverture du jeu) et peut être urgent. À revoir si
+ * le volume monte.
+ */
+async function prevenirLaModeration(admin: ReturnType<typeof createAdminClient>): Promise<void> {
+  const { data: moderateurs } = await admin.from('profiles').select('id').in('role', ['admin', 'moderator'])
+  const { count } = await admin.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open')
+  const attente = count ?? 1
+  for (const moderateur of moderateurs ?? []) {
+    queuePush(sendPushToUser(admin, moderateur.id, {
+      title: 'Signalement à traiter',
+      body: attente > 1
+        ? `${attente} signalements attendent dans MotMan.`
+        : 'Un joueur vient d’en signaler un autre. Ouvre MotMan pour le lire.',
+      data: { type: 'player_report' },
+      // Un seul fil : dix signalements ne font pas dix notifications empilées.
+      tag: 'moderation',
+    }))
+  }
+}
 
 Deno.serve(async request => {
   const http = createHttpResponder(request, Deno.env.get('MOTMAN_ALLOWED_ORIGINS'))
@@ -163,7 +201,24 @@ Deno.serve(async request => {
       if (!['moderator', 'admin'].includes(accessProfile?.role ?? 'player')) return json(403, { error: 'Accès modération refusé.' })
       if (action === 'moderation-list') {
         const { data: reports } = await admin.from('reports').select('*').eq('status', 'open').order('created_at').limit(100)
-        return json(200, { ok: true, reports: reports ?? [] })
+        const lignes = reports ?? []
+        // LES PSEUDOS, PAS SEULEMENT LES IDENTIFIANTS (21/09/2026). Le
+        // propriétaire lit cette liste depuis son téléphone : « untel a signalé
+        // untel » se décide d'un coup d'œil, deux UUID ne se décident pas.
+        const profils = await loadPublicProfiles(
+          admin,
+          [...new Set(lignes.flatMap(ligne => [ligne.reporter_id, ligne.reported_id]))],
+          { normalizeOfflineActivity: true },
+        )
+        const nom = (id: string) => profils.get(id)?.displayName ?? 'Joueur inconnu'
+        return json(200, {
+          ok: true,
+          reports: lignes.map(ligne => ({
+            ...ligne,
+            reporterName: nom(ligne.reporter_id),
+            reportedName: nom(ligne.reported_id),
+          })),
+        })
       }
       const reportId = typeof body.reportId === 'string' ? body.reportId : ''
       const decision = typeof body.decision === 'string' ? body.decision : ''
@@ -192,6 +247,7 @@ Deno.serve(async request => {
         const { data: target } = await admin.from('profiles').select('id').eq('id', targetId).maybeSingle()
         if (!target) return json(404, { error: 'Joueur introuvable.' })
         await admin.from('reports').insert({ reporter_id: user.id, reported_id: targetId, reason: allowed.includes(String(body.reason)) ? body.reason : 'autre', details: typeof body.details === 'string' ? body.details.trim().slice(0, 500) : '', match_id: typeof body.matchId === 'string' && UUID_PATTERN.test(body.matchId) ? body.matchId : null })
+        await prevenirLaModeration(admin)
       }
     } else return json(404, { error: 'Action inconnue.' })
     return json(200, action === 'presence' ? { ok: true } : { ok: true, state: await state() })
