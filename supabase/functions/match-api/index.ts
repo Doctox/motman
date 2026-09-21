@@ -148,7 +148,7 @@ Deno.serve(async request => {
       // 500 à `state`, donc plus de lobby, plus d'invitations, plus de file,
       // jusqu'à la purge à 26 h. On écarte la partie fautive, on la journalise,
       // et le reste du menu s'affiche.
-      const resolues = await Promise.allSettled((await activeRows()).map(resolveRow))
+      const resolues = await Promise.allSettled((await activeRows()).map(row => resolveRow(row)))
       const rows = resolues.flatMap(issue => {
         if (issue.status === 'fulfilled') return [issue.value]
         logServerError('match-api:lobby-partie', issue.reason, { userId: user.id })
