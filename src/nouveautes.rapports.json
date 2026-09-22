@@ -112,5 +112,11 @@
     "titre": "L'appli te tutoie",
     "texte": "Tous les textes du jeu passent au « tu ». Seules les pages légales gardent le vouvoiement.",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-09-22T16:20",
+    "titre": "6 nouveaux thèmes",
+    "texte": "Boissons, Bricolage & Outils, Histoire, Jeux & Loisirs, Légendes & Frissons et Littérature & Écriture rejoignent le défi du jour.",
+    "genre": "theme"
   }
 ]
