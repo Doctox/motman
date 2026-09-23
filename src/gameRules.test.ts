@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   canUseHint,
+  INDICES_PAR_PARTIE,
+  indicesRestants,
+  indicesUtilises,
   canUseReroll,
   drawRackFromBag,
   evaluateTurn,
@@ -241,8 +244,8 @@ describe('indice et chevalet', () => {
   })
 
   it('limite chaque bonus à une utilisation et bloque la relance avec une lettre posée', () => {
-    expect(canUseHint(false)).toBe(true)
-    expect(canUseHint(true)).toBe(false)
+    expect(canUseHint(0)).toBe(true)
+    expect(canUseHint(INDICES_PAR_PARTIE)).toBe(false)
     expect(canUseReroll({ alreadyUsed: false, pendingPlacements: 0, hintActive: false })).toBe(true)
     expect(canUseReroll({ alreadyUsed: true, pendingPlacements: 0, hintActive: false })).toBe(false)
     expect(canUseReroll({ alreadyUsed: false, pendingPlacements: 1, hintActive: false })).toBe(false)
@@ -306,5 +309,42 @@ describe('« Tu es toujours là ? » en temps limité : 30 s pour répondre', ()
 
   it('la fenêtre du serveur de test peut être raccourcie', () => {
     expect(presenceDeadline({ ...tour, inactivity: 1, acknowledged: 0, windowMs: 4_000 })).toBe(debut + 4_000)
+  })
+
+  // TROIS INDICES PAR PARTIE (propriétaire, 23/09/2026), contre un seul avant.
+  // Le reste des règles de l'indice ne bouge pas.
+  describe('les trois indices d’une partie', () => {
+    it('en donne trois, puis refuse le quatrième', () => {
+      expect(canUseHint(0)).toBe(true)
+      expect(canUseHint(1)).toBe(true)
+      expect(canUseHint(2)).toBe(true)
+      expect(canUseHint(3)).toBe(false)
+      expect(canUseHint(4)).toBe(false)
+    })
+
+    it('compte ce qui reste, sans jamais descendre sous zéro', () => {
+      expect(indicesRestants(undefined)).toBe(3)
+      expect(indicesRestants(1)).toBe(2)
+      expect(indicesRestants(3)).toBe(0)
+      // Un stockage qui déborde ne doit pas afficher « -2 indices ».
+      expect(indicesRestants(9)).toBe(0)
+    })
+
+    // LES PARTIES EN COURS AU MOMENT DE LA LIVRAISON portent encore `true` :
+    // il compte pour un indice pris, et ces joueurs en gardent deux. Sans
+    // cette tolérance, il aurait fallu une migration — ou des parties cassées.
+    it('lit l’ancien format booléen comme un seul indice pris', () => {
+      expect(indicesUtilises(true)).toBe(1)
+      expect(indicesUtilises(false)).toBe(0)
+      expect(indicesUtilises(undefined)).toBe(0)
+      expect(canUseHint(true)).toBe(true)
+      expect(indicesRestants(true)).toBe(2)
+    })
+
+    it('ne se laisse pas berner par une valeur absurde', () => {
+      expect(indicesUtilises(-5)).toBe(0)
+      expect(indicesUtilises(Number.NaN)).toBe(0)
+      expect(indicesUtilises(2.7)).toBe(2)
+    })
   })
 })

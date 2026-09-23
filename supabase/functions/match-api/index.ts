@@ -1,4 +1,4 @@
-import { canUseHint, canUseReroll, hintCandidates } from '../../../src/gameRules.ts'
+import { canUseHint, canUseReroll, hintCandidates, indicesUtilises } from '../../../src/gameRules.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { dailyGridIdFor, parisDateKey } from '../_shared/dailyCalendar.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
@@ -683,7 +683,7 @@ Deno.serve(async request => {
       if (Date.now() >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) timeoutTurn(row)
       else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
-      if (!canUseHint(Boolean(row.state.hintUsed[user.id]))) return json(409, { error: 'Ton indice a déjà été utilisé.' })
+      if (!canUseHint(row.state.hintUsed[user.id])) return json(409, { error: 'Ton indice a déjà été utilisé.' })
       const pendingPlacements = sanitizePlacements(
         row,
         grid,
@@ -699,7 +699,7 @@ Deno.serve(async request => {
       if (!candidates.length) return json(409, { error: 'Aucun indice disponible.' })
       const chosen = candidates[hash(`${row.id}:${row.turn_number}:hint`) % candidates.length]
       row.state.hint = { playerId: user.id, cellIndex: chosen.cellIndex, letter: chosen.letter, turnNumber: row.turn_number }
-      row.state.hintUsed[user.id] = true
+      row.state.hintUsed[user.id] = indicesUtilises(row.state.hintUsed[user.id]) + 1
       row.state.board[String(chosen.cellIndex)] = { letter: chosen.letter, playerId: user.id }
       const rack = row.state.racks[user.id] ?? []
       const hintedLetterIndex = rack.indexOf(chosen.letter)

@@ -42,12 +42,20 @@ describe('la mise en valeur après une attente', () => {
 })
 
 describe('n’éclairer que ce qui est réellement disponible', () => {
-  it('laisse l’indice éteint une fois utilisé dans la partie', () => {
-    expect(idleAssistCue(entree({ hint: { used: true, requesting: false } })).hint).toBe(false)
+  // TROIS INDICES PAR PARTIE (23/09/2026) : le voyant ne s'éteint qu'au
+  // TROISIÈME. Ce test affirmait l'inverse — il tenait l'ancienne règle, et
+  // c'est lui qui a signalé le changement.
+  it('garde l’indice allumé tant qu’il en reste, et l’éteint au troisième', () => {
+    expect(idleAssistCue(entree({ hint: { used: 0, requesting: false } })).hint).toBe(true)
+    expect(idleAssistCue(entree({ hint: { used: 1, requesting: false } })).hint).toBe(true)
+    expect(idleAssistCue(entree({ hint: { used: 2, requesting: false } })).hint).toBe(true)
+    expect(idleAssistCue(entree({ hint: { used: 3, requesting: false } })).hint).toBe(false)
+    // Une partie ouverte avant la livraison : `true` vaut un indice pris.
+    expect(idleAssistCue(entree({ hint: { used: true, requesting: false } })).hint).toBe(true)
   })
 
   it('laisse l’indice éteint pendant que la demande est en route', () => {
-    expect(idleAssistCue(entree({ hint: { used: false, requesting: true } })).hint).toBe(false)
+    expect(idleAssistCue(entree({ hint: { used: 0, requesting: true } })).hint).toBe(false)
   })
 
   it('laisse la relance éteinte une fois utilisée, ou pendant qu’elle part', () => {

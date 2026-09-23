@@ -293,8 +293,39 @@ export function keepRackLettersAfterTurn(
   return remaining
 }
 
-export function canUseHint(alreadyUsed: boolean): boolean {
-  return !alreadyUsed
+// ─────────────────────────────────────────────────────────────────────────────
+// LES INDICES : TROIS PAR PARTIE (propriétaire, 23/09/2026)
+//
+// Un seul jusqu'ici. Le reste des règles ne bouge pas : un indice à la fois,
+// pas de mélange du chevalet tant qu'il est posé, la quête « sans indice »
+// tombe au premier, et la récompense en plumes reste diminuée dès qu'on en a
+// pris un.
+//
+// LE COMPTE SE LIT SUR UN STOCKAGE À DEUX FORMES. `hintUsed` valait `true`
+// avant ce jour, et vaut un NOMBRE depuis. Les parties en cours au moment de la
+// livraison portent donc encore `true` : il compte pour un, et ces joueurs
+// gardent deux indices. Aucune migration, aucune partie cassée.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Combien d'indices un joueur peut demander dans une partie. */
+export const INDICES_PAR_PARTIE = 3
+
+/** Ce qui est stocké dans `hintUsed[joueur]` : un booléen d'hier, un nombre depuis. */
+export type IndicesPris = boolean | number | undefined
+
+/** Combien d'indices ce joueur a déjà pris, quelle que soit la forme stockée. */
+export function indicesUtilises(valeur: IndicesPris): number {
+  if (typeof valeur === 'number') return Number.isFinite(valeur) ? Math.max(0, Math.trunc(valeur)) : 0
+  return valeur ? 1 : 0
+}
+
+/** Combien il lui en reste. Jamais négatif, même si le stockage déborde. */
+export function indicesRestants(valeur: IndicesPris): number {
+  return Math.max(0, INDICES_PAR_PARTIE - indicesUtilises(valeur))
+}
+
+export function canUseHint(deja: IndicesPris): boolean {
+  return indicesUtilises(deja) < INDICES_PAR_PARTIE
 }
 
 export function canUseReroll({ alreadyUsed, pendingPlacements, hintActive }: {

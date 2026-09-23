@@ -303,3 +303,7 @@ html[data-motion="off"] .hint-button[data-idle-cue]::after,html[data-motion="off
 .ranked-seeker-rejoindre{border:1px solid #a33d1f;background:linear-gradient(180deg,#d95b33,#c1461f);color:#fff;box-shadow:0 6px 16px #c1461f3d}
 @keyframes ranked-seeker-entree{from{opacity:0;transform:translateY(10px) scale(.97)}}
 html[data-motion="off"] .ranked-seeker-dialog{animation:none}
+
+/* Combien d'indices il reste, sur le bouton (23/09/2026). Trois par partie :
+   sans ce compte, le joueur croit son indice consommé dès le premier. */
+.hint-button .hint-left{margin-left:6px;padding:1px 6px;border-radius:20px;background:color-mix(in srgb,var(--mm-gold) 30%,transparent);font-style:normal;font-weight:800;font-size:0.6875rem}

@@ -31,7 +31,7 @@
 // s'efface (`turnUrgent`), et la barre de temps reste seule à parler.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { canUseHint, canUseReroll } from '../gameRules'
+import { canUseHint, canUseReroll, type IndicesPris } from '../gameRules'
 
 /**
  * Vingt-cinq secondes sans un geste (demande du propriétaire, 16/09/2026).
@@ -62,8 +62,8 @@ export type IdleAssistInput = {
   /** Dernières secondes d'un tour en temps limité. */
   turnUrgent: boolean
   hint: {
-    /** Indice déjà utilisé dans cette partie. */
-    used: boolean
+    /** Combien d'indices ont déjà été pris dans cette partie (`hintUsed`). */
+    used: IndicesPris
     /** Une demande d'indice est partie et n'est pas revenue. */
     requesting: boolean
   }

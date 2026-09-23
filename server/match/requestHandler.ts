@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
-  canUseHint, canUseReroll, hasTurnStarted, hintCandidates, isTurnSubmissionExpired, shouldForfeitAfterInactivity,
+  canUseHint, canUseReroll, hasTurnStarted, hintCandidates, indicesUtilises, isTurnSubmissionExpired, shouldForfeitAfterInactivity,
 } from '../../src/gameRules'
 import {
   ASYNC_INVITATION_DURATION_MS, AUTOMATIC_TURN_SUBMIT_GRACE_MS, INVITATION_DURATION_MS, MAX_ASYNC_MATCHES,
@@ -261,7 +261,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   }
 
   if (route === 'hint') {
-    if (!canUseHint(Boolean(match.hintUsed[playerId]))) return sendJson(response, 409, { error: 'Indice déjà utilisé pendant cette partie.' })
+    if (!canUseHint(match.hintUsed[playerId])) return sendJson(response, 409, { error: 'Indice déjà utilisé pendant cette partie.' })
     const currentGrid = gridForMatch(match)
     const solution = gridSolution(currentGrid)
     const rack = match.racks[playerId] ?? []
@@ -279,7 +279,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     if (!candidates.length) return sendJson(response, 409, { error: 'Aucun indice disponible.' })
     const selected = candidates[hash(`${match.id}:${playerId}:${match.turnNumber}:hint`) % candidates.length]
     match.hint = { playerId, cellIndex: selected.cellIndex, letter: selected.letter, turnNumber: match.turnNumber }
-    match.hintUsed[playerId] = true
+    match.hintUsed[playerId] = indicesUtilises(match.hintUsed[playerId]) + 1
     match.board[selected.cellIndex] = { letter: selected.letter, playerId }
     const hintedLetterIndex = rack.indexOf(selected.letter)
     match.racks[playerId] = rack.filter((_, index) => index !== hintedLetterIndex)

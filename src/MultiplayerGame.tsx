@@ -11,7 +11,7 @@ import { BoardWordHighlight, type BoardWordHighlightState } from './BoardWordHig
 import { ClueZoom } from './ClueZoom'
 import { loadPlayerCosmetics } from './cosmetics'
 import { GameOptionsOverlay, ReportPlayerOverlay } from './GameOverlays'
-import { canUseReroll, gameWordCellIndexes, REWARD_EFFECT_LIFETIME_MS } from './gameRules'
+import { canUseHint, canUseReroll, gameWordCellIndexes, indicesRestants, INDICES_PAR_PARTIE, REWARD_EFFECT_LIFETIME_MS } from './gameRules'
 import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
@@ -823,7 +823,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   </> : null}</main>
 
   const hint = match.hint?.playerId === playerId && match.hint.turnNumber === match.turnNumber ? match.hint : null
-  const hintUsedInMatch = Boolean(match.hintUsed?.[playerId])
+  // Trois indices par partie depuis le 23/09/2026 : le joueur doit voir
+  // combien il lui en reste, sinon il ne sait pas qu'il peut en reprendre un.
+  const indicesPris = match.hintUsed?.[playerId]
+  const indicesQuiRestent = indicesRestants(indicesPris)
+  const hintUsedInMatch = !canUseHint(indicesPris)
   const rerollUsedInMatch = Boolean(match.rerollUsed?.[playerId])
   const myScore = displayedScores[playerId] ?? match.scores[playerId] ?? 0
   const opponentScore = displayedScores[opponentId] ?? match.scores[opponentId] ?? 0
@@ -834,7 +838,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     canAct,
     resolving,
     turnUrgent: turnPhase.urgent,
-    hint: { used: hintUsedInMatch, requesting: hintRequesting },
+    hint: { used: indicesPris, requesting: hintRequesting },
     reroll: {
       used: rerollUsedInMatch,
       requesting: rerollRequesting,
@@ -930,7 +934,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
-      <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Indice déjà utilisé pendant cette partie' : 'Utiliser un indice'}><Lightbulb />Indice</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
+      <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} />}
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}

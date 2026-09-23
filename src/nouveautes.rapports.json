@@ -118,5 +118,11 @@
     "titre": "6 nouveaux thèmes",
     "texte": "Boissons, Bricolage & Outils, Histoire, Jeux & Loisirs, Légendes & Frissons et Littérature & Écriture rejoignent le défi du jour.",
     "genre": "theme"
+  },
+  {
+    "ajoute": "2026-09-23T11:59",
+    "titre": "Trois indices par partie",
+    "texte": "L'indice ne s'utilisait qu'une fois. Tu en as maintenant trois par partie — le bouton affiche ce qu'il te reste.",
+    "genre": "jeu"
   }
 ]
