@@ -8,7 +8,9 @@ import {
   normalizeSocialSearch,
   SOCIAL_SEARCH_RESULT_LIMIT,
 } from '../../../src/socialSearchPolicy.ts'
+import { PRESENCE_ONLINE_TTL_MS } from '../../../src/presencePolicy.ts'
 import { socialActionRoute } from '../../../src/socialActionPolicy.ts'
+import { ARRIVEE_APRES_MS, dansLeSilence, messageArrivee } from '../_shared/ownerAlertPolicy.ts'
 import { queuePush, sendPushToUser } from '../_shared/pushNotifications.ts'
 import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.ts'
 
@@ -70,6 +72,59 @@ async function prevenirLaModeration(admin: ReturnType<typeof createAdminClient>)
       tag: 'moderation',
     }))
   }
+}
+
+/**
+ * LE BATTEMENT DE PRÉSENCE, ET L'ARRIVÉE QU'IL RÉVÈLE (23/09/2026).
+ *
+ * C'est la route la plus chaude du jeu : chaque appli ouverte passe ici toutes
+ * les 25 secondes. Elle ne fait toujours qu'UN aller-retour vers la base — la
+ * fonction `server_presence_touch` écrit le battement et dit, dans la foulée,
+ * si ce battement-ci suit un trou assez long pour être une arrivée.
+ *
+ * Les seuils lui sont DONNÉS, jamais écrits en SQL : `ownerAlertPolicy.ts` est
+ * le seul endroit où la règle existe.
+ *
+ * Le repli n'est pas décoratif. Si la fonction manque — le jour où cette
+ * version part avant sa migration — on retombe sur l'écriture qu'elle
+ * remplace. Sans lui, tous les joueurs passeraient « hors ligne » d'un coup.
+ */
+async function battementDePresence(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  activity: 'online' | 'playing',
+): Promise<void> {
+  const { data, error } = await admin.rpc('server_presence_touch', {
+    p_user: userId,
+    p_activity: activity,
+    p_alertable: !dansLeSilence(Date.now()),
+    p_absence_seconds: Math.round(ARRIVEE_APRES_MS / 1000),
+    p_en_ligne_seconds: Math.round(PRESENCE_ONLINE_TTL_MS / 1000),
+  })
+  if (error) {
+    console.error('server_presence_touch indisponible, battement direct', error)
+    await admin.from('profiles').update({ activity, last_seen: new Date().toISOString() }).eq('id', userId)
+    return
+  }
+  const arrivee = data as { alerte?: boolean; enLigne?: number } | null
+  if (arrivee?.alerte) queuePush(prevenirDuneArrivee(admin, arrivee.enLigne ?? 1))
+}
+
+/**
+ * « Un joueur arrive. » Sans pseudo, par choix du propriétaire : le pouls du
+ * jeu donne des nombres et jamais des noms, et une notification se lit sur un
+ * écran verrouillé, parfois devant quelqu'un d'autre.
+ *
+ * Seul le rôle `admin` est prévenu : c'est une information d'audience, pas de
+ * modération — les modérateurs n'ont rien à faire de qui ouvre l'appli.
+ */
+async function prevenirDuneArrivee(
+  admin: ReturnType<typeof createAdminClient>,
+  enLigne: number,
+): Promise<void> {
+  const { data: proprietaires } = await admin.from('profiles').select('id').eq('role', 'admin')
+  const message = messageArrivee(enLigne)
+  await Promise.all((proprietaires ?? []).map(proprietaire => sendPushToUser(admin, proprietaire.id, message)))
 }
 
 Deno.serve(async request => {
@@ -186,7 +241,7 @@ Deno.serve(async request => {
         }))
       return json(200, { ok: true, results })
     } else if (route === 'presence') {
-      await admin.from('profiles').update({ activity: body.activity === 'playing' ? 'playing' : 'online', last_seen: new Date().toISOString() }).eq('id', user.id)
+      await battementDePresence(admin, user.id, body.activity === 'playing' ? 'playing' : 'online')
     } else if (route === 'request') {
       const { count: pendingCount } = await admin.from('friend_requests').select('id', { count: 'exact', head: true }).eq('from_user_id', user.id)
       if ((pendingCount ?? 0) >= 20) return json(429, { error: 'Tu as trop de demandes en attente.' })

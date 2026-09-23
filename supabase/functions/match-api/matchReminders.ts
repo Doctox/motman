@@ -16,6 +16,7 @@
 // fonctions pures, testées par `matchReminders.test.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { dansLaPlage, parisHour } from '../_shared/parisTime.ts'
 import type { PushMessage } from '../_shared/pushNotifications.ts'
 import type { MatchRow } from './matchModel.ts'
 
@@ -24,16 +25,12 @@ export const REMINDER_MARKS_MS = [6 * HEURE_MS, 12 * HEURE_MS, 18 * HEURE_MS] as
 export const QUIET_START_HOUR = 22
 export const QUIET_END_HOUR = 8
 
-const heureParis = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: 'numeric', hourCycle: 'h23' })
-
-export function parisHour(now: number): number {
-  // Par morceaux : en français, le texte complet s'écrit « 22 h », que Number() ne lit pas.
-  return Number(heureParis.formatToParts(new Date(now)).find(morceau => morceau.type === 'hour')?.value)
-}
+// L'heure de Paris vit dans `_shared/parisTime.ts` : le silence des rappels et
+// celui des alertes d'arrivée du propriétaire doivent lire la même horloge.
+export { parisHour }
 
 export function inQuietHours(now: number): boolean {
-  const heure = parisHour(now)
-  return heure >= QUIET_START_HOUR || heure < QUIET_END_HOUR
+  return dansLaPlage(now, QUIET_START_HOUR, QUIET_END_HOUR)
 }
 
 /** Partie concernée par les rappels et par la clôture automatique des tours. */
