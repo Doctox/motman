@@ -2,7 +2,7 @@
   "schema": "motman-daily-theme-schedule",
   "version": 1,
   "timezone": "Europe/Paris",
-  "_comment": "Calendrier généré par scripts/build_daily_calendar.mjs (catalogue v36) — rotation de 21 thèmes. Un thème n'est annoncé que sur une grille qui le porte ; une grille à thème (dailyOnly) ne sort jamais sans lui. Un jour sans thème sert une grille générique (theme:null). Le repli générique couvre les dates non listées.",
+  "_comment": "Calendrier généré par scripts/build_daily_calendar.mjs (catalogue v37) — rotation de 21 thèmes. Un thème n'est annoncé que sur une grille qui le porte ; une grille à thème (dailyOnly) ne sort jamais sans lui. Un jour sans thème sert une grille générique (theme:null). Le repli générique couvre les dates non listées.",
   "days": [
     {
       "date": "2026-08-05",
@@ -1730,6 +1730,12 @@
       "date": "2027-05-19",
       "gridId": "culturepop-7x8-544b75",
       "theme": "Culture pop, Cinéma & Jeux vidéo",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-05-20",
+      "gridId": "histoire-7x8-97b9bb",
+      "theme": "Histoire",
       "difficulty": "normal"
     }
   ]
