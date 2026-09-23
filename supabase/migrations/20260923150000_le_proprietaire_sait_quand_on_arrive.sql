@@ -7,38 +7,29 @@
 -- ne s'écrit nulle part, il se déduit d'un battement qui manque. Une arrivée,
 -- c'est donc un battement qui arrive APRÈS UN TROU.
 --
--- CE QUE CETTE FONCTION AJOUTE au simple `update` qu'elle remplace : elle sait
--- dire, au passage, si ce battement-ci est une arrivée à signaler. Elle ne
--- décide RIEN toute seule — la durée du trou et l'autorisation d'alerter lui
--- sont données en paramètres par `_shared/ownerAlertPolicy.ts`. Une règle
--- écrite deux fois finit par diverger ; celle-ci n'existe qu'en TypeScript.
+-- CE QUE CETTE FONCTION AJOUTE au simple `update` qu'elle remplace : elle dit,
+-- au passage, si ce battement-ci est une arrivée. Elle ne décide RIEN toute
+-- seule — la durée du trou et l'autorisation d'alerter lui sont données en
+-- paramètres par `_shared/ownerAlertPolicy.ts`. Une règle écrite deux fois
+-- finit par diverger ; celle-ci n'existe qu'en TypeScript.
+--
+-- AUCUN PLAFOND, tranché par le propriétaire le jour même : « je m'en fous du
+-- plafond, même s'il se co 15 fois je veux le savoir, donc fais vibrer. » Le
+-- seuil d'absence est donc celui du jeu — les 75 secondes qui font déjà passer
+-- un joueur « hors ligne » aux yeux de ses amis — et chaque retour en ligne
+-- part en notification.
 --
 -- POURQUOI UNE SEULE INSTRUCTION. Lire `last_seen`, décider, puis écrire, ce
 -- sont trois temps pendant lesquels un second battement peut passer : deux
--- notifications pour une arrivée. Ici, l'`update` lit l'ancienne ligne et pose
--- le drapeau dans le même verrou.
---
--- Et il dit s'il vient de le poser en COMPARANT À L'ANCIENNE VALEUR, jamais à
--- l'horloge. La première écriture de cette fonction testait
--- `owner_alert_at = now()` : `now()` vaut l'ouverture de la TRANSACTION, pas
--- l'instant présent, si bien qu'un drapeau posé plus tôt dans la même
--- transaction se relisait comme fraîchement posé. La suite SQL a attrapé le
--- défaut au deuxième battement.
---
--- LE PLAFOND EST DANS LA COLONNE. `owner_alert_at` retient la dernière alerte
--- envoyée pour ce joueur : tant qu'elle date d'aujourd'hui (journée de Paris,
--- comme le défi du jour et comme le pouls), aucune autre ne part. Un joueur qui
--- ouvre l'appli quinze fois dans la journée ne fait vibrer qu'une fois.
+-- notifications pour une arrivée. Ici, la CTE `avant` retient l'ANCIEN
+-- `last_seen` et l'`update` écrit le nouveau, dans le même verrou. La décision
+-- se lit donc sur la valeur d'avant, jamais sur l'horloge : `now()` vaut
+-- l'ouverture de la TRANSACTION, et une version antérieure de cette fonction
+-- s'y était fait piéger — la suite SQL l'a attrapée au deuxième battement.
 --
 -- LE PROPRIÉTAIRE N'EST PAS ANNONCÉ À LUI-MÊME : il lit ce jeu depuis l'appli,
 -- il déclencherait sa propre notification à chaque ouverture.
 -- ─────────────────────────────────────────────────────────────────────────────
-
-alter table public.profiles
-  add column if not exists owner_alert_at timestamptz;
-
-comment on column public.profiles.owner_alert_at is
-  'Dernière alerte d''arrivée envoyée au propriétaire pour ce joueur ; sert de plafond journalier.';
 
 create or replace function public.server_presence_touch(
   p_user uuid,
@@ -57,29 +48,24 @@ declare
   en_ligne int;
 begin
   with avant as (
-    select profil.id, profil.owner_alert_at
+    select profil.id, profil.last_seen, profil.role
     from public.profiles as profil
     where profil.id = p_user
   ),
   maj as (
     update public.profiles as profil
     set activity = case when p_activity = 'playing' then 'playing' else 'online' end,
-        last_seen = pg_catalog.now(),
-        owner_alert_at = case
-          when p_alertable
-           and profil.role <> 'admin'
-           and (profil.last_seen is null
-                or profil.last_seen < pg_catalog.now() - pg_catalog.make_interval(secs => p_absence_seconds))
-           and (profil.owner_alert_at is null
-                or profil.owner_alert_at < (pg_catalog.date_trunc('day', pg_catalog.now() at time zone 'Europe/Paris') at time zone 'Europe/Paris'))
-          then pg_catalog.now()
-          else profil.owner_alert_at
-        end
+        last_seen = pg_catalog.now()
     from avant
     where profil.id = avant.id
-    returning (profil.owner_alert_at is distinct from avant.owner_alert_at) as posee
+    returning (
+      p_alertable
+      and avant.role <> 'admin'
+      and (avant.last_seen is null
+           or avant.last_seen < pg_catalog.now() - pg_catalog.make_interval(secs => p_absence_seconds))
+    ) as arrivee
   )
-  select maj.posee into alerte from maj;
+  select maj.arrivee into alerte from maj;
 
   if not coalesce(alerte, false) then
     return pg_catalog.jsonb_build_object('alerte', false);

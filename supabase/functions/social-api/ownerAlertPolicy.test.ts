@@ -8,6 +8,7 @@ import {
   SILENCE_FIN_HEURE,
 } from '../_shared/ownerAlertPolicy.ts'
 import { dansLaPlage, parisHour } from '../_shared/parisTime.ts'
+import { PRESENCE_ONLINE_TTL_MS } from '../../../src/presencePolicy.ts'
 
 /** Un instant donné en heure de Paris, exprimé en millisecondes. */
 function aParis(jour: string, heure: number): number {
@@ -55,11 +56,12 @@ Deno.test('une plage qui enjambe minuit et une plage qui ne l’enjambe pas', ()
   assertEquals(dansLaPlage(quinzeHeures, 0, 10), false)
 })
 
-Deno.test('le seuil d’absence vaut une heure, bien au-delà du délai « hors ligne »', () => {
-  // 75 s suffisent à passer « hors ligne » : un téléphone verrouillé deux
-  // minutes déclencherait une notification si le seuil valait celui-là.
-  assertEquals(ARRIVEE_APRES_MS, 3_600_000)
-  assertEquals(ARRIVEE_APRES_MS > 75_000, true)
+Deno.test('le seuil d’arrivée est celui du jeu, sans plafond par-dessus', () => {
+  // « Je m'en fous du plafond, même s'il se co 15 fois je veux le savoir » :
+  // une arrivée, c'est exactement la bascule « hors ligne » → « en ligne » que
+  // voient déjà ses amis. Un seuil à part se serait mis à diverger de celui-là.
+  assertEquals(ARRIVEE_APRES_MS, PRESENCE_ONLINE_TTL_MS)
+  assertEquals(ARRIVEE_APRES_MS, 75_000)
 })
 
 Deno.test('la notification ne nomme personne', () => {
