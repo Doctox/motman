@@ -304,6 +304,16 @@ html[data-motion="off"] .hint-button[data-idle-cue]::after,html[data-motion="off
 @keyframes ranked-seeker-entree{from{opacity:0;transform:translateY(10px) scale(.97)}}
 html[data-motion="off"] .ranked-seeker-dialog{animation:none}
 
-/* Combien d'indices il reste, sur le bouton (23/09/2026). Trois par partie :
-   sans ce compte, le joueur croit son indice consommé dès le premier. */
-.hint-button .hint-left{margin-left:6px;padding:1px 6px;border-radius:20px;background:color-mix(in srgb,var(--mm-gold) 30%,transparent);font-style:normal;font-weight:800;font-size:0.6875rem}
+/* COMBIEN D'INDICES IL RESTE, SUR LE BOUTON (23/09/2026).
+   Trois par partie depuis ce jour : sans ce compte, le joueur croit son indice
+   consommé dès le premier.
+
+   Un DISQUE, pas un fond posé derrière un texte. Sans hauteur imposée ni
+   centrage, le chiffre retombait sur la ligne de base de la police et sortait
+   de la pastille par le bas — relevé par le propriétaire le jour même.
+
+   Même dessin que le « i » du chevalet (`.rack-bonus-info`, game-foundation) :
+   disque clair, fin contour, chiffre en or sombre. Deux pastilles qui se
+   ressemblent dans la même barre, c'est une de moins à comprendre. */
+.hint-button .hint-left{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;margin-left:7px;padding:0;border-radius:50%;background:#f2ead7;border:1px solid #e0d3ad;color:#8a6a1e;font:800 0.6875rem/1 'DM Sans',sans-serif;font-style:normal}
+[data-theme="dark"] .hint-button .hint-left{background:#2c3a33;border-color:#4a5c53;color:#d9b563}
