@@ -92,14 +92,29 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
   return turn
 }
 
-export function timeoutTurn(row: MatchRow) {
+/**
+ * Le tour échoit sans coup valable.
+ *
+ * `absence` : ce tour perdu compte-t-il comme une ABSENCE ? Oui par défaut —
+ * personne n'a rien envoyé. NON quand c'est le joueur LUI-MÊME qui a envoyé
+ * son coup et qu'il est arrivé trop tard : il perd son tour, c'est la règle,
+ * mais quelqu'un qui appuie sur Valider n'a pas quitté la partie. Sans cette
+ * distinction, un creux de réseau lui valait « Tu es toujours là ? » au tour
+ * suivant — et, au défi du jour, la perte de son unique tentative
+ * (retours de joueurs, 24/09/2026).
+ *
+ * Dans ce cas la présence est aussi tenue pour prouvée : son geste vaut
+ * « Je suis là », sinon la fenêtre se rouvrirait au tour d'après.
+ */
+export function timeoutTurn(row: MatchRow, { absence = true }: { absence?: boolean } = {}) {
   const state = row.state
   const playerId = row.current_player_id
-  const inactivity = (state.inactivity[playerId] ?? 0) + 1
+  const inactivity = (state.inactivity[playerId] ?? 0) + (absence ? 1 : 0)
   state.inactivity[playerId] = inactivity
+  if (!absence) state.presenceAck = { ...(state.presenceAck ?? {}), [playerId]: inactivity }
   const turn: Turn = { id: crypto.randomUUID(), kind: 'timeout', playerId, turnNumber: row.turn_number, correct: [], wrong: [], wrongPlacements: [], aidedCell: null, letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0, inactivityCount: inactivity, createdAt: nowIso() }
   state.lastTurn = turn; state.hint = null
-  if (shouldForfeitAfterInactivity(inactivity, row.pace)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
+  if (absence && shouldForfeitAfterInactivity(inactivity, row.pace)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
   else {
     const next = state.playerIds.find(id => id !== playerId)!
     const start = new Date(Date.now() + revealDuration(turn)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()

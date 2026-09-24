@@ -40,6 +40,10 @@ import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked
 import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchInvitations.ts'
 
 Deno.serve(async request => {
+  // L'instant où la requête ARRIVE. Toutes les échéances du joueur se lisent
+  // dessus — voir `resolveMatchRow`. Le temps que le serveur met à se préparer
+  // ne doit jamais être décompté de celui qu'on lui a promis.
+  const recuA = Date.now()
   const http = createHttpResponder(request, Deno.env.get('MOTMAN_ALLOWED_ORIGINS'))
   const { json } = http
   if (request.method === 'OPTIONS') return http.preflight()
@@ -78,7 +82,7 @@ Deno.serve(async request => {
     }
 
     // Coup du bot en retard, tour dépassé : voir matchResolve.ts, partagé avec la tâche des rappels.
-    const resolveRow = (row: MatchRow, chargerGrille?: GridLoader) => resolveMatchRow(admin, row, chargerGrille)
+    const resolveRow = (row: MatchRow, chargerGrille?: GridLoader) => resolveMatchRow(admin, row, chargerGrille, recuA)
 
     if (action === 'ranked-state' || action === 'ranked-search') {
       if (action === 'ranked-search' && user.is_anonymous === true) {
@@ -680,7 +684,9 @@ Deno.serve(async request => {
           match: await view(admin, row, user.id, grid),
         })
       }
-      if (Date.now() >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) timeoutTurn(row)
+      // Un coup ENVOYÉ PAR LE JOUEUR qui arrive trop tard lui coûte son tour,
+      // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
+      if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) timeoutTurn(row, { absence: automatic })
       else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
       if (!canUseHint(row.state.hintUsed[user.id])) return json(409, { error: 'Ton indice a déjà été utilisé.' })

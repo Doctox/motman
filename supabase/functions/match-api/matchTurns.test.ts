@@ -173,6 +173,45 @@ Deno.test('une expiration incrémente l’inactivité et passe la main', () => {
   verifie(ligne.state.lastTurn?.kind === 'timeout', 'le dernier tour est une expiration')
 })
 
+// ── Un coup parti trop tard n'est pas une absence (24/09/2026) ──────────────
+//
+// Retours de joueurs : sur une connexion faible, « Tu es toujours là ? » s'ouvre
+// alors qu'ils n'ont rien manqué. Ils avaient appuyé sur Valider ; la requête
+// est arrivée après l'échéance, et le serveur comptait ça comme une absence.
+
+Deno.test('un coup envoyé par le joueur, arrivé trop tard, ne compte pas comme une absence', () => {
+  const ligne = match()
+  timeoutTurn(ligne, { absence: false })
+  egal(ligne.state.inactivity[JOUEUR], 0, 'l’inactivité ne monte pas')
+  egal(ligne.current_player_id, ADVERSAIRE, 'la main passe quand même : le tour est perdu')
+  verifie(ligne.state.lastTurn?.kind === 'timeout', 'le tour reste une expiration, sans point')
+})
+
+Deno.test('son geste vaut « Je suis là » : la fenêtre ne se rouvre pas au tour suivant', () => {
+  // Il avait déjà un tour manqué au compteur, la fenêtre était donc ouverte.
+  const ligne = match({ inactivity: { [JOUEUR]: 1 } })
+  timeoutTurn(ligne, { absence: false })
+  egal(ligne.state.inactivity[JOUEUR], 1, 'le tour manqué d’avant reste compté')
+  egal(ligne.state.presenceAck?.[JOUEUR], 1, 'mais sa présence est tenue pour prouvée')
+  egal(currentPresenceDeadline({ ...ligne, current_player_id: JOUEUR }), null, 'plus d’échéance pour lui')
+})
+
+Deno.test('en temps illimité non plus, un coup parti trop tard ne fait pas perdre', () => {
+  // Sans le garde-fou, 2 s de réseau après 24 h de réflexion coûtaient la partie.
+  const ligne = match({}, { pace: 'async' })
+  timeoutTurn(ligne, { absence: false })
+  egal(ligne.status, 'active', 'la partie continue')
+  egal(ligne.current_player_id, ADVERSAIRE, 'la main passe')
+})
+
+Deno.test('sans précision, un tour échu reste une absence', () => {
+  // Le défaut ne doit pas bouger : personne n'a rien envoyé, c'est une absence.
+  const ligne = match()
+  timeoutTurn(ligne)
+  egal(ligne.state.inactivity[JOUEUR], 1, 'l’inactivité monte')
+  egal(ligne.state.presenceAck?.[JOUEUR] ?? 0, 0, 'et rien ne prouve sa présence')
+})
+
 // ── Le joueur absent (règle du 18/09/2026, voir src/gameRules.ts) ────────────
 
 Deno.test('en temps illimité, un tour de 24 h manqué est un abandon', () => {

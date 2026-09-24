@@ -28,7 +28,17 @@ export function turnExpired(row: Pick<MatchRow, 'turn_ends_at'>, now = Date.now(
   return now >= new Date(row.turn_ends_at).getTime() + AUTOMATIC_SUBMIT_GRACE_MS
 }
 
-export async function resolveMatchRow(admin: AdminClient, row: MatchRow, chargerGrille?: GridLoader): Promise<MatchRow> {
+/**
+ * `recuA` : l'instant où la requête du joueur est ARRIVÉE, et non celui où l'on
+ * finit de la préparer. Entre les deux, `match-api` passe 814 ms en médiane et
+ * 1 580 ms au p95 (mesuré en production le 24/09/2026) à authentifier, compter
+ * les requêtes, lire la partie et la grille. Les échéances comparées à
+ * `Date.now()` facturaient ce temps AU JOUEUR : sur une marge de 2 s, une
+ * requête sur vingt arrivait « en retard » depuis un réseau parfait.
+ *
+ * La tâche des rappels n'en passe pas : elle n'a pas de joueur qui attend.
+ */
+export async function resolveMatchRow(admin: AdminClient, row: MatchRow, chargerGrille?: GridLoader, recuA = Date.now()): Promise<MatchRow> {
   try {
     if (row.status !== 'active') return row
     if (row.paused_at) return row
@@ -49,10 +59,10 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
       if (Date.now() >= new Date(row.turn_started_at).getTime() + delay) {
         applyTurn(row, grid, row.current_player_id, botPlacements(row, grid)); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
       }
-    } else if (presenceExpired(row)) {
+    } else if (presenceExpired(row, recuA)) {
       // Temps limité : 30 s sans « Je suis là » ni coup après un tour manqué.
       forfeitAbsentPlayer(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
-    } else if (turnExpired(row)) {
+    } else if (turnExpired(row, recuA)) {
       timeoutTurn(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (initializedBag || initializedFinale) row = await persist(admin, row)
     if (turnAdvanced && row.current_player_id !== previousPlayerId) notifyCurrentTurn(admin, row)

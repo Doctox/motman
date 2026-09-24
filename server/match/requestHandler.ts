@@ -226,9 +226,21 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   }
   const requestedGrace = body.automatic === true ? AUTOMATIC_TURN_SUBMIT_GRACE_MS : TURN_SUBMIT_GRACE_MS
   if (route === 'turn' && match.status === 'active' && isTurnSubmissionExpired(Date.now(), new Date(match.turnEndsAt).getTime(), requestedGrace)) {
+    // Un coup ENVOYÉ PAR LE JOUEUR qui arrive trop tard lui coûte son tour,
+    // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
+    // Même règle que `timeoutTurn(row, { absence: false })` dans match-api —
+    // ici `resolveExpired()` balaie toutes les parties, on lui reprend donc
+    // son incrément après coup plutôt que de le lui passer en paramètre.
+    const envoyeParLeJoueur = body.automatic !== true && match.currentPlayerId === playerId
+    const manquesAvant = match.inactivity[playerId] ?? 0
     resolveExpired()
     match = database.matches.find(candidate => candidate.id === matchId && candidate.playerIds.includes(playerId))
     if (!match) return sendJson(response, 404, { error: 'Partie introuvable.' })
+    if (envoyeParLeJoueur) {
+      match.inactivity[playerId] = manquesAvant
+      match.presenceAck = { ...(match.presenceAck ?? {}), [playerId]: manquesAvant }
+      saveDatabase()
+    }
   }
 
   const requestedTurnNumber = Number(body.turnNumber)

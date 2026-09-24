@@ -130,5 +130,10 @@
     "titre": "117 nouvelles grilles",
     "texte": "Les parties normales en comptent désormais 304 : tu retomberas moins souvent sur la même.",
     "genre": "grilles"
+  },
+  {
+    "ajoute": "2026-09-24T22:23",
+    "titre": "Plus de « Tu es toujours là ? » sur une connexion faible",
+    "texte": "Ton coup parti juste avant la fin du tour arrivait parfois un peu tard, et le jeu te croyait absent. C'est corrigé — surtout au défi du jour, où ça pouvait coûter ta tentative."
   }
 ]
