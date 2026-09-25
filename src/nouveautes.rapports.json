@@ -135,5 +135,16 @@
     "ajoute": "2026-09-24T22:23",
     "titre": "Plus de « Tu es toujours là ? » sur une connexion faible",
     "texte": "Ton coup parti juste avant la fin du tour arrivait parfois un peu tard, et le jeu te croyait absent. C'est corrigé — surtout au défi du jour, où ça pouvait coûter ta tentative."
+  },
+  {
+    "ajoute": "2026-09-25T19:35",
+    "titre": "Le défi du jour affiche son thème en grand",
+    "texte": "La carte de l'accueil met le thème du jour en avant. Et ta place du jour reste à jour : elle restait figée sur celle de la fin de ta partie."
+  },
+  {
+    "ajoute": "2026-09-25T19:43",
+    "titre": "3 nouveaux thèmes",
+    "texte": "Justice & Droit, Maison et Mer & Marine rejoignent le défi du jour.",
+    "genre": "theme"
   }
 ]
