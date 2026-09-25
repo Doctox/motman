@@ -12,6 +12,8 @@ export function pushNotificationRoute(data: unknown): string | null {
     return `#partie=${encodeURIComponent(payload.matchId)}`
   }
   if (payload.type === 'ranked_ready') return '#jouer'
+  // Recherche classée ouverte (alerte du propriétaire) : il vient en prendre une.
+  if (payload.type === 'ranked_search') return '#jouer'
   if (payload.type === 'friend_invitation') return '#jouer'
   return null
 }

@@ -11,6 +11,8 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3
 // La forme d'un match et le versement des récompenses vivent désormais à côté :
 // `matchModel.ts` pour les types, `awards.ts` pour la clôture — sortie d'ici pour
 // devenir testable (voir `awards.test.ts`).
+import { dansLeSilence, messageRechercheClassee } from '../_shared/ownerAlertPolicy.ts'
+import { queuePush, sendPushToUser } from '../_shared/pushNotifications.ts'
 import { awardFinished, recordDailyPlay, recordMatchHistory } from './awards.ts'
 import { nowIso, type MatchRow, type Pace } from './matchModel.ts'
 
@@ -38,6 +40,25 @@ import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
 import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchInvitations.ts'
+
+/**
+ * « Une partie classée cherche quelqu'un » — pour le propriétaire seul.
+ *
+ * Le classé demande deux humains au même instant. Un joueur EN LIGNE voit déjà
+ * qu'une recherche est ouverte (migration 20260920160000), mais personne ne
+ * réveille un téléphone pour ça — sauf lui, qui l'a demandé pour venir donner
+ * la partie : « comme ça je vais faire acte de présence et aider les gens. »
+ *
+ * Sans pseudo, et jamais à celui qui cherche : s'il est admin, il sait déjà.
+ * Le silence de nuit est celui de ses autres alertes (ownerAlertPolicy.ts) —
+ * une recherche s'éteint en dix minutes, le prévenir à 4 h ne servirait rien.
+ */
+async function prevenirDuneRechercheClassee(admin: ReturnType<typeof createAdminClient>, chercheurId: string): Promise<void> {
+  if (dansLeSilence(Date.now())) return
+  const { data: proprietaires } = await admin.from('profiles').select('id').eq('role', 'admin').neq('id', chercheurId)
+  const message = messageRechercheClassee()
+  await Promise.all((proprietaires ?? []).map(proprietaire => sendPushToUser(admin, proprietaire.id, message)))
+}
 
 Deno.serve(async request => {
   // L'instant où la requête ARRIVE. Toutes les échéances du joueur se lisent
@@ -89,10 +110,20 @@ Deno.serve(async request => {
         return json(403, { error: 'Le mode classé demande un compte. Crée-le avec ton e-mail ou avec Google, depuis Menu → Compte.', code: 'RANKED_REQUIRES_ACCOUNT' })
       }
       const current = await rankedSnapshot(admin, user.id)
+      // Une recherche qui COMMENCE, et non un sondage : `current` porte l'état
+      // d'avant, et un rafraîchissement est déjà en `searching`. Sans ce test,
+      // le propriétaire serait prévenu toutes les quelques secondes.
+      const rechercheQuiCommence = action === 'ranked-search' && current.status !== 'searching'
       if (action === 'ranked-search' || current.status === 'searching') {
         await advanceRankedSearch(admin, user.id)
       }
-      return json(200, await rankedSnapshot(admin, user.id))
+      const apres = await rankedSnapshot(admin, user.id)
+      // Toujours en recherche : personne n'a été trouvé dans la foulée. C'est
+      // là que le propriétaire peut servir à quelque chose (25/09/2026).
+      if (rechercheQuiCommence && apres.status === 'searching') {
+        queuePush(prevenirDuneRechercheClassee(admin, user.id))
+      }
+      return json(200, apres)
     }
 
     if (action === 'ranked-leaderboard') {

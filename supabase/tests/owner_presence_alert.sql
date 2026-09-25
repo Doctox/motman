@@ -59,8 +59,11 @@ begin
   select pg_catalog.count(*) into sans_lui
   from public.profiles where last_seen > pg_catalog.now() - pg_catalog.make_interval(secs => hors_ligne) and role <> 'admin';
 
-  if avec_lui <> sans_lui + 1 then
-    raise exception 'L''essai suppose UN seul admin en ligne : % avec lui, % sans', avec_lui, sans_lui;
+  -- Au moins un admin est en ligne : le nôtre. On ne suppose PAS qu'il est le
+  -- seul — le propriétaire ouvre son appli quand il veut, et un essai qui
+  -- échoue parce qu'il joue ne vaut rien (relevé le 25/09/2026).
+  if avec_lui <= sans_lui then
+    raise exception 'L''admin de l''essai devrait etre compte en ligne : % avec, % sans', avec_lui, sans_lui;
   end if;
   if (reponse ->> 'enLigne')::int <> sans_lui then
     raise exception 'Le proprietaire en ligne ne doit rien ajouter au compte : % contre %',

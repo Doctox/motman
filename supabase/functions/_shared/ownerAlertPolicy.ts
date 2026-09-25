@@ -68,3 +68,23 @@ export function messageArrivee(enLigne: number): PushMessage {
     tag: 'arrivee',
   }
 }
+
+/**
+ * « Quelqu'un cherche une partie classée. »
+ *
+ * Demandé le 25/09/2026 : « comme ça je vais faire acte de présence et aider
+ * les gens. » Le classé demande DEUX humains au même moment ; avec une poignée
+ * de comptes, une recherche qui s'ouvre sans que personne ne le sache tourne
+ * dix minutes dans le vide et s'éteint.
+ *
+ * Sans pseudo, comme l'arrivée. Son propre fil (`tag`), pour ne pas recouvrir
+ * la notification d'arrivée : les deux disent des choses différentes.
+ */
+export function messageRechercheClassee(): PushMessage {
+  return {
+    title: 'Une partie classée cherche quelqu’un',
+    body: 'Ouvre MotMan et lance une recherche classée pour la prendre.',
+    data: { type: 'ranked_search' },
+    tag: 'classe',
+  }
+}
