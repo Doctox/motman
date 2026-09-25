@@ -45,7 +45,7 @@ export function normalRotationGrids<T extends { dailyOnly?: boolean }>(grids: re
  * vide.
  */
 export function dailyChallengeLabel(theme: string | null | undefined): string {
-  return theme?.trim() || 'Défi du jour'
+  return theme?.trim() ? 'Défi du jour à thème' : 'Défi du jour'
 }
 
 // ── Le calendrier ────────────────────────────────────────────────────────────

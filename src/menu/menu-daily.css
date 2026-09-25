@@ -239,6 +239,22 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-hero{display:grid;justify-items:start;gap:9px;padding:14px 15px 15px}
 .mm-daily-eyebrow{color:var(--mm-coral);font-size:0.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .mm-daily-title{margin:0;font:600 1.5rem/1.05 'Playfair Display',serif;text-wrap:balance}
+/* LE THÈME EN GRAS (propriétaire, 25/09/2026 : « qu'il ressorte un peu plus »).
+   Seulement quand le titre EST le thème : « Défi réussi ! » ou « Pas cette fois »
+   gardent leur graisse, sinon toutes les cartes crieraient pareil. */
+.mm-daily-title.is-theme{
+  font-weight:700;
+  /* Une ombre basse et très diffuse : elle décolle le thème du fond crème sans
+     l'épaissir. Au-delà de ~20 % d'opacité, un empattement de Playfair bave. */
+  text-shadow:0 2px 5px color-mix(in srgb, var(--mm-ink) 20%, transparent);
+}
+/* En sombre, le titre est clair sur fond foncé : l'ombre doit être NOIRE pour
+   creuser, sinon elle allume un halo autour des lettres. */
+[data-theme="dark"] .mm-daily-title.is-theme{text-shadow:0 2px 6px #0000005c}
+/* Le nom du thème en tête des lignes de résultat : même teinte que le chapeau,
+   pour qu'on reconnaisse la même information d'une carte à l'autre. */
+.mm-daily-note .mm-daily-theme{color:var(--mm-coral);font-weight:800}
+.mm-daily-note span[aria-hidden]{color:var(--mm-muted)}
 .mm-daily-hero .mm-streak-chip{height:34px;padding:0 12px;font-size:0.8125rem}
 .mm-daily-note{display:flex;align-items:center;gap:6px;margin:0;color:var(--mm-muted);font-size:0.8125rem}
 .mm-daily-note svg{width:15px;height:15px;color:#4f89ad}

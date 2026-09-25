@@ -266,8 +266,11 @@ export function MenuApp({
   // touché à l'accueil → Amis). Toute autre navigation l'efface : la barre du
   // bas rouvre Jouer sur le dernier mode lancé, comme avant.
   const [ongletJouer, setOngletJouer] = useState<PlayTabId | undefined>(undefined)
-  const navigate = (nextPage: MenuPage, onglet?: PlayTabId) => {
+  // Même principe pour le Classement : la place du jour ouvre son épreuve.
+  const [epreuveClassement, setEpreuveClassement] = useState<'ranked' | 'daily' | undefined>(undefined)
+  const navigate = (nextPage: MenuPage, onglet?: PlayTabId, epreuve?: 'ranked' | 'daily') => {
     setOngletJouer(onglet)
+    setEpreuveClassement(epreuve)
     setPage(nextPage)
     const hash = nextPage === 'home' ? 'accueil' : nextPage === 'play' ? 'jouer' : nextPage === 'ranking' ? 'classement' : nextPage === 'shop' ? 'epicerie' : 'profil'
     history.replaceState(null, '', `#${hash}`)
@@ -431,9 +434,9 @@ export function MenuApp({
 
   return <main className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => navigate('play', 'ranked')} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking')} resumeMatch={onStartMatch} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => navigate('play', 'ranked')} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
-    {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} /> : null}
+    {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de l’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />

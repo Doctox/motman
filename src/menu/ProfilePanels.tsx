@@ -14,7 +14,7 @@ import { RankProgress, SocialPortrait } from './MenuChrome'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
-export function RankingPage({ identity, progress, cosmetics }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics }) {
+export function RankingPage({ identity, progress, cosmetics, epreuveInitiale }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; epreuveInitiale?: 'ranked' | 'daily' }) {
   // DEUX ÉPREUVES, deux classements, et il faut choisir laquelle on regarde.
   //
   // Le classé demande une rencontre : deux humains au même instant. Le défi du
@@ -25,7 +25,10 @@ export function RankingPage({ identity, progress, cosmetics }: { identity: Guest
   //
   // La progression de rang ne s'affiche qu'avec le classé : elle n'a rien à
   // voir avec le défi du jour.
-  const [epreuve, setEpreuve] = useState<'ranked' | 'daily'>('ranked')
+  // « Défi du jour » quand on arrive par la place du jour, affichée sur la carte
+  // de l'accueil : elle atterrissait sur le classement CLASSÉ, qui n'a rien à
+  // voir (relevé par le propriétaire le 25/09/2026).
+  const [epreuve, setEpreuve] = useState<'ranked' | 'daily'>(epreuveInitiale ?? 'ranked')
   const [tab, setTab] = useState<'general' | 'friends'>('general')
   const [leaderboard, setLeaderboard] = useState<RankedLeaderboard>({ general: [], friends: [] })
   const [loading, setLoading] = useState(true)

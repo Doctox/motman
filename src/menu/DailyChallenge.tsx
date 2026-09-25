@@ -152,9 +152,13 @@ export function DailyStreakChip() {
  * UNE seule flamme, dans le coin haut droit, et c'est elle qui ouvre le
  * calendrier de série (place demandée par le propriétaire le 16/09/2026).
  */
-export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
+export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => void; onOpenRanking?: () => void }) {
   const { day, status, streak, freezes, theme } = useDailyChallenge()
   const [avertir, setAvertir] = useState(false)
+  // Le chapeau porte la phrase du produit (« Défi du jour à thème »), présente
+  // dans la description Google et sur la page de présentation, et jusqu'ici
+  // jamais répétée dans le jeu. Le NOM du thème, lui, monte en titre avant la
+  // partie et ouvre la ligne de résultat après (propriétaire, 25/09/2026).
   const libelle = dailyChallengeLabel(theme)
   const pourLecteur = theme ? `, thème ${theme}` : ''
   const countdown = useDailyCountdown()
@@ -167,7 +171,8 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         {/* La victoire se fête : la carte disait « Déjà joué aujourd'hui », le
             même texte que pour un défi joué ailleurs (20/09/2026). */}
         <h2 className="mm-daily-title">Défi réussi !</h2>
-        <DailyWonScore day={day} countdown={countdown} />
+        <DailyWonScore day={day} countdown={countdown} theme={theme} />
+        <DailyRankTeaser onOpenRanking={onOpenRanking} />
         <DailyShareHero day={day} />
       </section>
     )
@@ -182,7 +187,8 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Défi abandonné</h2>
-        <p className="mm-daily-note">Il compte pour ta série · nouvelle grille dans {countdown}</p>
+        <p className="mm-daily-note"><ThemeDuJour theme={theme} />Il compte pour ta série · nouvelle grille dans {countdown}</p>
+        <DailyRankTeaser onOpenRanking={onOpenRanking} />
       </section>
     )
   }
@@ -196,7 +202,8 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Pas cette fois</h2>
         {/* Pas « jusqu'à minuit » : la bascule est à minuit À PARIS (voir msUntilNextDailyGrid). */}
-        <p className="mm-daily-note">Il compte pour ta série · nouvelle grille dans {countdown}</p>
+        <p className="mm-daily-note"><ThemeDuJour theme={theme} />Il compte pour ta série · nouvelle grille dans {countdown}</p>
+        <DailyRankTeaser onOpenRanking={onOpenRanking} />
       </section>
     )
   }
@@ -209,7 +216,8 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
-        <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
+        <p className="mm-daily-note"><ThemeDuJour theme={theme} />Nouvelle grille dans {countdown}</p>
+        <DailyRankTeaser onOpenRanking={onOpenRanking} />
       </section>
     )
   }
@@ -218,10 +226,10 @@ export function DailyChallengeHero({ onPlay }: { onPlay: () => void }) {
     <section className="mm-daily-hero">
       <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
       <small className="mm-daily-eyebrow">{libelle}</small>
-      <h2 className="mm-daily-title">Grille du jour</h2>
+      <h2 className={`mm-daily-title${theme ? ' is-theme' : ''}`}>{theme ?? 'Grille du jour'}</h2>
       {freezes > 0 ? <p className="mm-daily-note"><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} de série en réserve</p> : null}
-      <button type="button" className="mm-daily-cta" onClick={() => setAvertir(true)} aria-label={`Jouer la grille du jour${pourLecteur}. ${streakLabel(streak)}.`}>
-        <Grid2x2Check aria-hidden="true" />Jouer la grille <ChevronRight aria-hidden="true" />
+      <button type="button" className="mm-daily-cta" onClick={() => setAvertir(true)} aria-label={`Relever le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
+        <Grid2x2Check aria-hidden="true" />Relever le défi <ChevronRight aria-hidden="true" />
       </button>
       {avertir ? <DailyOneShotDialog theme={theme} close={() => setAvertir(false)} play={() => { setAvertir(false); onPlay() }} /> : null}
     </section>
@@ -261,19 +269,31 @@ function DailyOneShotDialog({ theme, close, play }: { theme: string | null; clos
  * après un vidage du stockage), on n'invente rien : seul le compte à rebours
  * reste.
  */
-function DailyWonScore({ day, countdown }: { day: string; countdown: string }) {
+/**
+ * Le score du jour. Le RANG n'est plus ici : `loadDailyResume` le fige à la fin
+ * de la partie, et il devient faux dès qu'un autre joueur passe — la carte
+ * annonçait « 1er sur 2 » pendant que la ligne du dessous disait « 2e sur 5 »
+ * (relevé par le propriétaire le 25/09/2026). Le classement vivant vit dans
+ * `DailyRankTeaser`, et lui seul.
+ */
+function DailyWonScore({ day, countdown, theme }: { day: string; countdown: string; theme: string | null }) {
   const resume = loadDailyResume(day)
-  if (!resume) return <p className="mm-daily-note">Nouvelle grille dans {countdown}</p>
-  const place = resume.rank && resume.rank.position > 0 && resume.rank.total > 0
-    ? ` · ${resume.rank.position}e sur ${resume.rank.total}`
-    : ''
-  return <p className="mm-daily-note"><strong>{resume.score} point{resume.score > 1 ? 's' : ''}</strong>{place} · nouvelle grille dans {countdown}</p>
+  if (!resume) return <p className="mm-daily-note"><ThemeDuJour theme={theme} />Nouvelle grille dans {countdown}</p>
+  return <p className="mm-daily-note"><ThemeDuJour theme={theme} /><strong>{resume.score} point{resume.score > 1 ? 's' : ''}</strong> · nouvelle grille dans {countdown}</p>
+}
+
+/** Le nom du thème en tête d'une ligne de résultat. Rien un jour sans thème. */
+function ThemeDuJour({ theme }: { theme: string | null }) {
+  return theme ? <><b className="mm-daily-theme">{theme}</b><span aria-hidden="true">·</span></> : null
 }
 
 /** Le résultat de la victoire du jour, s'il a été joué sur cet appareil. */
 function DailyShareHero({ day }: { day: string }) {
   const texte = loadDailyShare(day)
-  return texte ? <DailyShareButton text={texte} compact /> : null
+  // Pas de `compact` ici : le CSS de la carte étire déjà ce bouton sur toute la
+  // largeur en `font: 800 1rem` — il a été dessiné pour porter un texte. Avec
+  // l'icône seule, il restait une grande barre vide au milieu de la carte.
+  return texte ? <DailyShareButton text={texte} /> : null
 }
 
 /**

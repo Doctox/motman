@@ -51,8 +51,14 @@ describe('la réserve du défi du jour', () => {
     expect(isDailyOnlyGrid({})).toBe(false)
   })
 
-  it('affiche le thème à côté du défi, et rien un jour sans thème', () => {
-    expect(dailyChallengeLabel('Animaux')).toBe('Animaux')
+  // Le chapeau de la carte ne porte plus le NOM du thème — celui-là monte en
+  // titre — mais la phrase du produit, celle que la description Google et la
+  // page de présentation promettent déjà et que le jeu ne répétait jamais
+  // (propriétaire, 25/09/2026 : « faut mettre Défi du jour à thème un peu
+  // partout »).
+  it('annonce un défi À THÈME, et un défi tout court un jour sans thème', () => {
+    expect(dailyChallengeLabel('Animaux')).toBe('Défi du jour à thème')
+    expect(dailyChallengeLabel('Cuisine')).toBe('Défi du jour à thème')
     expect(dailyChallengeLabel(null)).toBe('Défi du jour')
     expect(dailyChallengeLabel('  ')).toBe('Défi du jour')
   })

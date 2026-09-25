@@ -8,7 +8,7 @@ import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '.
 import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
-import { DailyChallengeHero, DailyRankTeaser } from './DailyChallenge'
+import { DailyChallengeHero } from './DailyChallenge'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
 import { GamePulse } from './GamePulse'
 
@@ -95,8 +95,10 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       </div>
     </section>
     <section className="mm-attention">
-      <DailyChallengeHero onPlay={playDaily} />
-      <DailyRankTeaser onOpenRanking={openRanking} />
+      {/* La place du jour vit DANS la carte depuis le 25/09/2026 : en ligne
+          séparée, elle doublait le rang que la carte affichait déjà — et les
+          deux chiffres se contredisaient. */}
+      <DailyChallengeHero onPlay={playDaily} onOpenRanking={openRanking} />
       {/* Réservé au propriétaire : le serveur revérifie le rôle et refuse tout
           autre compte. Placé en haut, c'est la première chose qu'il regarde. */}
       {identity.admin ? <GamePulse /> : null}
