@@ -25,6 +25,8 @@ declare
   activite text;
   avec_lui int;
   sans_lui int;
+  messages_avant int;
+  messages_apres int;
 begin
   insert into auth.users(id, is_anonymous, created_at, updated_at)
   values
@@ -114,6 +116,35 @@ begin
   select last_seen into vu from public.profiles where id = patron;
   if vu < pg_catalog.now() - interval '5 seconds' then
     raise exception 'Son propre battement doit quand meme etre ecrit : %', vu;
+  end if;
+
+  -- ── 7. UNE ARRIVÉE RÉVEILLE LES AMIS (26/09/2026) ───────────────────
+  -- Le cœur du correctif : le déclencheur d'activité ne pouvait pas l'annoncer,
+  -- puisque revenir réécrit « online » par-dessus « online ». On compte les
+  -- messages poussés vers le canal de l'ami.
+  insert into public.friendships(left_user_id, right_user_id)
+  values ((select least(joueur, patron)), (select greatest(joueur, patron)));
+
+  select pg_catalog.count(*) into messages_avant
+  from realtime.messages
+  where topic = 'user:' || patron::text;
+
+  update public.profiles set last_seen = pg_catalog.now() - interval '10 minutes' where id = joueur;
+  perform public.server_presence_touch(joueur, 'online', true, hors_ligne, hors_ligne);
+
+  select pg_catalog.count(*) into messages_apres
+  from realtime.messages
+  where topic = 'user:' || patron::text;
+
+  if messages_apres <= messages_avant then
+    raise exception 'L''arrivee aurait du pousser un reveil a l''ami : % puis %', messages_avant, messages_apres;
+  end if;
+
+  -- Un battement rapproché, lui, ne réveille personne : sinon chaque ami
+  -- rechargerait sa liste toutes les 25 secondes.
+  perform public.server_presence_touch(joueur, 'online', true, hors_ligne, hors_ligne);
+  if (select pg_catalog.count(*) from realtime.messages where topic = 'user:' || patron::text) <> messages_apres then
+    raise exception 'Un battement ordinaire ne doit reveiller personne';
   end if;
 
   -- ── 6. Réservé au service ─────────────────────────────────────────────────

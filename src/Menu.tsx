@@ -95,6 +95,12 @@ export function MenuApp({
   const socialPolling = useRef<AdaptivePollingController | null>(null)
   const lobbyPolling = useRef<AdaptivePollingController | null>(null)
   const menuRealtimeConnected = useRef(false)
+  // Une invitation en temps limité partîte et attend sa réponse : le sondage
+  // du lobby passe à 5 s, pour entrer dans la partie dès qu'elle est créée et
+  // ne pas manger la fenêtre de lecture (voir `lobbyMenuPollDelay`). Un `ref`
+  // et non un état : la cadence est relue à chaque tick, l'effet ne doit pas
+  // se remonter à chaque changement de lobby.
+  const inviteEnAttente = useRef(false)
 
   useResolvedTheme(theme)
 
@@ -195,6 +201,7 @@ export function MenuApp({
         const next = await loadMatchLobby(identity.playerId)
         if (!active) return
         setMatchLobby(current => sameState(current, next) ? current : next)
+        inviteEnAttente.current = next.outgoing.some(invitation => invitation.pace === 'realtime')
         const liveMatch = next.active.find(match => match.pace === 'realtime')
         if (liveMatch && openingMatch.current !== liveMatch.id) {
           openingMatch.current = liveMatch.id
@@ -217,7 +224,7 @@ export function MenuApp({
     }
     const polling = startAdaptivePolling({
       task: sync,
-      delay: visibility => lobbyMenuPollDelay(visibility, menuRealtimeConnected.current, Boolean(pendingSearch)),
+      delay: visibility => lobbyMenuPollDelay(visibility, menuRealtimeConnected.current, Boolean(pendingSearch), inviteEnAttente.current),
     })
     lobbyPolling.current = polling
     return () => {

@@ -10,15 +10,32 @@ describe('menu Realtime wake-ups', () => {
     expect(readMenuWakeupScope(null)).toBe('all')
   })
 
-  it('garde un polling lent lorsque Realtime est connecté', () => {
-    expect(socialMenuPollDelay('visible', true)).toBe(60_000)
-    expect(lobbyMenuPollDelay('visible', true, false)).toBe(45_000)
-    expect(lobbyMenuPollDelay('hidden', true, false)).toBe(60_000)
+  // 26/09/2026 : le temps réel ne ralentit PLUS le sondage. Une diffusion est un
+  // pouls, pas un message stocké ; quand elle se perd, le joueur « connecté »
+  // attendait 45 à 60 s, soit plus longtemps que s'il n'avait pas eu de temps
+  // réel du tout. C'est ce qui faisait apparaître les invitations une fois sur
+  // deux.
+  it('sonde à la même cadence, que le temps réel soit connecté ou non', () => {
+    for (const connecte of [true, false]) {
+      expect(socialMenuPollDelay('visible', connecte)).toBe(30_000)
+      expect(lobbyMenuPollDelay('visible', connecte, false)).toBe(30_000)
+    }
   })
 
-  it('accélère seulement le secours si Realtime est indisponible', () => {
-    expect(socialMenuPollDelay('visible', false)).toBe(30_000)
-    expect(lobbyMenuPollDelay('visible', false, false)).toBe(30_000)
+  // 26/09/2026 : l'hôte entre dans la partie TOUT SEUL dès que son menu la voit
+  // (Menu.tsx, `liveMatch`). À 45 s de sondage il y arrivait avec dix secondes
+  // de lecture au lieu de trente. Tant qu'une invitation attend sa réponse, on
+  // regarde toutes les 5 s.
+  it('sonde vite tant qu’une invitation en temps limité attend sa réponse', () => {
+    expect(lobbyMenuPollDelay('visible', true, false, true)).toBe(5_000)
+    expect(lobbyMenuPollDelay('visible', false, false, true)).toBe(5_000)
+    // Sans invitation en attente, la cadence ordinaire reprend.
+    expect(lobbyMenuPollDelay('visible', true, false, false)).toBe(30_000)
+  })
+
+  it('se met en veille quand l’écran est caché', () => {
+    expect(socialMenuPollDelay('hidden', true)).toBe(60_000)
+    expect(lobbyMenuPollDelay('hidden', true, false)).toBe(60_000)
   })
 
   it('sonde vite pendant une recherche, realtime ou non : la bascule sur un bot n’émet aucun réveil', () => {
