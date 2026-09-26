@@ -54,16 +54,16 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 35],
-      // v35 (19/09) : les 413 dessins assainis (sans <title>, octets neufs), aucune
-      // grille ni définition touchée. v34 (18/09) : révision « revision-simples »,
-      // 186 définitions trop dures réécrites dans 100 grilles normales. 262
-      // grilles comme en v33 (lot « normales-8 » : 26 grilles de rotation).
-      ['grilles', catalog.grids.length, 262],
-      // 412 en v33 ; SEL prend la salière déjà en jeu : 413.
-      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 413],
-      // Les grilles à thème du défi du jour : inchangées, « normales-8 » n'en crée aucune.
-      ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 75],
+      ['version', catalog.version, 38],
+      // v38 (25/09) : trois thèmes neufs, Justice & Droit, Maison, Mer & Marine
+      // (15 grilles à thème). v37 (23/09) : lot « normales-9 », 117 grilles de
+      // rotation. v36 (22/09) : six thèmes neufs (30 grilles à thème).
+      // 262 en v35 → 292 → 409 → 424.
+      ['grilles', catalog.grids.length, 424],
+      // 413 en v35 ; les lots v36 à v38 en ont apporté 116.
+      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 529],
+      // Les grilles à thème du défi du jour : 75 en v35, +30 en v36, +15 en v38.
+      ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 120],
     ]
     for (const [libelle, obtenu, attendu] of attendus) {
       if (obtenu === attendu) continue
