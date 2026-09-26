@@ -189,3 +189,109 @@ test('une définition trop longue pour sa case finit par « … » au lieu d’�
     await context.close()
   }
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RETOUR DU 26/09/2026 — la revanche invisible.
+//
+// Une partie entre le propriétaire et sa femme se termine à 15:42:24 ; elle le
+// réinvite 49 secondes plus tard. Lui est encore sur l'écran de fin de partie,
+// qui ne lisait aucune invitation : le panneau vivait dans le menu, et le menu
+// n'est pas monté pendant une partie. Il a dû se déconnecter et se reconnecter
+// pour la voir.
+//
+// L'adversaire abandonne plutôt que de jouer quarante tours : l'écran de fin
+// est le même, et le test reste court.
+// ─────────────────────────────────────────────────────────────────────────────
+test('une revanche reçue sur l’écran de fin de partie s’affiche, et l’accepter ouvre la partie', async ({ browser }) => {
+  const moi = identite('Doc Revanche')
+  const elle = identite('Clara Revanche')
+  const apiMoi = await session(moi)
+  const apiElle = await session(elle)
+  await lier(apiMoi, elle, apiElle, moi)
+
+  // Une première partie entre eux : je l'invite, elle accepte.
+  expect((await apiMoi.post('/api/matches/create', { data: { playerId: moi.playerId, targetId: elle.playerId, pace: 'realtime' } })).ok()).toBe(true)
+  const [invitation] = (await lobby(apiElle, elle)).incoming as Array<{ id: string }>
+  expect((await apiElle.post('/api/matches/respond', { data: { playerId: elle.playerId, invitationId: invitation.id, decision: 'accept' } })).ok()).toBe(true)
+  const [premiere] = (await lobby(apiMoi, moi)).active.map(partie => partie.id)
+
+  const { context, page } = await ouvrir(browser, moi, `/#partie=${encodeURIComponent(premiere)}`)
+  try {
+    await expect(page.locator('.board')).toBeVisible()
+
+    // Elle quitte la partie : je suis sur l'écran de fin.
+    expect((await apiElle.post('/api/matches/forfeit', { data: { playerId: elle.playerId, matchId: premiere } })).ok()).toBe(true)
+    await expect(page.getByRole('button', { name: 'Retour à l’accueil' })).toBeVisible()
+
+    // Elle me réinvite. Le panneau doit s'ouvrir ICI, sans repasser par le menu.
+    expect((await apiElle.post('/api/matches/create', { data: { playerId: elle.playerId, targetId: moi.playerId, pace: 'realtime' } })).ok()).toBe(true)
+    const panneau = page.getByRole('dialog', { name: 'Invitation à jouer' })
+    await expect(panneau).toBeVisible()
+    await expect(panneau).toContainText(`${elle.displayName} te défie`)
+
+    // J'accepte : j'entre dans la revanche, une AUTRE partie que la première.
+    await panneau.getByRole('button', { name: 'Accepter' }).click()
+    await expect(page.locator('.board')).toBeVisible()
+    const actives = (await lobby(apiMoi, moi)).active.map(partie => partie.id)
+    expect(actives).toHaveLength(1)
+    expect(actives[0]).not.toBe(premiere)
+    await expect.poll(() => decodeURIComponent(new URL(page.url()).hash)).toBe(`#partie=${actives[0]}`)
+  } finally {
+    await context.close()
+    await Promise.all([apiMoi.dispose(), apiElle.dispose()])
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RETOUR DU 26/09/2026 — « rejouer » depuis l'écran de fin, entre amis.
+//
+// Les deux moitiés de la revanche, par les gestes des deux joueurs : l'un
+// propose depuis son écran de fin, l'autre accepte depuis le sien, et ils se
+// retrouvent dans la MÊME nouvelle partie sans repasser par le menu.
+// ─────────────────────────────────────────────────────────────────────────────
+test('« Rejouer » depuis l’écran de fin : les deux amis se retrouvent dans la même nouvelle partie', async ({ browser }) => {
+  const moi = identite('Doc Rejoue')
+  const elle = identite('Clara Rejoue')
+  const apiMoi = await session(moi)
+  const apiElle = await session(elle)
+  await lier(apiMoi, elle, apiElle, moi)
+
+  expect((await apiMoi.post('/api/matches/create', { data: { playerId: moi.playerId, targetId: elle.playerId, pace: 'realtime' } })).ok()).toBe(true)
+  const [invitation] = (await lobby(apiElle, elle)).incoming as Array<{ id: string }>
+  expect((await apiElle.post('/api/matches/respond', { data: { playerId: elle.playerId, invitationId: invitation.id, decision: 'accept' } })).ok()).toBe(true)
+  const [premiere] = (await lobby(apiMoi, moi)).active.map(partie => partie.id)
+
+  const chezMoi = await ouvrir(browser, moi, `/#partie=${encodeURIComponent(premiere)}`)
+  const chezElle = await ouvrir(browser, elle, `/#partie=${encodeURIComponent(premiere)}`)
+  try {
+    await expect(chezMoi.page.locator('.board')).toBeVisible()
+    await expect(chezElle.page.locator('.board')).toBeVisible()
+    expect((await apiElle.post('/api/matches/forfeit', { data: { playerId: elle.playerId, matchId: premiere } })).ok()).toBe(true)
+
+    // Entre amis, « Rejouer » remplace « Nouvelle partie ».
+    const rejouer = chezMoi.page.getByRole('button', { name: `Rejouer contre ${elle.displayName}` })
+    await expect(rejouer).toBeVisible()
+    await expect(chezMoi.page.getByRole('button', { name: 'Nouvelle partie' })).toHaveCount(0)
+    await rejouer.click()
+    await expect(chezMoi.page.getByRole('button', { name: `En attente de ${elle.displayName}…` })).toBeVisible()
+
+    // Elle, sur SON écran de fin, voit la revanche et l'accepte.
+    const panneau = chezElle.page.getByRole('dialog', { name: 'Invitation à jouer' })
+    await expect(panneau).toBeVisible()
+    await expect(panneau).toContainText(`${moi.displayName} te défie`)
+    await panneau.getByRole('button', { name: 'Accepter' }).click()
+
+    // Les deux écrans entrent dans la même partie, qui n'est pas la première.
+    await expect(chezElle.page.locator('.board')).toBeVisible()
+    await expect(chezMoi.page.locator('.board')).toBeVisible()
+    const [revanche] = (await lobby(apiMoi, moi)).active.map(partie => partie.id)
+    expect(revanche).toBeTruthy()
+    expect(revanche).not.toBe(premiere)
+    for (const { page } of [chezMoi, chezElle]) {
+      await expect.poll(() => decodeURIComponent(new URL(page.url()).hash)).toBe(`#partie=${revanche}`)
+    }
+  } finally {
+    await Promise.all([chezMoi.context.close(), chezElle.context.close()])
+    await Promise.all([apiMoi.dispose(), apiElle.dispose()])
+  }
+})

@@ -15,13 +15,17 @@ import { canUseHint, canUseReroll, gameWordCellIndexes, indicesRestants, INDICES
 import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
-  confirmMatchPresence, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn, requestMatchHint, rerollMatchRack,
-  type MatchState, type MatchTurn,
+  acknowledgeMatchResult, cancelMatchInvitation, confirmMatchPresence, createInstantMatch, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn,
+  requestMatchHint, rerollMatchRack, respondToMatchInvitation,
+  type MatchInvitation, type MatchState, type MatchTurn,
   type MatchPace,
 } from './matches'
 import { subscribeToMatchUpdates } from './matchRealtime'
 import { subscribeToMenuUpdates } from './menuRealtime'
 import { matchPollDelay } from './matchSyncPolicy'
+import { resultInvitationPollDelay } from './menuSyncPolicy'
+import { MatchInvitationPanel } from './menu/MatchActivityPanels'
+import { clearDeliveredPushNotifications } from './nativePushNotifications'
 import { noteServerTime, serverNow } from './serverClock'
 import { loadPlayerIdentity, playerInitials } from './playerIdentity'
 import { loadPlayerProgress } from './playerProgress'
@@ -31,7 +35,7 @@ import { createMatchRackTiles, reconcileRackPlacements, type RackTile } from './
 import { haptic, ladderFor, playEffect } from './sensoryPreferences'
 import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
-import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel } from './game/DuelPresentation'
+import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel, type EtatRevanche } from './game/DuelPresentation'
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTargeting'
@@ -70,8 +74,14 @@ export function isRoutineTurnStatus(status: string): boolean {
   return !/Temps écoulé|n’a pas joué|Tour passé| passe$|pause|terminée/.test(status)
 }
 
-export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, onRejoindreClasse }: {
+export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, onRejoindreClasse, onOuvrirPartie }: {
   matchId: string
+  /**
+   * Accepter une invitation reçue sur l'écran de fin de partie : l'application
+   * ouvre directement la nouvelle partie (App.tsx). C'est la revanche — et
+   * jusqu'au 26/09/2026, elle obligeait à se déconnecter pour la voir.
+   */
+  onOuvrirPartie?: (matchId: string) => void
   onExit: () => void
   onHome: () => void
   /**
@@ -802,6 +812,142 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     return () => { vivant = false; window.clearInterval(filet); arreter() }
   }, [classeCherche, match, match?.status, partieClassee, partieDuJour, playerId])
 
+  // ── LES INVITATIONS SUR L'ÉCRAN DE FIN DE PARTIE (26/09/2026) ─────────────────
+  // Le panneau d'invitation vivait dans le MENU, et le menu n'est pas monté
+  // pendant une partie ni sur son écran de résultat. Le réveil temps réel y
+  // était bien écouté — pour compter les joueurs du classé, rien d'autre.
+  // Résultat mesuré : une revanche envoyée 49 s après la fin restait
+  // invisible jusqu'à ce que le propriétaire se déconnecte et se reconnecte.
+  //
+  // Seulement une fois la partie TERMINÉE : pendant une partie en temps
+  // limité, on ne peut de toute façon pas en rejoindre une autre.
+  const [invitationRecue, setInvitationRecue] = useState<MatchInvitation | null>(null)
+  const [reponseInvitation, setReponseInvitation] = useState(false)
+  const [erreurInvitation, setErreurInvitation] = useState<string | null>(null)
+  // Une invitation refusée ou déjà traitée ne doit pas revenir au sondage
+  // suivant, parti avant que le serveur ait enregistré la réponse.
+  const invitationsEcartees = useRef(new Set<string>())
+  const partieTerminee = match?.status === 'finished'
+  // La revanche que J'AI proposée. Le sondage ci-dessous la relit par ce `ref` :
+  // son intervalle est créé une fois, il ne voit pas les états suivants.
+  const [revanche, setRevancheEtat] = useState<EtatRevanche>({ etape: 'libre' })
+  const [erreurRevanche, setErreurRevanche] = useState<string | null>(null)
+  const revancheRef = useRef<EtatRevanche>({ etape: 'libre' })
+  const setRevanche = (etat: EtatRevanche) => { revancheRef.current = etat; setRevancheEtat(etat) }
+  const adversaireId = match?.playerIds.find(id => id !== playerId) ?? ''
+  // Une partie NÉE D'UNE INVITATION est une partie entre amis : ni bot, ni
+  // appariement, ni classé, ni défi du jour n'en portent.
+  const revancheProposable = Boolean(partieTerminee && match?.invitationId && !match.bot && adversaireId)
+  const entrerDansLaRevanche = (nouvelleId: string) => {
+    // Comme « Retour à l'accueil », la partie terminée est validée — sinon son
+    // résultat ressurgirait plus tard dans le menu. Sans l'attendre : la
+    // fenêtre de lecture de la revanche court déjà.
+    void acknowledgeMatchResult(playerId, { matchId }).catch(() => undefined)
+    onOuvrirPartie?.(nouvelleId)
+  }
+  useEffect(() => {
+    if (!partieTerminee) {
+      setInvitationRecue(null)
+      return
+    }
+    // Le panneau est celui du menu : ses styles ne sont chargés qu'avec lui.
+    // Une partie ouverte depuis une notification démarre sans le menu.
+    void import('./menu.css')
+    const finiA = Date.now()
+    let vivant = true
+    const sondage = startAdaptivePolling({
+      task: async () => {
+        try {
+          const lobby = await loadMatchLobby(playerId)
+          if (!vivant) return
+          setInvitationRecue(lobby.incoming.find(invitation => !invitationsEcartees.current.has(invitation.id)) ?? null)
+          const attente = revancheRef.current
+          if (attente.etape === 'attente') {
+            const nouvelle = lobby.active.find(partie => partie.invitationId === attente.invitationId)
+            if (nouvelle) entrerDansLaRevanche(nouvelle.id)
+            // Ni partie, ni invitation encore en attente : refusée ou expirée.
+            else if (!lobby.outgoing.some(invitation => invitation.id === attente.invitationId)) setRevanche({ etape: 'sans-reponse' })
+          }
+        } catch {
+          // Un sondage manqué : le suivant repasse dans 5 s.
+        }
+      },
+      delay: visibility => resultInvitationPollDelay(visibility, Date.now() - finiA),
+    })
+    // Le canal temps réel de l'application (App.tsx) reste ouvert pendant le
+    // jeu : un réveil « lobby » fait lire tout de suite, sans attendre les 5 s.
+    const reveil = (event: Event) => {
+      const scope = (event as CustomEvent<{ scope?: string }>).detail?.scope ?? 'all'
+      if (scope === 'lobby' || scope === 'all') sondage.wake()
+    }
+    window.addEventListener('motman:menu-wakeup', reveil)
+    return () => {
+      vivant = false
+      sondage.stop()
+      window.removeEventListener('motman:menu-wakeup', reveil)
+    }
+  // `entrerDansLaRevanche` ne dépend que de props stables pour cette partie.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partieTerminee, playerId])
+
+  const proposerRevanche = async () => {
+    if (!match || !adversaireId) return
+    setErreurRevanche(null)
+    setRevanche({ etape: 'envoi' })
+    try {
+      const lobby = await createInstantMatch(playerId, adversaireId, match.pace)
+      // Mon ami m'avait déjà réinvité au même rythme : le serveur a accepté SON
+      // invitation au lieu d'en créer une seconde. La partie existe, on y entre.
+      const dejaCommencee = lobby.active.find(partie => partie.id !== match.id && partie.playerIds.includes(adversaireId))
+      if (dejaCommencee) {
+        entrerDansLaRevanche(dejaCommencee.id)
+        return
+      }
+      const envoyee = lobby.outgoing.find(invitation => invitation.guestId === adversaireId && invitation.pace === match.pace)
+      setRevanche(envoyee ? { etape: 'attente', invitationId: envoyee.id } : { etape: 'libre' })
+    } catch (raison) {
+      setRevanche({ etape: 'libre' })
+      setErreurRevanche(raison instanceof Error ? raison.message : 'L’invitation n’a pas pu partir.')
+    }
+  }
+
+  const annulerRevanche = async () => {
+    const attente = revancheRef.current
+    if (attente.etape !== 'attente') return
+    setRevanche({ etape: 'libre' })
+    try {
+      await cancelMatchInvitation(playerId, attente.invitationId)
+    } catch {
+      // Déjà acceptée ou expirée : le sondage suivant dira laquelle.
+    }
+  }
+
+  const repondreInvitation = async (invitation: MatchInvitation, decision: 'accept' | 'decline') => {
+    if (!match) return
+    setReponseInvitation(true)
+    setErreurInvitation(null)
+    try {
+      const lobby = await respondToMatchInvitation(playerId, invitation.id, decision)
+      invitationsEcartees.current.add(invitation.id)
+      setInvitationRecue(null)
+      void clearDeliveredPushNotifications()
+      if (decision !== 'accept') return
+      const nouvelle = lobby.active.find(candidate => candidate.invitationId === invitation.id)
+      if (!nouvelle) return
+      // Comme « Retour à l'accueil », la partie terminée est validée — sinon son
+      // résultat ressurgirait plus tard dans le menu. Sans l'attendre : la
+      // fenêtre de lecture de la revanche court déjà.
+      void acknowledgeMatchResult(playerId, { matchId: match.id }).catch(() => undefined)
+      onOuvrirPartie?.(nouvelle.id)
+    } catch (raison) {
+      invitationsEcartees.current.add(invitation.id)
+      setInvitationRecue(null)
+      setErreurInvitation(raison instanceof Error ? raison.message : 'Cette invitation n’est plus disponible.')
+    } finally {
+      setReponseInvitation(false)
+    }
+  }
+
   // Un compteur redescendu (le joueur a rejoué) efface la confirmation d'avant.
   const missedByMe = match?.inactivity[playerId] ?? 0
   useEffect(() => { setStillThereAck(ack => acknowledgedAfter(ack, missedByMe)) }, [missedByMe])
@@ -935,7 +1081,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
       <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button><button className="validate" type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer' : 'Valider' : `Tour de ${opponentName}`}</button></div>
-    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} />}
+    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi !</span></div> : null}
@@ -952,5 +1098,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
       rejoindre={() => { setClasseCherche(false); onRejoindreClasse?.() }}
     /> : null}
     {stillThere ? <StillThereDialog prompt={stillThere} isDaily={Boolean(match.isDaily)} envoi={presenceEnvoi === stillThere.missed} confirm={() => repondrePresent(stillThere.missed)} expire={() => pollingRef.current?.wake()} /> : null}
+    {invitationRecue && presentationPhase === 'result'
+      ? <MatchInvitationPanel invitation={invitationRecue} busy={reponseInvitation} accept={() => void repondreInvitation(invitationRecue, 'accept')} decline={() => void repondreInvitation(invitationRecue, 'decline')} />
+      : null}
+    {erreurInvitation && presentationPhase === 'result' ? <p className="result-feedback-error" role="alert">{erreurInvitation}</p> : null}
   </main>
 }

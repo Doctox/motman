@@ -76,3 +76,23 @@ export function lobbyMenuPollDelay(
   void realtimeConnected
   return 30_000
 }
+
+/**
+ * LA FENÊTRE DE LA REVANCHE (26/09/2026).
+ *
+ * Mesuré ce jour-là : une partie entre le propriétaire et sa femme se termine
+ * à 15:42:24 ; elle le réinvite 49 secondes plus tard. Lui est encore sur
+ * l'écran de fin de partie — qui ne lisait AUCUNE invitation. Il a dû se
+ * déconnecter et se reconnecter pour voir la sienne.
+ *
+ * Juste après une partie, c'est LE moment où l'on se réinvite : l'écran de
+ * résultat regarde donc toutes les 5 s pendant trois minutes, puis se calme.
+ * Il reste parfois ouvert longtemps (un résultat attend d'être validé) :
+ * sonder à 5 s indéfiniment n'aurait servi personne.
+ */
+export const FENETRE_REVANCHE_MS = 180_000
+
+export function resultInvitationPollDelay(visibility: PollVisibility, msDepuisFin: number): number {
+  if (visibility === 'hidden') return 60_000
+  return msDepuisFin < FENETRE_REVANCHE_MS ? 5_000 : 30_000
+}

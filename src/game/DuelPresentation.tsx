@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Feather, House, UserPlus } from 'lucide-react'
+import { Check, Feather, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
@@ -64,7 +64,30 @@ function absenceDetail(pace: string, won: boolean, opponentName: string): string
 /** La partie normale close d'office quand un joueur rejoint un match classé confirmé. */
 const DETAIL_BASCULE_CLASSEE = 'La partie normale est déclarée égale car un joueur rejoint le match classé confirmé. Aucun gain ni perte n’est appliqué.'
 
-export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void }) {
+/**
+ * REJOUER CONTRE UN AMI (26/09/2026).
+ *
+ * « Ce serait pas mal que sur la page de fin, on puisse rejouer un match
+ * lorsqu'on a joué un match avec un ami. » L'écran de fin savait déjà RECEVOIR
+ * une revanche (MultiplayerGame.tsx) ; il sait maintenant la proposer.
+ *
+ * `attente` porte l'identifiant de l'invitation partie : l'écran de jeu guette
+ * la partie qu'elle crée, et y entre dès que l'ami accepte.
+ */
+export type EtatRevanche =
+  | { etape: 'libre' }
+  | { etape: 'envoi' }
+  | { etape: 'attente'; invitationId: string }
+  | { etape: 'sans-reponse' }
+
+export type Revanche = {
+  etat: EtatRevanche
+  erreur: string | null
+  proposer: () => void
+  annuler: () => void
+}
+
+export function ResultPanel({ match, playerId, opponentName, onExit, onHome, revanche }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void; revanche?: Revanche }) {
   const [leaving, setLeaving] = useState(false)
   const [leavingError, setLeavingError] = useState<string | null>(null)
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null | undefined>(undefined)
@@ -186,13 +209,37 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome }: {
     </div> : null}
     <AddOpponentAsFriend playerId={playerId} opponentId={opponentId} opponentName={opponentName} isBot={Boolean(match.bot)} />
     <div className="end-game-actions">
-      <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Feather />Nouvelle partie</button>
-      <button type="button" className="end-game-home" disabled={leaving} onClick={() => void leaveResult(onHome)}><House />Retour à l’accueil</button>
+      {revanche
+        // Contre un ami, « Rejouer » prend la place de « Nouvelle partie » : deux
+        // boutons, pas trois — l'écran de fin déborde déjà à 540 px de haut.
+        ? <BoutonsRevanche revanche={revanche} opponentName={opponentName} leaving={leaving} rentrer={() => void leaveResult(onHome)} />
+        : <>
+          <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Feather />Nouvelle partie</button>
+          <button type="button" className="end-game-home" disabled={leaving} onClick={() => void leaveResult(onHome)}><House />Retour à l’accueil</button>
+        </>}
     </div>
+    {revanche?.etat.etape === 'sans-reponse' ? <p className="result-feedback-error" role="status">{opponentName} n’a pas accepté la revanche.</p> : null}
+    {revanche?.erreur ? <p className="result-feedback-error" role="alert">{revanche.erreur}</p> : null}
     {leavingError ? <p className="result-feedback-error" role="alert">{leavingError}</p> : null}
   </GameResultScreen>
 }
 
+
+function BoutonsRevanche({ revanche, opponentName, leaving, rentrer }: { revanche: Revanche; opponentName: string; leaving: boolean; rentrer: () => void }) {
+  const { etat } = revanche
+  // En attente : on peut annuler, ou rentrer à l'accueil — l'invitation y
+  // reste affichée, et le menu entre dans la partie dès qu'elle est acceptée.
+  if (etat.etape === 'attente') return <>
+    <button type="button" className="new-game" disabled aria-live="polite"><Hourglass aria-hidden="true" />En attente de {opponentName}…</button>
+    <button type="button" className="end-game-home" onClick={revanche.annuler}><X aria-hidden="true" />Annuler l’invitation</button>
+  </>
+  return <>
+    <button type="button" className="new-game" disabled={leaving || etat.etape === 'envoi'} onClick={revanche.proposer}>
+      <RotateCcw aria-hidden="true" />{etat.etape === 'envoi' ? 'Invitation…' : `Rejouer contre ${opponentName}`}
+    </button>
+    <button type="button" className="end-game-home" disabled={leaving} onClick={rentrer}><House aria-hidden="true" />Retour à l’accueil</button>
+  </>
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GARDER L'ADVERSAIRE.

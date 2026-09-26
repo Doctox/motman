@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readMenuWakeupScope } from './menuRealtime'
-import { lobbyMenuPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
+import { FENETRE_REVANCHE_MS, lobbyMenuPollDelay, resultInvitationPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
 
 describe('menu Realtime wake-ups', () => {
   it('ne fait confiance qu’aux portées connues', () => {
@@ -31,6 +31,17 @@ describe('menu Realtime wake-ups', () => {
     expect(lobbyMenuPollDelay('visible', false, false, true)).toBe(5_000)
     // Sans invitation en attente, la cadence ordinaire reprend.
     expect(lobbyMenuPollDelay('visible', true, false, false)).toBe(30_000)
+  })
+
+  // 26/09/2026 : une revanche envoyée 49 s après la fin d'une partie restait
+  // invisible sur l'écran de résultat. Il regarde maintenant toutes les 5 s
+  // pendant la fenêtre de la revanche, puis se calme.
+  it('l’écran de résultat guette la revanche, puis se calme', () => {
+    expect(resultInvitationPollDelay('visible', 0)).toBe(5_000)
+    expect(resultInvitationPollDelay('visible', 49_000)).toBe(5_000)
+    expect(resultInvitationPollDelay('visible', FENETRE_REVANCHE_MS - 1)).toBe(5_000)
+    expect(resultInvitationPollDelay('visible', FENETRE_REVANCHE_MS)).toBe(30_000)
+    expect(resultInvitationPollDelay('hidden', 0)).toBe(60_000)
   })
 
   it('se met en veille quand l’écran est caché', () => {

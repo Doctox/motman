@@ -230,8 +230,12 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
   return <>
     {matchId ? <Suspense fallback={<AppLoading label="Préparation du duel…" />}>
       <MultiplayerGameScreen
+        // Une clé par partie : la revanche ouverte depuis l'écran de résultat
+        // repart d'un écran NEUF, sans l'état de la partie qu'on vient de finir.
+        key={matchId}
         matchId={matchId}
         onExit={exitMatch}
+        onOuvrirPartie={openMatch}
         onHome={returnHome}
         onPaceChange={setOpenMatchPace}
         // « Rejoindre » depuis la fenêtre en jeu : on retourne au menu ET on se
