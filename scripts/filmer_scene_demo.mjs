@@ -55,7 +55,8 @@ const FFMPEG = process.env.FFMPEG ?? (existsSync('C:/ffmpeg/bin/ffmpeg.exe') ? '
 function lireArguments(argv) {
   const valeurs = {
     grille: 'grille-7x8-118b88e6ac1f', case: '1,1', lettre: 'O', chevalet: 'TOCAS',
-    scores: '55,62', adversaire: 'Hugo', niveau: '14', port: '4188', sortie: '',
+    scores: '55,62', adversaire: 'Hugo', niveau: '14', avatar: 'nael', cadre: 'cadre-laiton',
+    hesite: '', chrono: '10', port: '4188', sortie: '',
   }
   for (let index = 0; index < argv.length; index += 1) {
     const cle = argv[index].replace(/^--/, '')
@@ -112,6 +113,12 @@ if (!solution.has(caseVisee)) throw new Error(`La case ${reglages.case} n'est pa
 if (solution.get(caseVisee) === lettre) throw new Error(`${lettre} est la BONNE lettre de la case ${reglages.case} : la scène veut une lettre fausse.`)
 if (!chevalet.includes(lettre)) throw new Error(`La lettre ${lettre} doit être dans le chevalet (${chevalet.join(' ')}).`)
 if (chevalet.length < 1 || chevalet.length > 5) throw new Error('Le chevalet compte 1 à 5 lettres.')
+// La lettre de l'hésitation : posée, regardée, reprise. Jamais la bonne.
+const hesite = (reglages.hesite || chevalet.find(candidate => candidate !== lettre && candidate !== solution.get(caseVisee)) || '').toUpperCase()
+if (hesite && (!chevalet.includes(hesite) || hesite === lettre || hesite === solution.get(caseVisee))) {
+  throw new Error(`--hesite ${hesite} : une autre lettre du chevalet, ni ${lettre} ni la bonne réponse.`)
+}
+const chrono = Number(reglages.chrono)
 
 // ── L'état de départ ─────────────────────────────────────────────────────────
 const joueurId = `guest_${randomUUID()}`
@@ -128,7 +135,11 @@ const maintenant = new Date().toISOString()
 const partie = {
   id: partieId, invitationId: null, mode: 'normal', pace: 'realtime', gridId: grille.id, difficulty: 'normal',
   playerIds: [joueurId, botId],
-  bot: { playerId: botId, displayName: reglages.adversaire, level: Number(reglages.niveau), skill: 'normal' },
+  // Avatar et cadre fixés : tirés au hasard, « Hugo » changeait de visage à chaque prise.
+  bot: {
+    playerId: botId, displayName: reglages.adversaire, level: Number(reglages.niveau), skill: 'regular',
+    avatarId: reglages.avatar, frameId: reglages.cadre,
+  },
   currentPlayerId: joueurId, turnNumber: TOUR,
   // Le tour stocké dure une heure : le serveur local ne doit jamais le déclarer
   // écoulé pendant le tournage. Le chrono affiché, lui, est réécrit plus bas.
@@ -183,6 +194,34 @@ async function attendreServeur() {
 const TOUR_MS = 45_000
 const PRET_MS = 1_800 // TURN_READY_DURATION_MS du serveur
 const REVELATION_MS = 1_590 // revealDuration d'un coup à une seule étape : 1 240 + 350
+// L'enregistrement démarre à ce délai après le premier chargement de la partie :
+// c'est ce qui permet de régler le chrono qu'on voit à la première image.
+const DEPART_PRISE_MS = 3_500
+
+/** Un geste de doigt : il accélère, puis ralentit en arrivant. */
+async function glisser(page, de, vers, dureeMs) {
+  await page.mouse.move(de.x, de.y)
+  await page.mouse.down()
+  await pause(160)
+  // Réglé sur l'horloge et non sur un nombre de pas : chaque déplacement coûte
+  // un aller-retour au navigateur, et le geste durait le double de sa consigne.
+  const debut = performance.now()
+  for (;;) {
+    const t = Math.min(1, (performance.now() - debut) / dureeMs)
+    const doux = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
+    await page.mouse.move(de.x + (vers.x - de.x) * doux, de.y + (vers.y - de.y) * doux - Math.sin(Math.PI * t) * 24)
+    if (t === 1) break
+    await pause(8)
+  }
+  await pause(110)
+  await page.mouse.up()
+}
+
+async function centre(locator) {
+  const boite = await locator.boundingBox()
+  if (!boite) throw new Error('Un élément de la scène est introuvable à l\'écran.')
+  return { x: boite.x + boite.width / 2, y: boite.y + boite.height / 2 }
+}
 
 async function tourner() {
   await attendreServeur()
@@ -199,17 +238,21 @@ async function tourner() {
 
     let etat = null
     let coupJoue = null
+    let premierChargement = 0
     await page.route(`**/api/matches/match/${partieId}**`, async route => {
       if (!etat) {
         const reponse = await route.fetch({ url: `http://127.0.0.1:${port}/api/matches/match/${partieId}?playerId=${joueurId}` })
         const brut = await reponse.json()
-        const debut = Date.now() - 6_000
+        premierChargement = Date.now()
+        // Le tour touche à sa fin : --chrono secondes au début de la vidéo. Sous
+        // dix secondes, le jeu passe le chrono en rouge — c'est le suspens.
+        const fin = premierChargement + DEPART_PRISE_MS + chrono * 1_000
         etat = {
           ...brut,
           racks: { ...brut.racks, [joueurId]: chevalet },
           scores: { [joueurId]: scoreJoueur, [botId]: scoreAdversaire },
-          turnStartedAt: new Date(debut).toISOString(),
-          turnEndsAt: new Date(debut + PRET_MS + TOUR_MS).toISOString(),
+          turnStartedAt: new Date(fin - PRET_MS - TOUR_MS).toISOString(),
+          turnEndsAt: new Date(fin).toISOString(),
           updatedAt: new Date().toISOString(),
         }
       }
@@ -252,7 +295,9 @@ async function tourner() {
     }
     await page.waitForFunction(() => !document.querySelector('.turn-ready-flash'), null, { timeout: 10_000 })
     await page.waitForFunction(sel => !document.querySelector(sel)?.hasAttribute('disabled'), `[data-rack-letter="${lettre}"]`, { timeout: 10_000 })
-    await pause(400)
+    const attente = premierChargement + DEPART_PRISE_MS - Date.now()
+    if (attente < 0) throw new Error(`La partie a mis trop longtemps à s'afficher (${-attente} ms de retard) : relance.`)
+    await pause(attente)
 
     // L'enregistrement : une image à chaque changement de l'écran, horodatée à
     // la réception. Le montage les ramène ensuite à 30 images/s.
@@ -265,26 +310,19 @@ async function tourner() {
     await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 95, maxWidth: 1080, maxHeight: 2340, everyNthFrame: 1 })
     const depart = performance.now()
 
-    await pause(1_900) // on regarde la grille
-    const de = await tuile.boundingBox()
-    const vers = await cible.boundingBox()
-    if (!de || !vers) throw new Error('La lettre ou la case est introuvable à l\'écran.')
-    const x0 = de.x + de.width / 2; const y0 = de.y + de.height / 2
-    const x1 = vers.x + vers.width / 2; const y1 = vers.y + vers.height / 2
-    await page.mouse.move(x0, y0)
-    await page.mouse.down()
-    await pause(180)
-    // Un geste de doigt : il accélère, puis ralentit en arrivant sur la case.
-    const PAS = 42
-    for (let pas = 1; pas <= PAS; pas += 1) {
-      const t = pas / PAS
-      const doux = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
-      await page.mouse.move(x0 + (x1 - x0) * doux, y0 + (y1 - y0) * doux - Math.sin(Math.PI * t) * 24)
-      await pause(17)
+    // Le suspens : on regarde la grille pendant que le chrono descend, on essaie
+    // une lettre, on la reprend, puis on se décide.
+    await pause(1_300)
+    const laCase = await centre(cible)
+    if (hesite) {
+      const place = await centre(page.locator(`[data-rack-letter="${hesite}"]`).first())
+      await glisser(page, place, laCase, 850)
+      await pause(800) // l'autre mot, posé, qu'on regarde
+      await glisser(page, laCase, place, 650) // non…
+      await pause(650)
     }
-    await pause(120)
-    await page.mouse.up()
-    await pause(900) // CAFARD, posé, pas encore validé
+    await glisser(page, await centre(tuile), laCase, 1_000)
+    await pause(900) // le mot faux, posé, pas encore validé
 
     const valider = await page.locator('button.validate').boundingBox()
     if (!valider) throw new Error('Le bouton « Valider » est introuvable.')
@@ -341,6 +379,12 @@ try {
   const intervalles = prise.images.slice(1).map((image, rang) => image.temps - prise.images[rang].temps)
   const sortie = path.resolve(reglages.sortie || path.join(RUSHES, `scene-${grille.id}-${reglages.case.replace(',', 'x')}-${lettre}.mp4`))
   const bilan = monter(prise, sortie)
+  // À côté de la vidéo, l'instant de l'erreur : le montage y accroche sa fenêtre
+  // de fin (Medias reseaux/outils/monter_perdu.mjs).
+  writeFileSync(sortie.replace(/\.mp4$/i, '.json'), `${JSON.stringify({
+    grille: grille.id, case: reglages.case, lettre, hesite, chrono,
+    erreur: Number(((prise.erreur - prise.depart) / 1000).toFixed(3)), duree: bilan.duree,
+  }, null, 2)}\n`)
   console.log(`Vidéo : ${sortie}`)
   console.log(`Durée : ${bilan.duree.toFixed(1)} s · ${bilan.images} images reçues · écart max entre deux images : ${Math.round(Math.max(...intervalles))} ms`)
   console.log(`Erreur affichée à ${((prise.erreur - prise.depart) / 1000).toFixed(1)} s`)
