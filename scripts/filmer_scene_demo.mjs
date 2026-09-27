@@ -37,19 +37,15 @@
 //
 // Port 4188 par défaut, et surtout pas 4190 : Chrome et Node refusent de s'y
 // connecter (port de messagerie « sieve », sur la liste noire du standard fetch).
-import { spawn, spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { setTimeout as pause } from 'node:timers/promises'
-import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
 import { lireCatalogueRuntime } from './lib/catalogue.mjs'
+import { demarrerServeur, enregistrer, monterImages, ouvrirTelephone, RACINE, RUSHES } from './lib/tournage.mjs'
 
-const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ETAT = path.join(RACINE, 'output', 'scene-demo')
-const RUSHES = path.resolve(RACINE, '..', 'MotMan Contexte', 'Medias reseaux', 'rushes')
-const FFMPEG = process.env.FFMPEG ?? (existsSync('C:/ffmpeg/bin/ffmpeg.exe') ? 'C:/ffmpeg/bin/ffmpeg.exe' : 'ffmpeg')
 
 // ── Les réglages de la scène ─────────────────────────────────────────────────
 function lireArguments(argv) {
@@ -154,41 +150,11 @@ const partie = {
 }
 
 rmSync(ETAT, { recursive: true, force: true })
-mkdirSync(path.join(ETAT, 'images'), { recursive: true })
+mkdirSync(ETAT, { recursive: true })
 writeFileSync(path.join(ETAT, 'matches.json'), JSON.stringify({ version: 5, invitations: [], matches: [partie], searches: [] }, null, 2))
 
 // ── Le serveur de développement, isolé ───────────────────────────────────────
-const vite = spawn(process.execPath, [path.join(RACINE, 'node_modules', 'vite', 'bin', 'vite.js'), '--port', String(port), '--strictPort', '--host', '127.0.0.1'], {
-  cwd: RACINE,
-  env: {
-    ...process.env,
-    VITE_MOTMAN_LOCAL_TEST_SERVER: 'true',
-    MOTMAN_MATCH_DATABASE_PATH: path.join(ETAT, 'matches.json'),
-    MOTMAN_DATABASE_PATH: path.join(ETAT, 'motman.sqlite'),
-    MOTMAN_SOCIAL_DATABASE_PATH: path.join(ETAT, 'social.json'),
-  },
-  stdio: ['ignore', 'pipe', 'pipe'],
-})
-let journalVite = ''
-vite.stdout.on('data', morceau => { journalVite += morceau })
-vite.stderr.on('data', morceau => { journalVite += morceau })
-const arreterVite = () => { if (vite.exitCode === null) vite.kill() }
-process.on('exit', arreterVite)
-
-async function attendreServeur() {
-  const limite = Date.now() + 60_000
-  let dernier = 'aucune réponse'
-  while (Date.now() < limite) {
-    if (vite.exitCode !== null) throw new Error(`Le serveur de développement s'est arrêté :\n${journalVite}`)
-    try {
-      const reponse = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(5_000) })
-      if (reponse.ok) return
-      dernier = `HTTP ${reponse.status}`
-    } catch (erreur) { dernier = String(erreur?.cause ?? erreur) }
-    await pause(300)
-  }
-  throw new Error(`Le serveur de développement ne répond pas sur le port ${port} (${dernier}) :\n${journalVite}`)
-}
+const serveur = demarrerServeur({ port, etat: ETAT })
 
 // ── Le tournage ──────────────────────────────────────────────────────────────
 const TOUR_MS = 45_000
@@ -224,13 +190,10 @@ async function centre(locator) {
 }
 
 async function tourner() {
-  await attendreServeur()
+  await serveur.attendre()
   const navigateur = await chromium.launch()
   try {
-    // 360 × 780 à la densité 3 : exactement 1080 × 2340, sans mise à l'échelle.
-    const contexte = await navigateur.newContext({
-      viewport: { width: 360, height: 780 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: 'fr-FR',
-    })
+    const contexte = await ouvrirTelephone(navigateur)
     await contexte.addInitScript(([cle, identite]) => {
       if (!localStorage.getItem(cle)) localStorage.setItem(cle, identite)
     }, ['motman-player-v1', JSON.stringify({ version: 1, playerId: joueurId, displayName: 'Invité 2048', accountType: 'guest', createdAt: maintenant })])
@@ -299,16 +262,8 @@ async function tourner() {
     if (attente < 0) throw new Error(`La partie a mis trop longtemps à s'afficher (${-attente} ms de retard) : relance.`)
     await pause(attente)
 
-    // L'enregistrement : une image à chaque changement de l'écran, horodatée à
-    // la réception. Le montage les ramène ensuite à 30 images/s.
-    const images = []
-    const cdp = await contexte.newCDPSession(page)
-    cdp.on('Page.screencastFrame', ({ data, sessionId }) => {
-      images.push({ temps: performance.now(), data })
-      void cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => undefined)
-    })
-    await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 95, maxWidth: 1080, maxHeight: 2340, everyNthFrame: 1 })
-    const depart = performance.now()
+    const camera = await enregistrer(contexte, page)
+    const depart = camera.depart
 
     // Le suspens : on regarde la grille pendant que le chrono descend, on essaie
     // une lettre, on la reprend, puis on se décide.
@@ -336,7 +291,7 @@ async function tourner() {
     const erreur = performance.now()
     if (coupJoue?.erreur) throw new Error(coupJoue.erreur)
     await pause(2_250)
-    await cdp.send('Page.stopScreencast')
+    const images = await camera.arreter()
     const fin = erreur + 2_000
 
     return { images, depart, fin, erreur }
@@ -345,40 +300,11 @@ async function tourner() {
   }
 }
 
-// ── Le montage : 30 images/s constantes, 1080 × 2340, piste muette ───────────
-function monter({ images, depart, fin }, sortie) {
-  const utiles = images.filter(image => image.temps <= fin)
-  if (!utiles.length) throw new Error('Aucune image enregistrée.')
-  const IMAGES = path.join(ETAT, 'images')
-  const liste = []
-  utiles.forEach((image, rang) => {
-    const nom = `i${String(rang).padStart(5, '0')}.jpg`
-    writeFileSync(path.join(IMAGES, nom), Buffer.from(image.data, 'base64'))
-    const debut = rang === 0 ? depart : image.temps
-    const suite = rang + 1 < utiles.length ? utiles[rang + 1].temps : fin
-    liste.push(`file '${nom}'`, `duration ${Math.max(0.001, (suite - debut) / 1000).toFixed(4)}`)
-  })
-  liste.push(`file 'i${String(utiles.length - 1).padStart(5, '0')}.jpg'`)
-  writeFileSync(path.join(IMAGES, 'liste.txt'), `${liste.join('\n')}\n`)
-  mkdirSync(path.dirname(sortie), { recursive: true })
-  const duree = ((fin - depart) / 1000).toFixed(3)
-  const resultat = spawnSync(FFMPEG, [
-    '-y', '-loglevel', 'error',
-    '-f', 'concat', '-safe', '0', '-i', path.join(IMAGES, 'liste.txt'),
-    '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
-    '-vf', 'fps=30,scale=1080:2340:flags=lanczos,format=yuv420p',
-    '-t', duree, '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-r', '30',
-    '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', sortie,
-  ], { encoding: 'utf8' })
-  if (resultat.status !== 0) throw new Error(`ffmpeg a échoué :\n${resultat.stderr}`)
-  return { duree: Number(duree), images: utiles.length }
-}
-
 try {
   const prise = await tourner()
   const intervalles = prise.images.slice(1).map((image, rang) => image.temps - prise.images[rang].temps)
   const sortie = path.resolve(reglages.sortie || path.join(RUSHES, `scene-${grille.id}-${reglages.case.replace(',', 'x')}-${lettre}.mp4`))
-  const bilan = monter(prise, sortie)
+  const bilan = monterImages({ ...prise, dossier: path.join(ETAT, 'images'), sortie })
   // À côté de la vidéo, l'instant de l'erreur : le montage y accroche sa fenêtre
   // de fin (Medias reseaux/outils/monter_perdu.mjs).
   writeFileSync(sortie.replace(/\.mp4$/i, '.json'), `${JSON.stringify({
@@ -389,5 +315,5 @@ try {
   console.log(`Durée : ${bilan.duree.toFixed(1)} s · ${bilan.images} images reçues · écart max entre deux images : ${Math.round(Math.max(...intervalles))} ms`)
   console.log(`Erreur affichée à ${((prise.erreur - prise.depart) / 1000).toFixed(1)} s`)
 } finally {
-  arreterVite()
+  serveur.arreter()
 }
