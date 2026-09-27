@@ -2,7 +2,7 @@
 // réseaux : le logo, la barre qui avance, « Chargement du jeu… » puis
 // « Connexion… ».
 //
-//   node scripts/filmer_chargement.mjs [--chargement 2.8] [--connexion 3.4] [--sortie fichier.mp4]
+//   node scripts/filmer_chargement.mjs [--chargement 1.5] [--connexion 2.4] [--sortie fichier.mp4]
 //
 // En local, l'ouverture prend une fraction de seconde : le script retient donc
 // le module de l'application (étape « Chargement du jeu… ») puis la connexion
@@ -20,7 +20,7 @@ import { setTimeout as pause } from 'node:timers/promises'
 import { chromium } from 'playwright-core'
 import { demarrerServeur, enregistrer, monterImages, ouvrirTelephone, RACINE, RUSHES } from './lib/tournage.mjs'
 
-const valeurs = { chargement: '2.8', connexion: '3.4', port: '4188', sortie: '' }
+const valeurs = { chargement: '1.5', connexion: '2.4', port: '4188', sortie: '' }
 const argv = process.argv.slice(2)
 for (let index = 0; index < argv.length; index += 2) {
   const cle = argv[index].replace(/^--/, '')
