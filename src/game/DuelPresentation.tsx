@@ -21,6 +21,7 @@ import { useCountUp } from './countUp'
 import { recompenseDuMatch } from './matchRewardPrefetch'
 import { loadSocialState, sendFriendRequestToPlayer } from '../social'
 import './duel-friend.css'
+import { dailyNote } from '../dailyScore'
 
 // Défi du jour : la série est enregistrée UNE SEULE FOIS par match terminé.
 // L'écran de résultat peut être remonté (retour arrière, reprise, StrictMode) et
@@ -159,7 +160,14 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
       const partage: DailyShareInput = {
         theme: dailyThemeFor(jour),
         outcome: match.winnerId === playerId ? 'win' : match.winnerId === null && match.finishReason === 'completed' ? 'draw' : 'loss',
-        score: match.scores[playerId] ?? 0,
+        // LA NOTE DU CLASSEMENT, pas les points de la partie (29/09/2026). Le
+        // partage disait « 59 points » quand le classement affiche 308 : les
+        // points bruts dépendent de la force du bot, la note les corrige par le
+        // nombre de tours (dailyScore.ts). C'est la note qui classe, c'est elle
+        // que tout le monde compare. Même fonction et mêmes entrées que le
+        // serveur (awards.ts : `dailyNote(score, row.turn_number)`) : le chiffre
+        // est exact dès l'écran de fin, sans attendre le réseau.
+        score: dailyNote(Math.max(0, match.scores[playerId] ?? 0), match.turnNumber) ?? (match.scores[playerId] ?? 0),
         attempt: Math.max(1, attempts),
       }
       // Le texte à partager ET de quoi fêter la victoire sur l'accueil (score,

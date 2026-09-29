@@ -151,5 +151,10 @@
     "ajoute": "2026-09-26T17:02",
     "titre": "Rejoue contre ton ami d’un seul geste",
     "texte": "Fin de partie entre amis : « Rejouer » relance aussitôt la revanche, et une invitation reçue sur cet écran s’affiche enfin. Tes amis qui se connectent apparaissent aussi plus vite."
+  },
+  {
+    "ajoute": "2026-09-29T09:26",
+    "titre": "Ton partage du défi affiche ta note du classement",
+    "texte": "Le résultat partagé disait les points de la partie (59) au lieu de ta note du classement (308), celle que tout le monde compare. C'est désormais la même partout."
   }
 ]

@@ -20,6 +20,7 @@ vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn(), 
 vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { children: ReactNode }) => createElement('div', null, children) }))
 
 import { dailyDateKey } from '../dailyDate'
+import { dailyNote } from '../dailyScore'
 import type { MatchState } from '../matches'
 import { ResultPanel } from './DuelPresentation'
 
@@ -69,7 +70,12 @@ describe('le partage en fin de défi du jour', () => {
     await act(async () => { afficher(partie()) })
     expect(boutonPartage()).toBeTruthy()
     const garde = JSON.parse(localStorage.getItem('motman-daily-share-v1') ?? '{}') as { text?: string }
-    expect(garde.text).toMatch(/^Défi du jour.* : 42 points 💪/)
+    // La NOTE du classement (29/09/2026) — 42 points en 9 tours font 202 —, et
+    // non les points bruts de la partie. Calculée par la même fonction que le
+    // serveur, pour que le test ne recopie pas la règle.
+    expect(dailyNote(42, 9)).toBe(202)
+    expect(garde.text).toMatch(/^Défi du jour.* : 202 points 💪/)
+    expect(garde.text).not.toMatch(/: 42 points/)
     expect(garde.text).not.toMatch(/\bbot\b/i)
     expect(garde.text).toContain("🥉 3e sur 9 joueurs aujourd'hui")
     expect(garde.text).not.toContain('⬛')
