@@ -866,18 +866,47 @@ test('page défilée (iPhone, site), la lettre portée reste sous le pointeur', 
   // L'écran de partie gardait la transformation de son animation d'entrée : il
   // devenait le repère des éléments « fixed », et la lettre se décalait d'autant
   // que la page avait défilé (retour du 14/09/2026, Safari sur iPhone).
-  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Page defilee')
+  //
+  // RELANCÉ À LA MAIN EN CI LE 29/09/2026 (WebKit, « Element is not attached to
+  // the DOM » sur le défilement). La trace ne montre pas un chevalet redessiné :
+  // la page n'a plus peint une image ni lancé une requête pendant 19 s, puis
+  // WebKit l'a fermée, deux secondes après la fin du tour. Aucun test ne tient
+  // face à ça. Deux durcissements quand même, sans rien retirer à ce qui est
+  // vérifié :
+  //
+  //   • UN TOUR DE DEUX MINUTES (`turnMs`). En illimité, un tour expiré est un
+  //     abandon : le chevalet disparaît, et tout ce qui suit échoue. À vingt
+  //     secondes, un Vite démarré à froid n'en laissait que sept une fois
+  //     l'éclair passé (mesuré le 29/09). Rien ici ne dépend de la durée du tour.
+  //   • LE DÉFILEMENT DANS LA PAGE, EN UN SEUL GESTE. `locator.scrollIntoViewIfNeeded`
+  //     fige d'abord l'élément, puis attend qu'il reste immobile deux images de
+  //     suite : un chevalet redessiné entre-temps donnerait la même erreur, et
+  //     une page qui ne peint plus la bloque (les 19 s du CI se sont passées
+  //     là). Ici la lettre est cherchée et amenée à l'écran dans la même tâche,
+  //     sans attendre d'image. Le reste du geste vise des COORDONNÉES, qu'un
+  //     chevalet redessiné au même endroit ne change pas.
+  const TOUR_CONFORTABLE_MS = 120_000
+  const { first, second, matchId } = await createNormalMatch(request, 'async', 'Page defilee', TOUR_CONFORTABLE_MS)
   const initial = await loadMatch(request, first.playerId, matchId)
   const actor = initial.currentPlayerId === first.playerId ? first : second
   const { context, page } = await openGame(browser, actor, matchId, { width: 375, height: 560 })
   try {
     const lettre = page.locator('.rack-letter:not([disabled])').first()
     await attendreTourJouable(page, lettre)
-    await lettre.scrollIntoViewIfNeeded()
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(40)
+    const defilement = await page.evaluate(() => {
+      const premiere = document.querySelector('.rack-letter:not([disabled])')
+      if (!premiere) return null
+      premiere.scrollIntoView({ block: 'center' })
+      return window.scrollY
+    })
+    expect(defilement, 'aucune lettre jouable à amener à l’écran').not.toBeNull()
+    expect(defilement).toBeGreaterThan(40)
     const prise = (await lettre.boundingBox())!
     await page.mouse.move(prise.x + prise.width / 2, prise.y + prise.height / 2)
     await page.mouse.down()
+    // La lettre est bien PRISE : sans ce repère, un échec ne dirait pas si la
+    // prise a manqué ou si la lettre portée s'est décalée.
+    await expect(page.locator('.drag-ghost')).toBeVisible()
     const plateau = (await page.locator('.board').boundingBox())!
     const cible = { x: Math.round(plateau.x + plateau.width * 0.6), y: Math.round(Math.max(plateau.y, 0) + 60) }
     await page.mouse.move(cible.x, cible.y, { steps: 6 })
