@@ -226,8 +226,11 @@ jobs:
       - name: Complete-game tests on Chromium and WebKit
         run: npm run test:e2e
 
+      # Aussi quand le job PASSE après un second essai (retries: 1 en CI,
+      # playwright.config.ts) : la trace de l'essai raté est alors la seule
+      # trace d'un test « flaky », et on veut pouvoir la lire.
       - name: Upload Playwright diagnostics
-        if: failure()
+        if: failure() || hashFiles('output/playwright/results/**/trace.zip') != ''
         uses: actions/upload-artifact@v7
         with:
           name: playwright-diagnostics-${{ github.run_attempt }}

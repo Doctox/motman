@@ -27,7 +27,26 @@ export default defineConfig({
   workers: 1,
   timeout: 75_000,
   expect: { timeout: 12_000 },
-  reporter: 'line',
+  // UNE SECONDE CHANCE, EN CI SEULEMENT (décision du propriétaire, 29/09/2026).
+  //
+  // Sur les dix derniers déploiements, deux ont été bloqués par un test passé
+  // au second essai : WebKit « informations légales » le 21/09, WebKit « page
+  // défilée » le 29/09. Ce jour-là la trace montre la page gelée dix-neuf
+  // secondes sur la machine de GitHub — pas une image, pas une requête —, puis
+  // fermée par WebKit lui-même. Aucun test ne tient face à ça, et chaque
+  // relance à la main coûtait un quart d'heure. Les vrais défauts, eux, ont
+  // toujours échoué aux deux essais : un second essai ne les masque pas.
+  //
+  // Le risque, c'est un défaut INTERMITTENT de l'appli qui passerait au vert.
+  // D'où les deux garde-fous : le rapporteur `github` affiche l'erreur du
+  // premier essai sur la page du run même quand le job réussit, et la trace de
+  // l'essai raté est conservée (`trace: 'retain-on-failure'` ci-dessous, et
+  // l'étape « Upload Playwright diagnostics » de deploy-pages.yml). Un test
+  // « flaky » se lit donc, il ne disparaît pas.
+  //
+  // En local, zéro : un raté doit se voir tout de suite.
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [['line'], ['github']] : 'line',
   outputDir: 'output/playwright/results',
   use: {
     baseURL: `http://127.0.0.1:${port}`,
