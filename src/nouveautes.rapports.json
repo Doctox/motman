@@ -156,5 +156,11 @@
     "ajoute": "2026-09-29T09:26",
     "titre": "Ton partage du défi affiche ta note du classement",
     "texte": "Le résultat partagé disait les points de la partie (59) au lieu de ta note du classement (308), celle que tout le monde compare. C'est désormais la même partout."
+  },
+  {
+    "ajoute": "2026-09-29T16:54",
+    "titre": "124 nouvelles grilles",
+    "texte": "Les parties normales en comptent désormais 419 : tu retomberas moins souvent sur la même.",
+    "genre": "grilles"
   }
 ]
