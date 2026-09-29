@@ -3,7 +3,7 @@ import { AlertTriangle, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflak
 import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
-import { loadDailyResume, loadDailyShare } from '../dailyShare'
+import { dailyShareFromLeaderboard, loadDailyResume, loadDailyShare } from '../dailyShare'
 import { DailyShareButton } from './DailyShareButton'
 import { dailyDateKey } from '../dailyDate'
 import { dailyThemeFor } from '../dailyThemeSchedule'
@@ -11,6 +11,7 @@ import { dailyChallengeLabel } from '../dailyThemes'
 import { useDailyDateKey, useDailyLeaderboard } from './useDailyDay'
 import { SocialPortrait } from './MenuChrome'
 import type { DailyRankingEntry } from '../dailyScore'
+import type { DailyLeaderboard } from '../dailyLeaderboard'
 import {
   dailyAttempts,
   dailyCountedToday,
@@ -162,6 +163,11 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   const libelle = dailyChallengeLabel(theme)
   const pourLecteur = theme ? `, thème ${theme}` : ''
   const countdown = useDailyCountdown()
+  // UN seul chargement du classement pour toute la carte : le rang, la note
+  // affichée et le texte partagé en dépendent (29/09/2026). Chacun le
+  // chargeait de son côté, et le partage ne le lisait pas du tout.
+  const { classement } = useDailyLeaderboard()
+  const moi = classement.day === day ? classement.me : null
 
   if (status === 'won') {
     return (
@@ -171,9 +177,9 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
         {/* La victoire se fête : la carte disait « Déjà joué aujourd'hui », le
             même texte que pour un défi joué ailleurs (20/09/2026). */}
         <h2 className="mm-daily-title">Défi réussi !</h2>
-        <DailyWonScore day={day} countdown={countdown} theme={theme} />
-        <DailyRankTeaser onOpenRanking={onOpenRanking} />
-        <DailyShareHero day={day} />
+        <DailyWonScore day={day} countdown={countdown} theme={theme} moi={moi} />
+        <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
+        <DailyShareHero day={day} theme={theme} classement={classement} />
       </section>
     )
   }
@@ -188,7 +194,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Défi abandonné</h2>
         <p className="mm-daily-note"><ThemeDuJour theme={theme} />Il compte pour ta série · nouvelle grille dans {countdown}</p>
-        <DailyRankTeaser onOpenRanking={onOpenRanking} />
+        <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
       </section>
     )
   }
@@ -203,7 +209,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
         <h2 className="mm-daily-title">Pas cette fois</h2>
         {/* Pas « jusqu'à minuit » : la bascule est à minuit À PARIS (voir msUntilNextDailyGrid). */}
         <p className="mm-daily-note"><ThemeDuJour theme={theme} />Il compte pour ta série · nouvelle grille dans {countdown}</p>
-        <DailyRankTeaser onOpenRanking={onOpenRanking} />
+        <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
       </section>
     )
   }
@@ -217,7 +223,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
         <p className="mm-daily-note"><ThemeDuJour theme={theme} />Nouvelle grille dans {countdown}</p>
-        <DailyRankTeaser onOpenRanking={onOpenRanking} />
+        <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
       </section>
     )
   }
@@ -276,10 +282,12 @@ function DailyOneShotDialog({ theme, close, play }: { theme: string | null; clos
  * (relevé par le propriétaire le 25/09/2026). Le classement vivant vit dans
  * `DailyRankTeaser`, et lui seul.
  */
-function DailyWonScore({ day, countdown, theme }: { day: string; countdown: string; theme: string | null }) {
-  const resume = loadDailyResume(day)
-  if (!resume) return <p className="mm-daily-note"><ThemeDuJour theme={theme} />Nouvelle grille dans {countdown}</p>
-  return <p className="mm-daily-note"><ThemeDuJour theme={theme} /><strong>{resume.score} point{resume.score > 1 ? 's' : ''}</strong> · nouvelle grille dans {countdown}</p>
+function DailyWonScore({ day, countdown, theme, moi }: { day: string; countdown: string; theme: string | null; moi: DailyRankingEntry | null }) {
+  // La NOTE du classement, comme au partage et au tableau du jour (29/09/2026).
+  // Les points de la partie ne restent qu'en secours, hors ligne.
+  const note = moi?.note ?? loadDailyResume(day)?.score ?? null
+  if (note === null) return <p className="mm-daily-note"><ThemeDuJour theme={theme} />Nouvelle grille dans {countdown}</p>
+  return <p className="mm-daily-note"><ThemeDuJour theme={theme} /><strong>{note} point{note > 1 ? 's' : ''}</strong> · nouvelle grille dans {countdown}</p>
 }
 
 /** Le nom du thème en tête d'une ligne de résultat. Rien un jour sans thème. */
@@ -288,11 +296,17 @@ function ThemeDuJour({ theme }: { theme: string | null }) {
 }
 
 /** Le résultat de la victoire du jour, s'il a été joué sur cet appareil. */
-function DailyShareHero({ day }: { day: string }) {
-  const texte = loadDailyShare(day)
+function DailyShareHero({ day, theme, classement }: { day: string; theme: string | null; classement: DailyLeaderboard }) {
+  const texte = dailyShareFromLeaderboard({
+    day,
+    theme,
+    leaderboardDay: classement.day,
+    me: classement.me,
+    total: classement.total,
+    saved: loadDailyShare(day),
+  })
   // Pas de `compact` ici : le CSS de la carte étire déjà ce bouton sur toute la
-  // largeur en `font: 800 1rem` — il a été dessiné pour porter un texte. Avec
-  // l'icône seule, il restait une grande barre vide au milieu de la carte.
+  // largeur en `font: 800 1rem` — il a été dessiné pour porter un texte.
   return texte ? <DailyShareButton text={texte} /> : null
 }
 
@@ -416,8 +430,7 @@ export function DailyLeaderboardPanel() {
  * Elle ne s'affiche QUE si le joueur y figure : « aucun classement » sous un
  * défi pas encore joué serait du bruit, et sous un défi joué, un reproche.
  */
-export function DailyRankTeaser({ onOpenRanking }: { onOpenRanking?: () => void }) {
-  const { classement } = useDailyLeaderboard()
+export function DailyRankTeaser({ classement, onOpenRanking }: { classement: DailyLeaderboard; onOpenRanking?: () => void }) {
 
   const moi = classement.me
   if (!moi) return null

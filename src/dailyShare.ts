@@ -46,6 +46,44 @@ function medaille(position: number): string {
   return position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '🏅'
 }
 
+/**
+ * LE TEXTE À PARTAGER DEPUIS L'ACCUEIL, FABRIQUÉ AU MOMENT DU PARTAGE (29/09/2026).
+ *
+ * Jusqu'ici, le texte était écrit UNE fois, à la fin de la partie, puis relu
+ * tel quel toute la journée. Deux défauts en découlaient :
+ *   - la note : un défi joué avant le correctif du 29/09 partageait ses POINTS
+ *     (« 59 ») au lieu de la note du classement (« 308 ») jusqu'au lendemain ;
+ *   - le rang : « 1er sur 2 » à la fin de la partie restait « 1er sur 2 » quand
+ *     trois autres joueurs étaient passés devant — le même défaut que le rang
+ *     figé de la carte, corrigé le 25/09.
+ *
+ * Le classement du jour, déjà chargé par la carte, porte la note, la place et
+ * l'issue du lecteur : le texte se refait à partir de lui, sans rien attendre
+ * au moment de l'appui (Safari n'ouvre la feuille de partage que dans la
+ * foulée immédiate du geste). Sans classement — hors ligne, ou chargement en
+ * cours —, on retombe sur le texte gardé à la fin de la partie.
+ *
+ * Le défi ne se joue qu'une fois (20/09/2026) : la ligne du lecteur est son
+ * unique tentative, d'où `attempt: 1`.
+ */
+export function dailyShareFromLeaderboard(input: {
+  day: string
+  theme: string | null
+  leaderboardDay: string
+  me: { note: number; position: number; outcome: 'win' | 'loss' } | null
+  total: number
+  saved: string | null
+}): string | null {
+  if (!input.me || input.leaderboardDay !== input.day) return input.saved
+  return dailyShareText({
+    theme: input.theme,
+    outcome: input.me.outcome,
+    score: input.me.note,
+    attempt: 1,
+    rank: { position: input.me.position, total: input.total },
+  })
+}
+
 export function dailyShareText(input: DailyShareInput): string {
   const defi = input.theme ? `Défi du jour « ${input.theme} »` : 'Défi du jour'
   const points = `${input.score} point${input.score > 1 ? 's' : ''}`

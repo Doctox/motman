@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { dailyShareText, loadDailyResume, loadDailyShare, saveDailyShare, shareText, type DailyShareInput } from './dailyShare'
+import { dailyShareText, loadDailyResume, loadDailyShare, saveDailyShare, shareText, type DailyShareInput, dailyShareFromLeaderboard } from './dailyShare'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LE PARTAGE DU DÉFI DU JOUR : un défi lancé, court, sans aucune réponse.
@@ -137,5 +137,35 @@ describe('résumé du jour (carte « Défi réussi ! »)', () => {
     const memoire = storage()
     memoire.setItem('motman-daily-share-v1', JSON.stringify({ day: '2026-09-20', text: 'x', score: 42, rank: { position: 'deux' } }))
     expect(loadDailyResume('2026-09-20', memoire)).toEqual({ score: 42, rank: null })
+  })
+})
+
+// 29/09/2026 : « ça affiche toujours 59 alors que moi je veux 308 ». Le texte
+// gardé à la fin de la partie disait les points, et un rang vieux de la veille.
+describe('le partage de l’accueil se refait depuis le classement du jour', () => {
+  const garde = 'Défi du jour « Animaux » : 59 points 💪\n🥇 1er sur 2 joueurs aujourd\'hui\n\nTu fais mieux ?'
+
+  it('donne la NOTE et la place du moment, pas le texte figé de la fin de partie', () => {
+    const texte = dailyShareFromLeaderboard({
+      day: '2026-09-29', theme: 'Animaux', leaderboardDay: '2026-09-29',
+      me: { note: 308, position: 2, outcome: 'win' }, total: 5, saved: garde,
+    })
+    expect(texte).toMatch(/^Défi du jour « Animaux » : 308 points 💪/)
+    expect(texte).toContain("2e sur 5 joueurs aujourd'hui")
+    expect(texte).not.toContain('59')
+    expect(texte).not.toContain('1er sur 2')
+  })
+
+  it('garde le texte de la fin de partie tant que le classement n’est pas là', () => {
+    expect(dailyShareFromLeaderboard({
+      day: '2026-09-29', theme: 'Animaux', leaderboardDay: '', me: null, total: 0, saved: garde,
+    })).toBe(garde)
+  })
+
+  it('n’utilise jamais le classement d’un autre jour', () => {
+    expect(dailyShareFromLeaderboard({
+      day: '2026-09-29', theme: 'Animaux', leaderboardDay: '2026-09-28',
+      me: { note: 224, position: 1, outcome: 'win' }, total: 3, saved: garde,
+    })).toBe(garde)
   })
 })
