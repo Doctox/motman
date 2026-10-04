@@ -141,7 +141,7 @@ describe('sélection anti-répétition des grilles', () => {
     expect(['active-a', 'active-b']).toContain(result.grid.id)
   })
 
-  it('rend les 44 grilles publiées atteignables par le tirage en production', () => {
+  it('rend toutes les grilles publiées atteignables par le tirage en production', () => {
     const selected = new Set(Array.from({ length: 20_000 }, (_, index) => selectGridForPlayers({
       grids: catalog.grids,
       recentGridIdsByPlayer: [[]],
@@ -150,8 +150,11 @@ describe('sélection anti-répétition des grilles', () => {
       seed: `catalog-${index}`,
     }).grid.id))
     expect(selected).toEqual(new Set(catalog.grids.map(item => item.id)))
-    // 20 000 tirages : ~5 s quand toute la suite tourne en parallèle, d'où un délai à part.
-  }, 30_000)
+    // 20 000 tirages, déterministes : sur le vrai catalogue v39 (539 grilles),
+    // la moins tirée sort 20 fois. Mais 16 s seul sous vitest et plus de 30 s
+    // quand toute la suite tourne en parallèle (04/10/2026) — la CI, sur la
+    // fixture de 8 grilles, n'en voit rien. D'où un délai à part, large.
+  }, 90_000)
 
   it('laisse la grille au match le plus ancien lors de deux créations simultanées', () => {
     const older = { id: 'a', createdAt: '2026-07-27T20:00:00.000Z' }
