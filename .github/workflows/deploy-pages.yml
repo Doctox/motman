@@ -179,6 +179,10 @@ jobs:
       # MOTMAN_CATALOGUE_REQUIS fait échouer celui qui ne trouverait que la
       # fixture, et un tirage manqué laisse MOTMAN_CATALOGUE_RUNTIME pointer
       # vers un fichier absent, ce qui échoue aussi.
+      #
+      # Le calendrier du défi part aussi dans match-api, qui l'embarque à son
+      # déploiement : le site ne doit jamais annoncer un thème que le serveur ne
+      # sert pas (28/09 → 04/10/2026). check:calendrier-serveur compare les deux.
       - name: Checks against the production catalog
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -186,6 +190,7 @@ jobs:
           MOTMAN_CATALOGUE_REQUIS: '1'
         if: (github.event_name != 'pull_request' && github.repository == 'Doctox/motman') || env.SUPABASE_ACCESS_TOKEN != ''
         run: |
+          npm run check:calendrier-serveur
           npm run check:daily
           npm run test:dimensions
           npx vitest run src/dailyCalendar.test.ts

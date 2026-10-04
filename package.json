@@ -6,6 +6,7 @@
   "scripts": {
     "policy:runtime": "node scripts/build_runtime_catalog_policy.mjs",
     "check:daily": "node scripts/check_daily_calendar.mjs",
+    "check:calendrier-serveur": "node scripts/check_calendrier_serveur.mjs",
     "check:version": "node scripts/check_client_version.mjs",
     "predev": "npm run policy:runtime && npm run check:daily",
     "dev": "vite --host 0.0.0.0",

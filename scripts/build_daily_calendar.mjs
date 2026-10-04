@@ -23,8 +23,15 @@
 // la même grille. Les entrées antérieures à la date de départ sont conservées
 // telles quelles (on ne réécrit pas le passé), et servent d'amorce à la sélection.
 //
+// DEPUIS DEMAIN, JAMAIS AUJOURD'HUI (04/10/2026). Le jour en cours est peut-être
+// déjà joué : le reprogrammer donnerait deux grilles au même défi. Et le
+// calendrier part dans DEUX livraisons — le site (thème affiché) et `match-api`
+// (grille servie) — qui ne partent jamais à la même seconde. Après ce script,
+// le propriétaire déploie `match-api` avant de pousser ; la CI le vérifie
+// (`check_calendrier_serveur.mjs`).
+//
 // Usage :
-//   node scripts/build_daily_calendar.mjs                    # depuis aujourd'hui, 240 jours
+//   node scripts/build_daily_calendar.mjs                    # depuis demain, 240 jours
 //   node scripts/build_daily_calendar.mjs --from=2026-09-01 --days=365
 //   node scripts/build_daily_calendar.mjs --check            # n'écrit rien, affiche le plan
 
@@ -68,6 +75,10 @@ function dayNumber(key) {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
 }
 
+function parisTomorrow() {
+  return new Date((dayNumber(parisToday()) + 1) * 86_400_000).toISOString().slice(0, 10)
+}
+
 /** FNV-1a, identique à seedFromDate (src/dailyCalendar.ts). */
 function seedFromDate(dateKey) {
   let hash = 2166136261
@@ -108,7 +119,7 @@ if (genericIds.length < 2) {
   process.exit(1)
 }
 
-const from = argument('from', parisToday())
+const from = argument('from', parisTomorrow())
 const days = Number(argument('days', String(DEFAULT_DAYS)))
 const check = process.argv.includes('--check')
 if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !Number.isInteger(days) || days <= 0) {
