@@ -4,6 +4,10 @@
 //   node scripts/filmer_scene_demo.mjs --grille grille-7x8-118b88e6ac1f --case 1,1 --lettre O
 //   node scripts/filmer_scene_demo.mjs --grille <id> --case <ligne>,<colonne> --lettre <X>
 //        [--chevalet TOCAS] [--scores 55,62] [--adversaire Hugo] [--niveau 14] [--sortie fichier.mp4]
+//        [--attente 1.3] [--geste glisser|toucher] [--hesite <lettre>|aucune] [--chrono 10]
+//        --attente : secondes avant le premier geste ; --geste toucher : la lettre puis
+//        la case, au doigt, sans glisser (format « question », 05/10) ; --hesite aucune :
+//        pas de lettre posée puis reprise.
 //   node scripts/filmer_scene_demo.mjs --idees
 //        liste les scènes possibles : un mot en dessin, sur une grille normale, où
 //        une seule lettre fausse donne un autre mot (CISEAU → OISEAU). Chaque ligne
@@ -43,7 +47,7 @@ import path from 'node:path'
 import { setTimeout as pause } from 'node:timers/promises'
 import { chromium } from 'playwright-core'
 import { lireCatalogueRuntime } from './lib/catalogue.mjs'
-import { demarrerServeur, enregistrer, monterImages, ouvrirTelephone, RACINE, RUSHES } from './lib/tournage.mjs'
+import { demarrerServeur, enregistrer, monterImages, ouvrirTelephone, RACINE, RUSHES, TELEPHONE } from './lib/tournage.mjs'
 
 const ETAT = path.join(RACINE, 'output', 'scene-demo')
 
@@ -52,7 +56,7 @@ function lireArguments(argv) {
   const valeurs = {
     grille: 'grille-7x8-118b88e6ac1f', case: '1,1', lettre: 'O', chevalet: 'TOCAS',
     scores: '55,62', adversaire: 'Hugo', niveau: '14', avatar: 'nael', cadre: 'cadre-laiton',
-    hesite: '', chrono: '10', port: '4188', sortie: '',
+    hesite: '', chrono: '10', attente: '1.3', geste: 'glisser', port: '4188', sortie: '',
   }
   for (let index = 0; index < argv.length; index += 1) {
     const cle = argv[index].replace(/^--/, '')
@@ -110,7 +114,7 @@ if (solution.get(caseVisee) === lettre) throw new Error(`${lettre} est la BONNE 
 if (!chevalet.includes(lettre)) throw new Error(`La lettre ${lettre} doit être dans le chevalet (${chevalet.join(' ')}).`)
 if (chevalet.length < 1 || chevalet.length > 5) throw new Error('Le chevalet compte 1 à 5 lettres.')
 // La lettre de l'hésitation : posée, regardée, reprise. Jamais la bonne.
-const hesite = (reglages.hesite || chevalet.find(candidate => candidate !== lettre && candidate !== solution.get(caseVisee)) || '').toUpperCase()
+const hesite = reglages.hesite === 'aucune' ? '' : (reglages.hesite || chevalet.find(candidate => candidate !== lettre && candidate !== solution.get(caseVisee)) || '').toUpperCase()
 if (hesite && (!chevalet.includes(hesite) || hesite === lettre || hesite === solution.get(caseVisee))) {
   throw new Error(`--hesite ${hesite} : une autre lettre du chevalet, ni ${lettre} ni la bonne réponse.`)
 }
@@ -265,9 +269,24 @@ async function tourner() {
     const camera = await enregistrer(contexte, page)
     const depart = camera.depart
 
+    // Où sont les choses à l'écran, en pixels de la vidéo : le montage « question »
+    // y découpe ses gros plans (la rangée du mot, les scores, le chevalet).
+    const cadres = await page.evaluate(([densite, colonnes, lignes, visee]) => {
+      const r = (el) => { const b = el.getBoundingClientRect(); return { x: b.x * densite, y: b.y * densite, w: b.width * densite, h: b.height * densite } }
+      const cellules = [...document.querySelectorAll('.board > .cell')]
+      return {
+        plateau: r(document.querySelector('.board')),
+        rangees: Array.from({ length: lignes }, (_, l) => r(cellules[l * colonnes])),
+        case: r(cellules[visee]),
+        scores: r(document.querySelector('.scoreboard')),
+        chevalet: r(document.querySelector('.rack-area')),
+        actions: r(document.querySelector('.turn-actions')),
+      }
+    }, [TELEPHONE.densite, grille.columns, grille.rows, caseVisee])
+
     // Le suspens : on regarde la grille pendant que le chrono descend, on essaie
     // une lettre, on la reprend, puis on se décide.
-    await pause(1_300)
+    await pause(Number(reglages.attente) * 1_000)
     const laCase = await centre(cible)
     if (hesite) {
       const place = await centre(page.locator(`[data-rack-letter="${hesite}"]`).first())
@@ -276,7 +295,16 @@ async function tourner() {
       await glisser(page, laCase, place, 650) // non…
       await pause(650)
     }
-    await glisser(page, await centre(tuile), laCase, 1_000)
+    if (reglages.geste === 'toucher') {
+      // Au doigt : on touche la lettre, puis la case. Elle s'y pose sans voyager.
+      const t = await centre(tuile)
+      await page.mouse.click(t.x, t.y, { delay: 80 })
+      await pause(380)
+      await page.mouse.click(laCase.x, laCase.y, { delay: 80 })
+    } else {
+      await glisser(page, await centre(tuile), laCase, 1_000)
+    }
+    const pose = performance.now()
     await pause(900) // le mot faux, posé, pas encore validé
 
     const valider = await page.locator('button.validate').boundingBox()
@@ -294,7 +322,7 @@ async function tourner() {
     const images = await camera.arreter()
     const fin = erreur + 2_000
 
-    return { images, depart, fin, erreur }
+    return { images, depart, fin, erreur, pose, cadres }
   } finally {
     await navigateur.close()
   }
@@ -308,8 +336,10 @@ try {
   // À côté de la vidéo, l'instant de l'erreur : le montage y accroche sa fenêtre
   // de fin (Medias reseaux/outils/monter_perdu.mjs).
   writeFileSync(sortie.replace(/\.mp4$/i, '.json'), `${JSON.stringify({
-    grille: grille.id, case: reglages.case, lettre, hesite, chrono,
+    grille: grille.id, case: reglages.case, lettre, hesite, chrono, geste: reglages.geste,
+    pose: Number(((prise.pose - prise.depart) / 1000).toFixed(3)),
     erreur: Number(((prise.erreur - prise.depart) / 1000).toFixed(3)), duree: bilan.duree,
+    cadres: prise.cadres,
   }, null, 2)}\n`)
   console.log(`Vidéo : ${sortie}`)
   console.log(`Durée : ${bilan.duree.toFixed(1)} s · ${bilan.images} images reçues · écart max entre deux images : ${Math.round(Math.max(...intervalles))} ms`)
