@@ -4,10 +4,10 @@
 //   node scripts/filmer_scene_demo.mjs --grille grille-7x8-118b88e6ac1f --case 1,1 --lettre O
 //   node scripts/filmer_scene_demo.mjs --grille <id> --case <ligne>,<colonne> --lettre <X>
 //        [--chevalet TOCAS] [--scores 55,62] [--adversaire Hugo] [--niveau 14] [--sortie fichier.mp4]
-//        [--attente 1.3] [--geste glisser|toucher] [--hesite <lettre>|aucune] [--chrono 10]
+//        [--attente 1.3] [--geste glisser|toucher] [--hesite <lettre>|aucune] [--chrono 10] [--tenue 0.9]
 //        --attente : secondes avant le premier geste ; --geste toucher : la lettre puis
 //        la case, au doigt, sans glisser (format « question », 05/10) ; --hesite aucune :
-//        pas de lettre posée puis reprise.
+//        pas de lettre posée puis reprise ; --tenue : secondes entre la pose et « Valider ».
 //   node scripts/filmer_scene_demo.mjs --idees
 //        liste les scènes possibles : un mot en dessin, sur une grille normale, où
 //        une seule lettre fausse donne un autre mot (CISEAU → OISEAU). Chaque ligne
@@ -56,7 +56,7 @@ function lireArguments(argv) {
   const valeurs = {
     grille: 'grille-7x8-118b88e6ac1f', case: '1,1', lettre: 'O', chevalet: 'TOCAS',
     scores: '55,62', adversaire: 'Hugo', niveau: '14', avatar: 'nael', cadre: 'cadre-laiton',
-    hesite: '', chrono: '10', attente: '1.3', geste: 'glisser', port: '4188', sortie: '',
+    hesite: '', chrono: '10', attente: '1.3', geste: 'glisser', tenue: '0.9', port: '4188', sortie: '',
   }
   for (let index = 0; index < argv.length; index += 1) {
     const cle = argv[index].replace(/^--/, '')
@@ -305,7 +305,7 @@ async function tourner() {
       await glisser(page, await centre(tuile), laCase, 1_000)
     }
     const pose = performance.now()
-    await pause(900) // le mot faux, posé, pas encore validé
+    await pause(Number(reglages.tenue) * 1_000) // le mot faux, posé, pas encore validé
 
     const valider = await page.locator('button.validate').boundingBox()
     if (!valider) throw new Error('Le bouton « Valider » est introuvable.')
