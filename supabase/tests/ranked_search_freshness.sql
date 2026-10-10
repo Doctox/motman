@@ -87,6 +87,59 @@ begin
   if not exists (select 1 from public.server_ranked_searches where user_id = vivant) then
     raise exception 'Le joueur vivant n''aurait pas du etre purge';
   end if;
+
+  -- ── 4. Un joueur qui attend depuis trois minutes reste trouvable ──────────
+  -- (10/10/2026) Le défaut qu'on corrige : la mise à jour de la file ne
+  -- rafraîchissait `updated_at` que si le classement du joueur avait bougé.
+  -- Un joueur seul, dont l'écran interroge pourtant le serveur toutes les 8 s,
+  -- passait sous le filtre des deux minutes et devenait invisible. Ici, son
+  -- sondage doit le remettre à l'heure, et le suivant doit le trouver.
+  delete from public.server_ranked_searches;
+
+  resultat := public.server_ranked_matchmake_atomic(vivant, null, null, null, null);
+  update public.server_ranked_searches
+  set created_at = pg_catalog.clock_timestamp() - interval '3 minutes',
+      updated_at = pg_catalog.clock_timestamp() - interval '3 minutes'
+  where user_id = vivant;
+
+  -- Son sondage ordinaire : rien n'a changé dans son classement.
+  resultat := public.server_ranked_matchmake_atomic(vivant, null, null, null, null);
+  if resultat ->> 'status' <> 'waiting' then
+    raise exception 'Le joueur patient aurait du rester en file : %', resultat;
+  end if;
+  if (select updated_at from public.server_ranked_searches where user_id = vivant)
+     < pg_catalog.clock_timestamp() - interval '10 seconds' then
+    raise exception 'Le sondage n''a pas rafraichi la recherche du joueur patient';
+  end if;
+  if (select created_at from public.server_ranked_searches where user_id = vivant)
+     > pg_catalog.clock_timestamp() - interval '170 seconds' then
+    raise exception 'Le sondage a remis a zero l''heure d''ouverture de la recherche';
+  end if;
+
+  resultat := public.server_ranked_matchmake_atomic(chercheur, null, null, null, null);
+  if resultat ->> 'status' <> 'candidate' or resultat ->> 'opponentId' <> vivant::text then
+    raise exception 'Le joueur patient aurait du etre propose apres trois minutes : %', resultat;
+  end if;
+
+  -- ── 5. Un seul déclencheur de réveil sur la file ──────────────────────────
+  -- Deux déclencheurs appelaient la même fonction : chaque recherche réveillait
+  -- deux fois tous les joueurs en ligne.
+  if (
+    select count(*)
+    from pg_catalog.pg_trigger t
+    join pg_catalog.pg_proc f on f.oid = t.tgfoid
+    where t.tgrelid = 'public.server_ranked_searches'::regclass
+      and not t.tgisinternal
+      and f.proname = 'broadcast_ranked_search_menu_wakeup'
+  ) <> 1 then
+    raise exception 'La file classee doit avoir exactement un declencheur de reveil';
+  end if;
+
+  -- ── 6. Le carnet de tours du propriétaire reste fermé aux joueurs ─────────
+  if has_table_privilege('authenticated', 'public.owner_turn_samples', 'select')
+     or has_table_privilege('anon', 'public.owner_turn_samples', 'select') then
+    raise exception 'Le carnet de tours du proprietaire ne doit pas etre lisible par les joueurs';
+  end if;
 end;
 $$;
 

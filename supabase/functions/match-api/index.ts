@@ -40,6 +40,7 @@ import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
 import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchInvitations.ts'
+import { avantLeTour, echantillonDuTour, noterLeTour, type AvantLeTour } from './ownerTurnLog.ts'
 
 /**
  * « Une partie classée cherche quelqu'un » — pour le propriétaire seul.
@@ -76,7 +77,8 @@ Deno.serve(async request => {
   const { data: { user } } = await authClient.auth.getUser(authorization.replace(/^Bearer\s+/i, ''))
   if (!user) return json(401, { error: 'Session invalide.' })
   const admin = createAdminClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-  const { data: accessProfile } = await admin.from('profiles').select('status').eq('id', user.id).single()
+  // `role` : le carnet de tours ne note que les comptes admin (ownerTurnLog.ts).
+  const { data: accessProfile } = await admin.from('profiles').select('status, role').eq('id', user.id).single()
   if (accessProfile?.status === 'banned') return json(403, { error: 'Ce compte a été banni.' })
   if (accessProfile?.status === 'suspended') return json(403, { error: 'Ce compte est temporairement suspendu.' })
   let body: Record<string, unknown>
@@ -700,6 +702,7 @@ Deno.serve(async request => {
     if (Date.now() < new Date(row.turn_started_at).getTime()) return json(409, { error: 'Le tour n’a pas encore commencé.' })
 
     const previousPlayerId = row.current_player_id
+    let carnet: AvantLeTour | null = null
     if (action === 'turn') {
       if (Number(body.turnNumber) !== row.turn_number) return json(409, { error: 'Ce tour est déjà terminé.', match: await view(admin, row, user.id, grid) })
       const placements = Array.isArray(body.placements) ? body.placements as Array<{ cellIndex: number; letter: string }> : []
@@ -717,6 +720,9 @@ Deno.serve(async request => {
       }
       // Un coup ENVOYÉ PAR LE JOUEUR qui arrive trop tard lui coûte son tour,
       // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
+      // Le carnet du propriétaire se lit AVANT le coup : `applyTurn` réécrit le
+      // numéro et le début du tour.
+      if (accessProfile?.role === 'admin') carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
       if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) timeoutTurn(row, { absence: automatic })
       else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
@@ -753,6 +759,7 @@ Deno.serve(async request => {
       row.state.rerollUsed[user.id] = true; row.state.racks[user.id] = refill(ruleGrid(grid), row.state, user.id, [], currentRack)
     } else return json(404, { error: 'Action inconnue.' })
     row = await persist(admin, row); await awardFinished(admin, row)
+    if (carnet) await noterLeTour(admin, echantillonDuTour(user.id, carnet, row.state.lastTurn, recuA))
     if (action === 'turn' && row.current_player_id !== previousPlayerId) notifyCurrentTurn(admin, row)
     const result = row.state.lastTurn
     return json(200, action === 'turn' ? { match: await view(admin, row, user.id, grid), result } : { match: await view(admin, row, user.id, grid) })

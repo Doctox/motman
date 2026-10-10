@@ -21,7 +21,7 @@
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { notifyRankedReady } from './matchNotifications.ts'
-import { atomicResult, prepareAtomicMatch, resolveAtomicGridCollision, type AtomicMatchResult } from './matchSetup.ts'
+import { atomicResult, prepareAtomicMatch, type AtomicMatchResult } from './matchSetup.ts'
 import { profile } from './matchView.ts'
 
 export async function rankedSnapshot(
@@ -198,17 +198,16 @@ export async function advanceRankedSearch(
       p_grid_id: prepared.grid.id,
       p_state: prepared.state,
     }))
-    if (committed.status === 'ready' && committed.match && committed.readySessionId) {
-      const resolved = await resolveAtomicGridCollision(
-        admin,
-        committed.match,
-        prepared.grid,
-        discovery.opponentId,
-        userId,
-        null,
-        null,
-        prepared.selectionSeed,
-      )
+    // « Match classé trouvé » aux deux joueurs (10/10/2026). Cette branche
+    // attendait `committed.match`, que la procédure n'a jamais renvoyé : elle
+    // ne s'exécutait pas, et un joueur passé en arrière-plan ne savait pas
+    // qu'il avait trente secondes pour accepter. `created` dit que CET appel a
+    // ouvert la session — un rappel qui la retrouve déjà prête ne renotifie pas.
+    //
+    // La rotation de grille en cas de collision, qui vivait dans la même
+    // branche, reste débranchée : elle n'a jamais tourné en production, et une
+    // partie classée en attente n'est pas l'endroit pour l'essayer.
+    if (committed.status === 'ready' && committed.created && committed.readySessionId) {
       const players = await loadPublicProfiles(admin, [userId, discovery.opponentId])
       notifyRankedReady(
         admin,
@@ -222,7 +221,7 @@ export async function advanceRankedSearch(
         committed.readySessionId,
         players.get(userId)?.displayName ?? 'Ton adversaire',
       )
-      return { ...committed, match: resolved.row }
+      return committed
     }
     if (committed.status !== 'retry') return committed
   }
