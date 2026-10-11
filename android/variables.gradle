@@ -1,5 +1,7 @@
 ext {
-    minSdkVersion = 23
+    // Android 7 au minimum depuis la 1.1.1 (11/10/2026) : la protection
+    // automatique de Google Play refuse un app bundle en dessous du SDK 24.
+    minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.9.2'

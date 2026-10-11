@@ -8,7 +8,9 @@ en ligne est la **1.0.8 (`versionCode 9`)**.
 change qu'une chose : Capacitor 7.6.8 → 7.6.9, qui corrige une faille critique
 d'Android et d'iOS (GHSA-rvm3-566m-v7fv : du contenu distant pouvait se charger
 à l'origine de l'application par le relais HTTP interne). Le natif seul porte
-la correction : la mise à jour embarquée ne l'apporte pas. Une fois la 1.1.1
+la correction : la mise à jour embarquée ne l'apporte pas. Elle passe aussi à
+**Android 7 minimum** (`minSdkVersion 24`) : la protection automatique de Play
+refuse désormais un app bundle en SDK 23. Une fois la 1.1.1
 téléchargeable partout, le minimum passe à 12 (voir « Publier, puis basculer le
 serveur »).
 
