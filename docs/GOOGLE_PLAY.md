@@ -1,8 +1,16 @@
-# Publier MotMan sur Google Play — version 1.1.0
+# Publier MotMan sur Google Play — version 1.1.1
 
 Version de production : **1.1.0, `versionCode 11`**, publiée le 20/09/2026 en
 France, Belgique, Suisse, Luxembourg et Monaco. Le plus petit APK encore servi
 en ligne est la **1.0.8 (`versionCode 9`)**.
+
+**En préparation : 1.1.1, `versionCode 12`, OBLIGATOIRE (11/10/2026).** Elle ne
+change qu'une chose : Capacitor 7.6.8 → 7.6.9, qui corrige une faille critique
+d'Android et d'iOS (GHSA-rvm3-566m-v7fv : du contenu distant pouvait se charger
+à l'origine de l'application par le relais HTTP interne). Le natif seul porte
+la correction : la mise à jour embarquée ne l'apporte pas. Une fois la 1.1.1
+téléchargeable partout, le minimum passe à 12 (voir « Publier, puis basculer le
+serveur »).
 
 Les corrections du site (JS, CSS, images) n'ont pas besoin de ce document :
 elles arrivent sur les téléphones par les mises à jour embarquées
@@ -74,8 +82,8 @@ QUE cette variable : `GITHUB_REPOSITORY` ferait construire le site pour
 ```powershell
 npm run audit:play     # doit finir sur « 0 blocage(s) »
 New-Item -ItemType Directory -Force "$HOME\MotMan-versions" | Out-Null
-Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.0-code11.aab"
-Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.0-code11.aab" -Algorithm SHA256
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.1-code12.aab"
+Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.1-code12.aab" -Algorithm SHA256
 ```
 
 `audit:play` contrôle la configuration Android, Firebase, les pages légales et
@@ -105,16 +113,29 @@ Installer l'AAB archivé depuis la piste de test interne, puis sur un téléphon
 
 ## Publier, puis basculer le serveur
 
-1. Envoyer `MotMan-1.1.0-code11.aab` sur la piste **Production**, pays France,
+1. Envoyer `MotMan-1.1.1-code12.aab` sur la piste **Production**, pays France,
    Belgique, Suisse, Luxembourg et Monaco.
 2. Attendre que la version soit **réellement téléchargeable** dans les cinq pays
-   (examen de Google terminé, fiche Play Store qui propose la 1.1.0).
+   (examen de Google terminé, fiche Play Store qui propose la 1.1.1).
 3. Alors seulement, déclarer la nouvelle version au serveur :
 
 ```sql
 update public.server_app_config
-set android_version_code = 11,
-    android_version_name = '1.1.0',
+set android_version_code = 12,
+    android_version_name = '1.1.1',
+    updated_at = now()
+where id = 'motman';
+```
+
+**Pour la 1.1.1, obligatoire**, la même requête relève aussi le minimum — la
+contrainte `minimum ≤ version` se vérifie sur la ligne entière, une seule
+requête suffit :
+
+```sql
+update public.server_app_config
+set android_version_code = 12,
+    android_version_name = '1.1.1',
+    minimum_android_version_code = 12,
     updated_at = now()
 where id = 'motman';
 ```

@@ -1,7 +1,7 @@
 {
   "name": "entrelignes",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "policy:runtime": "node scripts/build_runtime_catalog_policy.mjs",
@@ -48,11 +48,11 @@
     "rapport": "node scripts/ajouter_rapport.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "7.6.8",
+    "@capacitor/android": "7.6.9",
     "@capacitor/app": "7.1.2",
     "@capacitor/browser": "7.0.5",
-    "@capacitor/core": "7.6.8",
-    "@capacitor/ios": "7.6.8",
+    "@capacitor/core": "7.6.9",
+    "@capacitor/ios": "7.6.9",
     "@capacitor/push-notifications": "7.0.7",
     "@capacitor/share": "7.0.4",
     "@capgo/capacitor-updater": "7.51.15",
@@ -62,7 +62,7 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@capacitor/cli": "7.6.8",
+    "@capacitor/cli": "7.6.9",
     "@playwright/test": "^1.61.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.1",
