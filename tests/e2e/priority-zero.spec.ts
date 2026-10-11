@@ -183,6 +183,7 @@ async function openGame(browser: Browser, identity: Identity, matchId: string, v
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, identity)
   const page = await context.newPage()
   await page.goto(`/#partie=${encodeURIComponent(matchId)}`)
@@ -515,6 +516,7 @@ test('l’accueil permet de reprendre chacune des trois parties illimitées', as
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, player)
   const page = await context.newPage()
 
@@ -567,6 +569,7 @@ test('un résultat illimité reste affiché jusqu’à sa validation par le joue
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, player)
   const page = await context.newPage()
 
@@ -931,6 +934,7 @@ test('tablette en portrait : la page s’agrandit, tient dans l’écran, et la 
   await context.addInitScript(storedIdentity => {
     localStorage.setItem('motman-player-v1', JSON.stringify(storedIdentity))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, actor)
   const page = await context.newPage()
   try {

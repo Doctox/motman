@@ -27,7 +27,7 @@ vi.mock('../dailyShare', async importOriginal => ({
 import { recordDailyResult } from '../dailyChallenge'
 import { dailyDateKey } from '../dailyDate'
 import { saveDailyShare } from '../dailyShare'
-import { DailyChallengeHero } from './DailyChallenge'
+import { DailyChallengeHero, phraseDesJoueursDuJour } from './DailyChallenge'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -87,5 +87,35 @@ describe('la carte « Défi réussi ! »', () => {
     const bouton = [...hote.querySelectorAll('button')].find(candidat => candidat.textContent?.includes('Partager mon résultat'))
     await act(async () => { bouton!.click() })
     expect((partage.envoyer.mock.calls[0] as unknown as [string])[0]).toBe('Défi du jour « Animaux » : 308 points 💪')
+  })
+})
+
+// 11/10/2026 : avant la partie, la carte dit combien l'ont déjà relevé.
+describe('la carte avant la partie', () => {
+  it('trouve ses mots selon le nombre de joueurs du jour', () => {
+    expect(phraseDesJoueursDuJour(0)).toBe('Sois le premier à relever le défi du jour !')
+    expect(phraseDesJoueursDuJour(1)).toBe('Un joueur l’a déjà relevé : à toi de jouer !')
+    expect(phraseDesJoueursDuJour(12)).toBe('Fais partie des 12 joueurs à avoir relevé le défi !')
+  })
+
+  it('invite à être le premier, puis à rejoindre les autres', async () => {
+    const jour = dailyDateKey(Date.now())
+    classement.lire.mockResolvedValue({ day: jour, general: [], friends: [], total: 0, me: null })
+    await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })
+    expect(hote.textContent).toContain('Sois le premier à relever le défi du jour !')
+
+    act(() => racine.unmount())
+    racine = createRoot(hote)
+    classement.lire.mockResolvedValue({ day: jour, general: [], friends: [], total: 7, me: null })
+    await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })
+    expect(hote.textContent).toContain('Fais partie des 7 joueurs à avoir relevé le défi !')
+  })
+
+  it('hors ligne, ne promet rien', async () => {
+    classement.lire.mockRejectedValue(new Error('Réseau indisponible'))
+    await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })
+    expect(hote.textContent).toContain('Relever le défi')
+    expect(hote.textContent).not.toContain('Sois le premier')
+    expect(hote.textContent).not.toContain('Fais partie')
   })
 })

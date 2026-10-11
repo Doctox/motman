@@ -46,6 +46,7 @@ async function ouvrir(browser: Browser, joueur: Identite, adresse: string, avant
   await context.addInitScript(({ stocke, reglages }) => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stocke))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
     for (const [cle, valeur] of Object.entries(reglages)) localStorage.setItem(cle, valeur)
   }, { stocke: joueur, reglages: avant ?? {} })
   const page = await context.newPage()

@@ -32,6 +32,9 @@ import { SettingsPanel } from './menu/SettingsPanel'
 import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
 import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
+import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
+import { dailyDateKey } from './dailyDate'
+import { CreatorNote } from './menu/CreatorNote'
 
 export type { MenuPage } from './menu/types'
 
@@ -75,6 +78,26 @@ export function MenuApp({
   // Ce que ce joueur a déjà lu : le tutoriel s'ouvre alors sur la première étape
   // nouvelle pour lui. Remis à 0 quand il demande lui-même à le revoir.
   const [tutorialSeenVersion, setTutorialSeenVersion] = useState(completedTutorialVersion)
+  // Le mot du créateur, une fois par jour (src/creatorNote.ts). Pas le jour du
+  // tout premier lancement : le tutoriel occupe déjà l'écran, et deux fenêtres
+  // de suite pour un nouveau venu, c'est une de trop. Il le lira demain.
+  const [motDuCreateur, setMotDuCreateur] = useState(() => {
+    const jour = dailyDateKey(Date.now())
+    if (!hasCompletedFirstRunTutorial()) {
+      motDuCreateurMontre(jour)
+      return false
+    }
+    return motDuCreateurAMontrer(jour)
+  })
+  // L'appli reste souvent en mémoire d'un jour à l'autre : sans ce rappel au
+  // retour au premier plan, le lendemain ne verrait jamais le message.
+  useEffect(() => {
+    const auRetour = () => {
+      if (document.visibilityState === 'visible' && motDuCreateurAMontrer(dailyDateKey(Date.now()))) setMotDuCreateur(true)
+    }
+    document.addEventListener('visibilitychange', auRetour)
+    return () => document.removeEventListener('visibilitychange', auRetour)
+  }, [])
   const [identity, setIdentity] = useState<GuestIdentity>(loadPlayerIdentity)
   const [progress, setProgress] = useState<PlayerProgress>(() => loadPlayerProgress(identity.playerId))
   const [cosmetics, setCosmetics] = useState<PlayerCosmetics>(() => loadPlayerCosmetics(identity.playerId))
@@ -441,7 +464,7 @@ export function MenuApp({
 
   return <main className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => navigate('play', 'ranked')} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
@@ -458,6 +481,9 @@ export function MenuApp({
     </div> : null}
     {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
       ? <FirstRunTutorial seenVersion={tutorialSeenVersion} skip={() => closeTutorial()} finish={() => closeTutorial(true)} />
+      : null}
+    {motDuCreateur && page === 'home' && !tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
+      ? <CreatorNote close={() => { motDuCreateurMontre(dailyDateKey(Date.now())); setMotDuCreateur(false) }} />
       : null}
     {toast ? <div className="mm-toast" role="status">{toast}</div> : null}
   </main>

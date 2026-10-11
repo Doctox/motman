@@ -106,6 +106,9 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
         seekers={lobby.rankedSeekers ?? 0}
         estUnCompte={identity.accountType === 'account'}
         dejaEnClasse={lobby.active.some(partie => partie.mode === 'ranked')}
+        // « Rejoindre » lance la recherche classée tout de suite (11/10/2026) :
+        // il ouvrait seulement l'onglet Classé, où il fallait encore appuyer
+        // sur « Jouer ».
         rejoindre={playRanked}
         creerCompte={openAccount}
       />

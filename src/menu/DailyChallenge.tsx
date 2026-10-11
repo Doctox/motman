@@ -153,6 +153,13 @@ export function DailyStreakChip() {
  * UNE seule flamme, dans le coin haut droit, et c'est elle qui ouvre le
  * calendrier de série (place demandée par le propriétaire le 16/09/2026).
  */
+/** L'invitation de la carte avant la partie, selon le nombre de joueurs du jour. */
+export function phraseDesJoueursDuJour(total: number): string {
+  if (total <= 0) return 'Sois le premier à relever le défi du jour !'
+  if (total === 1) return 'Un joueur l’a déjà relevé : à toi de jouer !'
+  return `Fais partie des ${total} joueurs à avoir relevé le défi !`
+}
+
 export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => void; onOpenRanking?: () => void }) {
   const { day, status, streak, freezes, theme } = useDailyChallenge()
   const [avertir, setAvertir] = useState(false)
@@ -233,6 +240,9 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
       <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
       <small className="mm-daily-eyebrow">{libelle}</small>
       <h2 className={`mm-daily-title${theme ? ' is-theme' : ''}`}>{theme ?? 'Grille du jour'}</h2>
+      {/* Combien l'ont déjà relevé (11/10/2026) : seulement quand le classement
+          du jour est là — hors ligne, on ne promet pas « le premier ». */}
+      {classement.day === day ? <p className="mm-daily-note mm-daily-invite">{phraseDesJoueursDuJour(classement.total)}</p> : null}
       {freezes > 0 ? <p className="mm-daily-note"><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} de série en réserve</p> : null}
       <button type="button" className="mm-daily-cta" onClick={() => setAvertir(true)} aria-label={`Relever le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
         <Grid2x2Check aria-hidden="true" />Relever le défi <ChevronRight aria-hidden="true" />

@@ -7,14 +7,36 @@ const SERVEUR_TEST = `http://127.0.0.1:${process.env.MOTMAN_E2E_PORT ?? '4175'}`
 // Le tutoriel hors du chemin, sauf pour les tests qui le visent. La version 99
 // vaut « déjà vu, quelle que soit la version publiée » : sans cela, chaque
 // nouvelle étape du tutoriel ferait tomber toute la suite.
+//
+// Le mot du créateur aussi (11/10/2026) : il paraît une fois par jour par-dessus
+// l'accueil, et bloquerait tous les clics. Seul le test qui le vise le voit.
 test.beforeEach(async ({ page }, testInfo) => {
   if (testInfo.title.includes('tutoriel')) return
-  await page.addInitScript(() => {
+  const motDejaLu = !testInfo.title.includes('mot du créateur')
+  await page.addInitScript(motDejaLu => {
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({
       version: 99,
       completedAt: '2026-07-30T12:00:00.000Z',
     }))
-  })
+    if (motDejaLu) localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+  }, motDejaLu)
+})
+
+test('le mot du créateur paraît une fois par jour, avec Instagram et TikTok', async ({ page }, testInfo) => {
+  await page.goto('/')
+  const mot = page.getByRole('dialog', { name: 'Un mot du créateur' })
+  await expect(mot).toBeVisible()
+  await expect(mot.getByRole('link', { name: /Instagram/ })).toHaveAttribute('href', 'https://www.instagram.com/studiodoctox/')
+  await expect(mot.getByRole('link', { name: /TikTok/ })).toHaveAttribute('href', 'https://www.tiktok.com/@studiodoctox')
+  await page.screenshot({ path: `output/quality/mot-du-createur-${testInfo.project.name}.png`, fullPage: false })
+  await mot.getByRole('button', { name: 'Jouer' }).click()
+  await expect(mot).toBeHidden()
+  await page.screenshot({ path: `output/quality/accueil-apres-mot-${testInfo.project.name}.png`, fullPage: false })
+
+  // Le même jour, il ne revient pas.
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Partie' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Un mot du créateur' })).toHaveCount(0)
 })
 
 test('le tutoriel accompagne la première ouverture et reste rejouable', async ({ page }, testInfo) => {
@@ -283,7 +305,10 @@ test('sur iPhone, les paramètres expliquent comment installer, et préviennent 
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   })
-  await context.addInitScript(() => localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' })))
+  await context.addInitScript(() => {
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+  })
   const page = await context.newPage()
   try {
     await page.goto('/')
@@ -365,6 +390,7 @@ test('la recherche d’un adversaire compte son attente, et elle seule l’affic
   await context.addInitScript(stored => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stored))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, identity)
   const page = await context.newPage()
 
@@ -430,6 +456,7 @@ test('l’accueil garde tous les amis, sur deux lignes, sans les comprimer', asy
   await context.addInitScript(stored => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stored))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, moi)
   const page = await context.newPage()
 
@@ -484,6 +511,7 @@ test('l’accueil tient quand le téléphone agrandit le texte', async ({ browse
   await context.addInitScript(stored => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stored))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, identity)
   const page = await context.newPage()
 
@@ -542,6 +570,7 @@ test('sur un écran court, la barre de navigation reste visible', async ({ brows
   await context.addInitScript(stored => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stored))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, identity)
   const page = await context.newPage()
 
@@ -583,6 +612,7 @@ test('une partie qui n’existe plus ramène à l’accueil, au lieu de piéger 
   await context.addInitScript(stored => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stored))
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
   }, identity)
   const page = await context.newPage()
 
