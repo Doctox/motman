@@ -28,6 +28,17 @@ describe('matchPollDelay', () => {
     expect(matchPollDelay({ match: botMatch, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(1_250)
   })
 
+  it('revient voir à l’heure où le fantôme du propriétaire jouera, jamais en rafale', () => {
+    const fantome = match({ mode: 'ranked', automatedTurnAt: new Date(20_000).toISOString() })
+    // Son coup est prévu à 20 s : on revient à 20,25 s, et non au sondage de 8 s
+    // qui pouvait laisser passer jusqu'à seize secondes.
+    expect(matchPollDelay({ match: fantome, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 4, failureCount: 0, now: 2_000 })).toBe(18_250)
+    // Un coup qui tarde ne fait pas sonder toutes les 350 ms.
+    expect(matchPollDelay({ match: fantome, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 30_000 })).toBe(1_250)
+    // À mon tour, l'heure du fantôme ne compte plus.
+    expect(matchPollDelay({ match: { ...fantome, currentPlayerId: 'player' }, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(12_000)
+  })
+
   it('se réveille près de la fin du tour et ralentit après des erreurs', () => {
     expect(matchPollDelay({ match: match(), playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 45_900 })).toBe(350)
     expect(matchPollDelay({ match: match(), playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 3, now: 2_000 })).toBe(10_000)

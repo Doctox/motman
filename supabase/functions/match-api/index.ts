@@ -41,6 +41,7 @@ import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
 import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchInvitations.ts'
 import { avantLeTour, echantillonDuTour, noterLeTour, type AvantLeTour } from './ownerTurnLog.ts'
+import { allumerFantome, fantomeAllume } from './ghost.ts'
 
 /**
  * « Une partie classée cherche quelqu'un » — pour le propriétaire seul.
@@ -389,7 +390,16 @@ Deno.serve(async request => {
       // il y serait toujours compté (propriétaire, 20/09/2026).
       const { data: pouls, error: poulsError } = await admin.rpc('server_game_pulse', { p_moi: user.id })
       if (poulsError) throw poulsError
-      return json(200, { pulse: pouls })
+      // L'état de son fantôme en classée, pour l'interrupteur du même cadre.
+      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin) } })
+    }
+
+    // L'INTERRUPTEUR DU FANTÔME (11/10/2026), dans le pouls du jeu. Le rôle est
+    // celui lu EN BASE en tête de requête, comme pour le pouls.
+    if (action === 'owner-switch') {
+      if (accessProfile?.role !== 'admin') return json(403, { error: 'Réservé au propriétaire.' })
+      if (body.name !== 'fantome' || typeof body.enabled !== 'boolean') return json(400, { error: 'Réglage inconnu.' })
+      return json(200, { fantome: await allumerFantome(admin, body.enabled) })
     }
 
     if (action === 'player-stats') {

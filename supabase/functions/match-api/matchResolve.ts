@@ -11,9 +11,9 @@
 // le jeu. Deux copies de cette règle auraient fini par diverger : c'est
 // exactement le motif de bogue le plus coûteux du projet.
 
-import { botThinkingDelayMs } from '../../../src/botOpponents.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { awardFinished } from './awards.ts'
+import { botTurnDelayMs } from './botDelay.ts'
 import { ensureFinalSprintRacks, ensureSharedLetterBag, ruleGrid } from './matchGrid.ts'
 import type { MatchRow } from './matchModel.ts'
 import { notifyCurrentTurn } from './matchNotifications.ts'
@@ -55,7 +55,7 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
       // Plus personne n'a fait avancer la partie depuis trois minutes (matchTurns.ts).
       forfeitAbsentPlayer(row, absent); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (row.state.bot?.playerId === row.current_player_id) {
-      const delay = botThinkingDelayMs(`${row.id}:${row.turn_number}`)
+      const delay = botTurnDelayMs(row)
       if (Date.now() >= new Date(row.turn_started_at).getTime() + delay) {
         applyTurn(row, grid, row.current_player_id, botPlacements(row, grid)); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
       }

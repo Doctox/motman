@@ -73,6 +73,11 @@ export type MatchState = {
   difficulty: 'easy' | 'normal' | 'hard'
   playerIds: [string, string]
   bot: MatchBot | null
+  /**
+   * Quand l'adversaire automatique jouera, s'il n'est pas annoncé comme bot (le
+   * fantôme du propriétaire, 11/10/2026) : le client revient voir à cette heure.
+   */
+  automatedTurnAt?: string
   players: SocialUser[]
   currentPlayerId: string
   turnNumber: number
@@ -275,11 +280,19 @@ export type GamePulse = {
   signalementsOuverts: number
   /** Depuis combien d'heures attend le plus ancien. */
   signalementPlusAncienHeures: number
+  /** Son fantôme en classée est-il allumé ? (11/10/2026) */
+  fantome?: boolean
 }
 
 export async function loadGamePulse(): Promise<GamePulse> {
   if (localTestServer) throw new Error('Le serveur de test local ne compte pas l’audience.')
   return (await supabaseMatch<{ pulse: GamePulse }>('game-pulse')).pulse
+}
+
+/** Allume ou éteint le fantôme du propriétaire. Le serveur revérifie le rôle. */
+export async function setGhostSwitch(enabled: boolean): Promise<boolean> {
+  if (localTestServer) throw new Error('Le serveur de test local n’a pas de fantôme.')
+  return (await supabaseMatch<{ fantome: boolean }>('owner-switch', { name: 'fantome', enabled })).fantome
 }
 
 export async function transferMatchToRanked(matchId: string, rankedMatchId: string): Promise<void> {

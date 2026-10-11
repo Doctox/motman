@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Activity, ChevronRight, RefreshCw, ShieldAlert } from 'lucide-react'
-import { loadGamePulse, type GamePulse } from '../matches'
+import { Activity, ChevronRight, Ghost, RefreshCw, ShieldAlert } from 'lucide-react'
+import { loadGamePulse, setGhostSwitch, type GamePulse } from '../matches'
 import { useDialogFocus } from '../useDialogFocus'
 import { ModerationPanel } from './ModerationPanel'
 import './menu-pulse.css'
@@ -106,6 +106,44 @@ function Ligne({ nom, valeur }: { nom: string; valeur: number }) {
   return <div><dt>{nom}</dt><dd>{valeur}</dd></div>
 }
 
+/**
+ * L'interrupteur du fantôme (11/10/2026) : allumé, il prend la place du
+ * propriétaire en classée quand un joueur attend depuis une minute et que
+ * personne d'autre n'est en ligne. Le serveur revérifie le rôle à chaque appui.
+ */
+export function InterrupteurFantome({ allumeAuDepart, basculer = setGhostSwitch }: {
+  allumeAuDepart: boolean
+  basculer?: (allume: boolean) => Promise<boolean>
+}) {
+  const [allume, setAllume] = useState(allumeAuDepart)
+  const [occupe, setOccupe] = useState(false)
+  const [rate, setRate] = useState(false)
+  const changer = (voulu: boolean) => {
+    setOccupe(true)
+    setRate(false)
+    basculer(voulu)
+      .then(setAllume)
+      .catch(() => setRate(true))
+      .finally(() => setOccupe(false))
+  }
+  return (
+    <>
+      <label className="mm-setting-row mm-pulse-fantome">
+        <span>
+          <Ghost aria-hidden="true" />
+          <span>
+            Fantôme en classée
+            <small>{allume ? 'Joue à ta place quand personne n’est en ligne' : 'Éteint : les joueurs attendent un vrai adversaire'}</small>
+          </span>
+        </span>
+        <input type="checkbox" role="switch" aria-label="Fantôme en classée" checked={allume} disabled={occupe} onChange={event => changer(event.currentTarget.checked)} />
+        <i aria-hidden="true" />
+      </label>
+      {rate ? <p className="mm-pulse-note" role="alert">Réglage non enregistré, réessaie.</p> : null}
+    </>
+  )
+}
+
 function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration }: {
   pouls: GamePulse
   fermer: () => void
@@ -164,6 +202,9 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration }: {
 
         <h3>En tout</h3>
         <dl><Ligne nom="Comptes" valeur={pouls.comptes} /></dl>
+
+        <h3>Ton fantôme</h3>
+        <InterrupteurFantome allumeAuDepart={pouls.fantome !== false} />
 
         <button type="button" className="mm-pulse-fermer" data-dialog-autofocus onClick={fermer}>Fermer</button>
       </div>

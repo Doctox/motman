@@ -20,6 +20,7 @@
 
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
+import { tenterLeFantome } from './ghost.ts'
 import { notifyRankedReady } from './matchNotifications.ts'
 import { atomicResult, prepareAtomicMatch, type AtomicMatchResult } from './matchSetup.ts'
 import { profile } from './matchView.ts'
@@ -188,7 +189,19 @@ export async function advanceRankedSearch(
       p_grid_id: null,
       p_state: null,
     }))
-    if (discovery.status !== 'candidate' || !discovery.opponentId || !discovery.claimToken) return discovery
+    if (discovery.status !== 'candidate' || !discovery.opponentId || !discovery.claimToken) {
+      // Personne à apparier : au bout d'une minute, et si personne d'autre
+      // n'est en ligne, le fantôme du propriétaire prend la place (ghost.ts).
+      // Une panne du fantôme ne doit JAMAIS casser la recherche classée.
+      if (discovery.status === 'waiting') {
+        try {
+          return await tenterLeFantome(admin, userId) ?? discovery
+        } catch (error) {
+          console.error('Fantôme du propriétaire indisponible', error)
+        }
+      }
+      return discovery
+    }
 
     const prepared = await prepareAtomicMatch(admin, discovery.opponentId, userId, 'realtime', null, null)
     const committed = await atomicResult(admin.rpc('server_ranked_matchmake_atomic', {

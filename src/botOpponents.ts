@@ -14,6 +14,8 @@ export type BotPersona = {
   skill: BotSkill
   avatarId: string
   frameId: string
+  /** Réglages sur mesure : le fantôme du propriétaire (src/ghostOpponent.ts) joue comme lui. */
+  tuning?: BotTuning
 }
 
 export type BotTuning = {
@@ -78,6 +80,7 @@ export function createBotPersona(seed: string, preferredSkill?: BotSkill): BotPe
 }
 
 export function botTuning(persona: BotPersona): BotTuning {
+  if (persona.tuning) return persona.tuning
   if (persona.skill === 'beginner') return { accuracy: 78, minLetters: 2, maxLetters: 3, wordBonusWeight: 2, pressureGap: 8 }
   // Normal must remain strategic without feeling clairvoyant: it still tries
   // three to four tiles and sees useful word completions, but makes a few more

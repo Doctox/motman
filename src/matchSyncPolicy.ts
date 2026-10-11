@@ -38,6 +38,15 @@ export function matchPollDelay({
   const botIsThinking = Boolean(match.bot && match.currentPlayerId === match.bot.playerId)
   if (botIsThinking) return 1_250
 
+  // Le fantôme du propriétaire n'est pas annoncé comme bot : le serveur dit à
+  // quelle heure il jouera, on revient voir à ce moment-là plutôt qu'au sondage
+  // ordinaire, qui pouvait laisser passer seize secondes.
+  if (match.automatedTurnAt && match.currentPlayerId !== playerId) {
+    // Jamais sous 1,25 s, comme pour un bot qui réfléchit : un coup qui tarde
+    // ne doit pas faire sonder en rafale jusqu'à « Trop de requêtes ».
+    return Math.max(1_250, Date.parse(match.automatedTurnAt) - now + 250)
+  }
+
   const untilTurnBoundary = Math.max(0, new Date(match.turnEndsAt).getTime() - now + 180)
   const boundaryDelay = untilTurnBoundary > 0 ? Math.max(350, untilTurnBoundary) : 350
   const unchangedBackoff = Math.min(8_000, Math.floor(Math.max(0, unchangedPolls) / 2) * 1_000)

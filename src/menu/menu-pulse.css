@@ -31,3 +31,8 @@
 .mm-pulse-dialog dt{font-size:0.8125rem}
 .mm-pulse-dialog dd{margin:0;font:700 1rem/1 'Playfair Display',serif;font-variant-numeric:tabular-nums}
 .mm-shell .mm-pulse-fermer{width:100%;min-height:46px;margin-top:3px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.875rem/1 'DM Sans',sans-serif}
+/* L'interrupteur du fantôme (11/10/2026) : la ligne d'un réglage, comme dans le menu. */
+.mm-pulse-dialog .mm-pulse-fantome{position:relative;min-height:54px;margin:0 0 10px;padding:6px 0;gap:12px;cursor:pointer}
+.mm-pulse-dialog .mm-pulse-fantome>span>span{display:flex;flex-direction:column;font:600 0.875rem/1.25 'DM Sans',sans-serif}
+.mm-pulse-dialog .mm-pulse-fantome small{font-weight:500;font-size:0.75rem;color:var(--mm-muted)}
+.mm-pulse-dialog .mm-pulse-fantome>i{flex:none}

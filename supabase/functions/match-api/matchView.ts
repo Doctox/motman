@@ -16,6 +16,7 @@ import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { publicGrid } from './matchGrid.ts'
 import type { Bot, CatalogGrid, MatchRow } from './matchModel.ts'
 import { currentPresenceDeadline } from './matchTurns.ts'
+import { botTurnDelayMs } from './botDelay.ts'
 
 export async function profile(admin: AdminClient, id: string) {
   return loadPublicProfile(admin, id)
@@ -42,7 +43,10 @@ export async function view(
 ) {
   const state = row.state
   const humanIds = state.playerIds.filter(id => state.bot?.playerId !== id)
-  const profiles = loadedProfiles ?? await loadPublicProfiles(admin, humanIds)
+  // Le fantôme du propriétaire (ghost.ts) se montre sous le VRAI profil du
+  // propriétaire — sans mention, à sa demande —, toujours « en partie ».
+  const fantome = state.bot?.ghostOf ? state.bot : null
+  const profiles = loadedProfiles ?? await loadPublicProfiles(admin, fantome ? [...humanIds, fantome.playerId] : humanIds)
   // Le niveau de CHAQUE joueur (19/09/2026) : il n'était affiché que pour le
   // bot, ce qui suffisait à le reconnaître.
   const { data: niveaux } = humanIds.length
@@ -50,6 +54,7 @@ export async function view(
     : { data: [] }
   const niveauDe = new Map((niveaux ?? []).map(ligne => [String(ligne.user_id), Number(ligne.level) || 1]))
   const players = state.playerIds.map(id => {
+    if (fantome && fantome.playerId === id) return { ...(profiles.get(id) ?? botUser(fantome)), online: true, activity: 'playing', level: fantome.level }
     if (state.bot?.playerId === id) return botUser(state.bot)
     const joueur = profiles.get(id)
     return joueur ? { ...joueur, level: niveauDe.get(id) } : null
@@ -71,7 +76,12 @@ export async function view(
     // du bot qui remplace un humain après 15 s (20/09/2026). Le client n'a besoin
     // que du nom, du niveau affiché et de l'identifiant (pour masquer « Signaler »).
     difficulty: state.difficulty, playerIds: state.playerIds,
-    bot: state.bot ? { playerId: state.bot.playerId, displayName: state.bot.displayName, level: state.bot.level, avatarId: state.bot.avatarId, frameId: state.bot.frameId } : null,
+    bot: state.bot && !fantome ? { playerId: state.bot.playerId, displayName: state.bot.displayName, level: state.bot.level, avatarId: state.bot.avatarId, frameId: state.bot.frameId } : null,
+    // Le fantôme n'est pas annoncé comme bot : le client ne saurait donc pas
+    // qu'il doit revenir voir quand il aura joué. Cette heure-là le lui dit.
+    ...(fantome && row.status === 'active' && row.current_player_id === fantome.playerId
+      ? { automatedTurnAt: new Date(Date.parse(row.turn_started_at) + botTurnDelayMs(row)).toISOString() }
+      : {}),
     players: players.filter(Boolean),
     currentPlayerId: row.current_player_id, turnNumber: row.turn_number, turnStartedAt: row.turn_started_at, turnEndsAt: row.turn_ends_at,
     board: state.board, racks: { [viewerId]: state.racks[viewerId] ?? [] }, scores: state.scores,

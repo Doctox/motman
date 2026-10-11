@@ -138,3 +138,12 @@ describe('adversaires bot', () => {
     expect(averages[2]).toBeGreaterThan(averages[1] + 0.7)
   })
 })
+
+// 11/10/2026 : le fantôme du propriétaire porte ses propres réglages.
+describe('un bot aux réglages sur mesure', () => {
+  it('joue avec SES réglages, pas avec ceux de sa force', () => {
+    const surMesure = { accuracy: 93, minLetters: 3, maxLetters: 5, wordBonusWeight: 3, pressureGap: 6 }
+    expect(botTuning({ ...expert, skill: 'regular', tuning: surMesure })).toEqual(surMesure)
+    expect(botTuning({ ...expert, skill: 'regular' })).not.toEqual(surMesure)
+  })
+})

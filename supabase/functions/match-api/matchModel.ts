@@ -7,7 +7,7 @@
 // Rien d'exécutable ici, sauf `nowIso` — deux mots dont les deux modules ont
 // besoin et qui ne méritent pas un fichier à eux.
 
-import type { BotSkill } from '../../../src/botOpponents.ts'
+import type { BotSkill, BotTuning } from '../../../src/botOpponents.ts'
 
 export const nowIso = () => new Date().toISOString()
 
@@ -22,7 +22,11 @@ export type Mode = 'solo' | 'friend' | 'normal' | 'ranked'
 export type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: unknown; direction: 'across' | 'down'; arrow?: string; clueCell: number[]; cells: number[][] }
 /** `theme` + `dailyOnly` : grille à thème, RÉSERVÉE au défi du jour (src/dailyThemes.ts). */
 export type CatalogGrid = { id: string; columns: number; rows: number; clueCells: number[][]; blockedCells?: number[][]; words: CatalogWord[]; theme?: string | null; dailyOnly?: boolean }
-export type Bot = { playerId: string; displayName: string; level: number; skill: BotSkill; avatarId: string; frameId: string }
+/**
+ * `ghostOf` : le fantôme du propriétaire en classée (src/ghostOpponent.ts) — son
+ * `playerId` est alors celui du propriétaire, et `tuning` ses réglages de jeu.
+ */
+export type Bot = { playerId: string; displayName: string; level: number; skill: BotSkill; avatarId: string; frameId: string; ghostOf?: string; tuning?: BotTuning }
 export type Turn = {
   id: string; kind: 'played' | 'timeout'; playerId: string; turnNumber: number; correct: number[]; wrong: number[];
   wrongPlacements: Array<{ cellIndex: number; letter: string }>; aidedCell: number | null; letterPoints: number;
