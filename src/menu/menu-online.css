@@ -1,0 +1,27 @@
+/* Qui est en ligne (11/10/2026) — même gabarit que le pouls du jeu. */
+.mm-online-layer{align-items:center;padding:18px}
+.mm-online{width:min(100%,360px);max-height:84vh;overflow-y:auto;padding:18px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 18px 55px #0005}
+.mm-online:focus{outline:none}
+.mm-online>header{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:3px}
+.mm-online h2{display:flex;align-items:center;gap:8px;margin:0;font:600 1.1875rem 'Playfair Display',serif}
+.mm-online h2 svg{flex:none;width:19px;height:19px;color:var(--mm-muted)}
+.mm-shell .mm-online>header button{flex:none;width:32px;height:32px;display:grid;place-items:center;padding:0;border:0;border-radius:9px;background:transparent;color:var(--mm-muted)}
+.mm-online>header button svg{width:16px;height:16px}
+.mm-online-note{margin:0 0 12px;color:var(--mm-muted);font-size:0.6875rem}
+.mm-online-vide{margin:0 0 12px;color:var(--mm-muted);font-size:0.8125rem}
+.mm-online-liste{list-style:none;margin:0 0 12px;padding:0}
+.mm-online-joueur{padding:9px 0 9px 10px;border-bottom:1px solid var(--mm-line);border-left:3px solid var(--mm-line)}
+.mm-online-joueur:last-child{border-bottom:0}
+.mm-online-joueur.is-partie{border-left-color:var(--mm-coral)}
+.mm-online-joueur.is-recherche,.mm-online-joueur.is-confirmation{border-left-color:color-mix(in srgb,var(--mm-coral) 45%,var(--mm-line))}
+.mm-online-qui{display:flex;flex-direction:column;gap:1px}
+.mm-online-qui b{font:700 0.9375rem/1.2 'DM Sans',sans-serif}
+.mm-online-qui small{color:var(--mm-muted);font-size:0.6875rem}
+.mm-online-quoi{margin:4px 0 0;font-size:0.8125rem;line-height:1.3}
+.mm-online-detail{margin:2px 0 0;color:var(--mm-muted);font-size:0.75rem}
+.mm-shell .mm-online-fermer{width:100%;min-height:46px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.875rem/1 'DM Sans',sans-serif}
+/* « En ligne » devient un bouton dans le pouls : il ouvre ce panneau. */
+.mm-shell .mm-pulse-dialog .mm-pulse-enligne{width:100%;margin:0 0 15px;padding:6px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;border-bottom:1px solid var(--mm-line);background:transparent;color:var(--mm-ink);text-align:left;cursor:pointer}
+.mm-pulse-dialog .mm-pulse-enligne span{font-size:0.8125rem}
+.mm-pulse-dialog .mm-pulse-enligne b{margin-left:auto;font:700 1rem/1 'Playfair Display',serif;font-variant-numeric:tabular-nums}
+.mm-pulse-dialog .mm-pulse-enligne svg{flex:none;width:15px;height:15px;color:var(--mm-muted)}

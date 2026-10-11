@@ -47,5 +47,10 @@ export function dailyGridIdFor(dateKey: string): string | null {
   return byDate.get(dateKey)?.gridId ?? null
 }
 
+/** Le thème annoncé ce jour-là, ou `null` (jour générique ou non couvert). */
+export function dailyThemeFor(dateKey: string): string | null {
+  return byDate.get(dateKey)?.theme ?? null
+}
+
 /** Nombre de jours programmés — utile aux journaux de démarrage. */
 export const dailyCalendarSize = days.length

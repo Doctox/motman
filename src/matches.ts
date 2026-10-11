@@ -289,6 +289,28 @@ export async function loadGamePulse(): Promise<GamePulse> {
   return (await supabaseMatch<{ pulse: GamePulse }>('game-pulse')).pulse
 }
 
+/** Qui est en ligne et ce qu'il fait — pour le propriétaire seul (supabase/functions/match-api/onlinePlayers.ts). */
+export type OnlineActivity =
+  | { quoi: 'partie'; mode: string; rythme: string; defi: { theme: string | null } | null; adversaire: { nom: string; genre: 'humain' | 'bot' | 'fantome' } | null; tour: number; score: number; scoreAdverse: number; aSonTour: boolean }
+  | { quoi: 'confirmation' }
+  | { quoi: 'recherche'; file: 'classee' | 'normale'; depuisS: number }
+  | { quoi: 'ecran-de-partie' }
+  | { quoi: 'menu' }
+
+export type OnlinePlayer = {
+  displayName: string
+  invite: boolean
+  niveau: number
+  vuIlYaS: number
+  activite: OnlineActivity
+  partiesLentes: number
+}
+
+export async function loadOnlinePlayers(): Promise<OnlinePlayer[]> {
+  if (localTestServer) throw new Error('Le serveur de test local ne suit pas la présence.')
+  return (await supabaseMatch<{ players: OnlinePlayer[] }>('online-players')).players
+}
+
 /** Allume ou éteint le fantôme du propriétaire. Le serveur revérifie le rôle. */
 export async function setGhostSwitch(enabled: boolean): Promise<boolean> {
   if (localTestServer) throw new Error('Le serveur de test local n’a pas de fantôme.')

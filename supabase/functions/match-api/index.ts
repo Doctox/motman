@@ -42,6 +42,7 @@ import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked
 import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchInvitations.ts'
 import { avantLeTour, echantillonDuTour, noterLeTour, type AvantLeTour } from './ownerTurnLog.ts'
 import { allumerFantome, fantomeAllume } from './ghost.ts'
+import { joueursEnLigne } from './onlinePlayers.ts'
 
 /**
  * « Une partie classée cherche quelqu'un » — pour le propriétaire seul.
@@ -392,6 +393,14 @@ Deno.serve(async request => {
       if (poulsError) throw poulsError
       // L'état de son fantôme en classée, pour l'interrupteur du même cadre.
       return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin) } })
+    }
+
+    // QUI EST EN LIGNE ET CE QU'IL FAIT (11/10/2026), derrière « En ligne » dans
+    // le pouls du jeu. Des pseudos cette fois : le propriétaire seul, rôle lu en
+    // base en tête de requête.
+    if (action === 'online-players') {
+      if (accessProfile?.role !== 'admin') return json(403, { error: 'Réservé au propriétaire.' })
+      return json(200, { players: await joueursEnLigne(admin, user.id) })
     }
 
     // L'INTERRUPTEUR DU FANTÔME (11/10/2026), dans le pouls du jeu. Le rôle est

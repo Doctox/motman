@@ -3,6 +3,7 @@ import { Activity, ChevronRight, Ghost, RefreshCw, ShieldAlert } from 'lucide-re
 import { loadGamePulse, setGhostSwitch, type GamePulse } from '../matches'
 import { useDialogFocus } from '../useDialogFocus'
 import { ModerationPanel } from './ModerationPanel'
+import { OnlinePlayersPanel } from './OnlinePlayersPanel'
 import './menu-pulse.css'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ export function GamePulse() {
 export function GamePulseCard({ pouls, rafraichir }: { pouls: GamePulse; rafraichir: () => void }) {
   const [ouvert, setOuvert] = useState(false)
   const [moderation, setModeration] = useState(false)
+  const [enLigne, setEnLigne] = useState(false)
   const aTraiter = pouls.signalementsOuverts ?? 0
   return (
     <>
@@ -94,10 +96,13 @@ export function GamePulseCard({ pouls, rafraichir }: { pouls: GamePulse; rafraic
           fermer={() => setOuvert(false)}
           rafraichir={rafraichir}
           ouvrirModeration={() => { setOuvert(false); setModeration(true) }}
+          ouvrirEnLigne={() => { setOuvert(false); setEnLigne(true) }}
         />
       )}
       {/* Une seule fenêtre à la fois : la modération remplace le pouls. */}
       {moderation && <ModerationPanel fermer={() => { setModeration(false); rafraichir() }} />}
+      {/* Qui est en ligne (11/10/2026) : au retour, le pouls se rouvre. */}
+      {enLigne && <OnlinePlayersPanel fermer={() => { setEnLigne(false); setOuvert(true) }} />}
     </>
   )
 }
@@ -144,11 +149,12 @@ export function InterrupteurFantome({ allumeAuDepart, basculer = setGhostSwitch 
   )
 }
 
-function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration }: {
+function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEnLigne }: {
   pouls: GamePulse
   fermer: () => void
   rafraichir: () => void
   ouvrirModeration: () => void
+  ouvrirEnLigne: () => void
 }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(fermer)
   return (
@@ -184,7 +190,12 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration }: {
         ) : null}
 
         <h3>En ce moment</h3>
-        <dl><Ligne nom="En ligne" valeur={pouls.enLigne} /></dl>
+        {/* Derrière le nombre, qui et quoi (11/10/2026). */}
+        <button type="button" className="mm-pulse-enligne" onClick={ouvrirEnLigne} aria-label={`${pouls.enLigne} en ligne — voir qui et ce qu’ils font`}>
+          <span>En ligne</span>
+          <b>{pouls.enLigne}</b>
+          <ChevronRight aria-hidden="true" />
+        </button>
 
         <h3>Aujourd’hui</h3>
         <dl>
