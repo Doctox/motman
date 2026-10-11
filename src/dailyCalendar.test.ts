@@ -28,7 +28,10 @@ describe('calendrier du défi du jour (fichier réel)', () => {
     // L'ancien calendrier annonçait « Sport » et « Animaux » sur des grilles
     // génériques. Un thème vient désormais de la grille elle-même.
     const grilles = catalogueReel!.catalogue.grids
-    expect(calendarThemeErrors(days, new Map(grilles.map(grille => [grille.id, grille])))).toEqual([])
+    // Deux jours de suite au même nom ne se jugent qu'à partir d'aujourd'hui : le
+    // regroupement des thèmes du 11/10/2026 en a laissé dans le passé.
+    const aujourdhui = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+    expect(calendarThemeErrors(days, new Map(grilles.map(grille => [grille.id, grille])), aujourdhui)).toEqual([])
   })
 
   it('livre au navigateur une table des thèmes qui dit exactement ce que dit le calendrier', () => {

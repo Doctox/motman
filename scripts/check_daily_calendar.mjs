@@ -96,7 +96,8 @@ for (const [index, entry] of calendar.days.entries()) {
 // une grille qui le porte, et jamais deux jours de suite. Règle chargée depuis
 // `src/dailyThemes.ts` — la même que lisent le serveur et le client.
 const themes = await importTs(path.resolve(process.cwd(), 'src', 'dailyThemes.ts'))
-if (catalog) errors.push(...themes.catalogThemeErrors(catalog.grids), ...themes.calendarThemeErrors(calendar.days, byId))
+// Deux jours de suite au même thème : vérifié pour aujourd'hui et la suite ; le passé ne se rejoue pas.
+if (catalog) errors.push(...themes.catalogThemeErrors(catalog.grids), ...themes.calendarThemeErrors(calendar.days, byId, today))
 
 // La table des thèmes livrée au navigateur doit dire exactement ce que dit le
 // calendrier — sans en porter les identifiants de grille (dailyThemeSchedule.ts).

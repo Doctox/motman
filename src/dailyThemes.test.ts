@@ -141,6 +141,10 @@ describe('les contrôles du calendrier', () => {
 
   it('refuse le même thème deux jours de suite', () => {
     const erreurs = calendarThemeErrors([jour('2026-10-01', 'animaux-1', 'Animaux'), jour('2026-10-02', 'animaux-2', 'Animaux')], catalogue)
+    // Dans le passé (avant `depuis`), deux jours de suite au même nom se tolèrent :
+    // c'est ce que laisse un regroupement de thèmes (11/10/2026).
+    expect(calendarThemeErrors([jour('2026-10-01', 'animaux-1', 'Animaux'), jour('2026-10-02', 'animaux-2', 'Animaux')], catalogue, '2026-10-03')).toEqual([])
+    expect(calendarThemeErrors([jour('2026-10-01', 'animaux-1', 'Animaux'), jour('2026-10-02', 'animaux-2', 'Animaux')], catalogue, '2026-10-02').length).toBe(1)
     expect(erreurs).toEqual(['2026-10-02 : même thème que la veille (« Animaux »)'])
   })
 

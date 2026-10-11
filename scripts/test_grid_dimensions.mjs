@@ -54,8 +54,9 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 39],
-      // v39 (29/09) : lot « normales-10 », 124 grilles de rotation, et neuf
+      ['version', catalog.version, 40],
+      // v40 (11/10) : les 24 thèmes du défi regroupés en 16, aux noms de Grid
+      // Studio (mêmes grilles, mêmes chiffres). v39 (29/09) : lot « normales-10 », 124 grilles de rotation, et neuf
       // grilles retirées du tirage (un nom et son verbe dans la même grille,
       // EQUIPE/EQUIPER…). v38 (25/09) : trois thèmes neufs, Justice & Droit, Maison, Mer & Marine
       // (15 grilles à thème). v37 (23/09) : lot « normales-9 », 117 grilles de

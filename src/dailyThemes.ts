@@ -184,11 +184,18 @@ export function catalogThemeErrors(grids: readonly (GrilleThematique & { id: str
  * Le calendrier ne promet que ce que ses grilles tiennent :
  *  - un thème n'est annoncé que sur une grille qui le porte ;
  *  - une grille à thème n'est jamais servie sans son thème ;
- *  - jamais le même thème deux jours de suite.
+ *  - jamais le même thème deux jours de suite — à partir de `depuis`.
+ *
+ * `depuis` (11/10/2026) : la règle des deux jours de suite est une règle de
+ * PROGRAMMATION. Quand des thèmes se regroupent (Jardin, Arbres & Forêt et
+ * Géographie devenus Nature & Paysages), deux jours passés peuvent se suivre
+ * sous le même nom ; on ne rejoue pas l'histoire. Les deux premières règles,
+ * elles, valent pour tous les jours.
  */
 export function calendarThemeErrors(
   entries: readonly { date: string; gridId: string; theme: string | null }[],
   gridsById: ReadonlyMap<string, GrilleThematique>,
+  depuis = '',
 ): string[] {
   const erreurs: string[] = []
   entries.forEach((entry, index) => {
@@ -201,7 +208,7 @@ export function calendarThemeErrors(
       erreurs.push(`${entry.date} : grille à thème « ${entry.gridId} » servie sans son thème « ${grille.theme ?? '?'} »`)
     }
     const veille = entries[index - 1]
-    if (entry.theme !== null && veille?.theme === entry.theme) {
+    if (entry.date >= depuis && entry.theme !== null && veille?.theme === entry.theme) {
       erreurs.push(`${entry.date} : même thème que la veille (« ${entry.theme} »)`)
     }
   })

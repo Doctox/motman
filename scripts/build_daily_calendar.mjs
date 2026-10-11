@@ -162,7 +162,8 @@ if (consecutive.length) {
   console.error(`\n✖ Répétition deux jours de suite : ${consecutive.map(entry => entry.date).join(', ')}\n`)
   process.exit(1)
 }
-const erreursThemes = themes.calendarThemeErrors(all, new Map(catalog.grids.map(grid => [grid.id, grid])))
+// Deux jours de suite au même thème : interdit dans ce qu'on programme, pas dans le passé conservé.
+const erreursThemes = themes.calendarThemeErrors(all, new Map(catalog.grids.map(grid => [grid.id, grid])), from)
 if (erreursThemes.length) {
   console.error(`\n✖ Thèmes incohérents :\n  - ${erreursThemes.join('\n  - ')}\n`)
   process.exit(1)

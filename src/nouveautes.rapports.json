@@ -174,5 +174,11 @@
     "titre": "Rejoindre une classée en un geste",
     "texte": "Quand un joueur cherche une classée, « Rejoindre » lance aussitôt ta recherche. Et la carte du défi te dit combien de joueurs l'ont déjà relevé aujourd'hui.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-10-11T21:40",
+    "titre": "Les thèmes du défi se regroupent",
+    "texte": "Les 24 thèmes du défi du jour deviennent 16, aux noms plus larges : Nature & Paysages, Cuisine & Boissons, École & Lettres… Les grilles restent les mêmes, et d'autres arrivent.",
+    "genre": "theme"
   }
 ]
