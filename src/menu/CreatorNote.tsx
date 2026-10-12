@@ -1,5 +1,8 @@
-import { HeartHandshake } from 'lucide-react'
+import { useState } from 'react'
+import { HeartHandshake, Sparkles } from 'lucide-react'
 import { INSTAGRAM_STUDIO, TIKTOK_STUDIO } from '../creatorNote'
+import { marquerNouveauteLue, nouveautesDesDernieres24h, useNouveautes, type Nouveaute } from '../nouveautes'
+import { RapportsDeNouveautes } from './Nouveautes'
 import { useDialogFocus } from '../useDialogFocus'
 import './menu-createur.css'
 
@@ -29,20 +32,53 @@ function LogoTikTok() {
  * Les deux liens sont de simples liens web : sur Android, le système les
  * confie à l'application Instagram ou TikTok si elle est installée, comme il
  * confie déjà au Play Store le lien de mise à jour.
+ *
+ * L'ONGLET « NOUVEAUTÉS » (12/10/2026). S'il est paru une nouveauté dans les
+ * dernières 24 heures, un second onglet la montre ; sinon il n'existe pas. Le
+ * mot du créateur reste l'onglet d'ouverture ; ouvrir les nouveautés les
+ * marque lues, comme dans le menu — la pastille de la roue s'éteint.
  */
-export function CreatorNote({ close }: { close: () => void }) {
+export function CreatorNote({ close, recentes: recentesImposees }: { close: () => void; recentes?: readonly Nouveaute[] }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(close)
+  const { publiees } = useNouveautes()
+  const recentes = recentesImposees ?? nouveautesDesDernieres24h(publiees)
+  const [onglet, setOnglet] = useState<'mot' | 'nouveautes'>('mot')
+  const nombre = recentes.reduce((total, message) => total + message.rapports.length, 0)
+  const ouvrirNouveautes = () => {
+    setOnglet('nouveautes')
+    for (const message of recentes) marquerNouveauteLue(message.id)
+  }
   return (
     <div className="mm-modal-layer mm-createur-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
-      <div ref={dialogRef} className="mm-createur" role="dialog" aria-modal="true" aria-labelledby="createur-titre" tabIndex={-1}>
-        <h2 id="createur-titre"><HeartHandshake aria-hidden="true" />Un mot du créateur</h2>
-        <p>Salut ! Je développe MotMan tout seul, et je paie le jeu et ses serveurs de ma poche.</p>
-        <p>Pour qu’il continue de grandir, il a besoin d’être connu. Un abonnement aux comptes du Studio Doctox m’aide énormément :</p>
-        <div className="mm-createur-liens">
-          <a className="is-instagram" href={INSTAGRAM_STUDIO} target="_blank" rel="noreferrer"><LogoInstagram /><span>Instagram<small>@studiodoctox</small></span></a>
-          <a className="is-tiktok" href={TIKTOK_STUDIO} target="_blank" rel="noreferrer"><LogoTikTok /><span>TikTok<small>@studiodoctox</small></span></a>
-        </div>
-        <p className="mm-createur-signature">Merci, et bonne partie ! — DocTox</p>
+      <div ref={dialogRef} className="mm-createur" role="dialog" aria-modal="true" aria-label="Un mot du créateur" tabIndex={-1}>
+        {recentes.length ? (
+          <div className="mm-createur-onglets" role="tablist" aria-label="Contenu">
+            <button type="button" role="tab" aria-selected={onglet === 'mot'} className={onglet === 'mot' ? 'is-active' : ''} onClick={() => setOnglet('mot')}>
+              <HeartHandshake aria-hidden="true" />Le mot du créateur
+            </button>
+            <button type="button" role="tab" aria-selected={onglet === 'nouveautes'} className={onglet === 'nouveautes' ? 'is-active' : ''} onClick={ouvrirNouveautes}>
+              <Sparkles aria-hidden="true" />Nouveautés<b aria-label={`${nombre} nouveauté${nombre > 1 ? 's' : ''}`}>{nombre}</b>
+            </button>
+          </div>
+        ) : null}
+
+        {onglet === 'mot' ? (
+          <div role={recentes.length ? 'tabpanel' : undefined}>
+            <h2><HeartHandshake aria-hidden="true" />Un mot du créateur</h2>
+            <p>Salut ! Je développe MotMan tout seul, et je paie le jeu et ses serveurs de ma poche.</p>
+            <p>Pour qu’il continue de grandir, il a besoin d’être connu. Un abonnement aux comptes du Studio Doctox m’aide énormément :</p>
+            <div className="mm-createur-liens">
+              <a className="is-instagram" href={INSTAGRAM_STUDIO} target="_blank" rel="noreferrer"><LogoInstagram /><span>Instagram<small>@studiodoctox</small></span></a>
+              <a className="is-tiktok" href={TIKTOK_STUDIO} target="_blank" rel="noreferrer"><LogoTikTok /><span>TikTok<small>@studiodoctox</small></span></a>
+            </div>
+            <p className="mm-createur-signature">Merci, et bonne partie ! — DocTox</p>
+          </div>
+        ) : (
+          <div role="tabpanel" className="mm-createur-nouveautes">
+            <h2><Sparkles aria-hidden="true" />Les dernières nouveautés</h2>
+            <RapportsDeNouveautes messages={recentes} />
+          </div>
+        )}
         <button type="button" className="mm-createur-fermer" data-dialog-autofocus onClick={close}>Jouer</button>
       </div>
     </div>

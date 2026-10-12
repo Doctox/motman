@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   creneauDePublication, GENRES_DE_RAPPORT, HEURES_DE_PUBLICATION, horodatageParis, lireEntreesLues, momentParis, NOUVEAUTES_STORAGE_KEY,
-  nouveautesNonLues, nouveautesPubliees, RAPPORTS, type Rapport,
+  nouveautesDesDernieres24h, nouveautesNonLues, nouveautesPubliees, RAPPORTS, type Rapport,
 } from './nouveautes'
 
 // Un instant donné en heure de PARIS, l'été (UTC+2), pour lire les tests d'un œil.
@@ -155,5 +155,32 @@ describe('les rapports écrits', () => {
       expect(r.titre.length).toBeLessThanOrEqual(60)
       expect(r.texte.length).toBeLessThanOrEqual(200)
     }
+  })
+})
+
+// 12/10/2026 : l'onglet « Nouveautés » du mot du créateur, seulement s'il est
+// paru quelque chose dans les dernières 24 heures.
+describe('les nouveautés des dernières 24 heures', () => {
+  const RAPPORTS_DEUX_JOURS = [
+    rapport('2026-09-17T09:00', 'hier matin'),
+    rapport('2026-09-17T15:00', 'hier soir'),
+    rapport('2026-09-18T09:00', 'ce matin'),
+  ]
+
+  it('garde ce qui est paru depuis 24 h, et rien de plus vieux', () => {
+    // Le 18 à 12 h : paru hier 18 h et ce matin 10 h ; hier 10 h a plus de 24 h.
+    const publies = nouveautesPubliees(RAPPORTS_DEUX_JOURS, aParis('2026-09-18', 12))
+    expect(nouveautesDesDernieres24h(publies, aParis('2026-09-18', 12)).map(m => m.id)).toEqual(['maj-2026-09-18-10', 'maj-2026-09-17-18'])
+  })
+
+  it('compte à la minute : un message de 10 h sort à 10 h 01 le lendemain', () => {
+    const publies = nouveautesPubliees(RAPPORTS_DEUX_JOURS, aParis('2026-09-18', 10))
+    expect(nouveautesDesDernieres24h(publies, aParis('2026-09-18', 10)).map(m => m.id)).toContain('maj-2026-09-17-10')
+    expect(nouveautesDesDernieres24h(publies, aParis('2026-09-18', 10, 1)).map(m => m.id)).not.toContain('maj-2026-09-17-10')
+  })
+
+  it('rien depuis 24 h : rien, donc pas d’onglet', () => {
+    const publies = nouveautesPubliees(RAPPORTS_DEUX_JOURS, aParis('2026-09-20', 12))
+    expect(nouveautesDesDernieres24h(publies, aParis('2026-09-20', 12))).toEqual([])
   })
 })

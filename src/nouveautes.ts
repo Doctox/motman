@@ -87,6 +87,17 @@ export function nouveautesPubliees(rapports: readonly Rapport[] = RAPPORTS, main
     .map(([cle, creneau]) => ({ id: `maj-${cle}`, date: creneau.date, heure: creneau.heure, rapports: creneau.rapports }))
 }
 
+/**
+ * Les messages parus dans les dernières 24 heures (12/10/2026) : l'onglet
+ * « Nouveautés » du mot du créateur. Sans message dans ce délai, pas d'onglet.
+ * Comparé en heure de Paris, à la minute, comme les créneaux eux-mêmes.
+ */
+export function nouveautesDesDernieres24h(publiees: readonly Nouveaute[], maintenantMs: number = serverNow()): Nouveaute[] {
+  const seuil = momentParis(maintenantMs - 24 * 60 * 60 * 1000)
+  const depuis = `${seuil.date}T${String(seuil.heure).padStart(2, '0')}:${String(seuil.minute).padStart(2, '0')}`
+  return publiees.filter(message => `${message.date}T${String(message.heure).padStart(2, '0')}:00` >= depuis)
+}
+
 export const NOUVEAUTES_STORAGE_KEY = 'motman-nouveautes-lues'
 
 /**

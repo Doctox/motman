@@ -70,6 +70,25 @@ function Message({ message, lu }: { message: Nouveaute; lu: boolean }) {
   </li>
 }
 
+/**
+ * Les rapports de quelques messages, à plat, avec leur icône — l'onglet
+ * « Nouveautés » du mot du créateur (12/10/2026).
+ */
+export function RapportsDeNouveautes({ messages }: { messages: readonly Nouveaute[] }) {
+  return <ul className="mm-nouveautes-recentes">
+    {messages.flatMap(message => message.rapports).map(rapport => {
+      const Icone = ICONES[rapport.genre ?? 'jeu']
+      return <li key={rapport.ajoute + rapport.titre}>
+        <span className="mm-nouveaute-icone" data-genre={rapport.genre ?? 'jeu'} aria-hidden="true"><Icone /></span>
+        <div>
+          <strong>{rapport.titre}</strong>
+          <p>{rapport.texte}</p>
+        </div>
+      </li>
+    })}
+  </ul>
+}
+
 export function NouveautesListe() {
   const { lues, publiees } = useNouveautes()
   if (!publiees.length) return <p className="mm-nouveautes-vide">Rien de neuf pour l’instant.</p>

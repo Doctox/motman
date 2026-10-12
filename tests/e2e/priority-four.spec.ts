@@ -29,6 +29,15 @@ test('le mot du créateur paraît une fois par jour, avec Instagram et TikTok', 
   await expect(mot.getByRole('link', { name: /Instagram/ })).toHaveAttribute('href', 'https://www.instagram.com/studiodoctox/')
   await expect(mot.getByRole('link', { name: /TikTok/ })).toHaveAttribute('href', 'https://www.tiktok.com/@studiodoctox')
   await page.screenshot({ path: `output/quality/mot-du-createur-${testInfo.project.name}.png`, fullPage: false })
+  // L'onglet « Nouveautés » n'existe que s'il est paru quelque chose en 24 h
+  // (12/10/2026) : le jour où il est là, on le parcourt et on garde sa capture.
+  const nouveautes = mot.getByRole('tab', { name: /Nouveautés/ })
+  if (await nouveautes.count()) {
+    await nouveautes.click()
+    await expect(mot.getByRole('heading', { name: 'Les dernières nouveautés' })).toBeVisible()
+    await page.screenshot({ path: `output/quality/mot-du-createur-nouveautes-${testInfo.project.name}.png`, fullPage: false })
+    await mot.getByRole('tab', { name: 'Le mot du créateur' }).click()
+  }
   await mot.getByRole('button', { name: 'Jouer' }).click()
   await expect(mot).toBeHidden()
   await page.screenshot({ path: `output/quality/accueil-apres-mot-${testInfo.project.name}.png`, fullPage: false })
