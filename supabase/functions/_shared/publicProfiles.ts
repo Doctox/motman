@@ -10,6 +10,7 @@ type PublicProfileRow = {
   animation_id: string
   activity: string
   last_seen: string
+  title_id: string | null
 }
 
 export type PublicPlayerProfile = {
@@ -21,6 +22,8 @@ export type PublicPlayerProfile = {
   avatarId: string
   frameId: string
   animationId: string
+  /** Le titre qu'il porte (12/10/2026) : visible en partie et dans la liste d'amis. */
+  titleId: string | null
 }
 
 type PublicProfileOptions = {
@@ -28,7 +31,7 @@ type PublicProfileOptions = {
   now?: number
 }
 
-const PROFILE_COLUMNS = 'id,display_name,friend_code,avatar_id,frame_id,animation_id,activity,last_seen'
+const PROFILE_COLUMNS = 'id,display_name,friend_code,avatar_id,frame_id,animation_id,activity,last_seen,title_id'
 
 export function uniqueProfileIds(ids: Iterable<string>): string[] {
   return [...new Set([...ids].map(id => id.trim()).filter(Boolean))]
@@ -59,6 +62,7 @@ export async function loadPublicProfiles(
       avatarId: row.avatar_id,
       frameId: row.frame_id,
       animationId: row.animation_id,
+      titleId: row.title_id ?? null,
     }]
   }))
 }

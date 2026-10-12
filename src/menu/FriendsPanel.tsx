@@ -1,6 +1,8 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowLeft, Ban, Check, Copy, Search, Shield, UserMinus, UserPlus, Users, X } from 'lucide-react'
 import { friendCodeOf, type GuestIdentity } from '../playerIdentity'
+import { loadPlayerProgress } from '../playerProgress'
+import { nomDuTitre } from '../titleNames'
 import {
   reportPlayer,
   respondToFriendRequest,
@@ -23,6 +25,8 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
   close: () => void
   notify: (message: string) => void
 }) {
+  // Le nom des titres portés par les amis (12/10/2026) : le catalogue arrive avec la progression.
+  const catalogueDesTitres = loadPlayerProgress(identity.playerId).titles
   const [friendCode, setFriendCode] = useState('')
   // Vrai dès qu'un caractère impossible a été frappé. Un code ami est
   // HEXADÉCIMAL — chiffres et lettres A à F, huit caractères — parce qu'il est
@@ -177,7 +181,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
         <section className="mm-social-section">
           <h3>Mes amis <b>{social.friends.length}</b></h3>
           {social.friends.length ? social.friends.map(friend => <article className="mm-social-row friend" key={friend.playerId}>
-            <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span><span><strong>{friend.displayName}</strong><small>{presenceLabel(friend.activity)} · {friend.code}</small></span>
+            <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span><span><strong>{friend.displayName}</strong>{nomDuTitre(friend.titleId, catalogueDesTitres) ? <em className="mm-social-title">{nomDuTitre(friend.titleId, catalogueDesTitres)}</em> : null}<small>{presenceLabel(friend.activity)} · {friend.code}</small></span>
             <button type="button" className="manage" onClick={() => setManagedFriend(current => current === friend.playerId ? null : friend.playerId)} aria-label={`Gérer ${friend.displayName}`}>•••</button>
             {managedFriend === friend.playerId ? <div className="mm-friend-actions">
               <button type="button" disabled={busy !== null} onClick={() => void run(friend.playerId, () => updateFriend(identity.playerId, friend.playerId, 'remove'), 'Ami retiré')}><UserMinus />Retirer</button>

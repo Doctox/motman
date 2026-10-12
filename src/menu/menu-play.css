@@ -212,6 +212,8 @@ html[data-motion="off"] .mm-recent-history{transition:none}
 .mm-home-account>img{width:54px;height:54px;flex:0 0 54px}
 .mm-home-account-copy{flex:1;min-width:0;display:grid;gap:5px}
 .mm-home-account-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;min-width:0}
+.mm-home-account-who{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+.mm-home-title{min-width:0;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:italic 600 0.6875rem/1.2 'DM Sans',sans-serif;color:var(--mm-muted)}
 .mm-home-account-copy h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;font:600 1.3125rem/1.05 'Playfair Display',serif}
 .mm-home-account-copy small{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--mm-muted);font-size:0.75rem;white-space:nowrap}
 .mm-home-account-xp{display:block;height:6px;overflow:hidden;border-radius:6px;background:color-mix(in srgb,var(--mm-gold) 22%,transparent)}

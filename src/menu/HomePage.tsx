@@ -5,6 +5,7 @@ import type { PlayerCosmetics } from '../cosmetics'
 import type { MatchLobbyState, MatchState } from '../matches'
 import { friendCodeOf, playerInitials, type GuestIdentity } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
+import { nomDuTitre } from '../titleNames'
 import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
@@ -84,7 +85,11 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       <CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" />
       <div className="mm-home-account-copy">
         <div className="mm-home-account-line">
-          <h1>{identity.displayName}</h1>
+          {/* Le titre porté, sous le pseudo (12/10/2026). */}
+          <span className="mm-home-account-who">
+            <h1>{identity.displayName}</h1>
+            {nomDuTitre(progress.equippedTitleId, progress.titles) ? <em className="mm-home-title">{nomDuTitre(progress.equippedTitleId, progress.titles)}</em> : null}
+          </span>
           <span className="mm-home-feathers" aria-label={`${frenchNumber.format(cosmetics.plumes)} plumes`}><Feather aria-hidden="true" /><b>{frenchNumber.format(cosmetics.plumes)}</b></span>
         </div>
         <i className="mm-home-account-xp" aria-hidden="true"><b style={{ width: `${xpPercent}%` }} /></i>

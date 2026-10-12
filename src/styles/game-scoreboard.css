@@ -50,6 +50,10 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 }
 [data-theme="dark"] .scoreboard .player small{color:#edf5ef}
 [data-theme="dark"] .scoreboard .player em{color:#bcc9c2}
+/* Le titre porté, sous le pseudo (12/10/2026). La carte garde sa hauteur fixe :
+   la ligne se loge dans la marge, et se coupe plutôt que de pousser le plateau. */
+.scoreboard .player .player-title{display:block;max-width:100%;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:italic 600 0.5rem/1.15 'DM Sans',sans-serif;color:#8b7251}
+[data-theme="dark"] .scoreboard .player .player-title{color:#c8b48f}
 [data-theme="dark"] .scoreboard .player strong{color:#ff8f6b}
 [data-theme="dark"] .scoreboard .player:last-child strong{color:#9bddbc}
 [data-theme="dark"] .scoreboard .player .avatar{

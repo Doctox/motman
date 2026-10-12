@@ -180,5 +180,11 @@
     "titre": "Les thèmes du défi se regroupent",
     "texte": "Les 24 thèmes du défi du jour deviennent 16, aux noms plus larges : Nature & Paysages, Cuisine & Boissons, École & Lettres… Les grilles restent les mêmes, et d'autres arrivent.",
     "genre": "theme"
+  },
+  {
+    "ajoute": "2026-10-12T22:24",
+    "titre": "Ton titre se voit",
+    "texte": "Le titre que tu portes s'affiche maintenant sous ton pseudo : en partie, chez tes amis et sur ta carte d'accueil. Choisis-le dans ton profil.",
+    "genre": "affichage"
   }
 ]

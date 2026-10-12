@@ -167,3 +167,5 @@ html[data-motion="off"] .mm-shell button{transition:none!important}
 [data-theme=dark] .mm-legal-panel{background:#15231e}.mm-legal-panel button:focus-visible,.mm-legal-document:focus-visible{outline:2px solid var(--mm-gold);outline-offset:2px}
 @media(max-height:700px){.mm-legal-layer{padding:12px}.mm-legal-panel{max-height:90vh}.mm-legal-panel>header{min-height:62px}.mm-legal-scroll{padding-top:14px}}
 .mm-account-panel>p{margin:0;color:var(--mm-muted);font-size:0.625rem;line-height:1.5}
+/* Le titre d'un ami, sous son pseudo (12/10/2026). */
+.mm-social-row .mm-social-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:italic 600 0.6875rem/1.2 'DM Sans',sans-serif;color:var(--mm-muted)}

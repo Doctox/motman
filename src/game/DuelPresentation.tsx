@@ -45,11 +45,11 @@ export function recordDailyAbandon(match: Pick<MatchState, 'id' | 'isDaily' | 'd
   }
 }
 
-export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string }) {
+export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null }) {
   // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
   // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
   const affiche = useCountUp(score)
-  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong></span></div>
+  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small>{name}</small>{title ? <i className="player-title">{title}</i> : null}{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong></span></div>
 }
 
 /**
