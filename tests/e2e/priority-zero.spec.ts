@@ -1097,7 +1097,17 @@ test('une quête finie pendant la partie s’annonce au coup qui la termine', as
   // de devenir un test qui échoue un jour sur deux.
   const { dailyQuests } = await import('../../src/quests')
   const { dailyDateKey } = await import('../../src/dailyDate')
-  const suivie = dailyQuests(dailyDateKey(Date.now())).find(quest => quest.counter === 'lettres' || quest.counter === 'mots')
+  //
+  // LES LETTRES D'ABORD (12/10/2026). Le 11/10, les quêtes du jour étaient
+  // « Compléter 5 mots » ET « Poser 12 lettres justes » ; le test prenait la
+  // première, les mots, l'amenait à 4 sur 5 — et pendant les tours sans mot
+  // fini, les lettres justes s'accumulaient jusqu'à terminer l'AUTRE quête. Le
+  // bandeau annonçait « Poser 12 lettres justes », juste, mais pas celle
+  // attendue : échec au premier essai, deux déploiements de suite. Amenée à un
+  // cran de la fin, la quête des lettres se termine à la première lettre juste,
+  // au premier coup : rien ne peut la doubler.
+  const quetesDuJour = dailyQuests(dailyDateKey(Date.now()))
+  const suivie = quetesDuJour.find(quest => quest.counter === 'lettres') ?? quetesDuJour.find(quest => quest.counter === 'mots')
   test.skip(!suivie, 'Aucune quête suivie en cours de partie aujourd’hui.')
 
   const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Quete', TOUR_CONFORTABLE_MS)
