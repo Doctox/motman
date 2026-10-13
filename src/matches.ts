@@ -282,6 +282,8 @@ export type GamePulse = {
   signalementPlusAncienHeures: number
   /** Son fantôme en classée est-il allumé ? (11/10/2026) */
   fantome?: boolean
+  /** La note du fantôme, distincte de la sienne (13/10/2026) ; `null` avant sa première partie. */
+  fantomeNote?: { points: number; matches: number; wins: number; losses: number; draws: number } | null
 }
 
 export async function loadGamePulse(): Promise<GamePulse> {

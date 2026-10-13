@@ -151,6 +151,32 @@ begin
   if public.server_apply_ranked_result_atomic(partie) ->> 'status' <> 'already-applied' then
     raise exception 'Le resultat ne doit s''appliquer qu''une fois';
   end if;
+
+  -- ── 8. Le fantôme a sa propre note (13/10/2026) ──────────────────────────
+  -- Elle part du classement du propriétaire, puis encaisse ses défaites : battu,
+  -- il descend sous 1300 ; le propriétaire, lui, reste à 1300.
+  if (select points from public.ghost_ratings where owner_id = proprio) >= points_proprio_avant
+     or (select matches from public.ghost_ratings where owner_id = proprio) <> 1
+     or (select losses from public.ghost_ratings where owner_id = proprio) <> 1 then
+    raise exception 'Battu, le fantome aurait du perdre des points sur SA note : %',
+      (select to_jsonb(r) from public.ghost_ratings r where owner_id = proprio);
+  end if;
+
+  -- Une seconde partie se calcule sur cette note-là, plus sur celle du
+  -- propriétaire : le même joueur, à classement égal, gagne moins.
+  update public.player_progress set ranked_points = 1000, ranked_matches = 10 where user_id = joueur;
+  insert into public.server_matches(mode, pace, grid_id, state, status, current_player_id, turn_number, winner_id, finish_reason)
+  values ('ranked', 'realtime', grille, etat, 'finished', null, 9, joueur, 'completed')
+  returning id into partie;
+  resultat := public.server_apply_ranked_result_atomic(partie);
+  if (resultat -> 'ghostPoints' ->> 'before')::integer >= points_proprio_avant
+     or (resultat -> 'player' ->> 'delta')::integer >= (select points_delta from public.ranked_rating_events e
+         where e.user_id = joueur and e.match_id <> partie order by e.created_at limit 1) then
+    raise exception 'La seconde partie aurait du se calculer sur la note du fantome, plus basse : %', resultat;
+  end if;
+  if (select ranked_points from public.player_progress where user_id = proprio) <> points_proprio_avant then
+    raise exception 'Le classement du proprietaire ne doit jamais bouger';
+  end if;
 end;
 $$;
 

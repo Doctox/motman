@@ -392,7 +392,9 @@ Deno.serve(async request => {
       const { data: pouls, error: poulsError } = await admin.rpc('server_game_pulse', { p_moi: user.id })
       if (poulsError) throw poulsError
       // L'état de son fantôme en classée, pour l'interrupteur du même cadre.
-      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin) } })
+      // Et sa note à lui (13/10/2026), pour juger de l'équilibre d'un coup d'œil.
+      const { data: noteFantome } = await admin.from('ghost_ratings').select('points,matches,wins,losses,draws').eq('owner_id', user.id).maybeSingle()
+      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), fantomeNote: noteFantome ?? null } })
     }
 
     // QUI EST EN LIGNE ET CE QU'IL FAIT (11/10/2026), derrière « En ligne » dans

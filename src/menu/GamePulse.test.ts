@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
-import { InterrupteurFantome, libelleEnLigne, libelleSignalements } from './GamePulse'
+import { InterrupteurFantome, libelleEnLigne, libelleSignalements, noteDuFantome } from './GamePulse'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -63,5 +63,13 @@ describe('l’interrupteur du fantôme', () => {
     expect(bouton.checked).toBe(true)
     expect(hote.textContent).toContain('Réglage non enregistré')
     act(() => racine.unmount())
+  })
+})
+
+describe('la note du fantôme', () => {
+  it('dit sa note et son bilan, au singulier comme au pluriel', () => {
+    expect(noteDuFantome({ points: 982, matches: 9, wins: 3, losses: 6, draws: 0 })).toBe('Sa note : 982 · 9 parties, 3 gagnées, 6 perdues')
+    expect(noteDuFantome({ points: 1004, matches: 1, wins: 0, losses: 1, draws: 0 })).toBe('Sa note : 1004 · 1 partie, 0 gagnée, 1 perdue')
+    expect(noteDuFantome({ points: 990, matches: 3, wins: 1, losses: 1, draws: 1 })).toBe('Sa note : 990 · 3 parties, 1 gagnée, 1 perdue, 1 nulle')
   })
 })

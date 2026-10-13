@@ -39,6 +39,13 @@ export function libelleEnLigne(enLigne: number): string {
   return enLigne > 1 ? 'joueurs en ligne' : 'joueur en ligne'
 }
 
+/** « Sa note : 982 · 9 parties, 3 gagnées, 6 perdues » — l'équilibre du fantôme (13/10/2026). */
+export function noteDuFantome(note: NonNullable<GamePulse['fantomeNote']>): string {
+  const parties = `${note.matches} partie${note.matches > 1 ? 's' : ''}`
+  const egalites = note.draws ? `, ${note.draws} nulle${note.draws > 1 ? 's' : ''}` : ''
+  return `Sa note : ${note.points} · ${parties}, ${note.wins} gagnée${note.wins > 1 ? 's' : ''}, ${note.losses} perdue${note.losses > 1 ? 's' : ''}${egalites}`
+}
+
 /** « signalement » ou « signalements » : zéro reste au singulier. */
 export function libelleSignalements(nombre: number): string {
   return nombre > 1 ? 'signalements' : 'signalement'
@@ -216,6 +223,7 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEn
 
         <h3>Ton fantôme</h3>
         <InterrupteurFantome allumeAuDepart={pouls.fantome !== false} />
+        {pouls.fantomeNote ? <p className="mm-pulse-note">{noteDuFantome(pouls.fantomeNote)}</p> : null}
 
         <button type="button" className="mm-pulse-fermer" data-dialog-autofocus onClick={fermer}>Fermer</button>
       </div>

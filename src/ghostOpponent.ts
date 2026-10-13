@@ -31,23 +31,39 @@ export const FANTOME_ATTENTE_MS = 60_000
 export const FANTOME_EN_LIGNE_MAX = 2
 
 /** Version des réglages : à monter à chaque recalibrage, pour s'y retrouver. */
-export const FANTOME_VERSION = 1
+export const FANTOME_VERSION = 2
 
+/**
+ * VERSION 2 (13/10/2026). La v1 (93 % de lettres justes, 3 à 5 par tour) se
+ * faisait battre : une joueuse six fois sur sept le 12/10, 81 points contre 62, le
+ * soir même où le propriétaire l'avait battue 83 à 53. Le carnet de tours a
+ * dit pourquoi : lui pose ses CINQ lettres à chaque tour (19 tours sur 19).
+ *
+ * Mais poser cinq lettres à 88 % de justesse, comme lui, ne rendait pas le bot
+ * plus fort : simulé sur 240 parties des vraies grilles contre le bot
+ * « expert », 37 % de victoires, autant que la v1 (42 %). Le bot ne choisit pas
+ * ses cases comme un humain ; il faut lui rendre en justesse ce qu'il perd en
+ * jugement. Réglage retenu, simulé de même : 98 % de justesse, cinq lettres,
+ * fins de mots recherchées — 58 % de victoires contre « expert », 76 points de
+ * moyenne. La note du fantôme (`ghost_ratings`) fait le reste : s'il est
+ * encore trop faible ou trop fort, sa note le dira et les points suivront.
+ */
 export const FANTOME_REGLAGES: BotTuning = {
-  accuracy: 93,
-  minLetters: 3,
+  accuracy: 98,
+  minLetters: 5,
   maxLetters: 5,
-  wordBonusWeight: 3,
-  pressureGap: 6,
+  wordBonusWeight: 3.6,
+  pressureGap: 4,
 }
 
 /**
  * Le temps de réflexion du fantôme. Un humain ne joue pas en 4 à 8 s comme les
  * bots ordinaires : un adversaire « propriétaire » qui répondrait aussi vite se
- * trahirait. Les tours en temps réel durent 45 s ; 9 à 24 s laisse de la marge.
+ * trahirait. Le carnet dit 20 à 44 s (médiane 39) ; mais un tour en temps réel
+ * dure 45 s, et le fantôme ne doit jamais rater le sien : 14 à 32 s.
  */
-export const FANTOME_REFLEXION_MIN_MS = 9_000
-export const FANTOME_REFLEXION_MAX_MS = 24_000
+export const FANTOME_REFLEXION_MIN_MS = 14_000
+export const FANTOME_REFLEXION_MAX_MS = 32_000
 
 function hash(text: string): number {
   let value = 2166136261
