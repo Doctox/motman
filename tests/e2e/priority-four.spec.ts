@@ -1,5 +1,6 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 
 // Le serveur de test, au port choisi par playwright.config.ts (MOTMAN_E2E_PORT).
 const SERVEUR_TEST = `http://127.0.0.1:${process.env.MOTMAN_E2E_PORT ?? '4175'}`
@@ -242,7 +243,13 @@ test('L’Épicerie ne monte que les animations visibles', async ({ page }, test
   expect(await page.locator('.mm-animation-shop').count()).toBe(0)
   await page.getByRole('tab', { name: 'Animations' }).click()
   const cards = page.locator('.mm-animation-shop-item')
-  await expect(cards).toHaveCount(20)
+  // Le compte vient du catalogue : la vague Halloween (13/10/2026) a fait
+  // passer l'Épicerie de 20 à 21 animations, et un 20 écrit en dur a bloqué le
+  // déploiement. Le catalogue du serveur, en JSON, se lit d'ici ; celui de
+  // l'appli non (il importe un JSON sans attribut d'import), et
+  // cosmetics.test.ts garde les deux identiques.
+  const catalogue = JSON.parse(readFileSync('supabase/functions/account-api/cosmetic-catalog.json', 'utf8')) as { items: Array<{ kind: string; availability: string }> }
+  await expect(cards).toHaveCount(catalogue.items.filter(item => item.kind === 'animation' && item.availability === 'epicerie').length)
   await expect.poll(() => page.locator('.mm-animation-shop .cosmetic-avatar-animation img').count()).toBeGreaterThan(0)
   const mountedAnimations = await page.locator('.mm-animation-shop .cosmetic-avatar-animation img').count()
   expect(mountedAnimations).toBeLessThan(await cards.count())
