@@ -97,3 +97,7 @@ sauvegardes/
 # Construction du site pour la racine, zippee en mise a jour embarquee (CI).
 dist-app
 android/app/src/debug/google-services.json
+
+# Boîte de dépôt du poste Cosmétiques : prompts et images générées par le
+# propriétaire, avant détourage et intégration dans public/assets/.
+/MotMan Cosmétiques/
