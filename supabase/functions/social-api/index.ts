@@ -207,6 +207,7 @@ Deno.serve(async request => {
         { data: incomingRows, error: incomingError },
         { data: outgoingRows, error: outgoingError },
         { data: blockRows, error: blockError },
+        { data: ombres, error: ombresError },
       ] = await Promise.all([
         admin.from('profiles').select('id').eq('status', 'active').neq('id', user.id)
           .ilike('display_name', escapedPrefix).order('display_name').limit(SOCIAL_SEARCH_RESULT_LIMIT * 3),
@@ -214,15 +215,18 @@ Deno.serve(async request => {
         admin.from('friend_requests').select('from_user_id').eq('to_user_id', user.id),
         admin.from('friend_requests').select('to_user_id').eq('from_user_id', user.id),
         admin.from('blocks').select('owner_id,blocked_id').or(`owner_id.eq.${user.id},blocked_id.eq.${user.id}`),
+        // Les joueurs de l'ombre (13/10/2026) ne se cherchent ni ne s'ajoutent.
+        admin.from('shadow_players').select('user_id'),
       ])
-      const searchError = candidateError ?? friendshipError ?? incomingError ?? outgoingError ?? blockError
+      const searchError = candidateError ?? friendshipError ?? incomingError ?? outgoingError ?? blockError ?? ombresError
       if (searchError) throw searchError
 
       const blockedIds = new Set((blockRows ?? []).map(row => row.owner_id === user.id ? row.blocked_id : row.owner_id))
       const friendIds = new Set((friendshipRows ?? []).map(row => row.left_user_id === user.id ? row.right_user_id : row.left_user_id))
       const incomingIds = new Set((incomingRows ?? []).map(row => row.from_user_id))
       const outgoingIds = new Set((outgoingRows ?? []).map(row => row.to_user_id))
-      const candidateIds = (candidateRows ?? []).map(row => row.id).filter(id => !blockedIds.has(id))
+      const ombreIds = new Set((ombres ?? []).map(row => String(row.user_id)))
+      const candidateIds = (candidateRows ?? []).map(row => row.id).filter(id => !blockedIds.has(id) && !ombreIds.has(id))
       const profiles = await loadPublicProfiles(admin, candidateIds, { normalizeOfflineActivity: true })
       const normalizedQuery = query.toLocaleLowerCase('fr')
       const results = [...profiles.values()]
@@ -251,7 +255,9 @@ Deno.serve(async request => {
       const { data: target } = targetId
         ? await targetQuery.eq('id', targetId).maybeSingle()
         : await targetQuery.eq('friend_code', friendCode).maybeSingle()
-      if (!target) return json(404, { error: targetId ? 'Joueur introuvable.' : 'Code ami inconnu.' })
+      // Un joueur de l'ombre (13/10/2026) répond comme un code inconnu : rien ne le distingue d'une faute de frappe.
+      const { data: estOmbre } = target ? await admin.from('shadow_players').select('user_id').eq('user_id', target.id).maybeSingle() : { data: null }
+      if (!target || estOmbre) return json(404, { error: targetId ? 'Joueur introuvable.' : 'Code ami inconnu.' })
       if (target.id === user.id) return json(400, { error: 'Tu ne peux pas t’ajouter toi-même.' })
       const { data: blocked } = await admin.from('blocks').select('owner_id').or(`and(owner_id.eq.${user.id},blocked_id.eq.${target.id}),and(owner_id.eq.${target.id},blocked_id.eq.${user.id})`).limit(1)
       if (blocked?.length) return json(409, { error: 'Cette demande ne peut pas être envoyée.' })

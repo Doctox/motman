@@ -17,17 +17,19 @@ function partie(champs: Partial<PartieVue>): PartieVue {
 
 const decrire = (champs: Partial<Parameters<typeof decrireActivite>[0]>) => decrireActivite({
   joueurId: MOI, activitePresence: 'online', parties: [], rechercheClassee: null, rechercheNormale: null,
-  nomsHumains: new Map([['autre', 'Tess89']]), maintenant: MAINTENANT, ...champs,
+  nomsHumains: new Map([['autre', 'JoueurTest']]), maintenant: MAINTENANT, ...champs,
 })
 
 Deno.test('une partie en direct contre un humain : mode, adversaire, tour et score', () => {
   const { activite } = decrire({ parties: [partie({ mode: 'friend' })] })
-  assertEquals(activite, { quoi: 'partie', mode: 'friend', rythme: 'realtime', defi: null, adversaire: { nom: 'Tess89', genre: 'humain' }, tour: 4, score: 21, scoreAdverse: 13, aSonTour: true })
+  assertEquals(activite, { quoi: 'partie', mode: 'friend', rythme: 'realtime', defi: null, adversaire: { nom: 'JoueurTest', genre: 'humain' }, tour: 4, score: 21, scoreAdverse: 13, aSonTour: true })
 })
 
 Deno.test('le fantôme et les bots sont nommés comme tels pour le propriétaire', () => {
   const contreFantome = decrire({ parties: [partie({ mode: 'ranked', bot: { playerId: 'autre', displayName: 'DocTox', ghostOf: 'autre' } })] })
   assertEquals(contreFantome.activite.quoi === 'partie' && contreFantome.activite.adversaire, { nom: 'DocTox', genre: 'fantome' })
+  const contreOmbre = decrire({ parties: [partie({ mode: 'ranked', bot: { playerId: 'autre', displayName: 'OmbreTest', ghostOf: 'autre', ombre: true } })] })
+  assertEquals(contreOmbre.activite.quoi === 'partie' && contreOmbre.activite.adversaire, { nom: 'OmbreTest', genre: 'ombre' })
   const contreBot = decrire({ parties: [partie({ bot: { playerId: 'autre', displayName: 'Léa' } })] })
   assertEquals(contreBot.activite.quoi === 'partie' && contreBot.activite.adversaire, { nom: 'Léa', genre: 'bot' })
 })

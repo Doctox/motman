@@ -32,6 +32,7 @@ export function activiteEnClair(activite: OnlineActivity): string {
       const adversaire = activite.adversaire
       if (!adversaire) return mode
       if (adversaire.genre === 'fantome') return `${mode} contre ton fantôme`
+      if (adversaire.genre === 'ombre') return `${mode} contre ${adversaire.nom} (ombre)`
       return `${mode} contre ${adversaire.nom}${adversaire.genre === 'bot' ? ' (bot)' : ''}`
     }
     case 'confirmation': return 'Adversaire classé trouvé, confirmation en cours'

@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
-import { InterrupteurFantome, libelleEnLigne, libelleSignalements, noteDuFantome } from './GamePulse'
+import { InterrupteurFantome, libelleEnLigne, libelleSignalements, ligneDOmbre, noteDuFantome } from './GamePulse'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -71,5 +71,16 @@ describe('la note du fantôme', () => {
     expect(noteDuFantome({ points: 982, matches: 9, wins: 3, losses: 6, draws: 0 })).toBe('Sa note : 982 · 9 parties, 3 gagnées, 6 perdues')
     expect(noteDuFantome({ points: 1004, matches: 1, wins: 0, losses: 1, draws: 0 })).toBe('Sa note : 1004 · 1 partie, 0 gagnée, 1 perdue')
     expect(noteDuFantome({ points: 990, matches: 3, wins: 1, losses: 1, draws: 1 })).toBe('Sa note : 990 · 3 parties, 1 gagnée, 1 perdue, 1 nulle')
+  })
+})
+
+describe('les joueurs de l’ombre dans le pouls', () => {
+  const maintenant = Date.parse('2026-10-13T12:00:00Z')
+  it('dit quand arrive celui qui n’est pas encore là', () => {
+    expect(ligneDOmbre({ arrivee: '2026-10-16T12:00:00Z', points: 0, parties: 0 }, maintenant)).toBe('arrive le 16/10')
+  })
+  it('puis sa note et ses parties', () => {
+    expect(ligneDOmbre({ arrivee: '2026-10-13T10:00:00Z', points: 0, parties: 0 }, maintenant)).toBe('arrivé·e, pas encore joué')
+    expect(ligneDOmbre({ arrivee: '2026-10-13T10:00:00Z', points: 1012, parties: 7 }, maintenant)).toBe('1012 · 7 parties')
   })
 })

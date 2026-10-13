@@ -14,9 +14,10 @@ const partie = (champs: object) => ({ quoi: 'partie' as const, mode: 'ranked', r
 
 describe('ce que fait chaque joueur, en clair', () => {
   it('dit le mode et l’adversaire, et reconnaît le fantôme et les bots', () => {
-    expect(activiteEnClair(partie({ adversaire: { nom: 'Tess89', genre: 'humain' } }))).toBe('Classée contre Tess89')
+    expect(activiteEnClair(partie({ adversaire: { nom: 'JoueurTest', genre: 'humain' } }))).toBe('Classée contre JoueurTest')
     expect(activiteEnClair(partie({ adversaire: { nom: 'DocTox', genre: 'fantome' } }))).toBe('Classée contre ton fantôme')
     expect(activiteEnClair(partie({ mode: 'normal', adversaire: { nom: 'Léa', genre: 'bot' } }))).toBe('Partie normale contre Léa (bot)')
+    expect(activiteEnClair(partie({ adversaire: { nom: 'OmbreTest', genre: 'ombre' } }))).toBe('Classée contre OmbreTest (ombre)')
     expect(activiteEnClair(partie({ mode: 'solo', defi: { theme: 'Cuisine & Boissons' } }))).toBe('Défi du jour « Cuisine & Boissons »')
   })
 
@@ -38,7 +39,7 @@ describe('ce que fait chaque joueur, en clair', () => {
 describe('le panneau « En ligne »', () => {
   it('liste chaque joueur avec ce qu’il fait', async () => {
     const joueurs: OnlinePlayer[] = [
-      { displayName: 'Tess89', invite: false, niveau: 23, vuIlYaS: 4, activite: partie({ adversaire: { nom: 'DocTox', genre: 'fantome' } }), partiesLentes: 2 },
+      { displayName: 'JoueurTest', invite: false, niveau: 23, vuIlYaS: 4, activite: partie({ adversaire: { nom: 'DocTox', genre: 'fantome' } }), partiesLentes: 2 },
       { displayName: 'Invité 4319', invite: true, niveau: 20, vuIlYaS: 31, activite: { quoi: 'menu' }, partiesLentes: 0 },
     ]
     const hote = document.createElement('div')
@@ -46,7 +47,7 @@ describe('le panneau « En ligne »', () => {
     const racine = createRoot(hote)
     await act(async () => { racine.render(createElement(OnlinePlayersPanel, { fermer: () => {}, charger: () => Promise.resolve(joueurs) })) })
     const texte = hote.textContent ?? ''
-    expect(texte).toContain('Tess89')
+    expect(texte).toContain('JoueurTest')
     expect(texte).toContain('Classée contre ton fantôme')
     expect(texte).toContain('2 parties en 24 h en cours')
     expect(texte).toContain('Invité · niv. 20 · vu il y a 31 s')

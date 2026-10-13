@@ -13,7 +13,7 @@ import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { dailyThemeFor } from '../_shared/dailyCalendar.ts'
 import { PRESENCE_ONLINE_TTL_MS } from '../../../src/presencePolicy.ts'
 
-export type AdversaireEnLigne = { nom: string; genre: 'humain' | 'bot' | 'fantome' }
+export type AdversaireEnLigne = { nom: string; genre: 'humain' | 'bot' | 'fantome' | 'ombre' }
 
 export type ActiviteEnLigne =
   | { quoi: 'partie'; mode: string; rythme: string; defi: { theme: string | null } | null; adversaire: AdversaireEnLigne | null; tour: number; score: number; scoreAdverse: number; aSonTour: boolean }
@@ -35,7 +35,7 @@ export type JoueurEnLigne = {
 /** Ce que le serveur sait d'une partie, réduit à ce qui décrit une activité. */
 export type PartieVue = {
   id: string; mode: string; pace: string; status: string; turnNumber: number; updatedAt: string; currentPlayerId: string | null
-  playerIds: string[]; scores: Record<string, number>; bot: { playerId: string; displayName: string; ghostOf?: string } | null
+  playerIds: string[]; scores: Record<string, number>; bot: { playerId: string; displayName: string; ghostOf?: string; ombre?: boolean } | null
   isDaily: boolean; dailyDate: string | null
 }
 
@@ -58,7 +58,7 @@ export function decrireActivite({ joueurId, activitePresence, parties, recherche
     const adversaire: AdversaireEnLigne | null = enDirect.isDaily || !adverseId
       ? null
       : enDirect.bot?.playerId === adverseId
-        ? { nom: enDirect.bot.displayName, genre: enDirect.bot.ghostOf ? 'fantome' : 'bot' }
+        ? { nom: enDirect.bot.displayName, genre: enDirect.bot.ombre ? 'ombre' : enDirect.bot.ghostOf ? 'fantome' : 'bot' }
         : { nom: nomsHumains.get(adverseId) ?? 'un joueur', genre: 'humain' }
     return {
       partiesLentes,

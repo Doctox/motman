@@ -36,3 +36,5 @@
 .mm-pulse-dialog .mm-pulse-fantome>span>span{display:flex;flex-direction:column;font:600 0.875rem/1.25 'DM Sans',sans-serif}
 .mm-pulse-dialog .mm-pulse-fantome small{font-weight:500;font-size:0.75rem;color:var(--mm-muted)}
 .mm-pulse-dialog .mm-pulse-fantome>i{flex:none}
+/* Les joueurs de l'ombre (13/10/2026) : une ligne d'état, pas un grand chiffre. */
+.mm-pulse-dialog dd.mm-pulse-ombre{font:600 0.75rem/1.2 'DM Sans',sans-serif;color:var(--mm-muted)}

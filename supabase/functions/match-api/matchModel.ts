@@ -26,7 +26,7 @@ export type CatalogGrid = { id: string; columns: number; rows: number; clueCells
  * `ghostOf` : le fantôme du propriétaire en classée (src/ghostOpponent.ts) — son
  * `playerId` est alors celui du propriétaire, et `tuning` ses réglages de jeu.
  */
-export type Bot = { playerId: string; displayName: string; level: number; skill: BotSkill; avatarId: string; frameId: string; ghostOf?: string; tuning?: BotTuning }
+export type Bot = { playerId: string; displayName: string; level: number; skill: BotSkill; avatarId: string; frameId: string; ghostOf?: string; tuning?: BotTuning; /** Joueur de l'ombre (13/10/2026) plutôt que le fantôme du propriétaire. */ ombre?: boolean }
 export type Turn = {
   id: string; kind: 'played' | 'timeout'; playerId: string; turnNumber: number; correct: number[]; wrong: number[];
   wrongPlacements: Array<{ cellIndex: number; letter: string }>; aidedCell: number | null; letterPoints: number;

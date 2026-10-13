@@ -394,7 +394,24 @@ Deno.serve(async request => {
       // L'état de son fantôme en classée, pour l'interrupteur du même cadre.
       // Et sa note à lui (13/10/2026), pour juger de l'équilibre d'un coup d'œil.
       const { data: noteFantome } = await admin.from('ghost_ratings').select('points,matches,wins,losses,draws').eq('owner_id', user.id).maybeSingle()
-      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), fantomeNote: noteFantome ?? null } })
+      // Les joueurs de l'ombre (13/10/2026) : arrivée, note, parties.
+      const { data: ombres } = await admin.from('shadow_players').select('user_id,arrives_at').order('arrives_at')
+      const idsOmbres = (ombres ?? []).map(ligne => String(ligne.user_id))
+      const [{ data: nomsOmbres }, { data: notesOmbres }] = idsOmbres.length
+        ? await Promise.all([
+          admin.from('profiles').select('id,display_name').in('id', idsOmbres),
+          admin.from('player_progress').select('user_id,ranked_points,ranked_matches').in('user_id', idsOmbres),
+        ])
+        : [{ data: [] }, { data: [] }]
+      const nomDe = new Map((nomsOmbres ?? []).map(ligne => [String(ligne.id), String(ligne.display_name)]))
+      const noteDe = new Map((notesOmbres ?? []).map(ligne => [String(ligne.user_id), ligne]))
+      const listeOmbres = (ombres ?? []).map(ligne => ({
+        nom: nomDe.get(String(ligne.user_id)) ?? '?',
+        arrivee: String(ligne.arrives_at),
+        points: Number(noteDe.get(String(ligne.user_id))?.ranked_points ?? 0),
+        parties: Number(noteDe.get(String(ligne.user_id))?.ranked_matches ?? 0),
+      }))
+      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), fantomeNote: noteFantome ?? null, ombres: listeOmbres } })
     }
 
     // QUI EST EN LIGNE ET CE QU'IL FAIT (11/10/2026), derrière « En ligne » dans

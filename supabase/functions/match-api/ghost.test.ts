@@ -2,7 +2,7 @@ import { assertEquals } from 'jsr:@std/assert@1'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { FANTOME_REFLEXION_MAX_MS, FANTOME_REFLEXION_MIN_MS, FANTOME_REGLAGES } from '../../../src/ghostOpponent.ts'
 import { botTurnDelayMs } from './botDelay.ts'
-import { botFantome } from './ghost.ts'
+import { botFantome, choisirAdversaire, type AdversaireAutomatique } from './ghost.ts'
 import { nowIso, type Bot, type MatchRow } from './matchModel.ts'
 import { view } from './matchView.ts'
 
@@ -101,4 +101,31 @@ Deno.test('le fantôme réfléchit comme un humain, pas comme un bot', () => {
     const delai = botTurnDelayMs({ ...partie(fantome), turn_number: tour })
     assertEquals(delai >= FANTOME_REFLEXION_MIN_MS && delai <= FANTOME_REFLEXION_MAX_MS, true, `tour ${tour} : ${delai} ms`)
   }
+})
+
+// ── Les joueurs de l'ombre (13/10/2026) ──────────────────────────────────────
+const adversaire = (id: string, points: number, ombre = true): AdversaireAutomatique => ({
+  id, displayName: id, avatarId: 'lapin', frameId: 'cadre-ivoire', level: 10, points, ombre, tuning: FANTOME_REGLAGES,
+})
+const LISTE = [adversaire(PROPRIO, 1004, false), adversaire('sandrine', 1000), adversaire('nico', 1120), adversaire('titi', 880)]
+
+Deno.test('le plus proche en note du joueur qui cherche', () => {
+  assertEquals(choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 1130, dernierAdversaireId: null, graine: 'a' })?.id, 'nico')
+  assertEquals(choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 870, dernierAdversaireId: null, graine: 'a' })?.id, 'titi')
+})
+
+Deno.test('jamais soi-même : le propriétaire qui cherche tombe sur une ombre', () => {
+  const choisis = new Set(Array.from({ length: 40 }, (_, i) => choisirAdversaire(LISTE, { chercheurId: PROPRIO, pointsChercheur: 1004, dernierAdversaireId: null, graine: `g${i}` })?.id))
+  assertEquals(choisis.has(PROPRIO), false)
+})
+
+Deno.test('pas deux fois de suite le même, s’il en reste un autre', () => {
+  assertEquals(choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 1130, dernierAdversaireId: 'nico', graine: 'a' })?.id !== 'nico', true)
+  assertEquals(choisirAdversaire([adversaire('seul', 1000)], { chercheurId: JOUEUR, pointsChercheur: 1000, dernierAdversaireId: 'seul', graine: 'a' })?.id, 'seul')
+})
+
+Deno.test('entre adversaires presque aussi proches, la graine fait varier', () => {
+  // Fantôme 1004 et une ombre à 1000 : tous deux à quelques points de 1002.
+  const choisis = new Set(Array.from({ length: 40 }, (_, i) => choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 1002, dernierAdversaireId: null, graine: `g${i}` })?.id))
+  assertEquals([...choisis].sort(), [PROPRIO, 'sandrine'].sort())
 })

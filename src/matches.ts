@@ -284,6 +284,8 @@ export type GamePulse = {
   fantome?: boolean
   /** La note du fantôme, distincte de la sienne (13/10/2026) ; `null` avant sa première partie. */
   fantomeNote?: { points: number; matches: number; wins: number; losses: number; draws: number } | null
+  /** Les joueurs de l'ombre (13/10/2026), par ordre d'arrivée. */
+  ombres?: Array<{ nom: string; arrivee: string; points: number; parties: number }>
 }
 
 export async function loadGamePulse(): Promise<GamePulse> {
@@ -293,7 +295,7 @@ export async function loadGamePulse(): Promise<GamePulse> {
 
 /** Qui est en ligne et ce qu'il fait — pour le propriétaire seul (supabase/functions/match-api/onlinePlayers.ts). */
 export type OnlineActivity =
-  | { quoi: 'partie'; mode: string; rythme: string; defi: { theme: string | null } | null; adversaire: { nom: string; genre: 'humain' | 'bot' | 'fantome' } | null; tour: number; score: number; scoreAdverse: number; aSonTour: boolean }
+  | { quoi: 'partie'; mode: string; rythme: string; defi: { theme: string | null } | null; adversaire: { nom: string; genre: 'humain' | 'bot' | 'fantome' | 'ombre' } | null; tour: number; score: number; scoreAdverse: number; aSonTour: boolean }
   | { quoi: 'confirmation' }
   | { quoi: 'recherche'; file: 'classee' | 'normale'; depuisS: number }
   | { quoi: 'ecran-de-partie' }

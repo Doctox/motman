@@ -46,6 +46,16 @@ export function noteDuFantome(note: NonNullable<GamePulse['fantomeNote']>): stri
   return `Sa note : ${note.points} · ${parties}, ${note.wins} gagnée${note.wins > 1 ? 's' : ''}, ${note.losses} perdue${note.losses > 1 ? 's' : ''}${egalites}`
 }
 
+/** « 1 012 · 7 parties », ou « arrive le 16/10 » tant qu'il n'est pas là (13/10/2026). */
+export function ligneDOmbre(ombre: { arrivee: string; points: number; parties: number }, maintenant = Date.now()): string {
+  if (Date.parse(ombre.arrivee) > maintenant) {
+    const jour = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' }).format(new Date(ombre.arrivee))
+    return `arrive le ${jour}`
+  }
+  if (!ombre.parties) return 'arrivé·e, pas encore joué'
+  return `${ombre.points} · ${ombre.parties} partie${ombre.parties > 1 ? 's' : ''}`
+}
+
 /** « signalement » ou « signalements » : zéro reste au singulier. */
 export function libelleSignalements(nombre: number): string {
   return nombre > 1 ? 'signalements' : 'signalement'
@@ -224,6 +234,11 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEn
         <h3>Ton fantôme</h3>
         <InterrupteurFantome allumeAuDepart={pouls.fantome !== false} />
         {pouls.fantomeNote ? <p className="mm-pulse-note">{noteDuFantome(pouls.fantomeNote)}</p> : null}
+
+        {pouls.ombres?.length ? <>
+          <h3>Joueurs de l’ombre</h3>
+          <dl>{pouls.ombres.map(ombre => <div key={ombre.nom}><dt>{ombre.nom}</dt><dd className="mm-pulse-ombre">{ligneDOmbre(ombre)}</dd></div>)}</dl>
+        </> : null}
 
         <button type="button" className="mm-pulse-fermer" data-dialog-autofocus onClick={fermer}>Fermer</button>
       </div>

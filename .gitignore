@@ -86,6 +86,9 @@ sauvegardes/
 # une réponse à partir de l'image. Le jeu ne les lit pas (le catalogue les porte
 # en data:) ; seuls les scripts d'intégration vérifient qu'ils existent.
 /dessins-indices/
+# La création des joueurs de l'ombre : leurs pseudos ne doivent pas se lire
+# dans un dépôt public (supabase/prive/ombres_creation_20261013.sql).
+/supabase/prive/
 # <<< atelier privé
 
 # Le dossier git de l'atelier lui-même.
