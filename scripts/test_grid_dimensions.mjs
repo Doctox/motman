@@ -54,20 +54,22 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 40],
-      // v40 (11/10) : les 24 thèmes du défi regroupés en 16, aux noms de Grid
+      ['version', catalog.version, 41],
+      // v41 (13/10) : neuf lots — quatre thèmes neufs (Stars, Enfants, Transports &
+      // Moteurs, Mots d'aujourd'hui), quatre thèmes grossis de 5 à 25 grilles,
+      // et « normales-11 », 200 grilles de rotation. v40 (11/10) : les 24 thèmes du défi regroupés en 16, aux noms de Grid
       // Studio (mêmes grilles, mêmes chiffres). v39 (29/09) : lot « normales-10 », 124 grilles de rotation, et neuf
       // grilles retirées du tirage (un nom et son verbe dans la même grille,
       // EQUIPE/EQUIPER…). v38 (25/09) : trois thèmes neufs, Justice & Droit, Maison, Mer & Marine
       // (15 grilles à thème). v37 (23/09) : lot « normales-9 », 117 grilles de
       // rotation. v36 (22/09) : six thèmes neufs (30 grilles à thème).
-      // 262 en v35 → 292 → 409 → 424 → 539.
-      ['grilles', catalog.grids.length, 539],
+      // 262 en v35 → 292 → 409 → 424 → 539 → 904.
+      ['grilles', catalog.grids.length, 904],
       // 413 en v35 ; les lots v36 à v38 en ont apporté 116, la v39 112 moins
-      // les 11 des grilles retirées.
-      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 630],
-      // Les grilles à thème du défi du jour : 75 en v35, +30 en v36, +15 en v38.
-      ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 120],
+      // les 11 des grilles retirées ; la v41, 224.
+      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 854],
+      // Les grilles à thème du défi du jour : 75 en v35, +30 en v36, +15 en v38, +165 en v41.
+      ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 285],
     ]
     for (const [libelle, obtenu, attendu] of attendus) {
       if (obtenu === attendu) continue

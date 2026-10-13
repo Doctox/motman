@@ -186,5 +186,17 @@
     "titre": "Ton titre se voit",
     "texte": "Le titre que tu portes s'affiche maintenant sous ton pseudo : en partie, chez tes amis et sur ta carte d'accueil. Choisis-le dans ton profil.",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-10-13T10:07",
+    "titre": "4 nouveaux thèmes",
+    "texte": "Stars, Enfants, Transports & Moteurs et Mots d'aujourd'hui rejoignent le défi du jour. Et Culture pop, Argent & Banque, Animaux et Corps humain passent de 5 à 25 grilles.",
+    "genre": "theme"
+  },
+  {
+    "ajoute": "2026-10-13T10:07",
+    "titre": "200 nouvelles grilles",
+    "texte": "Les parties normales en comptent désormais 619 : tu retomberas moins souvent sur la même.",
+    "genre": "grilles"
   }
 ]

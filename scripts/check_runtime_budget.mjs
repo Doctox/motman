@@ -49,11 +49,20 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // sa grille (id, drapeau du défi, réponses — ~290 octets par grille, 77 Ko
 // pour 262). À 200 Ko, soit ~680 grilles, le tirage devra se faire en SQL
 // plutôt que dans match-api.
+//
+// 2026-10-13 : v41, 904 grilles dont 285 à thème (9 lots de l'Éditeur, quatre
+// thèmes neufs). 4 226 Ko bruts / 1 034 Ko compressés : seuils relevés à 6 Mo
+// et 1,5 Mo, toujours sans lecteur en jeu. Le tirage lisait 262 Ko, dont les
+// 285 grilles à thème qu'il jetait aussitôt : match-api les écarte désormais
+// dans la requête (`daily_only = false`), ce qui le ramène à 211 Ko pour 619
+// grilles. Le seuil de 200 Ko est donc franchi à ~640 grilles normales et
+// relevé à 300 Ko (~880 grilles). Le prochain franchissement est le bon
+// moment pour tirer en SQL : il n'a plus de marge à gagner ailleurs.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 3_000_000,
-  runtimeCatalogGzip: 850_000,
-  tirageParPartie: 200_000,
+  runtimeCatalog: 6_000_000,
+  runtimeCatalogGzip: 1_500_000,
+  tirageParPartie: 300_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
   avatarsTotal: 1_500_000,
@@ -82,8 +91,10 @@ if (catalogueReel) {
     limits.runtimeCatalogGzip,
   )
   // La même projection que la vue `server_grid_selection` que lit `chooseGrid`
-  // (migration 20260918060000), telle que PostgREST la renvoie en JSON.
+  // (migration 20260918060000), telle que PostgREST la renvoie en JSON — sans
+  // les grilles à thème, que la requête écarte depuis le 13/10/2026.
   const grilles = JSON.parse(readFileSync(catalogueReel.chemin, 'utf8')).grids
+    .filter(grille => grille.dailyOnly !== true)
   const tirage = grilles.map(grille => ({
     id: grille.id,
     daily_only: grille.dailyOnly === true,

@@ -150,8 +150,13 @@ export async function chooseGrid(
   // tirage a besoin : l'identifiant, les réponses pour le délai de répétition,
   // et le drapeau du défi du jour. La grille RETENUE est ensuite chargée par
   // son identifiant, comme le défi du jour le fait déjà.
+  //
+  // 13/10/2026, catalogue v41 : 285 des 904 grilles sont à thème, et le tirage
+  // les jetait après les avoir lues (262 Ko par partie, dont 52 Ko pour rien).
+  // La base les écarte désormais ; `normalRotationGrids`, plus bas, reste la
+  // règle qui fait foi.
   const [{ data: selectionRows }, histories, activeMatches] = await Promise.all([
-    admin.from('server_grid_selection').select('id,daily_only,words').eq('active', true).order('id'),
+    admin.from('server_grid_selection').select('id,daily_only,words').eq('active', true).eq('daily_only', false).order('id'),
     historiquesJoueurs(admin, playerIds),
     activeMatchesForPlayers(admin, playerIds, excludedMatchId),
   ])

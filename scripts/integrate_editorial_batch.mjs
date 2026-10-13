@@ -200,14 +200,21 @@ console.log('  Ensuite : npm run policy:runtime (projection), build_daily_calend
 // icône. Leur texte décrit ce qui entre ; on a jusqu'au rendez-vous pour le
 // reprendre dans le fichier s'il faut dire mieux ce que le joueur y gagne.
 const enumerer = noms => noms.length < 2 ? noms.join('') : `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}`
+// Un thème DÉJÀ en jeu qui reçoit des grilles n'est pas un « nouveau thème » :
+// le 13/10/2026, quatre thèmes grossis étaient annoncés comme neufs.
 const themes = [...new Set(lots.map(entree => entree.theme).filter(Boolean))]
+const neufs = themes.filter(theme => !themesEnJeu.has(theme))
+const grossis = themes.filter(theme => themesEnJeu.has(theme))
 const normales = lots.filter(entree => !entree.theme).flatMap(entree => entree.renommees).length
 const rotation = fusionne.grids.filter(grille => !grille.dailyOnly).length
 const rapports = []
-if (themes.length) {
-  rapports.push(themes.length === 1
-    ? { genre: 'theme', titre: `Nouveau thème : ${themes[0]}`, texte: `Le thème ${themes[0]} rejoint le défi du jour.` }
-    : { genre: 'theme', titre: `${themes.length} nouveaux thèmes`, texte: `${enumerer(themes)} rejoignent le défi du jour.` })
+if (neufs.length) {
+  const suite = grossis.length ? ` Et ${enumerer(grossis)} ${grossis.length > 1 ? 'reçoivent' : 'reçoit'} de nouvelles grilles.` : ''
+  rapports.push(neufs.length === 1
+    ? { genre: 'theme', titre: `Nouveau thème : ${neufs[0]}`, texte: `Le thème ${neufs[0]} rejoint le défi du jour.${suite}` }
+    : { genre: 'theme', titre: `${neufs.length} nouveaux thèmes`, texte: `${enumerer(neufs)} rejoignent le défi du jour.${suite}` })
+} else if (grossis.length) {
+  rapports.push({ genre: 'theme', titre: 'Plus de grilles au défi du jour', texte: `${enumerer(grossis)} ${grossis.length > 1 ? 'reçoivent' : 'reçoit'} de nouvelles grilles.` })
 }
 if (normales) {
   rapports.push({ genre: 'grilles', titre: `${normales} nouvelles grilles`, texte: `Les parties normales en comptent désormais ${rotation} : tu retomberas moins souvent sur la même.` })
