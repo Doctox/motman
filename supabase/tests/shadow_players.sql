@@ -49,16 +49,20 @@ begin
   ) then
     raise exception 'Une ombre n''a pas un visage de joueur';
   end if;
-  -- Ils arrivent l'un après l'autre, à trois jours d'écart.
-  if exists (
-    select 1 from (
-      select arrives_at - pg_catalog.lag(arrives_at) over (order by arrives_at) as ecart
-      from public.shadow_players
-    ) as ecarts
-    where ecart is not null and ecart <> interval '3 days'
-  ) then
-    raise exception 'Les ombres doivent arriver a trois jours d''ecart';
+  -- Ils arrivent l'un après l'autre, pas tous le même jour. Le rythme est celui
+  -- que règle le propriétaire (tous les trois jours au départ, rapproché le
+  -- 13/10/2026) : le test ne le fige pas.
+  if (select count(distinct arrives_at::date) from public.shadow_players) < 3 then
+    raise exception 'Les ombres doivent arriver echelonnees, pas toutes le meme jour';
   end if;
+  -- Leurs heures, s'il y en a, sont des heures (0 à 23) : la contrainte veille.
+  begin
+    update public.shadow_players set heures = array[24]::smallint[]
+    where user_id = (select user_id from public.shadow_players order by arrives_at limit 1);
+    raise exception 'Une heure 24 aurait du etre refusee';
+  exception when check_violation then
+    null;
+  end;
 
   -- ── 2. Le pouls ne les compte pas ────────────────────────────────────────
   comptes := (public.server_game_pulse('00000000-0000-4000-8000-000000000000'::uuid) ->> 'comptes')::integer;

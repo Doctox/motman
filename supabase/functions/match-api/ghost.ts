@@ -31,7 +31,13 @@ export type Proprietaire = { id: string; displayName: string; avatarId: string; 
  * des joueurs de l'ombre (13/10/2026) — des comptes `shadow` qui n'existent que
  * pour ça, chacun avec sa force et SA note classée.
  */
-export type AdversaireAutomatique = Proprietaire & { points: number; ombre: boolean; tuning: BotTuning }
+export type AdversaireAutomatique = Proprietaire & {
+  points: number
+  ombre: boolean
+  tuning: BotTuning
+  /** Heures de Paris où l'ombre joue de préférence (13/10/2026) ; absent : à toute heure. */
+  heures?: readonly number[] | null
+}
 
 /** L'interrupteur du propriétaire (pouls du jeu). Sans ligne en base : allumé. */
 export async function fantomeAllume(admin: AdminClient): Promise<boolean> {
@@ -91,7 +97,9 @@ export function botFantome(adversaire: Proprietaire & { ombre?: boolean; tuning?
 export async function adversairesAutomatiques(admin: AdminClient, maintenant = Date.now()): Promise<AdversaireAutomatique[]> {
   const [proprio, { data: ombres }] = await Promise.all([
     proprietaireDuFantome(admin),
-    admin.from('shadow_players').select('user_id,tuning').lte('arrives_at', new Date(maintenant).toISOString()),
+    // `*` plutôt qu'une liste : la colonne `heures` (migration 20261013200000)
+    // peut arriver après cette fonction sans la casser.
+    admin.from('shadow_players').select('*').lte('arrives_at', new Date(maintenant).toISOString()),
   ])
   const idsOmbres = (ombres ?? []).map(ligne => String(ligne.user_id))
   const ids = [...(proprio ? [proprio.id] : []), ...idsOmbres]
@@ -105,6 +113,7 @@ export async function adversairesAutomatiques(admin: AdminClient, maintenant = D
   const progression = new Map((progressions ?? []).map(ligne => [String(ligne.user_id), ligne]))
   const actif = new Set((actifs ?? []).map(ligne => String(ligne.id)))
   const reglages = new Map((ombres ?? []).map(ligne => [String(ligne.user_id), ligne.tuning as BotTuning]))
+  const heures = new Map((ombres ?? []).map(ligne => [String(ligne.user_id), Array.isArray(ligne.heures) ? (ligne.heures as number[]).map(Number) : null]))
   const liste: AdversaireAutomatique[] = []
   for (const id of ids) {
     const profil = profils.get(id)
@@ -120,6 +129,7 @@ export async function adversairesAutomatiques(admin: AdminClient, maintenant = D
       id, displayName: profil.displayName, avatarId: profil.avatarId, frameId: profil.frameId,
       level: Number(avancee?.level) || 1, points, ombre,
       tuning: ombre ? reglages.get(id) ?? FANTOME_REGLAGES : FANTOME_REGLAGES,
+      heures: ombre ? heures.get(id) ?? null : null,
     })
   }
   return liste
@@ -135,20 +145,54 @@ function hash(texte: string): number {
 export const ECART_DE_VARIETE = 60
 
 /**
- * Le plus proche en note du joueur qui cherche — jamais lui-même, et pas son
- * dernier adversaire classé s'il en reste un autre. Entre adversaires presque
- * aussi proches (`ECART_DE_VARIETE`), le hasard de la graine tranche.
+ * Combien de derniers adversaires automatiques le joueur ne revoit pas, s'il en
+ * reste d'autres, et sur combien de jours on s'en souvient (13/10/2026). Le but
+ * du propriétaire : qu'un joueur seul ait l'impression de croiser du monde.
+ * Avant, seul le dernier était écarté, et oublié avec la partie au bout de 26 h.
  */
-export function choisirAdversaire(candidats: readonly AdversaireAutomatique[], { chercheurId, pointsChercheur, dernierAdversaireId, graine }: {
+export const MEMOIRE_ADVERSAIRES = 3
+export const MEMOIRE_JOURS = 7
+
+const HEURE_DE_PARIS = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' })
+
+/** L'heure qu'il est à Paris, de 0 à 23. */
+export function heureDeParis(ms: number): number {
+  // `format` écrirait « 10 h » en français : on prend la seule partie « heure ».
+  const heure = HEURE_DE_PARIS.formatToParts(new Date(ms)).find(partie => partie.type === 'hour')?.value
+  return Number(heure) % 24
+}
+
+/**
+ * Le plus proche en note du joueur qui cherche — jamais lui-même. Dans l'ordre :
+ *   1. ses derniers adversaires automatiques s'écartent, les trois derniers si
+ *      possible, sinon les deux, sinon le dernier ;
+ *   2. une ombre « à son heure » passe devant une ombre hors de ses heures —
+ *      sans jamais en priver le joueur : hors de leurs heures, elles restent là
+ *      quand personne d'autre ne peut venir ;
+ *   3. entre adversaires presque aussi proches en note (`ECART_DE_VARIETE`), le
+ *      hasard de la graine tranche.
+ */
+export function choisirAdversaire(candidats: readonly AdversaireAutomatique[], { chercheurId, pointsChercheur, adversairesRecents, heureParis, graine }: {
   chercheurId: string
   pointsChercheur: number
-  dernierAdversaireId: string | null
+  /** Les derniers adversaires du joueur, le plus récent d'abord. */
+  adversairesRecents: readonly string[]
+  heureParis: number
   graine: string
 }): AdversaireAutomatique | null {
   const possibles = candidats.filter(candidat => candidat.id !== chercheurId)
-  const autres = possibles.filter(candidat => candidat.id !== dernierAdversaireId)
-  const liste = autres.length ? autres : possibles
-  if (!liste.length) return null
+  if (!possibles.length) return null
+  let liste = possibles
+  for (let combien = Math.min(adversairesRecents.length, MEMOIRE_ADVERSAIRES); combien > 0; combien -= 1) {
+    const recents = new Set(adversairesRecents.slice(0, combien))
+    const autres = possibles.filter(candidat => !recents.has(candidat.id))
+    if (autres.length) {
+      liste = autres
+      break
+    }
+  }
+  const aLeurHeure = liste.filter(candidat => !candidat.heures?.length || candidat.heures.includes(heureParis))
+  if (aLeurHeure.length) liste = aLeurHeure
   const ecart = (candidat: AdversaireAutomatique) => Math.abs(candidat.points - pointsChercheur)
   const plusPetit = Math.min(...liste.map(ecart))
   const proches = liste.filter(candidat => ecart(candidat) - plusPetit <= ECART_DE_VARIETE)
@@ -175,15 +219,27 @@ export async function tenterLeFantome(admin: AdminClient, userId: string): Promi
   // son propre fantôme : `choisirAdversaire` l'écarte.
   if (!fantomeDoitEntrer({ attenteMs, enLigne: enLigne ?? 0, chercheurEstLeProprietaire: false })) return null
 
-  const [candidats, { data: moi }, { data: dernier }] = await Promise.all([
+  const [candidats, { data: moi }, { data: dernier }, { data: historique }] = await Promise.all([
     adversairesAutomatiques(admin),
     admin.from('player_progress').select('ranked_points,ranked_matches').eq('user_id', userId).maybeSingle(),
     admin.from('ranked_rating_events').select('opponent_id').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    // L'historique des grilles garde le NOM de l'adversaire 60 jours ; les
+    // évènements classés partent avec la partie au bout de 26 h.
+    admin.from('grid_player_history').select('opponent_name').eq('user_id', userId)
+      .gt('completed_at', new Date(Date.now() - MEMOIRE_JOURS * 24 * 60 * 60 * 1000).toISOString())
+      .order('completed_at', { ascending: false }).limit(12),
   ])
+  const parNom = new Map(candidats.map(candidat => [candidat.displayName, candidat.id]))
+  const automatiques = new Set(candidats.map(candidat => candidat.id))
+  const adversairesRecents = [...new Set([
+    ...(dernier?.opponent_id ? [String(dernier.opponent_id)] : []),
+    ...(historique ?? []).map(ligne => parNom.get(String(ligne.opponent_name ?? '')) ?? ''),
+  ])].filter(id => automatiques.has(id))
   const adversaire = choisirAdversaire(candidats, {
     chercheurId: userId,
     pointsChercheur: pointsEffectifs(Number(moi?.ranked_points ?? 0), Number(moi?.ranked_matches ?? 0)),
-    dernierAdversaireId: dernier?.opponent_id ? String(dernier.opponent_id) : null,
+    adversairesRecents,
+    heureParis: heureDeParis(Date.now()),
     graine: `${userId}:${recherche.created_at}`,
   })
   if (!adversaire) return null

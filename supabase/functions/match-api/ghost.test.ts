@@ -2,7 +2,7 @@ import { assertEquals } from 'jsr:@std/assert@1'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { FANTOME_REFLEXION_MAX_MS, FANTOME_REFLEXION_MIN_MS, FANTOME_REGLAGES } from '../../../src/ghostOpponent.ts'
 import { botTurnDelayMs } from './botDelay.ts'
-import { botFantome, choisirAdversaire, type AdversaireAutomatique } from './ghost.ts'
+import { botFantome, choisirAdversaire, heureDeParis, type AdversaireAutomatique } from './ghost.ts'
 import { nowIso, type Bot, type MatchRow } from './matchModel.ts'
 import { view } from './matchView.ts'
 
@@ -107,25 +107,54 @@ Deno.test('le fantôme réfléchit comme un humain, pas comme un bot', () => {
 const adversaire = (id: string, points: number, ombre = true): AdversaireAutomatique => ({
   id, displayName: id, avatarId: 'lapin', frameId: 'cadre-ivoire', level: 10, points, ombre, tuning: FANTOME_REGLAGES,
 })
-const LISTE = [adversaire(PROPRIO, 1004, false), adversaire('sandrine', 1000), adversaire('nico', 1120), adversaire('titi', 880)]
+// Des identifiants neutres : le dépôt est public, un pseudo d'ombre ne s'y lit pas.
+const LISTE = [adversaire(PROPRIO, 1004, false), adversaire('ombre-a', 1000), adversaire('ombre-b', 1120), adversaire('ombre-c', 880)]
+const choix = (liste: readonly AdversaireAutomatique[], options: Partial<Parameters<typeof choisirAdversaire>[1]>) =>
+  choisirAdversaire(liste, { chercheurId: JOUEUR, pointsChercheur: 1000, adversairesRecents: [], heureParis: 15, graine: 'a', ...options })?.id
 
 Deno.test('le plus proche en note du joueur qui cherche', () => {
-  assertEquals(choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 1130, dernierAdversaireId: null, graine: 'a' })?.id, 'nico')
-  assertEquals(choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 870, dernierAdversaireId: null, graine: 'a' })?.id, 'titi')
+  assertEquals(choix(LISTE, { pointsChercheur: 1130 }), 'ombre-b')
+  assertEquals(choix(LISTE, { pointsChercheur: 870 }), 'ombre-c')
 })
 
 Deno.test('jamais soi-même : le propriétaire qui cherche tombe sur une ombre', () => {
-  const choisis = new Set(Array.from({ length: 40 }, (_, i) => choisirAdversaire(LISTE, { chercheurId: PROPRIO, pointsChercheur: 1004, dernierAdversaireId: null, graine: `g${i}` })?.id))
+  const choisis = new Set(Array.from({ length: 40 }, (_, i) => choix(LISTE, { chercheurId: PROPRIO, pointsChercheur: 1004, graine: `g${i}` })))
   assertEquals(choisis.has(PROPRIO), false)
 })
 
 Deno.test('pas deux fois de suite le même, s’il en reste un autre', () => {
-  assertEquals(choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 1130, dernierAdversaireId: 'nico', graine: 'a' })?.id !== 'nico', true)
-  assertEquals(choisirAdversaire([adversaire('seul', 1000)], { chercheurId: JOUEUR, pointsChercheur: 1000, dernierAdversaireId: 'seul', graine: 'a' })?.id, 'seul')
+  assertEquals(choix(LISTE, { pointsChercheur: 1130, adversairesRecents: ['ombre-b'] }) !== 'ombre-b', true)
+  assertEquals(choix([adversaire('seul', 1000)], { adversairesRecents: ['seul'] }), 'seul')
+})
+
+Deno.test('ni ses trois derniers adversaires, tant qu’il en reste un autre', () => {
+  // Le 13/10/2026 : le fantôme, une ombre, le fantôme, la même ombre… pour un même joueur.
+  // Avec quatre adversaires, les trois derniers s'écartent tous.
+  assertEquals(choix(LISTE, { pointsChercheur: 1000, adversairesRecents: [PROPRIO, 'ombre-a', 'ombre-b'] }), 'ombre-c')
+  // À deux, on retombe sur l'alternance : seul le dernier s'écarte.
+  const deux = [adversaire(PROPRIO, 1004, false), adversaire('ombre-a', 1000)]
+  assertEquals(choix(deux, { adversairesRecents: ['ombre-a', PROPRIO] }), PROPRIO)
+  assertEquals(choix(deux, { adversairesRecents: [PROPRIO, 'ombre-a'] }), 'ombre-a')
+})
+
+Deno.test('une ombre à son heure passe devant, sans jamais priver le joueur', () => {
+  const soir = { ...adversaire('ombre-soir', 1000), heures: [19, 20, 21, 22] }
+  const midi = { ...adversaire('ombre-midi', 1000), heures: [12, 13] }
+  assertEquals(new Set(Array.from({ length: 30 }, (_, i) => choix([soir, midi], { heureParis: 20, graine: `g${i}` }))), new Set(['ombre-soir']))
+  assertEquals(new Set(Array.from({ length: 30 }, (_, i) => choix([soir, midi], { heureParis: 12, graine: `g${i}` }))), new Set(['ombre-midi']))
+  // À 4 h, personne n'est à son heure : tout le monde reste possible.
+  assertEquals(new Set(Array.from({ length: 30 }, (_, i) => choix([soir, midi], { heureParis: 4, graine: `g${i}` }))).size, 2)
+  // Le fantôme du propriétaire, sans heures, est à son heure partout.
+  assertEquals(choix([soir, adversaire(PROPRIO, 1000, false)], { heureParis: 4, adversairesRecents: [] }) !== undefined, true)
+})
+
+Deno.test('l’heure de Paris, été comme hiver', () => {
+  assertEquals(heureDeParis(Date.UTC(2026, 9, 13, 8, 5)), 10)
+  assertEquals(heureDeParis(Date.UTC(2026, 11, 1, 22, 30)), 23)
 })
 
 Deno.test('entre adversaires presque aussi proches, la graine fait varier', () => {
   // Fantôme 1004 et une ombre à 1000 : tous deux à quelques points de 1002.
-  const choisis = new Set(Array.from({ length: 40 }, (_, i) => choisirAdversaire(LISTE, { chercheurId: JOUEUR, pointsChercheur: 1002, dernierAdversaireId: null, graine: `g${i}` })?.id))
-  assertEquals([...choisis].sort(), [PROPRIO, 'sandrine'].sort())
+  const choisis = new Set(Array.from({ length: 40 }, (_, i) => choix(LISTE, { pointsChercheur: 1002, graine: `g${i}` })))
+  assertEquals([...choisis].sort(), [PROPRIO, 'ombre-a'].sort())
 })
