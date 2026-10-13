@@ -22,6 +22,16 @@ function timeoutFailure(name: string): FunctionFailure {
   ) as FunctionFailure
 }
 
+// Soirée du 13/10/2026 : sur Starlink, et sur un réseau mobile belge, un appel
+// restait parfois bloqué en route une à deux minutes pendant que les suivants
+// passaient en une seconde. Le joueur attendait les 20 secondes ci-dessus, puis
+// lisait « Le serveur ne répond pas », alors que le serveur allait bien (aucune
+// erreur ce soir-là, aucun autre joueur touché). Un appel REJOUABLE qui reste
+// muet au-delà de ce délai est donc abandonné et relancé aussitôt ; la relance
+// reçoit tout le reste du budget, de quoi laisser finir un appel vraiment long.
+// Mesuré ce soir-là : un appel normal prend 0,8 à 2 s, 3,5 s au pire.
+export const ATTEMPT_TIMEOUT_MS = 7_000
+
 export async function invokeSupabaseFunction<T>(
   name: string,
   body: Record<string, unknown>,
@@ -32,7 +42,7 @@ export async function invokeSupabaseFunction<T>(
     expiration = setTimeout(() => reject(timeoutFailure(name)), timeoutMs)
   })
   try {
-    return await Promise.race([callWithRetry<T>(name, body), deadline])
+    return await Promise.race([callWithRetry<T>(name, body, Date.now() + timeoutMs), deadline])
   } finally {
     if (expiration !== undefined) clearTimeout(expiration)
   }
@@ -63,22 +73,46 @@ function isUnreachable(error: unknown): boolean {
   return (error as { payload?: { code?: string } } | null)?.payload?.code === 'FUNCTION_UNREACHABLE'
 }
 
-async function callWithRetry<T>(name: string, body: Record<string, unknown>): Promise<T> {
+/** L'essai a été abandonné faute de réponse (`ATTEMPT_TIMEOUT_MS`, ou le budget entier). */
+function isAttemptTimeout(error: unknown): boolean {
+  return (error as { payload?: { code?: string } } | null)?.payload?.code === 'REQUEST_TIMEOUT'
+}
+
+async function callWithRetry<T>(name: string, body: Record<string, unknown>, finMs: number): Promise<T> {
+  const reste = () => Math.max(1, finMs - Date.now())
+  // Un appel qui dépense quelque chose ne part qu'une fois : il garde tout le
+  // budget, et n'est abandonné qu'à son terme.
+  if (!isReplayable(name, body)) return callSupabaseFunction<T>(name, body, reste())
   try {
-    return await callSupabaseFunction<T>(name, body)
+    return await callSupabaseFunction<T>(name, body, Math.min(ATTEMPT_TIMEOUT_MS, reste()))
   } catch (error) {
-    if (!isUnreachable(error) || !isReplayable(name, body)) throw error
+    // Resté muet : on relance tout de suite, la route est souvent déjà libre.
+    if (isAttemptTimeout(error)) return callSupabaseFunction<T>(name, body, reste())
+    if (!isUnreachable(error)) throw error
     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
-    return callSupabaseFunction<T>(name, body)
+    return callSupabaseFunction<T>(name, body, reste())
   }
 }
 
-async function callSupabaseFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(name, {
+async function callSupabaseFunction<T>(name: string, body: Record<string, unknown>, limiteMs: number): Promise<T> {
+  // L'abandon coupe vraiment la requête : sans lui, un appel bloqué continuait
+  // d'occuper le réseau du téléphone pendant deux minutes.
+  const abandon = new AbortController()
+  const minuterie = setTimeout(() => abandon.abort(), limiteMs)
+  const appel = () => supabase.functions.invoke(name, {
     body,
     headers: functionClientHeaders(),
+    signal: abandon.signal,
   })
+  let reponse: Awaited<ReturnType<typeof appel>>
+  try {
+    reponse = await appel()
+  } finally {
+    clearTimeout(minuterie)
+  }
+  const { data, error } = reponse
   if (!error && !data?.error) return data as T
+  if (abandon.signal.aborted) throw timeoutFailure(name)
 
   // supabase-js : FunctionsFetchError quand le fetch lui-même échoue.
   if ((error as { name?: string } | null)?.name === 'FunctionsFetchError') {

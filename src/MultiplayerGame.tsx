@@ -22,7 +22,7 @@ import {
 } from './matches'
 import { subscribeToMatchUpdates } from './matchRealtime'
 import { subscribeToMenuUpdates } from './menuRealtime'
-import { matchPollDelay } from './matchSyncPolicy'
+import { erreurDeSynchroAffichee, matchPollDelay } from './matchSyncPolicy'
 import { resultInvitationPollDelay } from './menuSyncPolicy'
 import { MatchInvitationPanel } from './menu/MatchActivityPanels'
 import { clearDeliveredPushNotifications } from './nativePushNotifications'
@@ -200,6 +200,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const realtimeConnectedRef = useRef(false)
   const unchangedPollsRef = useRef(0)
   const syncFailuresRef = useRef(0)
+  // Le message affiché par une actualisation ratée : effacé dès que le contact revient.
+  const erreurDeSynchroRef = useRef<string | null>(null)
   const loadedGridId = useRef<string | null>(null)
 
   const assignedToMe = match?.status === 'active' && !match.pause && match.currentPlayerId === playerId
@@ -392,6 +394,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     if (needsGrid && !next.grid) throw new Error('Le serveur n’a pas transmis la grille publique de cette partie.')
     unchangedPollsRef.current = 0
     syncFailuresRef.current = 0
+    erreurDeSynchroRef.current = null
     applyMatchState(next)
     if (needsGrid && next.grid) {
       // Online matches receive a sanitized board from the authoritative server:
@@ -439,6 +442,14 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         if (!next) {
           unchangedPollsRef.current += 1
           syncFailuresRef.current = 0
+          // Rien de neuf, mais le serveur a répondu : le bandeau d'une
+          // actualisation ratée n'a plus lieu d'être. Avant le 13/10/2026, il
+          // restait affiché jusqu'au coup suivant, parfois longtemps.
+          const affichee = erreurDeSynchroRef.current
+          if (affichee) {
+            erreurDeSynchroRef.current = null
+            setError(courante => courante === affichee ? null : courante)
+          }
           return
         }
         acceptRemoteSnapshot(next)
@@ -450,7 +461,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         // morte, et il ne peut en sortir qu'en retapant l'adresse. On rentre donc
         // a l'accueil, ce qui nettoie l'adresse au passage (App.returnHome).
         if (alive.current && partieIntrouvable(reason) && !matchRef.current) { onHome(); return }
-        if (alive.current) setError(reason instanceof Error ? reason.message : 'Connexion interrompue')
+        if (alive.current && erreurDeSynchroAffichee(syncFailuresRef.current, Boolean(matchRef.current))) {
+          const message = reason instanceof Error ? reason.message : 'Connexion interrompue'
+          erreurDeSynchroRef.current = message
+          setError(message)
+        }
       }
     }
     const polling = startAdaptivePolling({

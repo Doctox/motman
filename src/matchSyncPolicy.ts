@@ -60,3 +60,15 @@ export function matchPollDelay({
   const fallback = realtimeConnected ? ownTurn ? 12_000 : 8_000 : ownTurn ? 3_000 : 2_000
   return Math.min(fallback + unchangedBackoff, boundaryDelay)
 }
+
+/**
+ * Le bandeau « Le serveur ne répond pas » d'une actualisation AUTOMATIQUE
+ * (13/10/2026). Un seul échec ne dit rien d'utile au joueur : l'appel a déjà été
+ * relancé une fois (supabaseFunctions.ts), et le sondage suivant arrive dans
+ * 2,5 s. Il paraît donc au DEUXIÈME échec d'affilée — ou tout de suite si la
+ * partie n'a encore jamais été chargée, l'écran n'ayant alors rien d'autre à
+ * montrer. Une actualisation réussie l'efface, même si rien n'a changé.
+ */
+export function erreurDeSynchroAffichee(echecsDAffilee: number, partieChargee: boolean): boolean {
+  return !partieChargee || echecsDAffilee >= 2
+}

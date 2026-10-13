@@ -222,5 +222,11 @@
     "ajoute": "2026-10-13T21:11",
     "titre": "Des citrouilles qui s'illuminent",
     "texte": "Le cadre Citrouilles arrive à l'Épicerie : trois citrouilles dont la lumière vacille comme une bougie, une lune d'or et des chauves-souris. Un légendaire pour Halloween."
+  },
+  {
+    "ajoute": "2026-10-13T22:26",
+    "titre": "Moins de « Le serveur ne répond pas »",
+    "texte": "Sur une connexion fragile (satellite, 4G faible), le jeu relance tout seul un appel resté bloqué, et le message disparaît dès que le contact revient.",
+    "genre": "jeu"
   }
 ]
