@@ -1,7 +1,8 @@
 # Générateurs des animations de portrait redessinées le 14/09/2026
-# (serpent-emeraude, carpes-celestes), puis des nouvelles (chauves-souris,
-# 13/10/2026). Lancer depuis ce dossier :
-#   python serpent.py   /   python carpes.py   /   python chauves_souris.py
+# (serpent-emeraude, carpes-celestes), puis des nouvelles du 13/10/2026
+# (chauves_souris, flocons, bulles, fleches, lettres_envolees, etoiles_filantes,
+# goutte_encre, grue_origami ; outils communs dans pil_outils.py).
+# Lancer depuis ce dossier :  python <nom>.py [dossier de sortie]
 # Les APNG et posters sont écrits dans le dossier courant ; les copier ensuite
 # dans public/assets/animations/lab/. Rendu en 4x puis réduit (LANCZOS).
 """Outils communs : canevas 4x en alpha premultiplie, tubes le long d'une colonne,
