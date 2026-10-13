@@ -125,6 +125,24 @@
       "tags": ["vampire", "fantastique"]
     },
     {
+      "id": "apprenti-sorcier",
+      "name": "Apprenti sorcier",
+      "kind": "human",
+      "asset": "/assets/avatars/apprenti-sorcier.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["sorcier", "fantastique", "halloween"]
+    },
+    {
+      "id": "apprentie-sorciere",
+      "name": "Apprentie sorcière",
+      "kind": "human",
+      "asset": "/assets/avatars/apprentie-sorciere.webp",
+      "availability": "epicerie",
+      "pricePlumes": 1400,
+      "tags": ["sorciere", "fantastique", "halloween"]
+    },
+    {
       "id": "celeste",
       "name": "Chouette",
       "kind": "animal",

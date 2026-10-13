@@ -120,6 +120,24 @@
     },
     {
       "kind": "avatar",
+      "id": "apprenti-sorcier",
+      "name": "Apprenti sorcier",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/apprenti-sorcier.webp"
+    },
+    {
+      "kind": "avatar",
+      "id": "apprentie-sorciere",
+      "name": "Apprentie sorcière",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/avatars/apprentie-sorciere.webp"
+    },
+    {
+      "kind": "avatar",
       "id": "celeste",
       "name": "Chouette",
       "rarity": "singulier",
@@ -561,6 +579,15 @@
     },
     {
       "kind": "frame",
+      "id": "cadre-sous-bois",
+      "name": "Sous-bois",
+      "rarity": "precieux",
+      "pricePlumes": 3500,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-sous-bois.webp"
+    },
+    {
+      "kind": "frame",
       "id": "cadre-royal",
       "name": "Royal",
       "rarity": "precieux",
@@ -693,6 +720,15 @@
       "pricePlumes": 1750,
       "availability": "epicerie",
       "asset": "/assets/animations/lab/lucioles.png"
+    },
+    {
+      "kind": "animation",
+      "id": "chauves-souris",
+      "name": "Chauves-souris",
+      "rarity": "singulier",
+      "pricePlumes": 1800,
+      "availability": "epicerie",
+      "asset": "/assets/animations/lab/chauves-souris.png"
     },
     {
       "kind": "animation",

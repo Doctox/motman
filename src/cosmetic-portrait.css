@@ -21,6 +21,7 @@
 .cosmetic-frame[data-frame="cadre-maree"]{--frame-art-size:140%;--avatar-inset:12%}
 .cosmetic-frame[data-frame="cadre-bibliotheque"]{--frame-art-size:142%;--avatar-inset:11%;--avatar-decale-x:-1.2%;--avatar-decale-y:-3.7%}
 .cosmetic-frame[data-frame="cadre-braise"]{--frame-art-size:139%;--avatar-inset:9%}
+.cosmetic-frame[data-frame="cadre-sous-bois"]{--frame-art-size:150%;--avatar-inset:10%}
 .cosmetic-frame[data-frame="cadre-royal"]{--frame-art-size:142%;--avatar-inset:13%;--avatar-decale-y:3.7%}
 .cosmetic-frame[data-frame="cadre-encrier"]{--frame-art-size:142%;--avatar-inset:5.6%;--avatar-decale-x:0.7%;--avatar-decale-y:-1.8%}
 .cosmetic-frame[data-frame="cadre-clair-de-lune"]{--frame-art-size:136%;--avatar-inset:15%;--avatar-decale-x:2.9%}
@@ -34,7 +35,7 @@
 .cosmetic-frame[data-frame="cadre-herbier"]>.cosmetic-frame-art{--mm-cadre-duree:8.5s;animation:mmFrameHerbier var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-maree"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-bibliotheque"]>.cosmetic-frame-art{--mm-cadre-duree:7.2s;animation:mmFrameRare var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-braise"]>.cosmetic-frame-art{--mm-cadre-duree:3.6s;animation:mmFrameBraise var(--mm-cadre-duree) ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-royal"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-encrier"]>.cosmetic-frame-art{--mm-cadre-duree:5.2s;animation:mmFramePrecious var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-royal"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-encrier"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-sous-bois"]>.cosmetic-frame-art{--mm-cadre-duree:5.2s;animation:mmFramePrecious var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-clair-de-lune"]>.cosmetic-frame-art{--mm-cadre-duree:5.6s;animation:mmFrameMoon var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-givre"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-aurore"]>.cosmetic-frame-art{--mm-cadre-duree:5.8s;animation:mmFrameExceptional var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-constellation"]>.cosmetic-frame-art{--mm-cadre-duree:4.8s;animation:mmFrameStars var(--mm-cadre-duree) ease-in-out infinite}
