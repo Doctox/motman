@@ -566,6 +566,94 @@ test('l’accueil tient quand le téléphone agrandit le texte', async ({ browse
   }
 })
 
+test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne déplace rien', async ({ browser }) => {
+  // Mesuré le 13/10/2026 en 360 px : l'art du Dragon doré (146 % de son rond)
+  // mordait de 8 px sur le pseudo, le titre, l'XP et le rang de l'accueil ; les
+  // seize cadres illustrés touchaient, au profil huit sur seize. On équipe le
+  // cadre à l'art le plus large du catalogue — lu dans la feuille, pour que le
+  // test suive les cadres à venir — et on compare à un cadre simple : même
+  // texte au même endroit, même hauteur, et pas un pixel de texte sous l'art,
+  // pris au pic de son animation.
+  const feuille = readFileSync('src/cosmetic-portrait.css', 'utf8')
+  const [plusLarge] = [...feuille.matchAll(/data-frame="([a-z0-9-]+)"\]\{--frame-art-scale:([\d.]+)/g)]
+    .map(([, id, echelle]) => ({ id, echelle: Number(echelle) }))
+    .sort((gauche, droite) => droite.echelle - gauche.echelle)
+  expect(plusLarge.echelle).toBeGreaterThanOrEqual(1.46)
+
+  const ouvrir = async (cadre: string) => {
+    const identity = {
+      version: 1,
+      playerId: `guest_${randomUUID()}`,
+      displayName: 'Joueur Test',
+      accountType: 'guest',
+      createdAt: new Date().toISOString(),
+    }
+    const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+    const cosmetics = {
+      plumes: 12_345,
+      ownedAvatarIds: ['plume-motman'], ownedFrameIds: ['cadre-ivoire', cadre], ownedAnimationIds: ['animation-none'],
+      equippedAvatarId: 'plume-motman', equippedFrameId: cadre, equippedAnimationId: 'animation-none',
+    }
+    expect((await api.post('/api/auth/bootstrap', { data: { identity, cosmetics, progress: { level: 12 } } })).ok()).toBe(true)
+    await api.dispose()
+
+    const context = await browser.newContext({ viewport: { width: 360, height: 800 } })
+    await context.addInitScript(stored => {
+      localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+      localStorage.setItem('motman-theme', 'dark')
+      localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+      localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+    }, identity)
+    const page = await context.newPage()
+    const mesurer = (racine: string) => page.locator(racine).evaluate(conteneur => {
+      const portrait = conteneur.querySelector<HTMLElement>('.cosmetic-frame')!
+      const art = portrait.querySelector<HTMLElement>('.cosmetic-frame-art')
+      const rond = portrait.getBoundingClientRect()
+      const demi = art ? art.offsetWidth * Number(getComputedStyle(portrait).getPropertyValue('--frame-art-pic')) / 2 : rond.width / 2
+      const cx = rond.left + rond.width / 2
+      const cy = rond.top + rond.height / 2
+      const boites: Array<{ quoi: string; boite: DOMRect }> = []
+      const marcheur = document.createTreeWalker(conteneur, NodeFilter.SHOW_TEXT)
+      for (let noeud = marcheur.nextNode(); noeud; noeud = marcheur.nextNode()) {
+        if (!noeud.textContent?.trim() || noeud.parentElement?.closest('.cosmetic-frame')) continue
+        const plage = document.createRange()
+        plage.selectNodeContents(noeud)
+        for (const boite of plage.getClientRects()) boites.push({ quoi: noeud.textContent.trim(), boite })
+      }
+      for (const element of conteneur.querySelectorAll('.mm-home-rank img, .mm-home-account-xp')) boites.push({ quoi: element.className || 'rang', boite: element.getBoundingClientRect() })
+      return {
+        hauteur: conteneur.getBoundingClientRect().height,
+        pseudo: conteneur.querySelector('h1')!.getBoundingClientRect().left,
+        // Un pixel de jour au moins entre l'art et chaque texte.
+        touches: boites
+          .filter(({ boite }) => boite.width > 0 && boite.left < cx + demi + 1 && boite.right > cx - demi - 1 && boite.top < cy + demi && boite.bottom > cy - demi)
+          .map(({ quoi }) => quoi),
+      }
+    })
+    try {
+      await page.goto('/#accueil')
+      await page.evaluate(() => document.documentElement.classList.add('native-runtime'))
+      await expect(page.locator(`.mm-home-account [data-frame="${cadre}"]`)).toBeVisible()
+      const accueil = await mesurer('.mm-home-account')
+      await page.locator('.mm-bottom-nav button', { hasText: 'Profil' }).click()
+      await expect(page.locator(`.mm-profile-hero [data-frame="${cadre}"]`)).toBeVisible()
+      const profil = await mesurer('.mm-profile-hero')
+      return { accueil, profil }
+    } finally {
+      await context.close()
+    }
+  }
+
+  const simple = await ouvrir('cadre-ivoire')
+  const illustre = await ouvrir(plusLarge.id)
+  expect(illustre.accueil.touches).toEqual([])
+  expect(illustre.profil.touches).toEqual([])
+  for (const ecran of ['accueil', 'profil'] as const) {
+    expect(illustre[ecran].hauteur).toBeCloseTo(simple[ecran].hauteur, 0)
+    expect(illustre[ecran].pseudo).toBeCloseTo(simple[ecran].pseudo, 0)
+  }
+})
+
 test('sur un écran court, la barre de navigation reste visible', async ({ browser }) => {
   // Mesuré le 17/09/2026 sur le téléphone du propriétaire : sa fenêtre faisait
   // 560 px de haut (zoom du navigateur), la coque en imposait 680 par

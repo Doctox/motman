@@ -115,6 +115,41 @@ describe('premier panier offert', () => {
   })
 })
 
+describe('débord des cadres illustrés', () => {
+  // L'accueil et le profil réduisent un portrait illustré pour que son art
+  // s'arrête avant le texte (menu-play.css). Le calcul lit deux nombres de
+  // cosmetic-portrait.css : l'échelle du cadre et le pic de son animation. Un
+  // cadre réglé autrement, ou une animation qui grossit plus que le pic, et
+  // l'art remord sur le pseudo sans que rien ne casse.
+  async function feuille(): Promise<string> {
+    const { readFileSync } = await import('node:fs')
+    return readFileSync('src/cosmetic-portrait.css', 'utf8')
+  }
+
+  it('chaque cadre illustré déclare son échelle, et aucun sa taille', async () => {
+    const css = await feuille()
+    const reglages = new Map([...css.matchAll(/^\.cosmetic-frame\[data-frame="([a-z0-9-]+)"\]\{([^}]*)\}/gm)].map(([, id, corps]) => [id, corps]))
+    const sansEchelle = FRAMES.filter(cadre => cadre.asset && !/--frame-art-scale:\d+(\.\d+)?;/.test(reglages.get(cadre.id) ?? ''))
+    expect(sansEchelle.map(cadre => cadre.id)).toEqual([])
+    expect([...reglages].filter(([, corps]) => corps.includes('--frame-art-size')).map(([id]) => id)).toEqual([])
+  })
+
+  it('le pic couvre la plus forte croissance des animations de cadre', async () => {
+    const css = await feuille()
+    const pic = Number(/--frame-art-pic:([\d.]+)/.exec(css)?.[1])
+    // Boîte d'un carré agrandi de s et tourné de θ : s × (cos θ + sin θ).
+    const croissances = [...css.matchAll(/@keyframes mmFrame\w+\{.*$/gm)]
+      .flatMap(([ligne]) => [...ligne.matchAll(/transform:([^;}]*)/g)])
+      .map(([, transformation]) => {
+        const s = Number(/scale\(([\d.]+)\)/.exec(transformation)?.[1] ?? 1)
+        const angle = Math.abs(Number(/rotate\((-?[\d.]+)deg\)/.exec(transformation)?.[1] ?? 0)) * Math.PI / 180
+        return s * (Math.cos(angle) + Math.sin(angle))
+      })
+    expect(croissances.length).toBeGreaterThan(10)
+    expect(pic).toBeGreaterThanOrEqual(Math.max(...croissances))
+  })
+})
+
 describe('avatars supprimés', () => {
   it('Moka a disparu du catalogue ; un profil qui le portait retombe sur la Plume', async () => {
     const { getAvatar } = await import('./cosmetics')
