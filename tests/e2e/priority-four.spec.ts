@@ -569,7 +569,8 @@ test('l’accueil tient quand le téléphone agrandit le texte', async ({ browse
 test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne déplace rien', async ({ browser }) => {
   // Mesuré le 13/10/2026 en 360 px : l'art du Dragon doré (146 % de son rond)
   // mordait de 8 px sur le pseudo, le titre, l'XP et le rang de l'accueil ; les
-  // seize cadres illustrés touchaient, au profil huit sur seize. On équipe le
+  // seize cadres illustrés touchaient, au profil huit sur seize, et dans
+  // l'aperçu de l'éditeur l'art descendait de 9 px dans la ligne du pseudo. On équipe le
   // cadre à l'art le plus large du catalogue — lu dans la feuille, pour que le
   // test suive les cadres à venir — et on compare à un cadre simple : même
   // texte au même endroit, même hauteur, et pas un pixel de texte sous l'art,
@@ -623,10 +624,12 @@ test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne dépla
       for (const element of conteneur.querySelectorAll('.mm-home-rank img, .mm-home-account-xp')) boites.push({ quoi: element.className || 'rang', boite: element.getBoundingClientRect() })
       return {
         hauteur: conteneur.getBoundingClientRect().height,
-        pseudo: conteneur.querySelector('h1')!.getBoundingClientRect().left,
-        // Un pixel de jour au moins entre l'art et chaque texte.
+        // Le pseudo : un <h1> à l'accueil et au profil, un <strong> dans l'aperçu.
+        // Repéré dans sa carte, pas dans l'écran : la page entre en glissant.
+        pseudo: (({ left, top }, carte) => ({ left: left - carte.left, top: top - carte.top }))(conteneur.querySelector('h1, strong')!.getBoundingClientRect(), conteneur.getBoundingClientRect()),
+        // Un pixel de jour au moins entre l'art et chaque texte, dans les deux sens.
         touches: boites
-          .filter(({ boite }) => boite.width > 0 && boite.left < cx + demi + 1 && boite.right > cx - demi - 1 && boite.top < cy + demi && boite.bottom > cy - demi)
+          .filter(({ boite }) => boite.width > 0 && boite.left < cx + demi + 1 && boite.right > cx - demi - 1 && boite.top < cy + demi + 1 && boite.bottom > cy - demi - 1)
           .map(({ quoi }) => quoi),
       }
     })
@@ -638,7 +641,10 @@ test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne dépla
       await page.locator('.mm-bottom-nav button', { hasText: 'Profil' }).click()
       await expect(page.locator(`.mm-profile-hero [data-frame="${cadre}"]`)).toBeVisible()
       const profil = await mesurer('.mm-profile-hero')
-      return { accueil, profil }
+      await page.locator('.mm-profile-hero button', { hasText: 'Modifier' }).click()
+      await expect(page.locator(`.mm-profile-editor .mm-guest-preview [data-frame="${cadre}"]`)).toBeVisible()
+      const apercu = await mesurer('.mm-profile-editor .mm-guest-preview')
+      return { accueil, profil, apercu }
     } finally {
       await context.close()
     }
@@ -648,9 +654,11 @@ test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne dépla
   const illustre = await ouvrir(plusLarge.id)
   expect(illustre.accueil.touches).toEqual([])
   expect(illustre.profil.touches).toEqual([])
-  for (const ecran of ['accueil', 'profil'] as const) {
+  expect(illustre.apercu.touches).toEqual([])
+  for (const ecran of ['accueil', 'profil', 'apercu'] as const) {
     expect(illustre[ecran].hauteur).toBeCloseTo(simple[ecran].hauteur, 0)
-    expect(illustre[ecran].pseudo).toBeCloseTo(simple[ecran].pseudo, 0)
+    expect(illustre[ecran].pseudo.left).toBeCloseTo(simple[ecran].pseudo.left, 0)
+    expect(illustre[ecran].pseudo.top).toBeCloseTo(simple[ecran].pseudo.top, 0)
   }
 })
 

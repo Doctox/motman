@@ -215,20 +215,28 @@ html[data-motion="off"] .mm-recent-history{transition:none}
    déborde de son rond de (échelle × pic − 1) / 2 de chaque côté. À 82 px, le
    Dragon doré mordait de 8 px sur le pseudo, le titre, l'XP et le rang, et les
    seize cadres illustrés touchaient — Sous-bois de 10 px ; au profil, huit sur
-   seize, et cinq autres à moins d'un pixel. Réserver ce débord en marge aurait rétréci le texte : en 360 px,
-   « Joueur Test » et ses plumes passaient sur deux lignes, la barre grandissait.
+   seize, et cinq autres à moins d'un pixel ; dans l'aperçu de l'éditeur, l'art
+   descendait de 9 px dans la ligne du pseudo. Réserver ce débord en marge
+   aurait rétréci le texte : en 360 px, « Joueur Test » et ses plumes passaient
+   sur deux lignes, la barre grandissait.
 
    Le portrait garde donc sa PLACE (`--mm-place`, le rond d'un cadre simple) et
    son ÉCART au texte (`--mm-ecart`). Illustré, il se réduit juste assez pour
    que son art, au pic de son animation, s'arrête 3 px avant le texte ; la marge
    rend le reste, en largeur comme en hauteur. Ni le texte ni la hauteur de la
    rangée ne bougent d'un pixel, quel que soit le cadre. L'échelle et le pic
-   viennent de cosmetic-portrait.css. */
-.mm-home-account>.mm-portrait.has-frame-art,.mm-profile-hero>.mm-portrait.has-frame-art{
+   viennent de cosmetic-portrait.css ; la place et l'écart, de la feuille de
+   chaque conteneur. */
+.mm-home-account>.mm-portrait.has-frame-art,.mm-profile-hero>.mm-portrait.has-frame-art,.mm-profile-editor .mm-guest-preview>.mm-portrait.has-frame-art{
   --mm-rond:min(var(--mm-place),calc((var(--mm-place) + var(--mm-ecart) - 3px) / (1 + (var(--frame-art-scale) * var(--frame-art-pic) - 1) / 2)));
   width:var(--mm-rond);height:var(--mm-rond);flex-basis:var(--mm-rond);
   margin:calc((var(--mm-place) - var(--mm-rond)) / 2) calc(var(--mm-place) - var(--mm-rond)) calc((var(--mm-place) - var(--mm-rond)) / 2) 0;
 }
+/* L'aperçu de l'éditeur empile le portrait AU-DESSUS du pseudo : le rond se
+   colle en haut de sa place et l'art déborde vers le haut de la carte, qui a
+   13 px de marge intérieure — jamais vers le pseudo. Centré, il aurait fallu
+   le réduire à 48 px au lieu de 54 pour Sous-bois. */
+.mm-profile-editor .mm-guest-preview>.mm-portrait.has-frame-art{margin:0 0 calc(var(--mm-place) - var(--mm-rond))}
 .mm-home-account-copy{flex:1;min-width:0;display:grid;gap:5px}
 .mm-home-account-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;min-width:0}
 .mm-home-account-who{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
