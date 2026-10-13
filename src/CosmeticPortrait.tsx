@@ -47,6 +47,9 @@ export function CosmeticPortrait({ avatarId, frameId, animationId = NO_ANIMATION
       <img className="cosmetic-avatar-image" src={assetUrl(avatar.asset)} alt={alt} loading="lazy" decoding="async" />
     </span>
     {frame.asset ? <img className="cosmetic-frame-art" src={assetUrl(frame.asset)} alt="" aria-hidden="true" decoding="async" /> : null}
+    {/* La lueur reprend la classe de l'art : même place, même taille, même
+        respiration ; seule son opacité vacille (cosmetic-portrait.css). */}
+    {frame.asset && frame.glow ? <img className="cosmetic-frame-art cosmetic-frame-glow" src={assetUrl(frame.glow)} alt="" aria-hidden="true" decoding="async" /> : null}
     {/* L'animation joue TOUJOURS, y compris sous `prefers-reduced-motion`.
         Un `<source media="(prefers-reduced-motion: reduce)">` la remplaçait
         auparavant par un poster fixe — sauf dans l'Épicerie, qui passait

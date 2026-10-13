@@ -642,6 +642,15 @@
     },
     {
       "kind": "frame",
+      "id": "cadre-citrouilles",
+      "name": "Citrouilles",
+      "rarity": "legendaire",
+      "pricePlumes": 8000,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-citrouilles.webp"
+    },
+    {
+      "kind": "frame",
       "id": "cadre-dragon-dore",
       "name": "Dragon doré",
       "rarity": "legendaire",

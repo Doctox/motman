@@ -19,6 +19,9 @@ export type FrameDefinition = {
   name: string
   description: string
   asset?: string
+  /** Lumière posée sur l'art et animée à part (les citrouilles qui vacillent) :
+   *  même image, même cadrage que `asset`, transparente hors de la lueur. */
+  glow?: string
   pricePlumes: number
   rarity: CosmeticRarity
   availability: 'starter' | 'epicerie'
@@ -108,6 +111,7 @@ export const FRAMES: FrameDefinition[] = [
   { id: 'cadre-givre', name: 'Givre', description: 'Cristaux d’argent et saphirs glacés.', asset: '/assets/frames/cadre-givre.webp', pricePlumes: 5_600, rarity: 'exceptionnel', availability: 'epicerie' },
   { id: 'cadre-aurore', name: 'Aurore', description: 'Rubans célestes et soleil d’opale.', asset: '/assets/frames/cadre-aurore.webp', pricePlumes: 6_000, rarity: 'exceptionnel', availability: 'epicerie' },
   { id: 'cadre-constellation', name: 'Constellation', description: 'Orbite céleste et couronne d’étoiles.', asset: '/assets/frames/cadre-constellation.webp', pricePlumes: 7_800, rarity: 'legendaire', availability: 'epicerie' },
+  { id: 'cadre-citrouilles', name: 'Citrouilles', description: 'Citrouilles qui s’illuminent, lune d’or et chauves-souris.', asset: '/assets/frames/cadre-citrouilles.webp', glow: '/assets/frames/cadre-citrouilles-lueur.webp', pricePlumes: 8_000, rarity: 'legendaire', availability: 'epicerie' },
   { id: 'cadre-dragon-dore', name: 'Dragon doré', description: 'Gardien d’or serti d’émeraudes.', asset: '/assets/frames/cadre-dragon-dore.webp', pricePlumes: 8_400, rarity: 'legendaire', availability: 'epicerie' },
   { id: 'cadre-jardin-des-songes', name: 'Jardin des songes', description: 'Fleurs lumineuses et papillons de nuit.', asset: '/assets/frames/cadre-jardin-des-songes.webp', pricePlumes: 9_000, rarity: 'legendaire', availability: 'epicerie' },
 ]

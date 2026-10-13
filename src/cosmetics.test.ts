@@ -72,7 +72,7 @@ describe('images du catalogue', () => {
     const { existsSync } = await import('node:fs')
     const assets = [
       ...AVATARS.map(item => item.asset),
-      ...FRAMES.flatMap(item => item.asset ? [item.asset] : []),
+      ...FRAMES.flatMap(item => [item.asset, item.glow].filter((asset): asset is string => Boolean(asset))),
       ...ANIMATIONS.flatMap(item => [item.asset, item.poster].filter((asset): asset is string => Boolean(asset))),
     ]
     expect(assets.filter(asset => !existsSync(`public${asset}`))).toEqual([])
