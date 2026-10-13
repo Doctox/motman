@@ -22,7 +22,7 @@ vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { child
 import { dailyDateKey } from '../dailyDate'
 import { dailyNote } from '../dailyScore'
 import type { MatchState } from '../matches'
-import { ResultPanel } from './DuelPresentation'
+import { DuelPlayer, longueurDuPseudo, ResultPanel } from './DuelPresentation'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -112,5 +112,33 @@ describe('ajouter l’adversaire en ami', () => {
   it('le propose à un inconnu', async () => {
     await ouvrir({})
     expect(bouton()?.className).toBe('duel-friend-add')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LA CARTE DU JOUEUR EN PARTIE (13/10/2026) : le pseudo prend la taille que sa
+// longueur permet, et le titre porté part sur une banderole.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('la carte du joueur en partie', () => {
+  it('donne au pseudo une taille selon sa longueur', () => {
+    expect(longueurDuPseudo('Toi')).toBe('court')
+    expect(longueurDuPseudo('Caroline')).toBe('moyen')
+    expect(longueurDuPseudo('Invité 9558')).toBe('long')
+    expect(longueurDuPseudo('Maximilien75')).toBe('tres-long')
+    // Une lettre accentuée ou un emoji compte pour UN caractère affiché.
+    expect(longueurDuPseudo('Éloïse')).toBe('court')
+  })
+
+  it('pose le titre sur une banderole, et rien quand il n’y en a pas', () => {
+    act(() => racine.render(createElement(DuelPlayer, { name: 'Toi', score: 12, active: true, initials: 'T', detail: 'Niv. 21', title: 'Amoureux des mots', player: true })))
+    const carte = hote.querySelector('.player')
+    expect(carte?.classList.contains('has-title')).toBe(true)
+    expect(hote.querySelector('small')?.dataset.longueur).toBe('court')
+    expect(hote.querySelector('.player-title > span')?.textContent).toBe('Amoureux des mots')
+
+    act(() => racine.render(createElement(DuelPlayer, { name: 'Lina', score: 0, active: false, initials: 'L', detail: 'Niv. 17', title: null })))
+    expect(hote.querySelector('.player')?.classList.contains('has-title')).toBe(false)
+    expect(hote.querySelector('.player-title')).toBeNull()
   })
 })

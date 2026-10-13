@@ -32,8 +32,9 @@ begin
   if (select count(*) from public.shadow_players) <> 6 then
     raise exception 'Six joueurs de l''ombre attendus, % trouves', (select count(*) from public.shadow_players);
   end if;
-  -- Un vrai compte, un drapeau ou un animal (jamais l'avatar de départ), un
-  -- titre qu'il possède, une progression, et jamais « en ligne ».
+  -- Un vrai compte, un drapeau ou un animal (jamais l'avatar de départ), une
+  -- progression, jamais « en ligne », et un titre qu'il possède S'IL en porte
+  -- un : la moitié n'en porte pas, comme les vrais joueurs (13/10/2026).
   if exists (
     select 1
     from public.shadow_players s
@@ -41,7 +42,8 @@ begin
     left join public.player_progress pp on pp.user_id = s.user_id
     where p.account_kind <> 'account'
        or not (p.avatar_id like 'drapeau-%' or p.avatar_id in ('lapin', 'loutre', 'panda'))
-       or not exists (select 1 from public.player_titles t where t.user_id = s.user_id and t.title_id = p.title_id)
+       or (p.title_id is not null
+           and not exists (select 1 from public.player_titles t where t.user_id = s.user_id and t.title_id = p.title_id))
        or pp.user_id is null
        or p.last_seen > pg_catalog.now() - interval '1 day'
   ) then

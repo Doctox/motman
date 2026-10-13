@@ -204,5 +204,11 @@
     "titre": "Les nouveautés dès ta première visite",
     "texte": "Le mot du créateur, qui t'accueille à ta première visite du jour, a maintenant un onglet « Nouveautés » : tout ce qui a changé depuis la veille, sans aller le chercher.",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-10-13T11:26",
+    "titre": "Ton titre sur une banderole",
+    "texte": "En partie, ton titre s'affiche en entier sur une banderole dorée, et ton pseudo remplace « Toi », en plus gros. Choisis ton titre dans ton profil.",
+    "genre": "affichage"
   }
 ]

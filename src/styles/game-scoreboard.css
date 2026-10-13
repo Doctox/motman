@@ -50,10 +50,69 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 }
 [data-theme="dark"] .scoreboard .player small{color:#edf5ef}
 [data-theme="dark"] .scoreboard .player em{color:#bcc9c2}
-/* Le titre porté, sous le pseudo (12/10/2026). La carte garde sa hauteur fixe :
-   la ligne se loge dans la marge, et se coupe plutôt que de pousser le plateau. */
-.scoreboard .player .player-title{display:block;max-width:100%;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:italic 600 0.5rem/1.15 'DM Sans',sans-serif;color:#8b7251}
-[data-theme="dark"] .scoreboard .player .player-title{color:#c8b48f}
+/* La carte du joueur, reprise le 13/10/2026 (« le pseudo devrait être plus
+   gros », « le titre plus en valeur »). La première version logeait le titre
+   en 8 px italique dans une colonne de 74 px : « Amoureux des … ».
+
+   1. Le PSEUDO prend la taille que sa longueur permet (`data-longueur`,
+      DuelPresentation.tsx) : 16 px pour « Toi » ou « Nathan », 12 px pour
+      « Invité 9558 », qui tient enfin en entier.
+   2. Le NIVEAU passe de 6 à 9 px : il se lisait à peine.
+   3. Le TITRE devient une banderole dorée à cheval sur le bas de la carte, sur
+      toute sa largeur (130 px au lieu de 74) : « Virtuose des lettres » y
+      tient. Petite (9 px) et surtout SOUS la carte : elle déborde de 8 px,
+      ses pointes de 9, dans les 12 à 14 px qui séparent la carte du plateau,
+      sans rien pousser : la grille ne bouge pas d'un pixel. Vérifié avec les grands cadres (Dragon doré, Jardin des
+      songes, Givre, Royal), en 412, 360 et natif, clair et sombre. */
+.scoreboard .player{position:relative}
+.scoreboard .player>span:last-child{position:static}
+.scoreboard .player small{font:700 1rem/1.1 'Playfair Display',serif;letter-spacing:-.005em}
+.scoreboard .player small[data-longueur="moyen"]{font-size:0.875rem}
+.scoreboard .player small[data-longueur="long"]{font-size:0.75rem}
+.scoreboard .player small[data-longueur="tres-long"]{font-size:0.6875rem}
+.scoreboard .player em{max-width:100%;margin-top:2px;font-size:0.5625rem;letter-spacing:.07em;color:#8b7251}
+.scoreboard .player strong{margin-top:1px}
+/* Dès qu'une banderole est là, le texte des DEUX cartes remonte d'un cran :
+   les chiffres du score (Playfair, qui descendent sous la ligne) ne la
+   touchent plus, et les pseudos restent alignés d'une carte à l'autre. */
+.scoreboard:has(.player-title) .player>span:last-child{padding-bottom:4px}
+/* La banderole : un bandeau doré, et deux pointes de ruban un cran plus bas,
+   derrière lui. Le texte vit dans un <span> pour se couper en « … » sans
+   couper les pointes. */
+.scoreboard .player .player-title{
+  position:absolute;z-index:6;left:50%;bottom:0;translate:-50% 62%;
+  display:block;max-width:calc(100% - 16px);font-style:normal;
+}
+.scoreboard .player .player-title>span{
+  position:relative;z-index:1;display:block;padding:1px 7px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:700 0.5625rem/1.15 'DM Sans',sans-serif;letter-spacing:.01em;color:#583a08;
+  border-block:1px solid #c3973f;
+  background:linear-gradient(180deg,#fff3c9 0%,#f5dc93 55%,#e6c26a 100%);
+  box-shadow:inset 0 1px 0 #fffbea,0 2px 5px #6b4c1438;
+}
+.scoreboard .player .player-title:before,
+.scoreboard .player .player-title:after{
+  content:'';position:absolute;top:2px;bottom:-1px;width:9px;
+  background:linear-gradient(180deg,#d9ad55,#b98a33);
+}
+.scoreboard .player .player-title:before{left:-6px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,42% 50%)}
+.scoreboard .player .player-title:after{right:-6px;clip-path:polygon(0 0,100% 0,58% 50%,100% 100%,0 100%)}
+[data-theme="dark"] .scoreboard .player .player-title>span{
+  color:#fbe7b0;border-color:#a37c33;
+  background:linear-gradient(180deg,#6b5527 0%,#4f3e1a 100%);
+  box-shadow:inset 0 1px 0 #ffffff1f,0 2px 6px #0008;
+}
+[data-theme="dark"] .scoreboard .player .player-title:before,
+[data-theme="dark"] .scoreboard .player .player-title:after{background:linear-gradient(180deg,#8a6b2c,#5e4719)}
+@media(max-width:370px){
+  .scoreboard .player small{font-size:0.875rem}
+  .scoreboard .player small[data-longueur="moyen"]{font-size:0.75rem}
+  .scoreboard .player small[data-longueur="long"]{font-size:0.6875rem}
+  .scoreboard .player small[data-longueur="tres-long"]{font-size:0.625rem}
+  .scoreboard .player .player-title{max-width:calc(100% - 14px)}
+  .scoreboard .player .player-title>span{padding-inline:6px;font-size:0.53125rem}
+}
 [data-theme="dark"] .scoreboard .player strong{color:#ff8f6b}
 [data-theme="dark"] .scoreboard .player:last-child strong{color:#9bddbc}
 [data-theme="dark"] .scoreboard .player .avatar{
