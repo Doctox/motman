@@ -188,15 +188,21 @@
     "genre": "affichage"
   },
   {
-    "ajoute": "2026-10-13T10:07",
+    "ajoute": "2026-10-13T09:57",
     "titre": "4 nouveaux thèmes",
     "texte": "Stars, Enfants, Transports & Moteurs et Mots d'aujourd'hui rejoignent le défi du jour. Et Culture pop, Argent & Banque, Animaux et Corps humain passent de 5 à 25 grilles.",
     "genre": "theme"
   },
   {
-    "ajoute": "2026-10-13T10:07",
+    "ajoute": "2026-10-13T09:57",
     "titre": "200 nouvelles grilles",
     "texte": "Les parties normales en comptent désormais 619 : tu retomberas moins souvent sur la même.",
     "genre": "grilles"
+  },
+  {
+    "ajoute": "2026-10-13T09:58",
+    "titre": "Les nouveautés dès ta première visite",
+    "texte": "Le mot du créateur, qui t'accueille à ta première visite du jour, a maintenant un onglet « Nouveautés » : tout ce qui a changé depuis la veille, sans aller le chercher.",
+    "genre": "affichage"
   }
 ]
