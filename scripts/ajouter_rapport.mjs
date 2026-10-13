@@ -1,6 +1,6 @@
 // Déposer un rapport de nouveauté.
 //
-//   npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur." [genre]
+//   npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur." [genre] [--immediat]
 //
 // Le genre choisit l'icône : theme, grilles, affichage ou jeu (par défaut).
 //
@@ -9,15 +9,20 @@
 // l'app le regroupe avec les autres rapports du même créneau en un seul message.
 // D'ici là, on peut encore corriger son texte dans le fichier.
 //
+// `--immediat` : le rapport paraît dès le déploiement, dans un message à part,
+// sans attendre le rendez-vous — quand le propriétaire demande de « forcer »
+// une notification de nouveauté (13/10/2026).
+//
 // À faire à chaque commit qu'un joueur REMARQUERAIT — un thème, un lot, une
 // gêne qui disparaît. Pas pour l'outillage, les tests ou le serveur.
 
 import process from 'node:process'
 import { ajouterRapport } from './lib/rapports.mjs'
 
-const [titre, texte, genre] = process.argv.slice(2)
+const immediat = process.argv.includes('--immediat')
+const [titre, texte, genre] = process.argv.slice(2).filter(argument => argument !== '--immediat')
 try {
-  const { ajoute, annonce, memeCreneau } = await ajouterRapport({ titre, texte, genre })
+  const { ajoute, annonce, memeCreneau } = await ajouterRapport({ titre, texte, genre, immediat })
   console.log(`✔ Rapport déposé (${ajoute}) — ${annonce}.`)
   console.log(memeCreneau > 1
     ? `  Il sera regroupé avec ${memeCreneau - 1} autre(s) rapport(s) du même créneau : un seul message pour tous.`
@@ -25,6 +30,6 @@ try {
   console.log('  À commiter avec le changement qu’il annonce.')
 } catch (erreur) {
   console.error(`✖ ${erreur.message}`)
-  console.error('  Usage : npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur." [theme|grilles|affichage|jeu]')
+  console.error('  Usage : npm run rapport -- "Titre court" "Une ou deux phrases pour le joueur." [theme|grilles|affichage|jeu] [--immediat]')
   process.exit(1)
 }

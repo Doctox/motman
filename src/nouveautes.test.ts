@@ -90,6 +90,31 @@ describe('les messages parus', () => {
     expect(publies.map(m => `${m.date} ${m.heure} h`)).toEqual(['2026-09-18 18 h', '2026-09-18 10 h'])
   })
 
+  it('un rapport IMMÉDIAT paraît aussitôt, dans un message à lui', () => {
+    // Le 13/10/2026 : le message de 10 h était déjà paru, et lu par certains.
+    // Les rapports « forcés » à 11 h ne doivent ni attendre 18 h, ni se cacher
+    // dans ce message déjà lu.
+    const jour = [
+      rapport('2026-10-13T09:57', 'matin'),
+      { ...rapport('2026-10-13T11:26', 'banderole'), immediat: true },
+      { ...rapport('2026-10-13T11:33', 'halloween'), immediat: true },
+      rapport('2026-10-13T14:00', 'après-midi'),
+    ]
+    const aMidi = nouveautesPubliees(jour, aParis('2026-10-13', 12))
+    expect(aMidi.map(m => m.id)).toEqual(['maj-2026-10-13-11-vite', 'maj-2026-10-13-10'])
+    expect(aMidi[0].rapports.map(r => r.titre)).toEqual(['banderole', 'halloween'])
+    // Il est NON LU pour qui avait déjà lu le message du matin.
+    expect(nouveautesNonLues(new Set(['maj-2026-10-13-10']), aMidi).map(m => m.id)).toEqual(['maj-2026-10-13-11-vite'])
+    // Le soir, le rendez-vous de 18 h passe devant lui, sans l'absorber.
+    expect(nouveautesPubliees(jour, aParis('2026-10-13', 19)).map(m => m.id))
+      .toEqual(['maj-2026-10-13-18', 'maj-2026-10-13-11-vite', 'maj-2026-10-13-10'])
+  })
+
+  it('un rapport immédiat déposé à 10 h ne rejoint pas le message de 10 h', () => {
+    const publies = nouveautesPubliees([rapport('2026-10-13T08:00', 'matin'), { ...rapport('2026-10-13T10:40', 'vite'), immediat: true }], aParis('2026-10-13', 11))
+    expect(publies.map(m => m.id)).toEqual(['maj-2026-10-13-10-vite', 'maj-2026-10-13-10'])
+  })
+
   it('les rapports d’un message restent dans l’ordre où ils ont été déposés', () => {
     const desordre = [rapport('2026-09-18T15:00', 'deux'), rapport('2026-09-18T11:00', 'un')]
     expect(nouveautesPubliees(desordre, aParis('2026-09-18', 19))[0].rapports.map(r => r.titre)).toEqual(['un', 'deux'])

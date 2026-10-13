@@ -18,7 +18,7 @@ export const TEXTE_MAX = 200
 
 const JOUR = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })
 
-export async function ajouterRapport({ titre, texte, genre }, maintenantMs = Date.now()) {
+export async function ajouterRapport({ titre, texte, genre, immediat = false }, maintenantMs = Date.now()) {
   titre = String(titre ?? '').trim()
   texte = String(texte ?? '').trim()
   if (!titre || !texte) throw new Error('Un rapport demande un titre ET un texte.')
@@ -31,14 +31,14 @@ export async function ajouterRapport({ titre, texte, genre }, maintenantMs = Dat
   }
   const ajoute = regle.horodatageParis(maintenantMs)
   const rapports = JSON.parse(readFileSync(FICHIER_RAPPORTS, 'utf8'))
-  rapports.push(genre === undefined ? { ajoute, titre, texte } : { ajoute, titre, texte, genre })
+  rapports.push({ ajoute, titre, texte, ...(genre === undefined ? {} : { genre }), ...(immediat ? { immediat: true } : {}) })
   writeFileSync(FICHIER_RAPPORTS, `${JSON.stringify(rapports, null, 2)}\n`, 'utf8')
 
-  const creneau = regle.creneauDePublication(ajoute)
+  const creneau = regle.creneauDePublication(ajoute, immediat)
   const memeCreneau = rapports.filter(r => {
-    const c = regle.creneauDePublication(r.ajoute)
-    return c.date === creneau.date && c.heure === creneau.heure
+    const c = regle.creneauDePublication(r.ajoute, r.immediat === true)
+    return c.date === creneau.date && c.heure === creneau.heure && c.immediat === creneau.immediat
   }).length
   const jour = JOUR.format(new Date(`${creneau.date}T12:00:00Z`))
-  return { ajoute, creneau, memeCreneau, annonce: `paraîtra ${jour} à ${creneau.heure} h` }
+  return { ajoute, creneau, memeCreneau, annonce: immediat ? 'paraîtra dès le déploiement, dans un message à part' : `paraîtra ${jour} à ${creneau.heure} h` }
 }

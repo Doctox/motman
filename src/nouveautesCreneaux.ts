@@ -50,10 +50,19 @@ function lendemain(date: string): string {
   return new Date(Date.UTC(annee, mois - 1, jour + 1)).toISOString().slice(0, 10)
 }
 
-/** Le rendez-vous où un rapport paraîtra : le premier qui suit son dépôt. */
-export function creneauDePublication(ajoute: string): { date: string; heure: number } {
+/**
+ * Le rendez-vous où un rapport paraîtra : le premier qui suit son dépôt.
+ *
+ * SAUF un rapport IMMÉDIAT (13/10/2026, « force une notification ») : il paraît
+ * dans l'heure même de son dépôt, donc dès que le déploiement arrive, et dans
+ * un message À LUI (`immediat`, que `nouveautes.ts` met dans l'identifiant).
+ * Le ranger dans le rendez-vous de 10 h, déjà paru, l'aurait caché aux joueurs
+ * qui avaient lu ce message-là le matin.
+ */
+export function creneauDePublication(ajoute: string, immediat = false): { date: string; heure: number; immediat?: true } {
   const date = ajoute.slice(0, 10)
   const heureDepot = Number(ajoute.slice(11, 13))
+  if (immediat) return { date, heure: heureDepot, immediat: true }
   const suivant = HEURES_DE_PUBLICATION.find(heure => heureDepot < heure)
   return suivant === undefined
     ? { date: lendemain(date), heure: HEURES_DE_PUBLICATION[0] }

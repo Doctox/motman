@@ -46,6 +46,11 @@ export type Rapport = {
   texte: string
   /** Choisit l'icône du rapport ; sans genre, l'étincelle de « jeu ». */
   genre?: GenreDeRapport
+  /**
+   * Paraît dès le déploiement, sans attendre le rendez-vous, dans un message
+   * à part (13/10/2026) : pour quand le propriétaire veut prévenir tout de suite.
+   */
+  immediat?: boolean
 }
 
 /** Un message de nouveauté : les rapports d'un créneau, publiés ensemble. */
@@ -75,10 +80,12 @@ export function nouveautesPubliees(rapports: readonly Rapport[] = RAPPORTS, main
   // La clé `AAAA-MM-JJ-HH` se trie comme le temps : deux chiffres pour l'heure.
   const parCreneau = new Map<string, { date: string; heure: number; rapports: Rapport[] }>()
   for (const rapport of [...rapports].sort((a, b) => a.ajoute.localeCompare(b.ajoute))) {
-    const creneau = creneauDePublication(rapport.ajoute)
+    const creneau = creneauDePublication(rapport.ajoute, rapport.immediat === true)
     if (!paru(creneau)) continue
-    const cle = `${creneau.date}-${String(creneau.heure).padStart(2, '0')}`
-    const courant = parCreneau.get(cle) ?? { ...creneau, rapports: [] }
+    // Un message immédiat a sa propre clé (`…-11-vite`) : jamais confondu avec
+    // un rendez-vous déjà lu, et toujours rangé après lui dans le tri.
+    const cle = `${creneau.date}-${String(creneau.heure).padStart(2, '0')}${creneau.immediat ? '-vite' : ''}`
+    const courant = parCreneau.get(cle) ?? { date: creneau.date, heure: creneau.heure, rapports: [] }
     courant.rapports.push(rapport)
     parCreneau.set(cle, courant)
   }
