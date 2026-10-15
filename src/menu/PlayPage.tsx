@@ -10,6 +10,7 @@ import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { asyncTimeLeft, matchOpponent } from './HomePage'
+import { noterOrigineDeLaPartie } from '../transitionPartie'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // L'ÉCRAN JOUER — trois onglets, une carte, l'historique toujours là.
@@ -189,7 +190,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       </button>)}
     </div>
 
-    {reprise ? <button type="button" className="mm-play-resume" onClick={() => resumeMatch(reprise.id)}>
+    {reprise ? <button type="button" data-partie-origine={reprise.id} className="mm-play-resume" onClick={event => { noterOrigineDeLaPartie(event.currentTarget, reprise.id); resumeMatch(reprise.id) }}>
       <Avatar label={playerInitials(matchOpponent(reprise, identity.playerId))} small />
       <span className="mm-play-resume-copy">
         <strong>{matchOpponent(reprise, identity.playerId)} · {reprise.currentPlayerId === identity.playerId ? 'à toi' : 'en attente'}</strong>

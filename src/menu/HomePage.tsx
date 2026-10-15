@@ -10,6 +10,7 @@ import { nomDuTitre } from '../titleNames'
 import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState, SocialUser } from '../social'
 import { ApercuFlottant, useAppuiLong } from './ApercuFlottant'
+import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero } from './DailyChallenge'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
@@ -132,7 +133,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
         {currentMatches.map(match => {
           const opponentName = matchOpponent(match, identity.playerId)
           const myTurn = match.currentPlayerId === identity.playerId
-          return <button type="button" className={`mm-current-match-card ${myTurn ? 'is-my-turn' : ''}`} onClick={() => resumeMatch(match.id)} key={match.id}>
+          return <button type="button" data-partie-origine={match.id} className={`mm-current-match-card ${myTurn ? 'is-my-turn' : ''}`} onClick={event => { noterOrigineDeLaPartie(event.currentTarget, match.id); resumeMatch(match.id) }} key={match.id}>
             <Avatar label={playerInitials(opponentName)} small />
             <span>
               <strong>{opponentName} · {myTurn ? 'à toi' : 'en attente'}</strong>

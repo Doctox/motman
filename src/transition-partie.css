@@ -1,0 +1,13 @@
+/* La carte devient l'écran (transitionPartie.ts, G10). Le groupe nommé glisse
+   de la carte à l'écran entier, sur un fond plein : il ne laisse jamais voir
+   à travers lui. Le menu reste visible dessous jusqu'à ce que la carte l'ait
+   couvert (`mm-vers-partie`, posée sur <html> le temps de la transition). */
+::view-transition-group(mm-partie){animation-duration:.48s;animation-timing-function:cubic-bezier(.2,.9,.25,1);background:#fffaf0;border-radius:22px;overflow:hidden}
+html[data-theme="dark"]::view-transition-group(mm-partie){background:#111b18}
+::view-transition-old(mm-partie){animation:mmPartieSortie .3s ease both}
+::view-transition-new(mm-partie){animation:mmPartieEntree .3s ease .14s both}
+::view-transition-old(mm-partie),::view-transition-new(mm-partie){height:100%;object-fit:cover}
+html.mm-vers-partie::view-transition-old(root){animation:none}
+html.mm-vers-partie::view-transition-new(root){animation:mmPartieEntree .2s ease .3s both}
+@keyframes mmPartieSortie{to{opacity:0}}
+@keyframes mmPartieEntree{from{opacity:0}}

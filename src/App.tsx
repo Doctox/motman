@@ -18,6 +18,7 @@ import {
 } from './rankedMatchmaking'
 import { useRankedSearchExpiry } from './rankedSearchExpiry'
 import { useSacrificedMatch } from './sacrificedMatch'
+import { entrerDansLaPartie, sortirDeLaPartie } from './transitionPartie'
 
 const MenuApp = lazy(() => import('./Menu').then(module => ({ default: module.MenuApp })))
 const MultiplayerGameScreen = lazy(() => import('./MultiplayerGame').then(module => ({ default: module.MultiplayerGameScreen })))
@@ -74,15 +75,16 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
 
   const openMatch = useCallback((nextMatchId: string) => {
     history.replaceState(null, '', `#partie=${encodeURIComponent(nextMatchId)}`)
-    setMatchId(nextMatchId)
+    // La carte touchée grandit jusqu'à devenir l'écran de partie (G10).
+    entrerDansLaPartie(() => setMatchId(nextMatchId))
   }, [])
   const exitMatch = useCallback(() => {
     history.replaceState(null, '', '#jouer')
-    setMatchId(null)
+    sortirDeLaPartie(() => setMatchId(null))
   }, [])
   const returnHome = useCallback(() => {
     history.replaceState(null, '', '#accueil')
-    setMatchId(null)
+    sortirDeLaPartie(() => setMatchId(null))
   }, [])
   // Entrée dans un match classé : on solde la partie sacrifiée.
   // Sans ça elle restait `active` et mourait par timeout trois tours plus tard —

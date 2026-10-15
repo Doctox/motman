@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflake } from 'lucide-react'
 import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
@@ -22,6 +22,7 @@ import {
   type DailyStatus,
 } from '../dailyChallenge'
 import { SilhouettesDeRangs } from './Silhouettes'
+import { noterOrigineDeLaPartie } from '../transitionPartie'
 import './menu-daily.css'
 
 // Composants « Défi du jour » — Option A (intégration chirurgicale).
@@ -162,6 +163,8 @@ export function phraseDesJoueursDuJour(total: number): string {
 }
 
 export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => void; onOpenRanking?: () => void }) {
+  // La carte qui deviendra l'écran de partie (G10, 15/10/2026).
+  const carteDuDefi = useRef<HTMLElement>(null)
   const { day, status, streak, freezes, theme } = useDailyChallenge()
   const [avertir, setAvertir] = useState(false)
   // Le chapeau porte la phrase du produit (« Défi du jour à thème »), présente
@@ -179,7 +182,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
 
   if (status === 'won') {
     return (
-      <section className="mm-daily-hero is-done is-won" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-done is-won" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         {/* La victoire se fête : la carte disait « Déjà joué aujourd'hui », le
@@ -197,7 +200,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   // prochain.
   if (status === 'closed') {
     return (
-      <section className="mm-daily-hero is-lost is-closed" aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-lost is-closed" aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Défi abandonné</h2>
@@ -211,7 +214,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   // invitation à revenir demain, jamais celui d'une sanction.
   if (status === 'lost') {
     return (
-      <section className="mm-daily-hero is-lost" aria-label={`Défi du jour${pourLecteur} perdu. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-lost" aria-label={`Défi du jour${pourLecteur} perdu. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Pas cette fois</h2>
@@ -226,7 +229,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   // tentative (partie menée ailleurs, ou appli fermée pendant la partie).
   if (status === 'done') {
     return (
-      <section className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} déjà joué. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} déjà joué. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
@@ -237,7 +240,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   }
 
   return (
-    <section className="mm-daily-hero">
+    <section ref={carteDuDefi} data-partie-origine="defi" className="mm-daily-hero">
       <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
       <small className="mm-daily-eyebrow">{libelle}</small>
       <h2 className={`mm-daily-title${theme ? ' is-theme' : ''}`}>{theme ?? 'Grille du jour'}</h2>
@@ -248,7 +251,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
       <button type="button" className="mm-daily-cta" onClick={() => setAvertir(true)} aria-label={`Relever le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
         <Grid2x2Check aria-hidden="true" />Relever le défi <ChevronRight aria-hidden="true" />
       </button>
-      {avertir ? <DailyOneShotDialog theme={theme} close={() => setAvertir(false)} play={() => { setAvertir(false); onPlay() }} /> : null}
+      {avertir ? <DailyOneShotDialog theme={theme} close={() => setAvertir(false)} play={() => { setAvertir(false); noterOrigineDeLaPartie(carteDuDefi.current, 'defi'); onPlay() }} /> : null}
     </section>
   )
 }

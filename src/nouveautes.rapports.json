@@ -240,5 +240,11 @@
     "titre": "Glisse d'une page à l'autre",
     "texte": "Dans le menu, fais glisser ton doigt vers la gauche ou la droite pour passer à la page voisine : Accueil, Jouer, Classement, Épicerie, Profil.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-10-15T11:28",
+    "titre": "MotMan au toucher",
+    "texte": "Des fenêtres qui se ferment en les tirant, tirer pour actualiser, un appui long pour voir un cadre en grand, des plumes qui roulent, une carte qui devient la partie : l'appli répond mieux au doigt.",
+    "genre": "jeu"
   }
 ]
