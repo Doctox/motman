@@ -35,8 +35,25 @@ export function moteurChromium(agent = navigator.userAgent): boolean {
   return /Chrome\/|Chromium\//.test(agent) && !/CriOS|FxiOS|EdgiOS/.test(agent)
 }
 
+/**
+ * L'interrupteur d'essai pour un iPhone (15/10/2026) : ouvrir l'appli avec
+ * `?essai-transitions=1` les rallume sur ce téléphone, `?essai-transitions=0`
+ * les recoupe. Rien ne change pour les joueurs qui ne le demandent pas.
+ */
+const CLE_ESSAI = 'motman-essai-transitions'
+function essaiDemande(): boolean {
+  try {
+    const demande = new URLSearchParams(location.search).get('essai-transitions')
+    if (demande === '1') localStorage.setItem(CLE_ESSAI, '1')
+    if (demande === '0') localStorage.removeItem(CLE_ESSAI)
+    return localStorage.getItem(CLE_ESSAI) === '1'
+  } catch {
+    return false
+  }
+}
+
 function transitionsPossibles(): boolean {
-  return typeof (document as DocumentAvecTransitions).startViewTransition === 'function' && moteurChromium() && !motionReduced()
+  return typeof (document as DocumentAvecTransitions).startViewTransition === 'function' && (moteurChromium() || essaiDemande()) && !motionReduced()
 }
 
 function nommer(element: HTMLElement | null, nom: string) {
