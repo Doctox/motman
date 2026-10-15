@@ -35,6 +35,7 @@ import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRu
 import { ouvrirPremiersPassages } from './premiersPassages'
 import { useBalayageEntrePages } from './menu/balayage'
 import { demanderActualisation, useTirerPourActualiser } from './menu/actualiser'
+import { useEnteteDefile } from './menu/enteteDefile'
 import { SilhouetteEpicerie } from './menu/Silhouettes'
 import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
@@ -357,6 +358,8 @@ export function MenuApp({
   // Glisser le doigt passe d'une page de la barre du bas à sa voisine (15/10/2026).
   const [coquille, setCoquille] = useState<HTMLElement | null>(null)
   useBalayageEntrePages(coquille, page, nextPage => navigate(nextPage))
+  // L'en-tête en verre prend son liseré dès que la page a défilé (G4).
+  useEnteteDefile(coquille, page)
   // Tirer une page vers le bas la remet à jour (G3) : amis, parties, classements.
   useTirerPourActualiser(coquille, () => {
     socialPolling.current?.wake()

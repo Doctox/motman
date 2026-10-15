@@ -89,8 +89,10 @@ export function useTirerPourActualiser(shell: HTMLElement | null, actualiser: ()
       if (!page || page.scrollTop > 0) return
       const doigt = evenement.touches[0]
       depart = { x: doigt.clientX, y: doigt.clientY, page }
+      // La page passe sous l'en-tête en verre (G4) : la plume part du bas de l'en-tête.
       const cadre = page.getBoundingClientRect()
-      repere = { haut: cadre.top, milieu: cadre.left + cadre.width / 2 }
+      const entete = shell.querySelector('.mm-header')?.getBoundingClientRect()
+      repere = { haut: entete ? entete.bottom : cadre.top, milieu: cadre.left + cadre.width / 2 }
     }
     const mouvement = (evenement: TouchEvent) => {
       if (!depart || evenement.touches.length !== 1) return

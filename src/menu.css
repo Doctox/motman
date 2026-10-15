@@ -7,3 +7,5 @@
 @import './menu/menu-epicerie.css';
 /* En dernier : le mouvement affine ce que les feuilles precedentes ont pose. */
 @import './menu/menu-motion.css';
+/* Puis le verre dépoli (G4), qui redistribue la coquille. */
+@import './menu/menu-verre.css';

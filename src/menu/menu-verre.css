@@ -1,0 +1,45 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LE VERRE DÉPOLI (15/10/2026, « MotMan au toucher », G4)
+
+   La page passe désormais SOUS l'en-tête et sous la barre du bas, qui sont en
+   verre dépoli : en défilant, on devine le contenu qui glisse dessous. Quand la
+   page a quitté son haut, le logo se resserre un peu et un liseré sépare
+   l'en-tête (`data-defile`, posé par src/menu/enteteDefile.ts).
+
+   La page occupe les trois rangées de la coquille ; son haut et son bas
+   ajoutent la hauteur de l'en-tête et de la barre à la marge propre de chaque
+   page (`--mm-page-haut`, `--mm-page-bas`, posées là où vivait cette marge).
+   ═══════════════════════════════════════════════════════════════════════════ */
+.mm-shell{
+  --mm-entete-h:calc(96px + env(safe-area-inset-top));--mm-barre-h:72px;
+  grid-template-rows:var(--mm-entete-h) minmax(0,1fr) var(--mm-barre-h);
+}
+@media(max-height:760px){.mm-shell{--mm-entete-h:calc(82px + env(safe-area-inset-top));--mm-barre-h:64px}}
+
+.mm-shell>.mm-page{
+  grid-row:1 / -1;grid-column:1;
+  padding-top:calc(var(--mm-entete-h) + var(--mm-page-haut,18px));
+  padding-bottom:calc(var(--mm-barre-h) + var(--mm-page-bas,24px));
+  scroll-padding-top:calc(var(--mm-entete-h) + 18px);
+  scroll-padding-bottom:calc(var(--mm-barre-h) + 18px);
+}
+.mm-shell>.mm-header{
+  grid-row:1;grid-column:1;z-index:15;
+  background:color-mix(in srgb,var(--mm-paper) 76%,transparent);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+  transition:box-shadow .25s ease;
+}
+.mm-shell>.mm-bottom-nav{
+  grid-row:3;grid-column:1;
+  background:color-mix(in srgb,var(--mm-surface) 78%,transparent);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+}
+.mm-shell[data-defile]>.mm-header{box-shadow:0 1px 0 color-mix(in srgb,var(--mm-line) 85%,transparent)}
+.mm-shell .mm-brand{transition:scale .3s cubic-bezier(.22,1,.36,1)}
+.mm-shell[data-defile] .mm-brand{scale:.88}
+
+/* Ce qui colle en haut de la page (les rayons de l'Épicerie) colle toujours
+   sous l'en-tête sans retouche : un élément collant se cale sous la marge de
+   la page, et cette marge contient maintenant la hauteur de l'en-tête. */
+
+html[data-motion="off"] .mm-shell .mm-brand,html[data-motion="off"] .mm-shell>.mm-header{transition:none}
