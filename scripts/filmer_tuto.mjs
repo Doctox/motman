@@ -106,7 +106,7 @@ const reperes = {}
 let zero = 0
 const noter = (nom) => { reperes[nom] = Number(((performance.now() - zero) / 1000).toFixed(3)) }
 
-async function glisser(page, de, vers, dureeMs = 650) {
+async function glisser(page, de, vers, dureeMs = 900) {
   await page.mouse.move(de.x, de.y)
   await page.mouse.down()
   await pause(120)
@@ -135,9 +135,9 @@ async function jouer(page, cases) {
   for (const i of cases) {
     const tuile = page.locator(`[data-rack-letter="${lettre(i)}"]:not([disabled])`).first()
     await glisser(page, await centre(tuile), await centre(page.locator(`[data-cell="${i}"]`)))
-    await pause(220)
+    await pause(320)
   }
-  await pause(350)
+  await pause(900)
   await page.locator('button.validate').click({ delay: 80 })
 }
 
@@ -181,29 +181,32 @@ async function tourner() {
     await aSonTour(P.page, 'pote-1'); noter('pote1')
     await jouer(P.page, VIDES.mer); noter('pote1Valide')
     // 2. Toi : les cinq lettres d'un coup.
+    // Le joueur regarde d'abord (temps de lecture au montage : « ça va trop vite », 15/10).
     await aSonTour(T.page, 'toi-2'); noter('toi2')
+    await pause(2_500); noter('toi2Geste')
     await jouer(T.page, VIDES.astral); noter('toi2Valide')
     // 3. Ton pote commence PRESSE.
     await aSonTour(P.page, 'pote-3'); noter('pote3')
     await jouer(P.page, VIDES.presse.slice(0, 2)); noter('pote3Valide')
     // 4. Toi : l'indice, puis tu passes.
     await aSonTour(T.page, 'toi-4'); noter('toi4')
-    await pause(700)
+    await pause(2_800)
     noter('indice')
     await T.page.locator('button', { hasText: 'Indice' }).first().click({ delay: 80 })
     await T.page.locator(`[data-cell="${caseIndice}"]`).filter({ hasText: lettre(caseIndice) }).waitFor({ timeout: 10_000 }).catch(() => undefined)
     noter('indicePose')
-    await pause(1_600)
+    await pause(3_000)
     await T.page.locator('button.validate').click({ delay: 80 }); noter('toi4Passe')
     // 5. Ton pote finit SÉSAME.
     await aSonTour(P.page, 'pote-5'); noter('pote5')
     await jouer(P.page, [caseSesamePote]); noter('pote5Valide')
     // 6. Toi : la dernière lettre de PRESSE.
     await aSonTour(T.page, 'toi-6'); noter('toi6')
+    await pause(2_500); noter('toi6Geste')
     await jouer(T.page, [VIDES.presse[2]]); noter('toi6Valide')
     await T.page.getByText('Victoire !').first().waitFor({ timeout: 30_000 }); noter('victoire')
     await P.page.getByText('Partie terminée').first().waitFor({ timeout: 30_000 }); noter('defaite')
-    await pause(4_000)
+    await pause(7_000)
     const imagesToi = await cameraToi.arreter()
     const imagesPote = await cameraPote.arreter()
     return { imagesToi, imagesPote, fin: performance.now(), cadres }
