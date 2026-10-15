@@ -476,6 +476,18 @@ export function MenuApp({
 
   const outgoingInvitation = matchLobby.outgoing[0]
   const pendingResult = matchLobby.pendingResults?.[0]
+  // Les styles de l'écran de fin vivent avec la partie (MultiplayerGame et sa
+  // feuille, chargés à la demande). Un résultat en attente au démarrage de
+  // l'appli s'affichait donc SANS style : texte brut, image géante (vu sur le
+  // Note 10 le 15/10/2026). On charge la partie d'abord, le résultat ensuite.
+  const [stylesDePartie, setStylesDePartie] = useState(false)
+  useEffect(() => {
+    if (!pendingResult || stylesDePartie) return
+    let vivant = true
+    const pret = () => { if (vivant) setStylesDePartie(true) }
+    import('./MultiplayerGame').then(pret, pret)
+    return () => { vivant = false }
+  }, [pendingResult, stylesDePartie])
 
   const acknowledgePendingResult = async (resultId: string) => {
     const next = await acknowledgeMatchResult(identity.playerId, { resultId })
@@ -484,6 +496,7 @@ export function MenuApp({
     navigate('home')
   }
 
+  if (pendingResult && !stylesDePartie) return <main className="app-shell multiplayer-shell is-finished pending-result-shell" aria-busy="true" />
   if (pendingResult) return <main className="app-shell multiplayer-shell is-finished pending-result-shell">
     <PendingResultPanel
       result={pendingResult}
