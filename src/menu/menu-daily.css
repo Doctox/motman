@@ -286,3 +286,38 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-warning-actions{display:grid;grid-template-columns:1fr 1.3fr;gap:9px;align-items:center}
 .mm-shell .mm-daily-warning-actions .mm-daily-cta{margin-top:0}
 .mm-daily-warning-cancel{min-height:50px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.875rem/1 'DM Sans',sans-serif}
+
+/* ── LE DESSIN DU THÈME ET TA SEMAINE (15/10/2026, choix « E ») ─────────────
+   Le dessin est une IMAGE DE FOND (DailyChallenge.tsx, decorDuTheme) : un
+   grand dessin doré en bas à droite, deux éclats sous la flamme, et une lueur
+   dorée dans le même coin, posés par-dessus le dégradé habituel de chaque
+   état. Une image de fond ne recouvre ni ne déplace rien. */
+.mm-daily-hero.a-un-motif{
+  background:
+    var(--mm-eclat) right 74px top 80px / 22px 22px no-repeat,
+    var(--mm-eclat) right 46px top 114px / 14px 14px no-repeat,
+    var(--mm-motif) right -36px bottom -46px / 184px 184px no-repeat,
+    radial-gradient(90% 80% at 100% 100%, color-mix(in srgb, var(--mm-gold) 24%, transparent) 0%, transparent 70%),
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--mm-gold) 12%, var(--mm-surface)) 0%, var(--mm-surface) 60%);
+}
+.mm-daily-hero.is-done.a-un-motif{
+  background:
+    var(--mm-eclat) right 74px top 80px / 22px 22px no-repeat,
+    var(--mm-eclat) right 46px top 114px / 14px 14px no-repeat,
+    var(--mm-motif) right -36px bottom -46px / 184px 184px no-repeat,
+    radial-gradient(90% 80% at 100% 100%, color-mix(in srgb, var(--mm-gold) 20%, transparent) 0%, transparent 70%),
+    radial-gradient(120% 140% at 0% 0%, var(--mm-sage) 0%, var(--mm-surface) 62%);
+}
+/* Sept pastilles, du lundi au dimanche (SemaineDuDefi.tsx). */
+.mm-daily-semaine{display:flex;gap:7px;margin:1px 0 3px;padding:0;list-style:none}
+.mm-daily-semaine li{display:grid;justify-items:center;gap:3px}
+.mm-daily-semaine i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:1.5px solid color-mix(in srgb, var(--mm-gold) 34%, var(--mm-line));background:var(--mm-surface);color:var(--mm-muted);font-style:normal}
+.mm-daily-semaine i svg{width:13px;height:13px;stroke-width:2.6}
+.mm-daily-semaine small{font:700 0.5625rem/1 'DM Sans',sans-serif;color:var(--mm-muted);letter-spacing:.04em}
+.mm-daily-semaine .is-won i{border-color:#2f6b5a;background:#2f6b5a;color:#fffaf0}
+.mm-daily-semaine .is-played i{border-color:color-mix(in srgb, var(--mm-coral) 50%, var(--mm-line));background:color-mix(in srgb, var(--mm-coral) 12%, var(--mm-surface));color:var(--mm-coral)}
+.mm-daily-semaine .is-frozen i{border-color:#9cc3da;background:color-mix(in srgb, #4f89ad 14%, var(--mm-surface));color:#4f89ad}
+.mm-daily-semaine .is-missed i{opacity:.5}
+.mm-daily-semaine .is-today i{border:2px solid var(--mm-coral);background:color-mix(in srgb, var(--mm-coral) 8%, var(--mm-surface))}
+.mm-daily-semaine .is-current small{color:var(--mm-coral)}
+[data-theme="dark"] .mm-daily-semaine .is-won i{border-color:#5fae93;background:#2f6b5a}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AlertTriangle, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflake } from 'lucide-react'
 import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
@@ -23,6 +23,8 @@ import {
 } from '../dailyChallenge'
 import { SilhouettesDeRangs } from './Silhouettes'
 import { noterOrigineDeLaPartie } from '../transitionPartie'
+import { dessinDuTheme, ECLAT, imageDuDessin } from './dessinsDesThemes'
+import { SemaineDuDefi } from './SemaineDuDefi'
 import './menu-daily.css'
 
 // Composants « Défi du jour » — Option A (intégration chirurgicale).
@@ -162,11 +164,25 @@ export function phraseDesJoueursDuJour(total: number): string {
   return `Fais partie des ${total} joueurs à avoir relevé le défi !`
 }
 
+/**
+ * Le dessin du thème du jour, en image de fond de la carte (15/10/2026, choix
+ * « E » du propriétaire) : un grand dessin doré en filigrane et deux éclats.
+ * En fond, il ne recouvre ni ne déplace rien — la fenêtre « Une seule fois par
+ * jour » s'ouvre DANS la carte.
+ */
+function decorDuTheme(theme: string | null): CSSProperties {
+  return {
+    '--mm-motif': imageDuDessin(dessinDuTheme(theme), { couleur: '#b8892f', opacite: 0.24, rotation: -14 }),
+    '--mm-eclat': imageDuDessin(ECLAT, { couleur: '#b8892f', opacite: 0.34, plein: true, epaisseur: 0 }),
+  } as CSSProperties
+}
+
 export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => void; onOpenRanking?: () => void }) {
   // La carte qui deviendra l'écran de partie (G10, 15/10/2026).
   const carteDuDefi = useRef<HTMLElement>(null)
-  const { day, status, streak, freezes, theme } = useDailyChallenge()
+  const { day, status, streak, freezes, theme, state } = useDailyChallenge()
   const [avertir, setAvertir] = useState(false)
+  const decor = useMemo(() => decorDuTheme(theme), [theme])
   // Le chapeau porte la phrase du produit (« Défi du jour à thème »), présente
   // dans la description Google et sur la page de présentation, et jusqu'ici
   // jamais répétée dans le jeu. Le NOM du thème, lui, monte en titre avant la
@@ -182,12 +198,13 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
 
   if (status === 'won') {
     return (
-      <section data-partie-origine="defi" className="mm-daily-hero is-done is-won" aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-done is-won a-un-motif" style={decor} aria-label={`Défi du jour${pourLecteur} réussi. ${streakLabel(streak)}. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         {/* La victoire se fête : la carte disait « Déjà joué aujourd'hui », le
             même texte que pour un défi joué ailleurs (20/09/2026). */}
         <h2 className="mm-daily-title">Défi réussi !</h2>
+        <SemaineDuDefi state={state} day={day} />
         <DailyWonScore day={day} countdown={countdown} theme={theme} moi={moi} />
         <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
         <DailyShareHero day={day} theme={theme} classement={classement} />
@@ -200,10 +217,11 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   // prochain.
   if (status === 'closed') {
     return (
-      <section data-partie-origine="defi" className="mm-daily-hero is-lost is-closed" aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-lost is-closed a-un-motif" style={decor} aria-label={`Défi du jour${pourLecteur} abandonné. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Défi abandonné</h2>
+        <SemaineDuDefi state={state} day={day} />
         <p className="mm-daily-note"><ThemeDuJour theme={theme} />Il compte pour ta série · nouvelle grille dans {countdown}</p>
         <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
       </section>
@@ -214,10 +232,11 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   // invitation à revenir demain, jamais celui d'une sanction.
   if (status === 'lost') {
     return (
-      <section data-partie-origine="defi" className="mm-daily-hero is-lost" aria-label={`Défi du jour${pourLecteur} perdu. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-lost a-un-motif" style={decor} aria-label={`Défi du jour${pourLecteur} perdu. Il compte pour ta série. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Pas cette fois</h2>
+        <SemaineDuDefi state={state} day={day} />
         {/* Pas « jusqu'à minuit » : la bascule est à minuit À PARIS (voir msUntilNextDailyGrid). */}
         <p className="mm-daily-note"><ThemeDuJour theme={theme} />Il compte pour ta série · nouvelle grille dans {countdown}</p>
         <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
@@ -229,10 +248,11 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   // tentative (partie menée ailleurs, ou appli fermée pendant la partie).
   if (status === 'done') {
     return (
-      <section data-partie-origine="defi" className="mm-daily-hero is-done" aria-label={`Défi du jour${pourLecteur} déjà joué. Nouvelle grille dans ${countdown}.`}>
+      <section data-partie-origine="defi" className="mm-daily-hero is-done a-un-motif" style={decor} aria-label={`Défi du jour${pourLecteur} déjà joué. Nouvelle grille dans ${countdown}.`}>
         <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
         <small className="mm-daily-eyebrow">{libelle}</small>
         <h2 className="mm-daily-title">Déjà joué aujourd’hui</h2>
+        <SemaineDuDefi state={state} day={day} />
         <p className="mm-daily-note"><ThemeDuJour theme={theme} />Nouvelle grille dans {countdown}</p>
         <DailyRankTeaser classement={classement} onOpenRanking={onOpenRanking} />
       </section>
@@ -240,10 +260,11 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   }
 
   return (
-    <section ref={carteDuDefi} data-partie-origine="defi" className="mm-daily-hero">
+    <section ref={carteDuDefi} data-partie-origine="defi" className="mm-daily-hero a-un-motif" style={decor}>
       <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
       <small className="mm-daily-eyebrow">{libelle}</small>
       <h2 className={`mm-daily-title${theme ? ' is-theme' : ''}`}>{theme ?? 'Grille du jour'}</h2>
+      <SemaineDuDefi state={state} day={day} />
       {/* Combien l'ont déjà relevé (11/10/2026) : seulement quand le classement
           du jour est là — hors ligne, on ne promet pas « le premier ». */}
       {classement.day === day ? <p className="mm-daily-note mm-daily-invite">{phraseDesJoueursDuJour(classement.total)}</p> : null}

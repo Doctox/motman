@@ -288,7 +288,9 @@ test('un indice évite une lettre déjà posée mais pas encore validée', async
     await provisionalCell.click({ force: true })
     await expect(provisionalCell).toContainText(placement.letter)
 
-    await page.getByRole('button', { name: 'Indice' }).click({ force: true })
+    // `exact` : une définition peut contenir le mot (« Indice de l'essence », vu le
+    // 15/10/2026) et son bouton d'agrandissement s'appelle alors « … Indice … ».
+    await page.getByRole('button', { name: 'Indice', exact: true }).click({ force: true })
     await expect(page.locator('.slot.hint-auto-placed')).toBeVisible()
     await expect(provisionalCell).toContainText(placement.letter)
     await expect(provisionalCell).toHaveAttribute('data-confirmed', 'false')
@@ -316,7 +318,7 @@ test('après une attente, l’indice et le mélange se signalent — et se taise
   // que ce qu'en aurait laissé le chargement de la page.
   const spectateur = initial.currentPlayerId === first.playerId ? second : first
   const { context, page } = await openGame(browser, spectateur, matchId, { width: 390, height: 844 })
-  const indice = page.getByRole('button', { name: 'Indice' })
+  const indice = page.getByRole('button', { name: 'Indice', exact: true })
   const melange = page.getByRole('button', { name: 'Relancer les lettres' })
 
   try {
