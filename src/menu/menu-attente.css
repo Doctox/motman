@@ -1,0 +1,28 @@
+/* Une définition en attendant (B2, 15/10/2026) : DefinitionEnAttente.tsx.
+   Les boutons passent par `.mm-shell .mm-attente` : les règles générales du
+   menu (`.mm-shell button`, `.mm-shell button:disabled`) remettaient la police
+   héritée et pâlissaient les cases, le vert du bon mot compris. */
+.mm-attente{display:grid;gap:10px;padding:13px 14px 12px;border:1px solid var(--mm-line);border-radius:20px;background:var(--mm-surface);box-shadow:0 5px 14px var(--mm-shadow);animation:mmAttenteArrive .35s ease-out both}
+@keyframes mmAttenteArrive{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.mm-attente-tete{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.mm-attente-tete small{color:var(--mm-muted);font-size:0.71875rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.mm-attente-tete .mm-attente-compte{letter-spacing:0;text-transform:none;font-weight:600}
+.mm-attente-definition{margin:0;color:var(--mm-ink);font:600 1.0625rem/1.25 'Playfair Display',serif;text-align:center}
+/* Les cases : celles de la grille, en petit. */
+.mm-attente-cases,.mm-attente-lettres{display:flex;justify-content:center;gap:6px}
+.mm-shell .mm-attente .mm-attente-case{width:38px;height:42px;padding:0;display:grid;place-items:center;border:1px solid var(--mm-line);border-radius:10px;background:var(--mm-paper);box-shadow:inset 0 2px 4px #b7a67d33;color:var(--mm-ink);font:700 1.25rem 'Playfair Display',serif;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease}
+.mm-shell .mm-attente .mm-attente-case[aria-disabled="true"]{cursor:default}
+/* Les lettres : celles du chevalet, en petit. Posée, une tuile laisse sa place vide. */
+.mm-shell .mm-attente .mm-attente-lettre{width:40px;height:44px;padding:0;display:grid;place-items:center;border:1px solid #cdbd9f;border-radius:10px;background:linear-gradient(180deg,#fffaf0,#f3e9d4);box-shadow:0 2px 0 #d9c9a8,0 4px 8px #49341e14;color:var(--mm-ink);font:700 1.25rem 'Playfair Display',serif;cursor:pointer;transition:transform .12s ease}
+.mm-shell .mm-attente .mm-attente-lettre:active{transform:translateY(2px)}
+.mm-shell .mm-attente .mm-attente-lettre:disabled{visibility:hidden}
+.mm-shell .mm-attente.is-trouve .mm-attente-case{border-color:color-mix(in srgb,var(--mm-sage) 70%,var(--mm-ink));background:color-mix(in srgb,var(--mm-sage) 55%,var(--mm-paper))}
+.mm-shell .mm-attente.is-rate .mm-attente-case{border-color:color-mix(in srgb,var(--mm-coral) 45%,var(--mm-line));background:color-mix(in srgb,var(--mm-coral) 12%,var(--mm-paper));color:var(--mm-muted)}
+.mm-shell .mm-attente.is-revele .mm-attente-case{color:var(--mm-muted)}
+.mm-attente-pied{min-height:28px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mm-attente-pied [role="status"]{color:var(--mm-ink-soft);font-size:0.8125rem;font-weight:600}
+.mm-shell .mm-attente .mm-attente-autre{height:28px;padding:0 12px;border:1px solid var(--mm-line);border-radius:14px;background:transparent;color:var(--mm-ink-soft);font-size:0.75rem;font-weight:700;cursor:pointer}
+.mm-shell .mm-attente .mm-attente-autre:disabled{opacity:.45;filter:none;cursor:default}
+[data-theme="dark"] .mm-shell .mm-attente .mm-attente-lettre{border-color:#3d4d45;background:linear-gradient(180deg,#24332c,#1d2a24);box-shadow:0 2px 0 #121b17}
+[data-theme="dark"] .mm-shell .mm-attente .mm-attente-case{box-shadow:inset 0 2px 4px #0006}
+html[data-motion="off"] .mm-attente{animation:none}

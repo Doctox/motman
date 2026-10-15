@@ -252,5 +252,11 @@
     "titre": "Des définitions plus faciles à lire",
     "texte": "Nouvelle police pour les définitions : Atkinson Hyperlegible, faite pour qu'on ne confonde pas les lettres. Plus fine et plus aérée, elle s'écrit aussi plus gros dans les cases.",
     "genre": "affichage"
+  },
+  {
+    "ajoute": "2026-10-15T19:38",
+    "titre": "Une définition en attendant",
+    "texte": "Pendant qu'on te cherche un adversaire, une petite définition t'attend : touche ses lettres dans l'ordre pour la trouver. Juste pour le plaisir.",
+    "genre": "jeu"
   }
 ]

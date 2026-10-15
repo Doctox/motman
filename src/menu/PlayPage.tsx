@@ -12,6 +12,7 @@ import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { asyncTimeLeft, matchOpponent } from './HomePage'
 import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { useHauteurAnimee } from './hauteurAnimee'
+import { DefinitionEnAttente } from './DefinitionEnAttente'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // L'ÉCRAN JOUER — trois onglets, une carte, l'historique toujours là.
@@ -156,6 +157,11 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   const reprise = partieAReprendre(lobby.active, identity.playerId)
   const amisEnLigne = social.friends.filter(friend => friend.online).length
   const invitationEnAttente = lobby.incoming.length > 0
+  // On attend quelqu'un : une recherche normale ou classée, ou un ami invité.
+  // Une définition à deviner en attendant (B2, 15/10/2026), sous la carte du mode.
+  const onAttend = (onglet === 'normal' && normalSearching)
+    || (onglet === 'ranked' && ranked.status === 'searching')
+    || (onglet === 'friends' && lobby.outgoing.length > 0)
 
   // Une recherche lancée depuis un autre écran ramène le joueur sur son mode.
   useEffect(() => {
@@ -309,6 +315,8 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </div>
       </> : null}
     </div>
+
+    {onAttend ? <DefinitionEnAttente /> : null}
 
     <RecentMatchHistory matches={lobby.recent} />
   </div>
