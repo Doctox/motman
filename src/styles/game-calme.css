@@ -94,3 +94,26 @@ html[data-motion="off"] .failed-reveal-letter{animation:none!important}
    maintenant ce titre. Sa ligne d'aide passe de 9 à 11 px : c'est la seule
    chose à lire sous la grille pendant ces secondes-là. */
 .rack-heading.is-lecture>span{font-size:0.6875rem;text-align:right}
+
+/* H4 — La définition grandit depuis sa case (ClueZoom.tsx) : l'animation vient
+   alors du script, partie de la case, et remplace l'entrée habituelle. */
+.clue-popover.depuis-sa-case{animation:none}
+
+/* H13 — L'appui répond tout de suite, en partie aussi. `is-pressed` est posée
+   au premier contact par src/pressFeedback.ts ; Chrome retardait `:active`.
+   Le relâchement rebondit (`is-released`), sauf pour les lettres du chevalet,
+   dont la position « choisie » ne doit pas sauter. */
+.app-shell :is(.validate,.hint-button,.reroll-button,.end-game-home,.new-game):not(:disabled).is-pressed{transform:translateY(1px) scale(.965)!important;transition-duration:70ms!important}
+.app-shell .rack-letter:not(:disabled).is-pressed{transform:scale(.93);transition-duration:70ms}
+.app-shell .cell.slot.is-pressed{filter:brightness(.95)}
+.app-shell :is(.validate,.hint-button,.reroll-button).is-released{animation:ressortDeJeu .46s cubic-bezier(.34,1.4,.55,1)}
+@keyframes ressortDeJeu{0%{transform:translateY(1px) scale(.965)}55%{transform:scale(1.02)}100%{transform:none}}
+/* Valider se remplit en fondu à la première lettre posée, au lieu de passer
+   d'un coup de « Passer mon tour » au bouton plein : le dégradé vit dans un
+   calque qui s'allume. */
+.validate{position:relative;isolation:isolate;overflow:hidden;background:transparent!important;
+  transition:transform .18s var(--motion),box-shadow .28s ease,filter .18s ease,border-color .28s ease,color .28s ease!important}
+.validate::before{content:'';position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(180deg,#db6846,#c95130);opacity:1;transition:opacity .28s ease}
+.validate.is-pass::before{opacity:0}
+.validate:disabled::before{background:#b96c55}
+html[data-motion="off"] .validate,html[data-motion="off"] .validate::before,html[data-motion="off"] .app-shell .is-released{transition:none!important;animation:none!important}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ArrowLeft, Check, Lightbulb, Settings, Shuffle, Sparkles, Wifi } from 'lucide-react'
 import './styles.css'
 import { startAdaptivePolling, type AdaptivePollingController } from './adaptivePolling'
@@ -33,7 +33,7 @@ import { nomDuTitre } from './titleNames'
 import { presenceHeartbeatDelay } from './presencePolicy'
 import { RankedMatchPausedOverlay } from './RankedReadyOverlay'
 import { createMatchRackTiles, reconcileRackPlacements, type RackTile } from './rackTiles'
-import { haptic, ladderFor, playEffect } from './sensoryPreferences'
+import { haptic, ladderFor, motionReduced, playEffect } from './sensoryPreferences'
 import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
 import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel, type EtatRevanche } from './game/DuelPresentation'
@@ -167,6 +167,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [expandedClue, setExpandedClue] = useState<ClueEntry | null>(null)
+  // La case d'où la définition s'agrandit, et où elle retourne (H4).
+  const [origineDefinition, setOrigineDefinition] = useState<DOMRect | null>(null)
   // « Tu es toujours là ? » : le compte de tours manqués déjà confirmé par le
   // joueur, et le tour auquel il a ouvert la partie (voir game/stillThere.ts).
   const [stillThereAck, setStillThereAck] = useState(0)
@@ -596,8 +598,54 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
 
   const returnTile = (cellIndex: number) => {
     updateProvisional(current => { const next = { ...current }; delete next[cellIndex]; return next })
-    setStatus('Lettre reprise'); noterActivite()
+    setStatus('Lettre reprise'); haptic(6); playEffect('pick'); noterActivite()
   }
+
+  // ── LES LETTRES VOLENT (15/10/2026, « MotMan au toucher », H1) ──────────
+  // Posée au toucher, une lettre vole de sa place au chevalet jusqu'à sa case ;
+  // reprise, elle y revient. L'état du jeu change aussitôt, comme avant : le vol
+  // n'est qu'une image qui part de l'ancienne place (FLIP), 210 ms au plus.
+  const volEnAttente = useRef<{ vers: 'case' | 'chevalet'; cellIndex: number; tileId: string; depuis: DOMRect; instant: number } | null>(null)
+  const lettreDeLaCase = (cellIndex: number) => document.querySelector<HTMLElement>(`.confirmed-board-layer > :nth-child(${cellIndex + 1})`)
+  const lettreDuChevalet = (tileId: string) => document.querySelector<HTMLElement>(`[data-rack-id="${CSS.escape(tileId)}"]`)
+  const poserAuToucher = (tile: Tile, cellIndex: number) => {
+    const depuis = lettreDuChevalet(tile.id)?.getBoundingClientRect()
+    if (depuis) volEnAttente.current = { vers: 'case', cellIndex, tileId: tile.id, depuis, instant: performance.now() }
+    placeTile(tile, cellIndex)
+  }
+  const reprendreAuToucher = (cellIndex: number, tile: Tile) => {
+    const depuis = lettreDeLaCase(cellIndex)?.getBoundingClientRect()
+    if (depuis) volEnAttente.current = { vers: 'chevalet', cellIndex, tileId: tile.id, depuis, instant: performance.now() }
+    returnTile(cellIndex)
+  }
+  useLayoutEffect(() => {
+    const vol = volEnAttente.current
+    volEnAttente.current = null
+    if (!vol || performance.now() - vol.instant > 300 || motionReduced()) return
+    const cible = vol.vers === 'case' ? lettreDeLaCase(vol.cellIndex) : lettreDuChevalet(vol.tileId)
+    const arrivee = cible?.getBoundingClientRect()
+    if (!cible || !arrivee?.width) return
+    const dx = vol.depuis.left + vol.depuis.width / 2 - (arrivee.left + arrivee.width / 2)
+    const dy = vol.depuis.top + vol.depuis.height / 2 - (arrivee.top + arrivee.height / 2)
+    cible.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${vol.depuis.width / arrivee.width})` }, { transform: 'none' }], { duration: 210, easing: 'cubic-bezier(.2,.8,.3,1)' })
+  }, [provisional])
+
+  // ── UNE NOUVELLE MAIN (H3) : les lettres d'un nouveau tour se posent une à
+  // une. Pas pour la relance, qui a déjà sa distribution, ni pour une seule
+  // lettre qui change.
+  const mainPrecedente = useRef<Set<string> | null>(null)
+  useLayoutEffect(() => {
+    const ids = rack.map(tile => tile.id)
+    const avant = mainPrecedente.current
+    mainPrecedente.current = new Set(ids)
+    if (!avant || rackRolling || motionReduced()) return
+    const nouvelles = ids.filter(id => !avant.has(id))
+    if (nouvelles.length < 2) return
+    nouvelles.forEach((id, rang) => lettreDuChevalet(id)?.animate(
+      [{ opacity: 0, transform: 'translateY(-14px) scale(.86)' }, { opacity: 1, transform: 'none' }],
+      { duration: 300, delay: rang * 45, easing: 'cubic-bezier(.34,1.3,.55,1)', fill: 'backwards' },
+    ))
+  }, [rack]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── LA VISÉE ────────────────────────────────────────────────────────────
   // Le calcul lui-même vit dans `game/dropTargeting.ts`, sous test. Ici il ne
@@ -1089,7 +1137,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
           if (!entries.length && index !== 0) return <div className="cell blocked" key={index} aria-hidden="true" />
           const row = Math.floor(index / grid.columns)
           const column = index % grid.columns
-          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={() => { noterActivite(); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : <span className="clue-text">{compactClue(entry.text)}</span>}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
+          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={event => { noterActivite(); setOrigineDefinition(event.currentTarget.getBoundingClientRect()); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : <span className="clue-text">{compactClue(entry.text)}</span>}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
         }
         const confirmed = match.board[index]
         const localTile = provisional[index]
@@ -1098,7 +1146,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         const letter = confirmed && !confirmedHintHidden ? confirmed.letter : !failedLetter && !confirmed ? localTile?.letter : undefined
         const wordRewardClass = wordHighlight?.cells.has(index) ? `word-reward-cell word-reward-cell--${wordHighlight.owner}` : ''
         const ownershipClass = confirmed ? confirmed.playerId === playerId ? 'confirmed-player' : 'confirmed-opponent' : ''
-        return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : ''}`} className={`cell slot ${ownershipClass} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? returnTile(index) : selected && placeTile(selected, index)}>
+        return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : ''}`} className={`cell slot ${ownershipClass} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? reprendreAuToucher(index, localTile) : selected && poserAuToucher(selected, index)}>
           {letter ? <span className={`letter-only ${confirmed ? 'locked confirmed-letter' : localTile && !failedLetter ? 'stable-provisional-letter' : ''} ${confirmed?.playerId === playerId ? 'owned-by-player' : confirmed ? 'owned-by-opponent' : ''} ${failedLetter ? 'failed-reveal-letter' : ''} ${drag?.tile.id === localTile?.id ? 'drag-source' : ''}`} onPointerDown={event => localTile && !confirmed && !failedLetter && pointerDown(event, localTile, index)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{letter}</span> : null}
         </button>
       })}
@@ -1118,7 +1166,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
-    {expandedClue ? <ClueZoom entry={expandedClue} onClose={() => setExpandedClue(null)} /> : null}
+    {expandedClue ? <ClueZoom entry={expandedClue} origine={origineDefinition} onClose={() => setExpandedClue(null)} /> : null}
     {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
     {optionsOpen ? <GameOptionsOverlay close={() => setOptionsOpen(false)} report={match.bot ? undefined : () => setReportOpen(true)} leaveMatch={match.status === 'active' ? () => setLeaveOpen(true) : undefined} /> : null}
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}
