@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronRight, Copy, Feather, Gamepad2, UserPlus } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { ChiffresQuiRoulent } from '../ChiffresQuiRoulent'
@@ -8,7 +8,8 @@ import { friendCodeOf, playerInitials, type GuestIdentity } from '../playerIdent
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
 import { nomDuTitre } from '../titleNames'
 import { rankImage, rankedDivision } from '../ranked'
-import type { SocialState } from '../social'
+import type { SocialState, SocialUser } from '../social'
+import { ApercuFlottant, useAppuiLong } from './ApercuFlottant'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero } from './DailyChallenge'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
@@ -161,11 +162,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       {visibleFriends.length ? <div className="mm-home-friend-row">
         {/* Toucher un ami mène là où l'on joue avec lui : Jouer, onglet Amis
             (demande du propriétaire, 18/09/2026). */}
-        {visibleFriends.map(friend => <button type="button" className="mm-home-friend" key={friend.playerId} onClick={playWithFriends} aria-label={`Jouer avec ${friend.displayName}, ${presenceLabel(friend.activity).toLowerCase()}`}>
-          <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
-          <strong>{friend.displayName}</strong>
-          <small>{presenceLabel(friend.activity)}</small>
-        </button>)}
+        {visibleFriends.map(friend => <AmiDeLAccueil key={friend.playerId} friend={friend} playWithFriends={playWithFriends} openFriends={openFriends} />)}
       </div> : <>
         <button type="button" className="mm-home-add-first" onClick={openFriends}><span><UserPlus /></span><div><strong>Ajouter ton premier ami</strong><small>Pour jouer ensemble sur MotMan.</small></div><ChevronRight /></button>
         {/* Un joueur sans aucun ami doit pouvoir DONNER son code, pas seulement
@@ -179,4 +176,32 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       </>}
     </section>
   </div>
+}
+
+/**
+ * Un ami de l'accueil. Le toucher mène là où l'on joue avec lui ; un appui
+ * long ouvre sa fiche en grand, avec ses deux chemins (G9, 15/10/2026).
+ */
+function AmiDeLAccueil({ friend, playWithFriends, openFriends }: { friend: SocialUser; playWithFriends: () => void; openFriends: () => void }) {
+  const bouton = useRef<HTMLButtonElement>(null)
+  const [apercu, setApercu] = useState(false)
+  useAppuiLong(bouton, () => setApercu(true))
+  return <>
+    <button ref={bouton} type="button" className="mm-home-friend" onClick={playWithFriends} aria-label={`Jouer avec ${friend.displayName}, ${presenceLabel(friend.activity).toLowerCase()}`}>
+      <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
+      <strong>{friend.displayName}</strong>
+      <small>{presenceLabel(friend.activity)}</small>
+    </button>
+    {apercu ? <ApercuFlottant libelle={`Fiche de ${friend.displayName}`} fermer={() => setApercu(false)}>
+      {friend.avatarId
+        ? <CosmeticPortrait avatarId={friend.avatarId} frameId={friend.frameId ?? 'cadre-ivoire'} animationId={friend.animationId} alt="" className="mm-portrait mm-apercu-portrait" />
+        : <Avatar label={playerInitials(friend.displayName)} />}
+      <strong>{friend.displayName}</strong>
+      <p>{presenceLabel(friend.activity)} · {friend.code}</p>
+      <div className="mm-apercu-actions">
+        <button type="button" className="principal" onClick={() => { setApercu(false); playWithFriends() }}><Gamepad2 aria-hidden="true" />Jouer avec {friend.displayName}</button>
+        <button type="button" onClick={() => { setApercu(false); openFriends() }}>Gérer mes amis</button>
+      </div>
+    </ApercuFlottant> : null}
+  </>
 }

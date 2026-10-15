@@ -1,0 +1,36 @@
+/* L'appui long et son aperçu (ApercuFlottant.tsx, G9). Pendant l'appui,
+   l'élément s'enfonce lentement, sur toute la durée du délai : on sent que
+   quelque chose se prépare. */
+.mm-appui-long{transform:scale(.95)!important;transition:transform .45s ease-in!important}
+.mm-shop-item,.mm-home-friend{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+.mm-apercu-voile{
+  --mm-paper:#fffaf0;--mm-surface:#fffdf8;--mm-ink:#073f36;--mm-muted:#6d7773;--mm-line:#d7d1c2;--mm-gold:#c59b45;--mm-sage:#e8ece2;
+  position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px 16px;
+  background:color-mix(in srgb,var(--mm-paper) 35%,transparent);
+  -webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);
+  animation:mmApercuVoile .25s ease both;
+}
+[data-theme="dark"] .mm-apercu-voile{--mm-paper:#111b18;--mm-surface:#18241f;--mm-ink:#edf5ef;--mm-muted:#a5b4ae;--mm-line:#3d5048;--mm-gold:#d9b563;--mm-sage:#263a33}
+.mm-apercu{
+  width:min(300px,100%);display:grid;justify-items:center;gap:10px;padding:22px 20px 18px;
+  border:1px solid var(--mm-line);border-radius:26px;background:var(--mm-surface);color:var(--mm-ink);
+  box-shadow:0 24px 60px #0003;text-align:center;font-family:'DM Sans',sans-serif;
+  animation:mmApercuCarte .5s cubic-bezier(.34,1.35,.55,1) both;
+}
+.mm-apercu:focus{outline:none}
+.mm-apercu .mm-apercu-portrait{width:150px;height:150px;flex-basis:150px}
+.mm-apercu strong{font:600 1.35rem/1.15 'Playfair Display',serif}
+.mm-apercu p{margin:0;color:var(--mm-muted);font-size:.875rem;line-height:1.45}
+.mm-apercu-actions{display:grid;gap:8px;width:100%;margin-top:6px}
+.mm-apercu-actions button{
+  min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--mm-ink);border-radius:999px;
+  background:transparent;color:var(--mm-ink);font:700 .9375rem 'DM Sans',sans-serif;cursor:pointer;
+}
+.mm-apercu-actions button.principal{background:var(--mm-ink);color:var(--mm-paper)}
+.mm-apercu-actions button:disabled{opacity:.55;cursor:default}
+.mm-apercu-actions svg{width:17px;height:17px}
+@keyframes mmApercuVoile{from{opacity:0}}
+@keyframes mmApercuCarte{from{opacity:0;transform:scale(.86)}}
+html[data-motion="off"] .mm-apercu-voile,html[data-motion="off"] .mm-apercu{animation:none}
+html[data-motion="off"] .mm-appui-long{transition:none!important}

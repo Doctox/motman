@@ -15,6 +15,7 @@ import { useDialogFocus } from './useDialogFocus'
 import { haptic } from './sensoryPreferences'
 import { ChiffresQuiRoulent } from './ChiffresQuiRoulent'
 import { PremierPassageCarte } from './menu/PremierPassage'
+import { ApercuFlottant, useAppuiLong } from './menu/ApercuFlottant'
 
 type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets' | 'objects'
 type BasketStageState = 'idle' | 'opening' | 'revealed'
@@ -65,7 +66,7 @@ function RarityPill({ rarity }: { rarity: CosmeticRarity }) {
  * achetable (plein), trop cher (léger, sans montant manquant — choix du
  * propriétaire), possédé (« Équiper »), porté (« Équipé »).
  */
-function ShopItemCard({ rarity, name, description, portrait, price, owned, equipped, balance, busy, equippedLabel = 'Équipé', extraClass = '', choose }: {
+function ShopItemCard({ rarity, name, description, portrait, price, owned, equipped, balance, busy, equippedLabel = 'Équipé', extraClass = '', choose, apercu }: {
   rarity: CosmeticRarity
   name: string
   description?: string
@@ -78,9 +79,13 @@ function ShopItemCard({ rarity, name, description, portrait, price, owned, equip
   equippedLabel?: string
   extraClass?: string
   choose: () => void
+  /** Garder le doigt sur la carte l'ouvre en grand, portée par le portrait du joueur (G9). */
+  apercu?: () => void
 }) {
+  const carte = useRef<HTMLElement>(null)
+  useAppuiLong(carte, () => apercu?.())
   const state = equipped ? 'is-equipped' : owned ? 'is-owned' : balance >= price ? 'is-affordable' : 'is-unaffordable'
-  return <article className={`mm-shop-item rarity-${rarity} ${state} ${extraClass}`}>
+  return <article ref={carte} className={`mm-shop-item rarity-${rarity} ${state} ${extraClass}`}>
     {portrait}
     <RarityPill rarity={rarity} /><strong>{name}</strong>{description ? <p>{description}</p> : null}
     <button type="button" disabled={equipped || busy} onClick={choose}>{equipped ? <><Check />{equippedLabel}</> : owned ? 'Équiper' : <Price value={price} />}</button>
@@ -149,6 +154,10 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
   const [basketState, setBasketState] = useState<BasketStageState>('idle')
   const [pendingItem, setPendingItem] = useState('')
   const [purchase, setPurchase] = useState<PendingPurchase | null>(null)
+  // L'article ouvert en grand par un appui long (G9, 15/10/2026).
+  const [apercu, setApercu] = useState<{ nom: string; rarete: CosmeticRarity; description?: string; prix: number; possede: boolean; porte: boolean; portrait: ReactNode; choisir: () => void } | null>(null)
+  const portraitApercu = (avatarId: string, frameId: string, animationId: string, nom: string) =>
+    <CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt={nom} className="mm-portrait mm-apercu-portrait" />
   const [onlyMissing, setOnlyMissing] = useState(false)
   const familyRefs = useRef<Partial<Record<string, HTMLElement | null>>>({})
   const collection = collectionProgress(cosmetics)
@@ -272,7 +281,10 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
             {avatars.map(avatar => <ShopItemCard key={avatar.id} rarity={avatarRarity(avatar)} name={avatar.name} price={avatar.pricePlumes}
               portrait={<CosmeticPortrait avatarId={avatar.id} frameId="cadre-ivoire" alt={avatar.name} />}
               owned={cosmetics.ownedAvatarIds.includes(avatar.id)} equipped={cosmetics.equippedAvatarId === avatar.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
-              choose={() => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, cosmetics.ownedAvatarIds.includes(avatar.id))} />)}
+              choose={() => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, cosmetics.ownedAvatarIds.includes(avatar.id))}
+              apercu={() => setApercu({ nom: avatar.name, rarete: avatarRarity(avatar), prix: avatar.pricePlumes, possede: cosmetics.ownedAvatarIds.includes(avatar.id), porte: cosmetics.equippedAvatarId === avatar.id,
+                portrait: portraitApercu(avatar.id, cosmetics.equippedFrameId, cosmetics.equippedAnimationId, avatar.name),
+                choisir: () => chooseCosmetic('avatar', avatar.id, avatar.name, avatar.pricePlumes, cosmetics.ownedAvatarIds.includes(avatar.id)) })} />)}
           </div> : <p className="mm-shop-empty">Toute la famille est déjà à toi.</p>}
         </section>
       })}
@@ -282,7 +294,10 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       {purchasableFrames.map(frame => <ShopItemCard key={frame.id} rarity={frame.rarity} name={frame.name} description={frame.description} price={frame.pricePlumes}
         portrait={<CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={frame.id} alt={frame.name} />}
         owned={cosmetics.ownedFrameIds.includes(frame.id)} equipped={cosmetics.equippedFrameId === frame.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
-        choose={() => chooseCosmetic('frame', frame.id, frame.name, frame.pricePlumes, cosmetics.ownedFrameIds.includes(frame.id))} />)}
+        choose={() => chooseCosmetic('frame', frame.id, frame.name, frame.pricePlumes, cosmetics.ownedFrameIds.includes(frame.id))}
+        apercu={() => setApercu({ nom: frame.name, rarete: frame.rarity, description: frame.description, prix: frame.pricePlumes, possede: cosmetics.ownedFrameIds.includes(frame.id), porte: cosmetics.equippedFrameId === frame.id,
+          portrait: portraitApercu(cosmetics.equippedAvatarId, frame.id, cosmetics.equippedAnimationId, frame.name),
+          choisir: () => chooseCosmetic('frame', frame.id, frame.name, frame.pricePlumes, cosmetics.ownedFrameIds.includes(frame.id)) })} />)}
     </section> : null}
 
     {tab === 'animations' ? <section className="mm-shop-grid mm-animation-shop" aria-label="Animations de portrait">
@@ -290,7 +305,10 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         portrait={<CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={animation.id} alt={animation.name} />}
         owned={cosmetics.ownedAnimationIds.includes(animation.id)} equipped={cosmetics.equippedAnimationId === animation.id} balance={cosmetics.plumes} busy={Boolean(pendingItem)}
         equippedLabel="Équipée" extraClass="mm-animation-shop-item"
-        choose={() => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, cosmetics.ownedAnimationIds.includes(animation.id))} />)}
+        choose={() => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, cosmetics.ownedAnimationIds.includes(animation.id))}
+        apercu={() => setApercu({ nom: animation.name, rarete: animation.rarity, description: animation.description, prix: animation.pricePlumes, possede: cosmetics.ownedAnimationIds.includes(animation.id), porte: cosmetics.equippedAnimationId === animation.id,
+          portrait: portraitApercu(cosmetics.equippedAvatarId, cosmetics.equippedFrameId, animation.id, animation.name),
+          choisir: () => chooseCosmetic('animation', animation.id, animation.name, animation.pricePlumes, cosmetics.ownedAnimationIds.includes(animation.id)) })} />)}
     </section> : null}
 
     {tab === 'objects' ? <section className="mm-object-shelf" aria-label="Objets">
@@ -358,6 +376,17 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       })}
       <small className="mm-shop-note"><Sparkles />Les paniers ne contiennent ni titre ni avantage de jeu.</small>
     </section> : null}
+    {apercu ? <ApercuFlottant libelle={`Aperçu : ${apercu.nom}`} fermer={() => setApercu(null)}>
+      {apercu.portrait}
+      <RarityPill rarity={apercu.rarete} /><strong>{apercu.nom}</strong>
+      {apercu.description ? <p>{apercu.description}</p> : null}
+      <div className="mm-apercu-actions">
+        <button type="button" className="principal" disabled={apercu.porte || Boolean(pendingItem)} onClick={() => { const choisir = apercu.choisir; setApercu(null); choisir() }}>
+          {apercu.porte ? <><Check />Équipé</> : apercu.possede ? 'Équiper' : <Price value={apercu.prix} />}
+        </button>
+        <button type="button" onClick={() => setApercu(null)}>Fermer</button>
+      </div>
+    </ApercuFlottant> : null}
     {purchase ? <PurchaseConfirm
       purchase={purchase}
       balance={cosmetics.plumes}

@@ -245,6 +245,41 @@ test('au doigt, la page se tire pour s’actualiser et la fenêtre du Menu se ti
   }
 })
 
+test('un appui long sur un cadre de l’Épicerie l’ouvre en grand, sans l’acheter', async ({ browser, browserName }) => {
+  // « MotMan au toucher », G9 (15/10/2026). Le doigt est posé sur le bouton de
+  // prix : l'appui long ouvre l'aperçu, et le relâchement n'achète rien.
+  test.skip(browserName !== 'chromium', 'Les événements tactiles passent par le protocole de Chromium.')
+  const context = await browser.newContext({ viewport: { width: 412, height: 869 }, hasTouch: true, isMobile: true })
+  await context.addInitScript(() => {
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+  })
+  const page = await context.newPage()
+  const cdp = await context.newCDPSession(page)
+  try {
+    await page.goto('/#epicerie')
+    await page.getByRole('tab', { name: 'Cadres' }).click()
+    const carte = page.locator('.mm-frame-shop .mm-shop-item').nth(2)
+    const nom = (await carte.locator('strong').textContent())!.trim()
+    const boite = (await carte.boundingBox())!
+    const prix: [number, number] = [boite.x + boite.width / 2, boite.y + boite.height - 30]
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: prix[0], y: prix[1] }] })
+    await page.waitForTimeout(900)
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+
+    const apercu = page.getByRole('dialog', { name: `Aperçu : ${nom}` })
+    await expect(apercu).toBeVisible()
+    await expect(apercu.locator('.mm-apercu-portrait')).toBeVisible()
+    await page.waitForTimeout(400)
+    await expect(page.getByRole('dialog', { name: /Acheter|Confirmer/ })).toHaveCount(0)
+    await expect(apercu).toBeVisible()
+    await apercu.getByRole('button', { name: 'Fermer' }).click()
+    await expect(apercu).toHaveCount(0)
+  } finally {
+    await context.close()
+  }
+})
+
 test('la navigation native reste entièrement au-dessus de la barre système Android', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'Le runtime Android utilise Chromium WebView.')
   await page.goto('/')
