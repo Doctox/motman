@@ -32,6 +32,7 @@ import { SettingsPanel } from './menu/SettingsPanel'
 import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
 import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
+import { ouvrirPremiersPassages } from './premiersPassages'
 import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
 import { CreatorNote } from './menu/CreatorNote'
@@ -78,6 +79,10 @@ export function MenuApp({
   // Ce que ce joueur a déjà lu : le tutoriel s'ouvre alors sur la première étape
   // nouvelle pour lui. Remis à 0 quand il demande lui-même à le revoir.
   const [tutorialSeenVersion, setTutorialSeenVersion] = useState(completedTutorialVersion)
+  // Un tout nouveau venu (aucun guide fini sur cet appareil) : à la fermeture
+  // du guide court, l'Épicerie et les Quêtes s'expliqueront une fois à leur
+  // première visite (src/premiersPassages.ts). Pas l'habitué qui le revoit.
+  const premiereOuverture = useRef(completedTutorialVersion() === 0)
   // Le mot du créateur, une fois par jour (src/creatorNote.ts). Pas le jour du
   // tout premier lancement : le tutoriel occupe déjà l'écran, et deux fenêtres
   // de suite pour un nouveau venu, c'est une de trop. Il le lira demain.
@@ -345,6 +350,7 @@ export function MenuApp({
 
   const closeTutorial = (openPlay = false) => {
     completeFirstRunTutorial()
+    if (premiereOuverture.current) ouvrirPremiersPassages()
     setTutorialOpen(false)
     if (openPlay) navigate('play')
   }

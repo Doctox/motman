@@ -13,6 +13,7 @@ import { MAX_STREAK_FREEZES } from '../dailyStreakRule'
 import { useQuestBoard } from '../questBoardState'
 import { useDialogFocus } from '../useDialogFocus'
 import { useDailyCountdown } from './DailyChallenge'
+import { PremierPassageCarte } from './PremierPassage'
 import './menu-quests.css'
 
 // Les quêtes (décidées le 16/09/2026). Trois par jour, réalisables dans UNE
@@ -144,6 +145,10 @@ function QuestsPanel({ close }: { close: () => void }) {
           </span>
           <button type="button" className="mm-quests-close" aria-label="Fermer" data-dialog-autofocus onClick={close}><X /></button>
         </header>
+
+        <PremierPassageCarte lieu="quetes" titre="Trois petites missions par jour">
+          Elles se font en une partie ou deux : {DAILY_QUEST_PLUMES} plumes et {DAILY_QUEST_XP} XP chacune. Une fois finie, touche Récupérer pour encaisser.
+        </PremierPassageCarte>
 
         {board ? <>
           <ul className="mm-quests-list">

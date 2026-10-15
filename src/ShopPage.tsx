@@ -12,6 +12,7 @@ import { buyServerStreakFreeze, equipServerCosmetic, openServerBasket, purchaseS
 import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from './dailyStreakRule'
 import { BASKET_DUPLICATE_REFUND_PERCENT } from './progressionRewards'
 import { useDialogFocus } from './useDialogFocus'
+import { PremierPassageCarte } from './menu/PremierPassage'
 
 type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets' | 'objects'
 type BasketStageState = 'idle' | 'opening' | 'revealed'
@@ -237,6 +238,9 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       </div>
       <b><Feather />{cosmetics.plumes.toLocaleString('fr-FR')}</b>
     </section>
+    <PremierPassageCarte lieu="epicerie" titre="Bienvenue à l’Épicerie">
+      Tes plumes se gagnent en jouant et avec les quêtes. Ici, elles deviennent avatars, cadres et animations, ou paniers surprises.
+    </PremierPassageCarte>
     <div className="mm-shop-tabs" role="tablist" aria-label="Rayons de l’Épicerie">
       <button type="button" role="tab" aria-selected={tab === 'baskets'} className={tab === 'baskets' ? 'active' : ''} onClick={() => setTab('baskets')}><ShoppingBasket />Paniers</button>
       <button type="button" role="tab" aria-selected={tab === 'avatars'} className={tab === 'avatars' ? 'active' : ''} onClick={() => setTab('avatars')}><User />Avatars</button>

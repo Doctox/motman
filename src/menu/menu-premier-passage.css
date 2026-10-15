@@ -1,0 +1,17 @@
+/* La carte de premier passage (15/10/2026) : douce, posée en haut de l'écran,
+   jamais par-dessus. Les couleurs viennent du système de design (`--mm-*`), le
+   thème sombre suit donc tout seul. */
+.mm-premier-passage{
+  display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px 10px;align-items:start;
+  margin:0 0 12px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--mm-sage) 70%,var(--mm-line));
+  border-radius:16px;background:color-mix(in srgb,var(--mm-sage) 35%,var(--mm-surface));color:var(--mm-ink);
+}
+.mm-premier-passage>svg{width:20px;height:20px;margin-top:2px;color:var(--mm-gold)}
+.mm-premier-passage strong{display:block;font:600 1rem/1.25 'Playfair Display',serif}
+.mm-premier-passage p{margin:3px 0 0;color:var(--mm-ink-soft);font:500 0.8125rem/1.5 'DM Sans',sans-serif}
+.mm-premier-passage button{
+  grid-column:2;justify-self:end;margin-top:4px;min-height:36px;padding:0 16px;
+  border:1px solid var(--mm-ink);border-radius:999px;background:transparent;color:var(--mm-ink);
+  font:700 0.8125rem 'DM Sans',sans-serif;cursor:pointer;
+}
+.mm-premier-passage button:focus-visible{outline:2px solid var(--mm-gold);outline-offset:2px}

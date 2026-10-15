@@ -89,7 +89,11 @@ test('un joueur qui n’avait fini que l’ancienne version revoit le guide cour
   // tutoriel directement sur elle. Le guide n'a plus que trois étapes, sans
   // nouveauté : celui qui n'avait vu que la version 1 le reprend en entier,
   // et une seule fois.
+  // Une seule fois par onglet : le script d'amorçage repasse à chaque
+  // rechargement, et réécrirait la version 1 que le joueur vient de dépasser.
   await page.addInitScript(() => {
+    if (sessionStorage.getItem('amorce-ancienne-version')) return
+    sessionStorage.setItem('amorce-ancienne-version', '1')
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
   })
   await page.goto('/')
@@ -101,7 +105,42 @@ test('un joueur qui n’avait fini que l’ancienne version revoit le guide cour
   await tutorial.getByRole('button', { name: 'Passer' }).click()
   await expect(tutorial).toBeHidden()
   await page.reload()
-  await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeHidden()
+  await expect(page.getByRole('heading', { name: 'Partie' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toHaveCount(0)
+
+  // Il connaissait déjà l'Épicerie : pas de carte de premier passage pour lui.
+  await page.getByRole('button', { name: 'Épicerie' }).click()
+  await expect(page.locator('.mm-shop-tabs')).toBeVisible()
+  await expect(page.locator('.mm-premier-passage')).toHaveCount(0)
+})
+
+test('après le tutoriel court, l’Épicerie et les Quêtes s’expliquent une fois au nouveau venu', async ({ page }) => {
+  // Le guide ne dit plus tout (15/10/2026) : le reste s'explique la première
+  // fois qu'on le croise, une seule fois, et seulement à qui découvre le jeu.
+  await page.goto('/')
+  await page.getByRole('dialog', { name: 'Tutoriel MotMan' }).getByRole('button', { name: 'Passer' }).click()
+
+  await page.getByRole('button', { name: 'Épicerie' }).click()
+  const epicerie = page.getByRole('complementary', { name: 'Bienvenue à l’Épicerie' })
+  await expect(epicerie).toContainText('Tes plumes se gagnent en jouant')
+  await epicerie.getByRole('button', { name: 'Compris' }).click()
+  await expect(epicerie).toHaveCount(0)
+
+  await page.getByRole('button', { name: /^Quêtes/ }).click()
+  const quetes = page.getByRole('dialog', { name: 'Quêtes' })
+  const carte = quetes.getByRole('complementary', { name: 'Trois petites missions par jour' })
+  await expect(carte).toContainText('60 plumes et 30 XP chacune')
+  await carte.getByRole('button', { name: 'Compris' }).click()
+  await expect(carte).toHaveCount(0)
+  await expect(quetes.locator('.mm-quests-list').first()).toBeVisible()
+
+  // Vues une fois, plus jamais : ni au retour, ni après un rechargement.
+  await page.reload()
+  await page.locator('.mm-bottom-nav').getByRole('button', { name: 'Épicerie' }).click()
+  await expect(page.locator('.mm-shop-tabs')).toBeVisible()
+  await page.getByRole('button', { name: /^Quêtes/ }).click()
+  await expect(page.getByRole('dialog', { name: 'Quêtes' }).locator('.mm-quests-list').first()).toBeVisible()
+  await expect(page.locator('.mm-premier-passage')).toHaveCount(0)
 })
 
 test('la navigation native reste entièrement au-dessus de la barre système Android', async ({ page, browserName }) => {
