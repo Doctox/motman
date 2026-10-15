@@ -1,6 +1,8 @@
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { largestFittingSize, lignesQuiTiennent, MIN_FONT_PX, planHyphenation, uniformClueSizes } from './clueAutoFit'
+import { largestFittingSize, lignesQuiTiennent, MIN_FONT_PX, planHyphenation, POLICE_DES_DEFINITIONS, uniformClueSizes } from './clueAutoFit'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LA TAILLE DES DÉFINITIONS.
@@ -180,5 +182,34 @@ describe('le dernier recours : « … »', () => {
   it('une hauteur de ligne illisible ne casse rien', () => {
     expect(lignesQuiTiennent(28, Number.NaN)).toBe(1)
     expect(lignesQuiTiennent(28, 0)).toBe(1)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LA POLICE DES DÉFINITIONS (15/10/2026). Atkinson Hyperlegible, et elle seule
+// pour le texte des cases. Au premier essai sur le Note 10, le fichier était
+// posé dans `public/` : Vite ne l'empaquetait pas, l'adresse de la feuille
+// menait nulle part, et le navigateur retombait sans un mot sur DM Sans
+// (`document.fonts` : « error »). Ces trois fichiers doivent rester d'accord.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('la police des définitions', () => {
+  const famille = POLICE_DES_DEFINITIONS.match(/'([^']+)'/)?.[1] ?? ''
+  const base = readFileSync('src/base.css', 'utf8')
+  const declaration = [...base.matchAll(/@font-face\s*{([^}]*)}/g)].map(m => m[1]).find(bloc => bloc.includes(`'${famille}'`))
+
+  it('est déclarée, et son fichier est bien là où Vite le cherche', () => {
+    expect(declaration).toBeDefined()
+    const fichier = declaration?.match(/url\('([^']+)'\)/)?.[1] ?? ''
+    expect(existsSync(path.join('src', fichier))).toBe(true)
+  })
+
+  it('est celle que les cases de définition demandent', () => {
+    const regle = readFileSync('src/styles/game-foundation.css', 'utf8').split('\n').find(ligne => ligne.startsWith('.board .clue .clue-entry,'))
+    expect(regle).toContain(`{font-family:'${famille}'`)
+  })
+
+  it('voyage avec sa licence', () => {
+    expect(existsSync('public/assets/fonts/LICENSE-Atkinson-Hyperlegible.txt')).toBe(true)
   })
 })

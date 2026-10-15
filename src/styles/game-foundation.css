@@ -255,8 +255,19 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 
 /* == Refonte in-game Lot 1 (valide JM) — surcharges additives == */
 .board .clue{font-family:'DM Sans',sans-serif!important;font-size:0.6875rem!important}
-.board .clue .clue-entry{font-family:'DM Sans',sans-serif!important}
-[data-theme="dark"] .board .clue,[data-theme="dark"] .board .clue .clue-entry{font-family:'DM Sans',sans-serif!important}
+[data-theme="dark"] .board .clue{font-family:'DM Sans',sans-serif!important}
+/* Le texte des définitions passe en Atkinson Hyperlegible (15/10/2026, voir
+   base.css) ; la flèche de direction garde DM Sans. C'est la case `.clue-entry`
+   qui la porte, pas le <span> du texte : clueAutoFit lit la police de la case
+   pour mesurer la largeur des mots.
+   L'interligne, surtout, décide de la taille : la plupart des définitions
+   s'écrivent sur quatre lignes, et quatre lignes doivent tenir dans la
+   hauteur de la case. Mesuré sur le Note 10, sur les 904 grilles du
+   catalogue : à 1,08 la taille plafonnait à 7,7 px ; à 1,03 elle monte à
+   8,0 (7,5 en DM Sans). Plus serré n'apporte rien : c'est alors la largeur
+   des mots qui bloque. Le léger resserrement des lettres coupe moins de
+   mots au trait d'union. */
+.board .clue .clue-entry,[data-theme="dark"] .board .clue .clue-entry{font-family:'Atkinson Hyperlegible','DM Sans',sans-serif!important;letter-spacing:-.01em;line-height:1.03}
 .rack-bonus-info{display:inline-grid;place-items:center;width:17px;height:17px;margin-left:7px;padding:0;cursor:pointer;border-radius:50%;background:#f2ead7;border:1px solid #e0d3ad;color:#8a6a1e;font:800 0.6875rem/1 'DM Sans',sans-serif;cursor:help;vertical-align:middle}
 /* Zone tactile : la pastille fait 17 px, le doigt en demande 32 (20/09/2026). */
 .rack-bonus-info::after{content:"";position:absolute;width:32px;height:32px;margin:auto}

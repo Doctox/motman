@@ -189,14 +189,21 @@ export function planHyphenation(
   return { cut: coupees, fits: tailles }
 }
 
+/** La police des définitions de la grille (base.css), au format de `document.fonts.load`. */
+export const POLICE_DES_DEFINITIONS = "700 10px 'Atkinson Hyperlegible'"
+
 let measureCanvas: HTMLCanvasElement | null = null
 
-function measureWord(word: string, font: string): number {
+/**
+ * La largeur d'un mot. Le canevas ignore l'espacement des lettres de la case :
+ * on l'ajoute, une fois par lettre, comme le navigateur le pose.
+ */
+function measureWord(word: string, font: string, espacement = 0): number {
   if (!measureCanvas) measureCanvas = document.createElement('canvas')
   const ctx = measureCanvas.getContext('2d')
   if (!ctx) return 0
   ctx.font = font
-  return ctx.measureText(word).width
+  return ctx.measureText(word).width + espacement * [...word].length
 }
 
 /**
@@ -323,6 +330,8 @@ function measureFit(el: HTMLElement, hyphenate = false): Mesure | null {
   if (!base) return null
   const weight = style.fontWeight || '700'
   const family = style.fontFamily || "'DM Sans', sans-serif"
+  // L'espacement des lettres, en em : il suit la taille essayée.
+  const espacementEm = (parseFloat(style.letterSpacing) || 0) / (parseFloat(style.fontSize) || 1)
   const boite = el.getBoundingClientRect()
   const available = boite.width - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0) - EPS
   const disponibleHauteur = boite.height - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0)
@@ -333,7 +342,7 @@ function measureFit(el: HTMLElement, hyphenate = false): Mesure | null {
   const tokens = text.split(/[\s-]+/).filter(Boolean)
   const fits = (size: number) => {
     const font = `${weight} ${size}px ${family}`
-    if (!hyphenate && tokens.some(token => measureWord(token, font) > available)) return false
+    if (!hyphenate && tokens.some(token => measureWord(token, font, espacementEm * size) > available)) return false
     el.style.fontSize = `${size}px`
     const texte = boiteDuTexte(el)
     if (!texte) return true
@@ -342,7 +351,7 @@ function measureFit(el: HTMLElement, hyphenate = false): Mesure | null {
   // La meme chose, en LARGEUR seulement : ce qu'un mot trop long impose.
   const tientEnLargeur = (size: number) => {
     const font = `${weight} ${size}px ${family}`
-    if (!hyphenate && tokens.some(token => measureWord(token, font) > available)) return false
+    if (!hyphenate && tokens.some(token => measureWord(token, font, espacementEm * size) > available)) return false
     el.style.fontSize = `${size}px`
     const texte = boiteDuTexte(el)
     return !texte || texte.width <= available + EPS + 0.5
@@ -493,10 +502,15 @@ export function useClueAutoFit(): (node: HTMLElement | null) => void {
     // par run() (rAF, anti-rafale).
     fitClueTexts(node)
 
-    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts
+    const fonts = (document as unknown as { fonts?: { ready?: Promise<unknown>; load?: (font: string) => Promise<unknown> } }).fonts
     if (fonts?.ready) {
       fonts.ready.then(() => { if (!cancelled) remeasure() }).catch(() => {})
     }
+    // La police des définitions, demandée nommément : le canevas qui mesure les
+    // mots ne déclenche pas son chargement, et `ready` peut se résoudre avant
+    // que la mise en page ne l'ait réclamée. Sans elle, les largeurs seraient
+    // celles de la police de repli.
+    fonts?.load?.(POLICE_DES_DEFINITIONS).then(() => { if (!cancelled) remeasure() }).catch(() => {})
 
     let resize: ResizeObserver | null = null
     let mutation: MutationObserver | null = null

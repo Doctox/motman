@@ -50,7 +50,7 @@ export function LegalPanel({ close, identity }: { close: () => void; identity?: 
         {tab === 'credits' ? <article>
           <h3>Crédits et licences</h3>
           <h4>Création</h4><p>Concept, direction artistique, sélection éditoriale et développement : Jean-Marie PEETERS, projet indépendant MotMan.</p>
-          <h4>Typographies</h4><p>DM Sans et Playfair Display sont auto-hébergées et distribuées sous licence SIL Open Font License 1.1. Les textes complets des licences sont inclus avec l’application.</p>
+          <h4>Typographies</h4><p>DM Sans, Playfair Display et Atkinson Hyperlegible (Braille Institute of America, pour les définitions de la grille) sont auto-hébergées et distribuées sous licence SIL Open Font License 1.1. Les textes complets des licences sont inclus avec l’application.</p>
           <h4>Illustrations d’indices</h4><p>Les pictogrammes proviennent de Twemoji (CC BY 4.0), Game Icons (CC BY 3.0) et Streamline (CC BY 4.0). Les crédits détaillés restent associés aux indices concernés dans le catalogue éditorial.</p>
           <h4>Ressources lexicales</h4><p>Le travail éditorial s’appuie notamment sur Lexique, des ressources lexicales ouvertes et des références de mots fléchés citées dans le corpus de recherche. Les définitions publiées sont relues ou réécrites pour MotMan.</p>
           <h4>Logiciels libres</h4><p>MotMan utilise notamment React, Vite, Lucide, Supabase, Capacitor et Capgo Capacitor Updater (licence MPL 2.0, source sur github.com/Cap-go/capacitor-updater) selon leurs licences respectives. Les fichiers de licence des polices et les attributions des images sont conservés dans le paquet de l’application.</p>

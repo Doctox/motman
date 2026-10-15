@@ -246,5 +246,11 @@
     "titre": "MotMan au toucher",
     "texte": "Des fenêtres qui se ferment en les tirant, tirer pour actualiser, un appui long pour voir un cadre en grand, des plumes qui roulent, une carte qui devient la partie : l'appli répond mieux au doigt.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-10-15T16:08",
+    "titre": "Des définitions plus faciles à lire",
+    "texte": "Les définitions de la grille changent de police : Atkinson Hyperlegible, dessinée pour qu'on ne confonde pas les lettres. Elles s'écrivent aussi un peu plus gros.",
+    "genre": "affichage"
   }
 ]
