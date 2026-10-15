@@ -19,7 +19,12 @@
   animation:mmApercuCarte .5s cubic-bezier(.34,1.35,.55,1) both;
 }
 .mm-apercu:focus{outline:none}
-.mm-apercu .mm-apercu-portrait{width:150px;height:150px;flex-basis:150px}
+/* Les cadres débordent de leur rond, jusqu'à 50 % (`--frame-art-scale` 1,50,
+   cosmetic-portrait.css) : 37,5 px de chaque côté à 150 px. Sans cette place,
+   les papillons de « Jardin des songes » couvraient l'étiquette « Légendaire »
+   (vu le 15/10/2026 avant la grosse mise à jour). En bas, 28 px + l'écart de
+   10 px de la grille ; en haut, 16 px + les 22 px de marge de la carte. */
+.mm-apercu .mm-apercu-portrait{width:150px;height:150px;flex-basis:150px;margin:16px 0 28px}
 .mm-apercu strong{font:600 1.35rem/1.15 'Playfair Display',serif}
 .mm-apercu p{margin:0;color:var(--mm-muted);font-size:.875rem;line-height:1.45}
 .mm-apercu-actions{display:grid;gap:8px;width:100%;margin-top:6px}
