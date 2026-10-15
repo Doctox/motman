@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, Backpack, Check, Feather, Gift, PackageOpen, Palette, ShoppingBasket, Snowflake, Sparkles, User } from 'lucide-react'
 import { assetUrl } from './assetUrl'
@@ -29,6 +29,17 @@ const RARITY_LABELS = {
 
 /** Le panier tremble, puis s'ouvre : assez long pour le suspense, pas pour l'ennui. */
 const BASKET_SUSPENSE_MS = 1600
+/**
+ * Le panier qu'on garde appuyé (15/10/2026, « MotMan au toucher », H12) : il
+ * tremble de plus en plus fort et s'ouvre quand la jauge est pleine. Tenir
+ * jusqu'au bout vaut confirmation ; lâcher avant, c'est renoncer. Un toucher
+ * bref (ou le clavier) garde l'ancien chemin, avec sa confirmation.
+ */
+const TENUE_PANIER_MS = 1100
+/** Le suspense restant une fois le panier tenu : la tenue en a déjà fait l'essentiel. */
+const SUSPENSE_APRES_TENUE_MS = 350
+/** Un appui plus court est un simple toucher. */
+const TOUCHER_BREF_MS = 250
 
 const ODDS_RARITIES = ['commun', 'singulier', 'rare', 'precieux', 'exceptionnel', 'legendaire'] as const
 const AVATAR_FAMILIES = [
@@ -219,7 +230,36 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     }
   }
 
-  const unwrapBasket = async (basketId: string) => {
+  // ── Le panier tenu (H12) ──
+  const tenue = useRef<{ debut: number; image: number; element: HTMLElement } | null>(null)
+  // Le clic qui suit une tenue (réussie ou abandonnée) ne doit rien relancer.
+  const clicAIgnorer = useRef(false)
+  const lacherLePanier = (abandon: boolean) => {
+    const encours = tenue.current
+    if (!encours) return
+    cancelAnimationFrame(encours.image)
+    encours.element.classList.remove('est-tenu')
+    encours.element.style.removeProperty('--tenue')
+    tenue.current = null
+    if (abandon && performance.now() - encours.debut > TOUCHER_BREF_MS) clicAIgnorer.current = true
+  }
+  const tenirLePanier = (event: ReactPointerEvent<HTMLButtonElement>, basketId: string) => {
+    if (basketState !== 'idle' || event.button !== 0) return
+    const element = event.currentTarget
+    const debut = performance.now()
+    const avancer = (maintenant: number) => {
+      const part = Math.min(1, (maintenant - debut) / TENUE_PANIER_MS)
+      element.style.setProperty('--tenue', part.toFixed(3))
+      if (part < 1) { if (tenue.current) tenue.current.image = requestAnimationFrame(avancer); return }
+      lacherLePanier(false)
+      clicAIgnorer.current = true
+      void unwrapBasket(basketId, true)
+    }
+    element.classList.add('est-tenu')
+    tenue.current = { debut, image: requestAnimationFrame(avancer), element }
+  }
+
+  const unwrapBasket = async (basketId: string, apresTenue = false) => {
     if (basketState === 'opening') return
     if (basketState === 'revealed') {
       setReward(null)
@@ -238,7 +278,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         haptic([8, 30, 12, 30, 20, 30, 40])
         setBasketState('revealed')
         basketTimerRef.current = null
-      }, BASKET_SUSPENSE_MS)
+      }, apresTenue ? SUSPENSE_APRES_TENUE_MS : BASKET_SUSPENSE_MS)
     } catch (reason) {
       setBasketState('idle')
       notify(reason instanceof Error ? reason.message : 'Ce panier ne peut pas être ouvert')
@@ -352,8 +392,10 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong>
           {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />{reserve > 0 ? `${reserve} panier${reserve > 1 ? 's' : ''} offert${reserve > 1 ? 's' : ''} par ta série` : 'Ton premier panier est offert'}</span> : null}</header>
         {offert && basketState === 'idle' ? <span className="mm-basket-ribbon" aria-hidden="true">Offert</span> : null}
-        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onClick={() => basketState === 'idle' ? setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: prix }) : void unwrapBasket(basket.id)} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il te manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
+        <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onPointerDown={event => tenirLePanier(event, basket.id)} onPointerUp={() => lacherLePanier(true)} onPointerLeave={() => lacherLePanier(true)} onPointerCancel={() => lacherLePanier(true)}
+          onClick={() => { if (clicAIgnorer.current) { clicAIgnorer.current = false; return } if (basketState === 'idle') setPurchase({ kind: 'basket', id: basket.id, name: basket.name, price: prix }); else void unwrapBasket(basket.id) }} aria-label={basketState === 'revealed' ? 'Ranger la trouvaille dans la collection' : inabordable ? `${basket.name} : il te manque ${manque} plumes` : `Ouvrir ${basket.name}`}>
           <span className="mm-basket-halo" aria-hidden="true" />
+          <span className="mm-basket-jauge" aria-hidden="true"><i /></span>
           <span className="mm-basket-burst" aria-hidden="true" />
           <span className="mm-feather-cloud" aria-hidden="true">{Array.from({ length: 14 }, (_, index) => <Feather key={index} />)}</span>
           <BasketArtwork state={basketState} />
@@ -365,6 +407,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
                   : <><PackageOpen />Ouvrir <Price value={basket.pricePlumes} /></>}
           </span>
         </button>
+        {basketState === 'idle' && !inabordable ? <p className="mm-basket-tenir">Garde le doigt sur le panier pour l’ouvrir</p> : null}
         {inabordable ? <p className="mm-basket-manque" role="status">Il te manque {manque} plume{manque > 1 ? 's' : ''} pour ouvrir ce panier.</p> : null}
         <em>{cosmetics.basketPity > 0 ? `Chance rare renforcée · palier ${cosmetics.basketPity}` : 'Chance rare initiale'}</em>
         <details className="mm-basket-odds">

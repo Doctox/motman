@@ -129,3 +129,14 @@
   .mm-shop-page .mm-shop-item>p{font-size:0.6875rem}
   .mm-shell .mm-shop-page .mm-shop-item>button:not(:disabled),.mm-shell .mm-shop-page .mm-shop-item>button:disabled{font-size:0.8125rem}
 }
+
+/* H12 (15/10/2026) : le panier qu'on garde appuyé tremble de plus en plus fort
+   (`--tenue`, de 0 à 1, posée par ShopPage.tsx) et sa jauge se remplit. */
+.mm-basket-stage .mm-basket-jauge{position:absolute;left:50%;bottom:74px;width:140px;height:6px;margin-left:-70px;border-radius:3px;background:color-mix(in srgb,var(--mm-sage) 80%,transparent);overflow:hidden;opacity:0;transition:opacity .2s ease;pointer-events:none}
+.mm-basket-stage .mm-basket-jauge i{display:block;height:100%;background:var(--mm-gold);transform:scaleX(var(--tenue,0));transform-origin:left}
+.mm-basket-stage.est-tenu .mm-basket-jauge{opacity:1}
+.mm-basket-stage.est-tenu .mm-basket-picture{animation:panierTenu calc(.34s - var(--tenue,0) * .26s) linear infinite}
+@keyframes panierTenu{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+.mm-basket-stage{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.mm-basket-tenir{margin:6px 0 0;text-align:center;color:var(--mm-muted);font-size:.75rem}
+html[data-motion="off"] .mm-basket-stage.est-tenu .mm-basket-picture{animation:none}

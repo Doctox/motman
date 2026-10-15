@@ -14,6 +14,7 @@ import { installTabletViewport } from './tabletViewport'
 import { installInstallPromptCapture } from './installApp'
 import { installMotionAttribute } from './sensoryPreferences'
 import { installerClavierVisible } from './clavierVisible'
+import { installerSortiesEnDouceur } from './sortiesEnDouceur'
 import { installTextZoomCap } from './textZoom'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
@@ -35,6 +36,8 @@ installInstallPromptCapture()
 installMotionAttribute()
 // Les fenêtres du bas remontent au-dessus du clavier (H15) : voir clavierVisible.ts.
 installerClavierVisible()
+// Les fenêtres sortent comme elles entrent (H6) : voir sortiesEnDouceur.ts.
+installerSortiesEnDouceur()
 
 // Le thème AVANT la première image : l'écran de lancement doit déjà être sombre
 // pour qui a choisi le sombre. Le menu le repose ensuite, avec la même règle.

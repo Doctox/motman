@@ -10,3 +10,27 @@
 @keyframes ranked-ready-pulse{to{transform:scale(1.06)}}
 @media(max-width:430px){.ranked-ready-dialog{padding:21px 17px}.ranked-ready-emblems{height:88px}.ranked-ready-emblems>img,.ranked-ready-emblems>span{width:75px;height:75px}.ranked-ready-dialog h2{font-size:1.6875rem}}
 html[data-motion="off"] .ranked-ready-countdown.urgent{animation:none}
+
+/* H10 (15/10/2026) : « Adversaire trouvé ! » arrive comme un vrai moment. La
+   fenêtre monte, les deux emblèmes glissent l'un vers l'autre et les épées
+   tombent entre eux ; le décompte est l'anneau du chrono de jeu, qui se vide
+   sans palpiter (la pulsation a quitté l'écran de partie le 15/10). */
+.ranked-ready-layer{animation:rankedVoile .25s ease both}
+.ranked-ready-dialog{animation:rankedMonte .45s cubic-bezier(.34,1.3,.55,1) both}
+.ranked-ready-emblems>img{animation:rankedDeGauche .55s cubic-bezier(.34,1.3,.55,1) .1s both}
+.ranked-ready-emblems>span{animation:rankedDeDroite .55s cubic-bezier(.34,1.3,.55,1) .1s both}
+.ranked-ready-emblems>svg{animation:rankedEpees .4s cubic-bezier(.34,1.5,.55,1) .5s both}
+@keyframes rankedVoile{from{opacity:0}}
+@keyframes rankedMonte{from{opacity:0;transform:translateY(18px) scale(.97)}}
+@keyframes rankedDeGauche{from{opacity:0;transform:translateX(-70px)}}
+@keyframes rankedDeDroite{from{opacity:0;transform:translateX(70px)}}
+@keyframes rankedEpees{from{opacity:0;transform:scale(.3) rotate(-25deg)}}
+.ranked-ready-countdown{position:relative;width:96px;height:96px;margin-inline:auto;display:grid;grid-template-columns:1fr;place-content:center;justify-items:center;row-gap:0}
+.ranked-ready-countdown.urgent{animation:none!important;color:#c9502e}
+.ranked-ready-anneau{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ranked-ready-anneau circle{fill:none;stroke-width:6;stroke-linecap:round;stroke:#e5dcc6}
+.ranked-ready-anneau circle.reste{stroke:#0b574c;transition:stroke-dasharray .25s linear,stroke .3s ease}
+.ranked-ready-countdown.urgent .ranked-ready-anneau circle.reste{stroke:#c9502e}
+.ranked-ready-countdown b{position:relative;grid-row:auto!important}
+.ranked-ready-countdown span{position:relative;font-size:.6875rem}
+html[data-motion="off"] .ranked-ready-layer,html[data-motion="off"] .ranked-ready-dialog,html[data-motion="off"] .ranked-ready-emblems>*{animation:none!important}

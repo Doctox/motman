@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, BookOpen, ChevronRight, FileText, LogIn, Mail, Moon, SlidersHorizontal, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
 import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
 import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
 import { isNativeRuntime } from '../nativeRuntime'
 import type { GuestIdentity } from '../playerIdentity'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
-import { haptic, useSensoryPreferences } from '../sensoryPreferences'
+import { haptic, motionReduced, useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { useTirerPourFermer } from './tirerPourFermer'
 import { TUTORIAL_STEP_COUNT } from './FirstRunTutorial'
@@ -28,7 +28,32 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
   const [nouveautesOuvertes, setNouveautesOuvertes] = useState(false)
   const nouveauteEnAttente = useNouveauteEnAttente()
   const [serverVersion, setServerVersion] = useState(readCachedServerAppVersion)
-  const dialogRef = useDialogFocus<HTMLElement>(close)
+  // Retour (Échap, ou le retour d'Android) ramène d'abord au Menu depuis une
+  // sous-page, puis ferme (H9, 15/10/2026).
+  const sousPage = nouveautesOuvertes || reglagesOuverts
+  const dialogRef = useDialogFocus<HTMLElement>(() => {
+    if (sousPage) { setNouveautesOuvertes(false); setReglagesOuverts(false) } else close()
+  })
+  // La sous-page entre par la droite, le Menu revient par la gauche, et la
+  // fenêtre prend sa nouvelle hauteur en glissant au lieu de sauter.
+  const vue = nouveautesOuvertes ? 'nouveautes' : reglagesOuverts ? 'reglages' : 'menu'
+  const vuePrecedente = useRef(vue)
+  const hauteurPrecedente = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    const panneau = dialogRef.current
+    const avant = vuePrecedente.current
+    vuePrecedente.current = vue
+    const hauteur = hauteurPrecedente.current
+    if (panneau) hauteurPrecedente.current = panneau.offsetHeight
+    if (!panneau || avant === vue || motionReduced()) return
+    const sens = vue === 'menu' ? -1 : 1
+    for (const enfant of Array.from(panneau.children)) {
+      enfant.animate([{ opacity: 0, transform: `translateX(${sens * 28}px)` }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.22,1,.36,1)' })
+    }
+    if (hauteur && hauteur !== panneau.offsetHeight) {
+      panneau.animate([{ height: `${hauteur}px` }, { height: `${panneau.offsetHeight}px` }], { duration: 320, easing: 'cubic-bezier(.22,1,.36,1)' })
+    }
+  }, [vue, dialogRef])
   // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
   useTirerPourFermer(dialogRef, close)
   useEffect(() => {

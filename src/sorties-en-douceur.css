@@ -1,0 +1,8 @@
+/* La sortie des fenêtres (sortiesEnDouceur.ts, H6). La copie ne rejoue aucune
+   des animations d'entrée de l'original : seules ses deux animations de
+   sortie tournent, le voile qui s'efface et la carte qui redescend un peu. */
+[data-fantome],[data-fantome] *{animation:none!important;transition:none!important;pointer-events:none!important}
+[data-fantome]{animation:sortieVoile .2s ease forwards!important}
+[data-fantome]>:first-child{animation:sortieCarte .2s ease forwards!important}
+@keyframes sortieVoile{to{opacity:0}}
+@keyframes sortieCarte{to{opacity:0;transform:translateY(14px) scale(.98)}}

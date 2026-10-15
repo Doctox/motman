@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Clock3, ShieldX, Swords } from 'lucide-react'
 import { rankImage, rankedDivision } from './ranked'
 import type { RankedMatchmakingState } from './rankedMatchmaking'
 import { useDialogFocus } from './useDialogFocus'
 import { serverNow } from './serverClock'
+import { haptic, playEffect } from './sensoryPreferences'
 
 function secondsUntil(expiresAt: string, now: number): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 1000))
@@ -52,7 +53,19 @@ function RankedReadyDialog({
     return () => window.clearInterval(interval)
   }, [])
 
+  // Un vrai moment (15/10/2026, « MotMan au toucher », H10) : une double
+  // vibration et le son du tour à l'arrivée, une fois par appariement.
+  useEffect(() => {
+    haptic([20, 40, 20])
+    playEffect('turn')
+  }, [ready.id])
+  // Le décompte devient l'anneau du chrono de jeu : sa durée totale est celle
+  // qu'il restait à l'ouverture de la fenêtre.
+  const total = useRef<{ id: string; secondes: number } | null>(null)
+
   const seconds = secondsUntil(ready.expiresAt, now)
+  if (total.current?.id !== ready.id) total.current = { id: ready.id, secondes: Math.max(1, seconds) }
+  const reste = Math.max(0, Math.min(1, seconds / total.current.secondes))
   const division = useMemo(
     () => rankedDivision(state.progress.points, state.progress.matches),
     [state.progress.matches, state.progress.points],
@@ -81,7 +94,10 @@ function RankedReadyDialog({
         Ta partie en cours sera déclarée égale si tu rejoins : ni gain, ni perte. Ce qui y a été joué reste acquis.
       </p> : null}
       {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde. */}
-      <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`}><Clock3 /><b>{seconds}</b><span>secondes</span></div>
+      <div className={`ranked-ready-countdown ${seconds <= 8 ? 'urgent' : ''}`}>
+        <svg className="ranked-ready-anneau" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45" pathLength="100" /><circle className="reste" cx="50" cy="50" r="45" pathLength="100" style={{ strokeDasharray: `${reste * 100} 100` }} /></svg>
+        <b>{seconds}</b><span>secondes</span>
+      </div>
       {state.status === 'accepted' ? <>
         <div className="ranked-ready-waiting"><Check />Accepté · En attente de l’autre joueur</div>
         {/* SORTIE APRÈS LE DÉCOMPTE (20/09/2026). Une fois accepté, les deux
