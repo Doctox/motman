@@ -21,6 +21,7 @@ import {
   type DailyChallengeState,
   type DailyStatus,
 } from '../dailyChallenge'
+import { SilhouettesDeRangs } from './Silhouettes'
 import './menu-daily.css'
 
 // Composants « Défi du jour » — Option A (intégration chirurgicale).
@@ -409,7 +410,7 @@ export function DailyLeaderboardPanel() {
           aria-pressed={onglet === 'friends'} onClick={() => setOnglet('friends')}>Amis</button>
       </div>
 
-      {chargement || erreur || lignes.length === 0
+      {chargement ? <SilhouettesDeRangs libelle="Chargement du classement du jour" /> : erreur || lignes.length === 0
         ? <div className="mm-empty-ranking" role={erreur ? 'alert' : 'status'}>
             <Medal aria-hidden="true" />
             <strong>{chargement ? 'Chargement du classement…' : erreur ? 'Classement indisponible' : onglet === 'friends' ? 'Aucun ami classé' : 'Personne n’a encore joué'}</strong>

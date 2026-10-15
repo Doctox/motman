@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronRight, Copy, Feather, Gamepad2, UserPlus } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
+import { ChiffresQuiRoulent } from '../ChiffresQuiRoulent'
 import type { PlayerCosmetics } from '../cosmetics'
 import type { MatchLobbyState, MatchState } from '../matches'
 import { friendCodeOf, playerInitials, type GuestIdentity } from '../playerIdentity'
@@ -93,7 +94,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
             <h1>{identity.displayName}</h1>
             {nomDuTitre(progress.equippedTitleId, progress.titles) ? <em className="mm-home-title">{nomDuTitre(progress.equippedTitleId, progress.titles)}</em> : null}
           </span>
-          <span className="mm-home-feathers" aria-label={`${frenchNumber.format(cosmetics.plumes)} plumes`}><Feather aria-hidden="true" /><b>{frenchNumber.format(cosmetics.plumes)}</b></span>
+          <span className="mm-home-feathers" aria-label={`${frenchNumber.format(cosmetics.plumes)} plumes`}><Feather aria-hidden="true" /><b><ChiffresQuiRoulent valeur={cosmetics.plumes} /></b></span>
         </div>
         <i className="mm-home-account-xp" aria-hidden="true"><b style={{ width: `${xpPercent}%` }} /></i>
         <div className="mm-home-account-line">

@@ -128,10 +128,27 @@ html[data-motion="off"] .mm-nav-pastille{transition:none}
 .mm-settings-version strong{color:var(--mm-ink);font-weight:700}
 .mm-settings-version span{font-variant-numeric:tabular-nums}
 .mm-settings-version small{flex-basis:100%;font-size:0.5625rem;letter-spacing:0}
+/* G7 (15/10/2026) : l'annonce naît en haut. Une petite pastille vert pin
+   s'ouvre jusqu'à la taille du message, le dit, puis se referme sur elle-même
+   et s'efface. `clip-path` découpe la pastille dans la boîte entière : la
+   largeur suit le texte sans qu'on ait à l'animer. */
 .mm-toast{
-  bottom:89px;padding:9px 16px;border:1px solid color-mix(in srgb,var(--mm-gold) 48%,transparent);
-  background:var(--mm-ink);box-shadow:0 10px 28px #0004;animation:mmToast 2.1s var(--mm-ease) both;
+  top:calc(env(safe-area-inset-top,0px) + 12px);bottom:auto;display:grid;place-items:center;
+  width:max-content;min-width:120px;min-height:44px;max-width:min(340px,calc(100vw - 32px));padding:10px 20px;
+  border:1px solid color-mix(in srgb,var(--mm-gold) 40%,transparent);border-radius:999px;
+  background:var(--mm-ink);box-shadow:0 12px 30px #0004;text-align:center;line-height:1.3;
+  animation:mmIle 2.35s var(--mm-ease) both;
 }
+.mm-toast>span{animation:mmIleTexte 2.35s ease both}
+@keyframes mmIle{
+  0%{clip-path:inset(calc(50% - 14px) calc(50% - 48px) round 999px);opacity:0}
+  6%{clip-path:inset(calc(50% - 14px) calc(50% - 48px) round 999px);opacity:1}
+  24%,80%{clip-path:inset(0 0 round 999px);opacity:1}
+  93%{clip-path:inset(calc(50% - 14px) calc(50% - 48px) round 999px);opacity:1}
+  100%{clip-path:inset(calc(50% - 14px) calc(50% - 48px) round 999px);opacity:0}
+}
+@keyframes mmIleTexte{0%,15%{opacity:0}27%,77%{opacity:1}86%,100%{opacity:0}}
+html[data-motion="off"] .mm-toast,html[data-motion="off"] .mm-toast>span{animation:none}
 .mm-friends-panel{border-radius:25px 25px 0 0}
 .mm-friend-code-card{border-color:var(--mm-line);border-radius:15px;background:linear-gradient(145deg,var(--mm-sage),var(--mm-sage-soft));box-shadow:0 6px 18px var(--mm-shadow)}
 .mm-add-friend input,.mm-add-friend button{height:46px;border-radius:11px}

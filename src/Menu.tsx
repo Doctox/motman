@@ -34,6 +34,7 @@ import type { MenuAppProps, MenuPage, Theme } from './menu/types'
 import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
 import { ouvrirPremiersPassages } from './premiersPassages'
 import { useBalayageEntrePages } from './menu/balayage'
+import { SilhouetteEpicerie } from './menu/Silhouettes'
 import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
 import { CreatorNote } from './menu/CreatorNote'
@@ -114,6 +115,8 @@ export function MenuApp({
   const [toast, setToast] = useState<string | null>(null)
   const [theme, setTheme] = useState<Theme>(lireThemeChoisi)
   const toastTimer = useRef<number | null>(null)
+  // Chaque annonce repart de la petite pastille, même si la précédente était encore là.
+  const toastNumero = useRef(0)
   const openingMatch = useRef<string | null>(null)
   // Recherche normale en cours : les parties qui existaient AVANT, et si le
   // serveur a déjà enregistré la recherche. Sans ça, le sondage parti pendant
@@ -279,6 +282,7 @@ export function MenuApp({
 
   const notify = useCallback((message: string) => {
     if (toastTimer.current !== null) window.clearTimeout(toastTimer.current)
+    toastNumero.current += 1
     setToast(message)
     toastTimer.current = window.setTimeout(() => {
       setToast(null)
@@ -479,7 +483,7 @@ export function MenuApp({
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
-    {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page mm-route-loading" role="status">Ouverture de l’Épicerie…</div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
+    {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page" role="status" aria-label="Ouverture de l’Épicerie"><SilhouetteEpicerie /></div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
     {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
     {legalOpen ? <Suspense fallback={<div className="mm-page mm-route-loading" role="status">Ouverture des informations…</div>}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
@@ -496,6 +500,6 @@ export function MenuApp({
     {motDuCreateur && page === 'home' && !tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
       ? <CreatorNote close={() => { motDuCreateurMontre(dailyDateKey(Date.now())); setMotDuCreateur(false) }} />
       : null}
-    {toast ? <div className="mm-toast" role="status">{toast}</div> : null}
+    {toast ? <div key={toastNumero.current} className="mm-toast" role="status"><span>{toast}</span></div> : null}
   </main>
 }

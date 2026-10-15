@@ -1,0 +1,25 @@
+/* Les silhouettes de chargement (Silhouettes.tsx, G5). Un seul reflet qui
+   passe sur toutes les formes, lent et pâle : on sent que ça vient, sans
+   clignotement. Les couleurs viennent des jetons `--mm-*`. */
+.mm-silhouettes{display:grid;gap:4px;padding:2px 0}
+.mm-silhouettes i{
+  display:block;height:11px;border-radius:6px;
+  background:linear-gradient(100deg,var(--mm-sage) 30%,color-mix(in srgb,var(--mm-sage) 35%,var(--mm-surface)) 50%,var(--mm-sage) 70%);
+  background-size:300% 100%;animation:mmReflet 1.6s ease-in-out infinite;
+}
+@keyframes mmReflet{from{background-position:100% 0}to{background-position:0 0}}
+.mm-silhouette-rang{display:grid;grid-template-columns:38px 35px 1fr 52px;gap:9px;align-items:center;min-height:54px;padding:5px 7px;border-bottom:1px solid var(--mm-line)}
+.mm-silhouette-rang span,.mm-silhouette-quete span{display:grid;gap:7px}
+.mm-silhouettes .mm-silhouette-pos{width:18px;height:18px;border-radius:50%;justify-self:center}
+.mm-silhouettes .mm-silhouette-rond{width:35px;height:35px;border-radius:50%}
+.mm-silhouettes .mm-silhouette-valeur{height:14px}
+.mm-silhouettes-quetes{gap:10px;padding:8px 0}
+.mm-silhouette-quete{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:center;padding:12px;border:1px solid var(--mm-line);border-radius:16px}
+.mm-silhouettes .mm-silhouette-carre{width:40px;height:40px;border-radius:12px}
+.mm-silhouettes .mm-silhouette-barre{height:6px;margin-top:3px}
+.mm-silhouette-epicerie{gap:16px;padding:16px}
+.mm-silhouette-ligne{display:flex;align-items:center;gap:12px}
+.mm-silhouette-ligne i{height:12px}
+.mm-silhouettes .mm-silhouette-rayons{height:58px;border-radius:16px}
+.mm-silhouettes .mm-silhouette-carte{height:330px;border-radius:24px}
+html[data-motion="off"] .mm-silhouettes i{animation:none}

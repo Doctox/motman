@@ -13,6 +13,7 @@ import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from './dailyStreakRule'
 import { BASKET_DUPLICATE_REFUND_PERCENT } from './progressionRewards'
 import { useDialogFocus } from './useDialogFocus'
 import { haptic } from './sensoryPreferences'
+import { ChiffresQuiRoulent } from './ChiffresQuiRoulent'
 import { PremierPassageCarte } from './menu/PremierPassage'
 
 type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets' | 'objects'
@@ -242,7 +243,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         <span>Collection<em>{collection.owned} / {collection.total}</em></span>
         <i><b style={{ width: `${collection.total ? collection.owned / collection.total * 100 : 0}%` }} /></i>
       </div>
-      <b><Feather />{cosmetics.plumes.toLocaleString('fr-FR')}</b>
+      <b><Feather /><ChiffresQuiRoulent valeur={cosmetics.plumes} /></b>
     </section>
     <PremierPassageCarte lieu="epicerie" titre="Bienvenue à l’Épicerie">
       Tes plumes se gagnent en jouant et avec les quêtes. Ici, elles deviennent avatars, cadres et animations, ou paniers surprises.

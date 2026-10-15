@@ -1,0 +1,14 @@
+/* Les chiffres qui roulent (ChiffresQuiRoulent.tsx, G6). Chiffres tabulaires :
+   une colonne garde la même largeur quel que soit le chiffre affiché, donc
+   rien ne bouge à côté pendant qu'elle roule. */
+.chiffres-roulent{position:relative;display:inline-block;font-variant-numeric:tabular-nums lining-nums}
+.chiffres-roulent-texte{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.chiffres-roulent-vue{display:inline-flex;height:1.2em;line-height:1.2em;overflow:hidden;vertical-align:top}
+.chiffres-roulent-colonne,.chiffres-roulent-signe{display:inline-block}
+.chiffres-roulent-colonne::before{
+  content:"0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";display:block;white-space:pre;
+  transform:translateY(calc(var(--chiffre) * -1.2em));
+  transition:transform .7s cubic-bezier(.34,1.32,.56,1) calc((var(--rang) - 1) * 45ms);
+}
+.chiffres-roulent-signe::before{content:attr(data-signe);white-space:pre}
+html[data-motion="off"] .chiffres-roulent-colonne::before{transition:none}

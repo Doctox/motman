@@ -26,7 +26,7 @@
 }
 .mm-modal-layer{background:#071d1873;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
 .mm-settings,.mm-friends-panel,.mm-guest-editor,.mm-match-invite,.mm-pause{animation-duration:.42s}
-.mm-toast{animation-duration:2.35s}
+
 [data-theme="dark"] .mm-brand img{filter:brightness(2.05) saturate(.58)}
 
 @media(hover:hover){

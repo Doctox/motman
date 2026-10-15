@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Check, Feather, Flame, Gamepad2, Image as ImageIcon, LightbulbOff, ListChecks,
@@ -7,7 +7,9 @@ import {
 import { claimQuest, type ClaimedQuestReward } from '../auth'
 import { loadPlayerCosmetics } from '../cosmetics'
 import { loadPlayerIdentity } from '../playerIdentity'
-import { haptic, motionReduced } from '../sensoryPreferences'
+import { haptic } from '../sensoryPreferences'
+import { ChiffresQuiRoulent } from '../ChiffresQuiRoulent'
+import { SilhouettesDeQuetes } from './Silhouettes'
 import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, WEEKLY_QUEST_PLUMES_IF_FULL, type QuestCounter, type QuestView } from '../quests'
 import { MAX_STREAK_FREEZES } from '../dailyStreakRule'
 import { useQuestBoard } from '../questBoardState'
@@ -58,38 +60,6 @@ export function QuestsChip() {
   </>
 }
 
-/**
- * La bourse qui grimpe. C'est le vrai plaisir d'une récompense : voir le nombre
- * monter, pas lire « +60 ». Le compte se fait en 800 ms, arrondi à l'entier, et
- * saute directement au total si le joueur a demandé moins d'animations.
- */
-function useBourseAnimee(cible: number): number {
-  const [affiche, setAffiche] = useState(cible)
-  const depart = useRef(cible)
-  useEffect(() => {
-    const reduit = motionReduced()
-    if (reduit || depart.current === cible) {
-      depart.current = cible
-      setAffiche(cible)
-      return
-    }
-    const de = depart.current
-    const debut = performance.now()
-    let image = 0
-    const avancer = (maintenant: number) => {
-      const part = Math.min(1, (maintenant - debut) / 800)
-      // Départ vif, fin douce : le nombre semble « atterrir ».
-      const adouci = 1 - (1 - part) ** 3
-      setAffiche(Math.round(de + (cible - de) * adouci))
-      if (part < 1) image = requestAnimationFrame(avancer)
-      else depart.current = cible
-    }
-    image = requestAnimationFrame(avancer)
-    return () => cancelAnimationFrame(image)
-  }, [cible])
-  return affiche
-}
-
 function QuestsPanel({ close }: { close: () => void }) {
   const board = useQuestBoard()
   const dialogRef = useDialogFocus<HTMLElement>(close)
@@ -101,7 +71,6 @@ function QuestsPanel({ close }: { close: () => void }) {
     try { return loadPlayerCosmetics(loadPlayerIdentity().playerId).plumes } catch { return 0 }
   })
   const [gain, setGain] = useState<{ cle: number; plumes: number; xp: number; gels: number } | null>(null)
-  const bourseAffichee = useBourseAnimee(bourse)
 
   const recuperer = async (quest: QuestView, scope: 'day' | 'week') => {
     if (enCours) return
@@ -138,8 +107,9 @@ function QuestsPanel({ close }: { close: () => void }) {
             <strong>Quêtes du jour</strong>
             <small>{board ? `${finies}/${board.day.length} faites · nouvelles dans ${countdown}` : 'Chargement…'}</small>
           </div>
-          <span className="mm-quests-purse" aria-label={`${nombreFrancais.format(bourseAffichee)} plumes`}>
-            <Feather aria-hidden="true" /><b>{nombreFrancais.format(bourseAffichee)}</b>
+          <span className="mm-quests-purse" aria-label={`${nombreFrancais.format(bourse)} plumes`}>
+            {/* La bourse roule comme un compteur (G6, 15/10/2026), au lieu de compter. */}
+            <Feather aria-hidden="true" /><b><ChiffresQuiRoulent valeur={bourse} /></b>
             {gain ? <i key={gain.cle} className="mm-quests-gain" aria-hidden="true">
               {gain.plumes > 0 ? `+${gain.plumes}` : gain.gels > 0 ? '+1 gel' : `+${gain.xp} XP`}
             </i> : null}
@@ -176,7 +146,7 @@ function QuestsPanel({ close }: { close: () => void }) {
               recuperer={() => void recuperer(board.week, 'week')}
             />
           </ul>
-        </> : <p className="mm-quests-attente">Tes quêtes arrivent…</p>}
+        </> : <SilhouettesDeQuetes />}
 
         {erreur ? <p className="mm-quests-erreur" role="alert">{erreur}</p> : null}
       </section>
