@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { PRESENCE_WINDOW_MS as PRESENCE_WINDOW_RULE_MS, REWARD_STEP_MS } from '../../src/gameRules'
+import { PRESENCE_WINDOW_MS as PRESENCE_WINDOW_RULE_MS, REWARD_STEP_MS, SOUFFLE_ENTRE_TOURS_MS } from '../../src/gameRules'
 
 function numericEnvironment(name: string, fallback: number, minimum: number): number {
   const parsed = Number(process.env[name])
@@ -25,6 +25,7 @@ export const TURN_SUBMIT_GRACE_MS = numericEnvironment('MOTMAN_TURN_GRACE_MS', 2
 export const AUTOMATIC_TURN_SUBMIT_GRACE_MS = numericEnvironment('MOTMAN_AUTOMATIC_TURN_GRACE_MS', 8_000, TURN_SUBMIT_GRACE_MS)
 export const REVEAL_STEP_MS = numericEnvironment('MOTMAN_REVEAL_STEP_MS', REWARD_STEP_MS, 0)
 export const MIN_REVEAL_DURATION_MS = numericEnvironment('MOTMAN_MIN_REVEAL_DURATION_MS', 700, 0)
+export const SOUFFLE_MS = numericEnvironment('MOTMAN_SOUFFLE_MS', SOUFFLE_ENTRE_TOURS_MS, 0)
 // « Tu es toujours là ? » : 30 s en vrai (src/gameRules.ts), raccourcissable
 // pour que les bancs d'essai n'attendent pas une demi-minute.
 export const PRESENCE_WINDOW_MS = numericEnvironment('MOTMAN_PRESENCE_WINDOW_MS', PRESENCE_WINDOW_RULE_MS, 250)

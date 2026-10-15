@@ -97,7 +97,7 @@ describe('un appel qui reste muet', () => {
   it('un appel qui dépense n’est jamais relancé : il garde tout le délai, puis prévient', async () => {
     client.invoke.mockImplementation(appelMuet)
     const appel = invokeSupabaseFunction('match-api', { action: 'hint' })
-    const verdict = expect(appel).rejects.toThrow('Le serveur ne répond pas')
+    const verdict = expect(appel).rejects.toThrow('La connexion traîne un peu')
     await vi.advanceTimersByTimeAsync(FUNCTION_TIMEOUT_MS)
     await verdict
     expect(client.invoke).toHaveBeenCalledTimes(1)
@@ -106,7 +106,7 @@ describe('un appel qui reste muet', () => {
   it('muet deux fois de suite, il prévient le joueur au bout du délai', async () => {
     client.invoke.mockImplementation(appelMuet)
     const appel = invokeSupabaseFunction('match-api', { action: 'match', matchId: 'm1' })
-    const verdict = expect(appel).rejects.toThrow('Le serveur ne répond pas')
+    const verdict = expect(appel).rejects.toThrow('La connexion traîne un peu')
     await vi.advanceTimersByTimeAsync(FUNCTION_TIMEOUT_MS)
     await verdict
     expect(client.invoke).toHaveBeenCalledTimes(2)

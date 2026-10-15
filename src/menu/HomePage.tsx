@@ -12,6 +12,9 @@ import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero } from './DailyChallenge'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
 import { GamePulse } from './GamePulse'
+import { salutation } from './salutation'
+import { momentParis } from '../nouveautesCreneaux'
+import { serverNow } from '../serverClock'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -100,6 +103,8 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       </div>
     </section>
     <section className="mm-attention">
+      {/* Bonjour, bonsoir (15/10/2026, E2) : une invitation selon l'heure de Paris. */}
+      <p className="mm-home-salut">{salutation(momentParis(serverNow()).heure)}</p>
       {/* La place du jour vit DANS la carte depuis le 25/09/2026 : en ligne
           séparée, elle doublait le rang que la carte affichait déjà — et les
           deux chiffres se contredisaient. */}

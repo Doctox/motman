@@ -27,6 +27,7 @@ import {
   MATCH_DATABASE_PATH,
   MAX_ASYNC_MATCHES,
   MIN_REVEAL_DURATION_MS,
+  SOUFFLE_MS,
   PRESENCE_WINDOW_MS,
   REALTIME_BOT_MATCH_DELAY_MS,
   REALTIME_SEARCH_STALE_MS,
@@ -217,7 +218,7 @@ function activeMatches(playerId: string, pace?: MatchPace): StoredMatch[] {
 
 function revealDuration(turn: StoredTurn): number {
   const steps = turn.wrong.length + turn.correct.length + turn.wordBonuses.length + Number(Boolean(turn.rackBonus))
-  return Math.max(MIN_REVEAL_DURATION_MS, steps * REVEAL_STEP_MS + 350)
+  return Math.max(MIN_REVEAL_DURATION_MS, steps * REVEAL_STEP_MS + 350) + SOUFFLE_MS
 }
 
 function startNextTurn(match: StoredMatch, completedAt: Date, turn: StoredTurn): void {

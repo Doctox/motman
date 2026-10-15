@@ -8,10 +8,17 @@
 // pourcentage du téléchargement.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type LaunchStage = 'demarrage' | 'mises-a-jour' | 'chargement' | 'version' | 'connexion'
+export type LaunchStage = 'demarrage' | 'mises-a-jour' | 'chargement' | 'version' | 'connexion' | 'preparation'
 
-/** Ordre d'enchaînement : la barre ne recule jamais d'une étape à la suivante. */
-export const LAUNCH_STAGES: readonly LaunchStage[] = ['demarrage', 'mises-a-jour', 'chargement', 'version', 'connexion']
+/**
+ * Ordre d'enchaînement : la barre ne recule jamais d'une étape à la suivante.
+ *
+ * `preparation` (15/10/2026, B1) est celle de l'appli elle-même, pendant que
+ * l'accueil ou la partie se chargent : elle remplace l'ancien second écran
+ * (« Préparation de MotMan… » et une roue, dans un autre style), pour que le
+ * joueur ne voie qu'une seule entrée en matière, du logo à l'accueil.
+ */
+export const LAUNCH_STAGES: readonly LaunchStage[] = ['demarrage', 'mises-a-jour', 'chargement', 'version', 'connexion', 'preparation']
 
 export const LAUNCH_PROGRESS: Record<LaunchStage, number> = {
   demarrage: 6,
@@ -19,6 +26,7 @@ export const LAUNCH_PROGRESS: Record<LaunchStage, number> = {
   chargement: 36,
   version: 60,
   connexion: 82,
+  preparation: 94,
 }
 
 export const LAUNCH_LABEL: Record<LaunchStage, string> = {
@@ -27,6 +35,7 @@ export const LAUNCH_LABEL: Record<LaunchStage, string> = {
   chargement: 'Chargement du jeu…',
   version: 'Vérification de la version…',
   connexion: 'Connexion…',
+  preparation: 'Préparation de MotMan…',
 }
 
 /**

@@ -10,16 +10,16 @@ import { formatUpdateProgress, LAUNCH_LABEL, LAUNCH_PROGRESS, type LaunchStage }
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type LaunchScreenProps =
-  | { mode: 'ouverture'; stage: LaunchStage; lente?: boolean; onRetry?: () => void }
+  | { mode: 'ouverture'; stage: LaunchStage; lente?: boolean; onRetry?: () => void; etiquette?: string }
   | { mode: 'mise-a-jour'; percent: number; sizeBytes?: number; onSkip: () => void }
 
 export function LaunchScreen(props: LaunchScreenProps) {
   const progression = props.mode === 'ouverture' ? LAUNCH_PROGRESS[props.stage] : Math.max(0, Math.min(100, props.percent))
   const etat = props.mode === 'ouverture'
-    ? LAUNCH_LABEL[props.stage]
+    ? props.etiquette ?? LAUNCH_LABEL[props.stage]
     : `Mise à jour · ${formatUpdateProgress(props.percent, props.sizeBytes)}`
 
-  return <main className="mm-launch" aria-busy="true">
+  return <main className="mm-launch" aria-busy="true" data-etape={props.mode === 'ouverture' ? props.stage : 'mise-a-jour'}>
     <img className="mm-launch-logo mm-launch-logo-light" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" />
     <img className="mm-launch-logo mm-launch-logo-dark" src={assetUrl('/assets/motman-logo-v2-dark.webp')} alt="" aria-hidden="true" />
     <p className="mm-launch-tagline">Duel de mots fléchés</p>

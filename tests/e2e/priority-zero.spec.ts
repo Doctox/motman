@@ -1030,11 +1030,11 @@ test('après un tour manqué, « Tu es toujours là ? » laisse un décompte pou
 
   const { context, page } = await openGame(browser, absent, matchId, { width: 390, height: 844 })
   try {
-    const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
+    const fenetre = page.getByRole('alertdialog', { name: 'Petite pause ?' })
     await expect(fenetre).toBeVisible()
     // Plus de « Tour manqué 1/3 » : un décompte en secondes.
     await expect(fenetre.locator('.still-there-countdown')).toBeVisible()
-    await expect(fenetre).toContainText('Sans réponse, la partie est perdue.')
+    await expect(fenetre).toContainText('Sans nouvelles de toi, la partie s’arrêtera.')
     await expect(fenetre).not.toContainText('/3')
     await page.screenshot({ path: 'output/quality/toujours-la-390.png' })
 
@@ -1057,10 +1057,10 @@ test('sans réponse à « Tu es toujours là ? », la partie est perdue pour l�
 
   const { context, page } = await openGame(browser, absent, matchId, { width: 360, height: 740 })
   try {
-    const fenetre = page.getByRole('alertdialog', { name: 'Tu es toujours là ?' })
+    const fenetre = page.getByRole('alertdialog', { name: 'Petite pause ?' })
     await expect(fenetre).toBeVisible()
     // Il ne répond pas : à 0 s, le serveur clôt la partie, l'écran de fin le dit.
-    await expect(page.getByText('Tu n’as pas répondu à temps : la partie est perdue.')).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
+    await expect(page.getByText('La partie s’est arrêtée pendant ta pause.')).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
     const fin = await loadMatch(request, absent.playerId, matchId)
     expect(fin.status).toBe('finished')
     expect(fin.finishReason).toBe('timeout')

@@ -62,7 +62,7 @@ export function matchPollDelay({
 }
 
 /**
- * Le bandeau « Le serveur ne répond pas » d'une actualisation AUTOMATIQUE
+ * Le bandeau « La connexion traîne un peu » d'une actualisation AUTOMATIQUE
  * (13/10/2026). Un seul échec ne dit rien d'utile au joueur : l'appel a déjà été
  * relancé une fois (supabaseFunctions.ts), et le sondage suivant arrive dans
  * 2,5 s. Il paraît donc au DEUXIÈME échec d'affilée — ou tout de suite si la

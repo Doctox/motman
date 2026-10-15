@@ -383,10 +383,12 @@ test('les quêtes du jour se suivent, se récupèrent une fois, et la pastille s
   await expect(rouvert.getByRole('button', { name: 'Récupérer' })).toHaveCount(2)
 })
 
-test('la recherche d’un adversaire compte son attente, et elle seule l’affiche', async ({ browser }) => {
-  // Le 17/09/2026, les trois points qui clignotaient ont laissé place à un
-  // chrono. Il MONTE : la question du joueur est « est-ce que c'est bloqué »,
-  // pas « combien de temps encore » — personne ne peut promettre une fin.
+test('la recherche normale respire sans compter, et elle seule l’affiche', async ({ browser }) => {
+  // Le 17/09/2026, les trois points qui clignotaient avaient laissé place à un
+  // chrono qui montait. Le 15/10/2026 (« MotMan au rythme du thé », B2), la
+  // recherche normale, qui dure quinze secondes au plus, revient à trois points
+  // qui RESPIRENT : ils disent que rien n'est bloqué, sans presser personne. La
+  // recherche classée, qui peut durer dix minutes, garde son compteur.
   const api = await playwrightRequest.newContext({
     baseURL: SERVEUR_TEST,
     extraHTTPHeaders: { Origin: SERVEUR_TEST },
@@ -412,12 +414,9 @@ test('la recherche d’un adversaire compte son attente, et elle seule l’affic
 
   try {
     await page.goto('/#jouer')
-    const chrono = page.locator('.mm-play-card.is-searching .mm-search-timer')
-    await expect(chrono).toBeVisible()
-    const secondes = async () => Number((await chrono.textContent() ?? '').replace(/\D/g, ''))
-    const premier = await secondes()
-    await page.waitForTimeout(2500)
-    expect(await secondes()).toBeGreaterThan(premier)
+    await expect(page.locator('.mm-play-card.is-searching .mm-search-respire')).toBeVisible()
+    await expect(page.locator('.mm-play-card.is-searching')).toContainText('On te trouve un adversaire')
+    await expect(page.locator('.mm-play-card.is-searching .mm-search-timer')).toHaveCount(0)
 
     // Le bandeau qui répétait cette attente sur tous les écrans est retiré
     // (17/09/2026) : une recherche normale trouve en quinze secondes, et c'est

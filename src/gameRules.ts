@@ -46,6 +46,14 @@ export const RACK_SIZE = 5
 export const RACK_COMPLETION_BONUS = 5
 export const FINAL_SPRINT_THRESHOLD = RACK_SIZE * 2
 export const REWARD_STEP_MS = 1_240
+/**
+ * Un souffle entre les tours (15/10/2026, « MotMan au rythme du thé », A1) :
+ * après la révélation d'un coup, le plateau reste immobile un instant avant que
+ * le tour suivant démarre. Ajouté au DÉBUT du tour par le serveur, il ne prend
+ * rien sur les 45 s du joueur. Avant, le bot rejouait aussitôt après un tour
+ * expiré, puis « À toi ! » repartait : aucun temps mort.
+ */
+export const SOUFFLE_ENTRE_TOURS_MS = 1_500
 export const REWARD_EFFECT_LIFETIME_MS = 1_180
 
 export function gameWordCellIndexes(grid: Pick<GameRuleGrid, 'columns'>, word: GameRuleWord): number[] {

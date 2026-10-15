@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { LoaderCircle } from 'lucide-react'
+import { LaunchScreen } from './LaunchScreen'
 import { startAdaptivePolling } from './adaptivePolling'
 import { subscribeToMenuUpdates, type MenuRealtimeStatus, type MenuWakeupScope } from './menuRealtime'
 import { transferMatchToRanked, type MatchPace } from './matches'
@@ -22,8 +22,13 @@ import { useSacrificedMatch } from './sacrificedMatch'
 const MenuApp = lazy(() => import('./Menu').then(module => ({ default: module.MenuApp })))
 const MultiplayerGameScreen = lazy(() => import('./MultiplayerGame').then(module => ({ default: module.MultiplayerGameScreen })))
 
-function AppLoading({ label = 'Préparation de MotMan…' }: { label?: string }) {
-  return <main className="app-loading" role="status"><LoaderCircle /><span>{label}</span></main>
+/**
+ * Pendant que l'accueil ou la partie se chargent, l'écran de lancement reste à
+ * l'écran, à sa dernière étape (15/10/2026, B1) : avant, un second écran, dans
+ * un autre style, prenait le relais.
+ */
+function AppLoading({ label }: { label?: string }) {
+  return <LaunchScreen mode="ouverture" stage="preparation" etiquette={label} />
 }
 
 export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: RequiredAppUpdate | null }) {

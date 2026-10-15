@@ -68,8 +68,10 @@ export function DuelPlayer({ name, score, active, initials, avatarId, frameId, a
  * réponse 30 s en temps limité.
  */
 function absenceDetail(pace: string, won: boolean, opponentName: string): string {
-  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : 'Tu n’as pas joué en 24 h : la partie est perdue par abandon.'
-  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'Tu n’as pas répondu à temps : la partie est perdue.'
+  // Le joueur absent n'est pas grondé (15/10/2026, E1) : il apprend ce qui
+  // s'est passé, pas qu'il a fauté.
+  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : 'La partie s’est arrêtée après 24 h sans coup de ta part.'
+  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'La partie s’est arrêtée pendant ta pause.'
 }
 
 /** La partie normale close d'office quand un joueur rejoint un match classé confirmé. */

@@ -228,5 +228,11 @@
     "titre": "Moins de « Le serveur ne répond pas »",
     "texte": "Sur une connexion fragile (satellite, 4G faible), le jeu relance tout seul un appel resté bloqué, et le message disparaît dès que le contact revient.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-10-15T06:54",
+    "titre": "MotMan se joue plus en douceur",
+    "texte": "Un chrono qui s'écoule doucement, un souffle entre les tours, « À toi » qui ne cache plus la grille, des erreurs qui ne tremblent plus et des chiffres bien alignés.",
+    "genre": "jeu"
   }
 ]

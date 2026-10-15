@@ -1,4 +1,16 @@
 @import './styles/ranked.css';
+/* Des chiffres qui se tiennent droit (15/10/2026). Playfair Display dessine
+   par défaut des chiffres « elzéviriens » : le 3, le 4, le 5, le 7 et le 9
+   descendent sous la ligne, le 6 et le 8 montent au-dessus ; « 38 » ou « 117 »
+   avaient l'air de danser, et le propriétaire ne les supportait plus. La police
+   embarquée contient aussi des chiffres alignés (fonction `lnum`, glyphes
+   `.lf`) : on les demande pour toute l'appli, élément par élément. Hérité
+   depuis `html`, le réglage ne tenait pas : dans Chrome, chaque raccourci
+   `font:` des feuilles le remet à zéro. D'où le `!important`, sans risque :
+   aucune autre règle ne touche `font-feature-settings`, et `font-variant-numeric`
+   (les chiffres à chasse fixe du chrono) reste libre. DM Sans, déjà alignée,
+   n'en change pas. */
+*,*::before,*::after{font-feature-settings:"lnum" 1!important}
 @font-face {
   font-family: 'DM Sans';
   font-style: normal;
@@ -65,6 +77,14 @@ html[data-motion="off"] .app-loading svg{animation:none}
 html[data-motion="off"] .mm-launch-logo,html[data-motion="off"] .mm-launch-tagline{animation:none}
 html[data-motion="off"] .mm-launch-bar i{transition:none}
 html[data-motion="off"] .mm-launch-bar i::after{display:none}
+/* L'étape « préparation » (15/10/2026, B1) prend le relais de l'écran de
+   lancement sans qu'on le voie : rien n'y rejoue d'entrée, la barre ne repart
+   pas de zéro, et le logo respire lentement pendant que l'accueil se charge. */
+.mm-launch[data-etape="preparation"] .mm-launch-logo{animation:mmLaunchRespire 3.2s ease-in-out infinite}
+.mm-launch[data-etape="preparation"] .mm-launch-tagline{animation:none}
+.mm-launch[data-etape="preparation"] .mm-launch-bar i{transition:none}
+@keyframes mmLaunchRespire{0%,100%{opacity:1}50%{opacity:.78}}
+html[data-motion="off"] .mm-launch[data-etape="preparation"] .mm-launch-logo{animation:none}
 
 /* ── « Quitter MotMan ? » (nativeBackButton.tsx) ─────────────────────────────
    Dans base.css : la question peut venir de n'importe quel écran, y compris

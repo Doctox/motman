@@ -86,6 +86,9 @@ export default defineConfig({
       MOTMAN_AUTOMATIC_TURN_GRACE_MS: '4000',
       MOTMAN_REVEAL_STEP_MS: '30',
       MOTMAN_MIN_REVEAL_DURATION_MS: '20',
+      // Le souffle entre les tours (src/gameRules.ts) ralentirait chaque tour joué
+      // à l'écran sans rien prouver : les e2e le coupent, comme la révélation.
+      MOTMAN_SOUFFLE_MS: '0',
       MOTMAN_REALTIME_BOT_DELAY_MS: '60000',
       MOTMAN_ASYNC_BOT_DELAY_MS: '60000',
       VITE_MOTMAN_LOCAL_TEST_SERVER: 'true',

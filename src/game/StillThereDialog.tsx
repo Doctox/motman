@@ -30,7 +30,8 @@ export function StillThereDialog({ prompt, confirm, expire, isDaily = false, env
   return <div className="mm-modal-layer mm-pause-layer still-there-layer" role="presentation">
     <section ref={dialogRef} className="mm-pause still-there" role="alertdialog" aria-modal="true" aria-labelledby="still-there-title" aria-describedby="still-there-detail" tabIndex={-1}>
       <Hand aria-hidden="true" />
-      <h2 id="still-there-title">Tu es toujours là ?</h2>
+      {/* Des mots qui n'accusent pas (15/10/2026, E1) : la règle ne change pas. */}
+      <h2 id="still-there-title">Petite pause ?</h2>
       <div id="still-there-detail">
         {reste === null
           ? <p>Tu as laissé passer ton tour.</p>
@@ -39,7 +40,7 @@ export function StillThereDialog({ prompt, confirm, expire, isDaily = false, env
                 couvrait la consigne (même règle que la pause classée). */}
             <p className={`still-there-countdown ${reste <= 10 ? 'is-urgent' : ''}`}><b>{reste}</b> s</p>
             {/* Au défi du jour, l'absence vaut abandon : fermé jusqu'à minuit (19/09/2026). */}
-            <p>{isDaily ? 'Sans réponse, le défi est abandonné jusqu’à demain.' : 'Sans réponse, la partie est perdue.'}</p>
+            <p>{isDaily ? 'Sans nouvelles de toi, le défi s’arrêtera pour aujourd’hui.' : 'Sans nouvelles de toi, la partie s’arrêtera.'}</p>
           </>}
       </div>
       <button type="button" data-dialog-autofocus disabled={envoi} onClick={confirm}>{envoi ? 'Un instant…' : 'Je suis là'}</button>

@@ -12,6 +12,8 @@
 @import './styles/game-motion.css';
 @import './styles/game-actions.css';
 @import './styles/game-desktop.css';
+/* Tout à la fin : la passe « au calme » du 15/10/2026 adoucit ce qui précède. */
+@import './styles/game-calme.css';
 
 /* ── Paysage : on demande de retourner l'appareil ─────────────────────────────
    La grille, ses définitions, le chevalet et les commandes n'ont jamais eu de

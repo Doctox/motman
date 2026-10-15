@@ -106,7 +106,8 @@ export function reminderMessage(items: readonly ReminderItem[], names: ReadonlyM
     title: dernierAppel ? `Plus que ${duree(reste)} pour jouer` : `${nom} attend ton coup`,
     // Depuis le 18/09/2026, un tour de 24 h laissé passer est un abandon
     // (shouldForfeitAfterInactivity) : chaque rappel le dit, dès le premier.
-    body: `Sans coup d’ici ${duree(reste)}, tu perds la partie contre ${nom}.`,
+    // Sans menace (15/10/2026, E1) : le délai suffit à dire l'enjeu.
+    body: `Ta partie contre ${nom} t’attend encore ${duree(reste)}.`,
     data: { type: 'match_turn', matchId: urgent.matchId },
     tag: `match-${urgent.matchId}`,
   }

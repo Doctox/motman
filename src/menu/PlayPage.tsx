@@ -97,10 +97,17 @@ function PaceChoice({ pace, setPace, label }: { pace: MatchPace; setPace: (pace:
   </div>
 }
 
-/** Une recherche en cours : la carte se replie sur une seule ligne. */
-function SearchingCard({ titre, detail, depuis, annuler, disabled }: { titre: string; detail: string; depuis: string | undefined; annuler: () => void; disabled: boolean }) {
+/**
+ * Une recherche en cours : la carte se replie sur une seule ligne.
+ *
+ * Attendre sans compter (15/10/2026, B2) : la recherche normale dure 15 s au
+ * plus, puis un bot prend la place. Trois points qui respirent suffisent à dire
+ * qu'elle n'est pas bloquée ; les secondes, en rouge, pressaient pour rien. La
+ * recherche classée, qui peut durer dix minutes, garde son compteur.
+ */
+function SearchingCard({ titre, detail, annuler, disabled }: { titre: string; detail: string; annuler: () => void; disabled: boolean }) {
   return <section className="mm-play-card is-searching" aria-live="polite">
-    <ChronoRecherche depuis={depuis} />
+    <span className="mm-search-respire" aria-hidden="true"><i /><i /><i /></span>
     <span className="mm-play-searching-copy"><strong>{titre}</strong><small>{detail}</small></span>
     <button type="button" className="mm-search-cancel" disabled={disabled} onClick={annuler}>Annuler</button>
   </section>
@@ -194,9 +201,8 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
     <div id="mm-play-mode" className="mm-play-mode" role="tabpanel" aria-labelledby={`mm-${onglet}-tab`}>
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
-          titre="Recherche d’un adversaire…"
-          detail={asyncSearching ? 'Tu peux revenir plus tard' : 'Un adversaire te sera proposé'}
-          depuis={(asyncSearch ?? realtimeSearch)?.createdAt}
+          titre="On te trouve un adversaire…"
+          detail={asyncSearching ? 'Tu peux revenir plus tard' : 'Prends le temps de t’installer'}
           disabled={searchBusy !== null}
           annuler={() => void arreterRecherche(asyncSearching ? 'async' : 'realtime')}
         />

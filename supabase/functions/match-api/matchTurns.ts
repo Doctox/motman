@@ -9,12 +9,13 @@
 // Voir `matchTurns.test.ts` pour ce qui est désormais couvert.
 
 import { planBotMove } from '../../../src/botOpponents.ts'
-import { evaluateTurn, keepRackLettersAfterTurn, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity } from '../../../src/gameRules.ts'
+import { evaluateTurn, keepRackLettersAfterTurn, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
 import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
 import { ASYNC_TURN_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type MatchRow, type State, type Turn } from './matchModel.ts'
 
+/** La révélation du coup, puis le souffle avant le tour suivant (src/gameRules.ts). */
 export function revealDuration(turn: Turn): number {
-  return Math.max(700, (turn.wrongPlacements.length + turn.correct.length + turn.wordBonuses.length + (turn.rackBonus ? 1 : 0)) * REWARD_STEP_MS)
+  return Math.max(700, (turn.wrongPlacements.length + turn.correct.length + turn.wordBonuses.length + (turn.rackBonus ? 1 : 0)) * REWARD_STEP_MS) + SOUFFLE_ENTRE_TOURS_MS
 }
 
 export function finish(state: State, row: MatchRow, winnerId: string | null, reason: MatchRow['finish_reason']) {

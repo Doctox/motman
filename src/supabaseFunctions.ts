@@ -17,7 +17,9 @@ export const FUNCTION_TIMEOUT_MS = 20_000
 function timeoutFailure(name: string): FunctionFailure {
   return Object.assign(
     // Le nom interne de la fonction (« match-api ») n'a rien à faire à l'écran.
-    new Error('Le serveur ne répond pas. Vérifie ta connexion, puis réessaie.'),
+    // Des mots qui n'accusent pas (15/10/2026, E1) : on ne renvoie plus le
+    // joueur vérifier sa connexion, on lui dit ce qui se passe.
+    new Error('La connexion traîne un peu. Réessaie dans un instant.'),
     { payload: { code: 'REQUEST_TIMEOUT' as const }, status: 0 },
   ) as FunctionFailure
 }
