@@ -3,11 +3,21 @@
    rien ne bouge à côté pendant qu'elle roule. */
 .chiffres-roulent{position:relative;display:inline-block;font-variant-numeric:tabular-nums lining-nums}
 .chiffres-roulent-texte{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.chiffres-roulent-vue{display:inline-flex;height:1.2em;line-height:1.2em;overflow:hidden;vertical-align:top}
+/* LA HAUTEUR D'UNE LIGNE, EN `lh` (15/10/2026). Android agrandit le texte selon
+   la « taille de police » du téléphone, et pas toutes les longueurs en `em` de
+   la même façon : la hauteur de ligne suit l'agrandissement, le décalage des
+   colonnes non. Mesuré sur le Note 10 (police à 110 %) : 13,2 px par ligne de
+   chiffres, 12 px par cran de décalage. L'écart grandit avec le chiffre, et sur
+   le téléphone du propriétaire (200 %) les colonnes s'arrêtaient entre deux
+   chiffres, à moitié coupés. `lh` vaut la hauteur de ligne calculée :
+   fenêtre et crans tombent juste. La ligne en `em` reste pour un moteur trop
+   ancien pour `lh`. */
+.chiffres-roulent-vue{display:inline-flex;height:1.2em;height:1lh;line-height:1.2em;overflow:hidden;vertical-align:top}
 .chiffres-roulent-colonne,.chiffres-roulent-signe{display:inline-block}
 .chiffres-roulent-colonne::before{
   content:"0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";display:block;white-space:pre;
   transform:translateY(calc(var(--chiffre) * -1.2em));
+  transform:translateY(calc(var(--chiffre) * -1lh));
   transition:transform .7s cubic-bezier(.34,1.32,.56,1) calc((var(--rang) - 1) * 45ms);
 }
 .chiffres-roulent-signe::before{content:attr(data-signe);white-space:pre}

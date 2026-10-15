@@ -54,6 +54,13 @@
 }
 
 *{box-sizing:border-box}
+/* Pas de sélection de texte à l'appui long (propriétaire, 15/10/2026 : « ça fait
+   une sélection de texte, c'est chiant, faut la désactiver »). Garder le doigt
+   sur l'écran ouvrait les poignées de sélection d'Android, ou la bulle
+   « Copier » d'iOS, au lieu de l'aperçu ou du geste attendu. Les champs de
+   saisie gardent la leur : on doit pouvoir y corriger un pseudo ou un code. */
+html{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 /* Toutes les tailles sont en `rem`, relatives à cette ligne. L'option « Texte
    plus grand » (125 %) a été retirée le 14/09/2026 : mesurée, elle ne changeait
    rien aux définitions — déjà ajustées au maximum par clueAutoFit. */
