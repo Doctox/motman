@@ -3,9 +3,11 @@
 
    Les fenêtres entraient en .22, .34, .36, .38 ou .42 s selon l'endroit : elles
    entrent toutes au même pas, `--mm-t-scene`. Et les barres de progression
-   (quêtes, collection, XP) ne s'animent plus en largeur, ce qui recalculait la
+   (quêtes, collection, XP de l'accueil) ne s'animent plus en largeur, ce qui recalculait la
    page à chaque image : elles s'étirent (`scaleX`) dans leur rail, qui garde
-   les bouts arrondis. Leur durée propre ne change pas.
+   les bouts arrondis. Leur durée propre ne change pas. La barre d'XP de
+   l'écran de fin garde sa largeur : sa propre animation de croissance
+   (`resultProgressGrow`) l'étire déjà, et finissait sinon en pleine largeur.
 
    Puis les sections qu'on déplie s'ouvrent en glissant (H18), là où le
    navigateur sait animer jusqu'à « auto » ; ailleurs, elles s'ouvrent comme
@@ -15,8 +17,8 @@
 
 .mm-settings,.mm-friends-panel,.mm-guest-editor,.mm-quests,.mm-tutorial,.clue-popover,.ranked-ready-dialog,.mm-streak-calendar,.mm-legal-panel{animation-duration:var(--mm-t-scene)!important}
 
-.mm-quest-bar,.mm-shop-collection>i,.experience-progress,.mm-home-account-xp{overflow:hidden}
-.mm-quest-bar i,.mm-shop-collection>i>b,.experience-progress b,.mm-home-account-xp b{
+.mm-quest-bar,.mm-shop-collection>i,.mm-home-account-xp{overflow:hidden}
+.mm-quest-bar i,.mm-shop-collection>i>b,.mm-home-account-xp b{
   width:100%!important;min-width:0!important;border-radius:0!important;
   transform:scaleX(var(--part,0));transform-origin:left center;transition-property:transform!important;
 }

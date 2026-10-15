@@ -135,6 +135,19 @@ export function ladderFor(kinds: readonly TurnStep['kind'][]): number[] {
   })
 }
 
+/**
+ * Crée le moteur de son à l'avance, pendant un temps mort (15/10/2026). Mesuré
+ * sur le Note 10 : le créer au premier petit son d'une partie figeait l'écran
+ * 83 ms, juste au moment où le joueur pose sa première lettre. Créé hors d'un
+ * geste, il reste en veille ; `playEffect` le réveille au premier son, comme avant.
+ */
+export function preparerLeSon(): void {
+  if (audioContext || !loadSensoryPreferences().effects) return
+  const AudioContextConstructor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextConstructor) return
+  try { audioContext = new AudioContextConstructor() } catch { /* Le son reste un agrément. */ }
+}
+
 export function playEffect(effect: GameEffect, options: { transpose?: number } = {}): void {
   if (!loadSensoryPreferences().effects) return
   const rapport = 2 ** ((options.transpose ?? 0) / 12)

@@ -33,7 +33,7 @@ import { nomDuTitre } from './titleNames'
 import { presenceHeartbeatDelay } from './presencePolicy'
 import { RankedMatchPausedOverlay } from './RankedReadyOverlay'
 import { createMatchRackTiles, reconcileRackPlacements, type RackTile } from './rackTiles'
-import { haptic, ladderFor, motionReduced, playEffect } from './sensoryPreferences'
+import { haptic, ladderFor, motionReduced, playEffect, preparerLeSon } from './sensoryPreferences'
 import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
 import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel, type EtatRevanche } from './game/DuelPresentation'
@@ -115,6 +115,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const [match, setMatch] = useState<MatchState | null>(null)
   const [grid, setGrid] = useState<GeneratedGrid | null>(null)
   const pace = match?.pace ?? null
+  // Le moteur de son se prépare pendant un temps mort, pas au premier toucher.
+  useEffect(() => {
+    const attente = window.setTimeout(preparerLeSon, 1200)
+    return () => window.clearTimeout(attente)
+  }, [])
   useEffect(() => {
     onPaceChange?.(pace)
     return () => onPaceChange?.(null)
