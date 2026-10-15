@@ -204,6 +204,15 @@ describe('la police des définitions', () => {
     expect(existsSync(path.join('src', fichier))).toBe(true)
   })
 
+  it('est déclarée dans la graisse que le jeu réclame', () => {
+    // Une graisse demandée mais absente : le navigateur prend la plus proche,
+    // ou une autre police, sans rien dire.
+    const graisse = POLICE_DES_DEFINITIONS.split(' ')[0]
+    expect(declaration).toMatch(new RegExp(`font-weight:\\s*${graisse};`))
+    const regle = readFileSync('src/styles/game-foundation.css', 'utf8').split('\n').find(ligne => ligne.startsWith('.board .clue .clue-entry,'))
+    expect(regle).toContain(`font-weight:${graisse}!important`)
+  })
+
   it('est celle que les cases de définition demandent', () => {
     const regle = readFileSync('src/styles/game-foundation.css', 'utf8').split('\n').find(ligne => ligne.startsWith('.board .clue .clue-entry,'))
     expect(regle).toContain(`{font-family:'${famille}'`)

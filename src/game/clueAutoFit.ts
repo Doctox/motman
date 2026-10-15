@@ -190,7 +190,7 @@ export function planHyphenation(
 }
 
 /** La police des définitions de la grille (base.css), au format de `document.fonts.load`. */
-export const POLICE_DES_DEFINITIONS = "700 10px 'Atkinson Hyperlegible'"
+export const POLICE_DES_DEFINITIONS = "400 10px 'Atkinson Hyperlegible'"
 
 let measureCanvas: HTMLCanvasElement | null = null
 
