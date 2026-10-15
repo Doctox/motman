@@ -33,6 +33,7 @@ import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
 import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
 import { ouvrirPremiersPassages } from './premiersPassages'
+import { useBalayageEntrePages } from './menu/balayage'
 import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
 import { CreatorNote } from './menu/CreatorNote'
@@ -348,6 +349,10 @@ export function MenuApp({
     }
   }
 
+  // Glisser le doigt passe d'une page de la barre du bas à sa voisine (15/10/2026).
+  const [coquille, setCoquille] = useState<HTMLElement | null>(null)
+  useBalayageEntrePages(coquille, page, nextPage => navigate(nextPage))
+
   const closeTutorial = (openPlay = false) => {
     completeFirstRunTutorial()
     if (premiereOuverture.current) ouvrirPremiersPassages()
@@ -468,7 +473,7 @@ export function MenuApp({
     />
   </main>
 
-  return <main className="mm-shell">
+  return <main ref={setCoquille} className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
     {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}

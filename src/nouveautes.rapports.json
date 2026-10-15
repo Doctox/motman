@@ -234,5 +234,11 @@
     "titre": "MotMan se joue plus en douceur",
     "texte": "Un chrono qui s'écoule doucement, un souffle entre les tours, « À toi » qui ne cache plus la grille, des erreurs qui ne tremblent plus et des chiffres bien alignés.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-10-15T08:18",
+    "titre": "Glisse d'une page à l'autre",
+    "texte": "Dans le menu, fais glisser ton doigt vers la gauche ou la droite pour passer à la page voisine : Accueil, Jouer, Classement, Épicerie, Profil.",
+    "genre": "jeu"
   }
 ]

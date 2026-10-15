@@ -144,3 +144,11 @@
 html[data-motion="off"] .mm-page,html[data-motion="off"] .mm-modal-layer,html[data-motion="off"] .mm-settings,html[data-motion="off"] .mm-friends-panel,html[data-motion="off"] .mm-guest-editor,html[data-motion="off"] .mm-match-invite,html[data-motion="off"] .mm-pause{animation:none!important}
 html[data-motion="off"] .mm-shell button{transition:none!important}
 
+
+/* Le balayage entre les pages (src/menu/balayage.ts, 15/10/2026) : la page
+   ouverte d'un glissement de doigt entre par le côté d'où on l'a tirée, au lieu
+   de monter du bas comme celle ouverte par la barre. */
+.mm-shell[data-entree="droite"]>.mm-page{animation-name:mmPageDepuisDroite}
+.mm-shell[data-entree="gauche"]>.mm-page{animation-name:mmPageDepuisGauche}
+@keyframes mmPageDepuisDroite{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes mmPageDepuisGauche{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}

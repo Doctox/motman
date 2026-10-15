@@ -59,7 +59,10 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   // Trois étapes depuis le 15/10/2026 (B3), et une carte qui ne change plus de
   // taille : le bouton « Suivant » reste sous le doigt d'une étape à l'autre.
   const suivant = tutorial.getByRole('button', { name: 'Suivant' })
-  const position = async () => Math.round((await suivant.boundingBox())?.y ?? -1)
+  // Mesuré à l'arrêt : la fenêtre entre en glissant, et WebKit la prenait parfois
+  // encore en vol, à 2 px de sa place (15/10/2026).
+  const aLArret = () => page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running' || !Number.isFinite(Number(animation.effect?.getComputedTiming().endTime))))
+  const position = async () => { await aLArret(); return Math.round((await suivant.boundingBox())?.y ?? -1) }
   const premiere = await position()
   await suivant.click()
   await expect(page.getByRole('heading', { name: 'Pose tes lettres, puis valide' })).toBeVisible()
@@ -69,6 +72,7 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   await expect(tutorial).toContainText('1 panier offert')
   await page.screenshot({ path: `output/quality/first-run-tutorial-${testInfo.project.name}.png`, fullPage: false })
   const choisir = tutorial.getByRole('button', { name: 'Choisir un mode' })
+  await aLArret()
   expect(Math.round((await choisir.boundingBox())?.y ?? -2)).toBe(premiere)
   await choisir.click()
   await expect(page).toHaveURL(/#jouer$/)
@@ -141,6 +145,57 @@ test('après le tutoriel court, l’Épicerie et les Quêtes s’expliquent une 
   await page.getByRole('button', { name: /^Quêtes/ }).click()
   await expect(page.getByRole('dialog', { name: 'Quêtes' }).locator('.mm-quests-list').first()).toBeVisible()
   await expect(page.locator('.mm-premier-passage')).toHaveCount(0)
+})
+
+test('glisser le doigt passe d’une page du menu à sa voisine, sans gêner le défilement ni le retour', async ({ browser, browserName }) => {
+  // Demande du propriétaire, 15/10/2026. De vrais événements tactiles, envoyés
+  // à Chromium comme le ferait l'écran du téléphone (l'appli Android est une
+  // WebView Chromium) : un clic ne prouverait rien sur un geste.
+  test.skip(browserName !== 'chromium', 'Les événements tactiles passent par le protocole de Chromium.')
+  const context = await browser.newContext({ viewport: { width: 412, height: 869 }, hasTouch: true, isMobile: true })
+  await context.addInitScript(() => {
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+  })
+  const page = await context.newPage()
+  const cdp = await context.newCDPSession(page)
+  const glisser = async (de: [number, number], vers: [number, number], duree = 160) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: de[0], y: de[1] }] })
+    for (let etape = 1; etape <= 8; etape += 1) {
+      await page.waitForTimeout(duree / 8)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: de[0] + (vers[0] - de[0]) * etape / 8, y: de[1] + (vers[1] - de[1]) * etape / 8 }] })
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+  const ongletActif = page.locator('.mm-bottom-nav [aria-current="page"]')
+
+  try {
+    await page.goto('/')
+    await expect(ongletActif).toContainText('Accueil')
+
+    await glisser([320, 420], [90, 430])
+    await expect(page).toHaveURL(/#jouer$/)
+    await expect(ongletActif).toContainText('Jouer')
+    await glisser([320, 420], [90, 420])
+    await expect(ongletActif).toContainText('Classement')
+    await glisser([90, 420], [320, 420])
+    await expect(ongletActif).toContainText('Jouer')
+    await glisser([90, 420], [320, 420])
+    await expect(ongletActif).toContainText('Accueil')
+
+    // Au bout de la barre, la page résiste et revient, sans faire le tour.
+    await glisser([90, 420], [320, 420])
+    await page.waitForTimeout(400)
+    await expect(ongletActif).toContainText('Accueil')
+    expect(await page.locator('.mm-shell > .mm-page').evaluate(element => getComputedStyle(element).translate)).toMatch(/^(none|0px)$/)
+    // Un geste parti du bord est le retour d'Android, et un geste vertical un défilement.
+    await glisser([8, 420], [300, 420])
+    await glisser([300, 700], [260, 300])
+    await page.waitForTimeout(400)
+    await expect(ongletActif).toContainText('Accueil')
+  } finally {
+    await context.close()
+  }
 })
 
 test('la navigation native reste entièrement au-dessus de la barre système Android', async ({ page, browserName }) => {
@@ -629,33 +684,39 @@ test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne dépla
       localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
     }, identity)
     const page = await context.newPage()
-    const mesurer = (racine: string) => page.locator(racine).evaluate(conteneur => {
-      const portrait = conteneur.querySelector<HTMLElement>('.cosmetic-frame')!
-      const art = portrait.querySelector<HTMLElement>('.cosmetic-frame-art')
-      const rond = portrait.getBoundingClientRect()
-      const demi = art ? art.offsetWidth * Number(getComputedStyle(portrait).getPropertyValue('--frame-art-pic')) / 2 : rond.width / 2
-      const cx = rond.left + rond.width / 2
-      const cy = rond.top + rond.height / 2
-      const boites: Array<{ quoi: string; boite: DOMRect }> = []
-      const marcheur = document.createTreeWalker(conteneur, NodeFilter.SHOW_TEXT)
-      for (let noeud = marcheur.nextNode(); noeud; noeud = marcheur.nextNode()) {
-        if (!noeud.textContent?.trim() || noeud.parentElement?.closest('.cosmetic-frame')) continue
-        const plage = document.createRange()
-        plage.selectNodeContents(noeud)
-        for (const boite of plage.getClientRects()) boites.push({ quoi: noeud.textContent.trim(), boite })
-      }
-      for (const element of conteneur.querySelectorAll('.mm-home-rank img, .mm-home-account-xp')) boites.push({ quoi: element.className || 'rang', boite: element.getBoundingClientRect() })
-      return {
-        hauteur: conteneur.getBoundingClientRect().height,
-        // Le pseudo : un <h1> à l'accueil et au profil, un <strong> dans l'aperçu.
-        // Repéré dans sa carte, pas dans l'écran : la page entre en glissant.
-        pseudo: (({ left, top }, carte) => ({ left: left - carte.left, top: top - carte.top }))(conteneur.querySelector('h1, strong')!.getBoundingClientRect(), conteneur.getBoundingClientRect()),
-        // Un pixel de jour au moins entre l'art et chaque texte, dans les deux sens.
-        touches: boites
-          .filter(({ boite }) => boite.width > 0 && boite.left < cx + demi + 1 && boite.right > cx - demi - 1 && boite.top < cy + demi + 1 && boite.bottom > cy - demi - 1)
-          .map(({ quoi }) => quoi),
-      }
-    })
+    const mesurer = async (racine: string) => {
+      // Les entrées d'écran et de fenêtre finissent avant la mesure : prise en
+      // plein vol, une hauteur variait de moins d'un pixel d'un passage à
+      // l'autre (15/10/2026). Les animations sans fin (l'art du cadre) restent.
+      await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running' || !Number.isFinite(Number(animation.effect?.getComputedTiming().endTime))))
+      return page.locator(racine).evaluate(conteneur => {
+        const portrait = conteneur.querySelector<HTMLElement>('.cosmetic-frame')!
+        const art = portrait.querySelector<HTMLElement>('.cosmetic-frame-art')
+        const rond = portrait.getBoundingClientRect()
+        const demi = art ? art.offsetWidth * Number(getComputedStyle(portrait).getPropertyValue('--frame-art-pic')) / 2 : rond.width / 2
+        const cx = rond.left + rond.width / 2
+        const cy = rond.top + rond.height / 2
+        const boites: Array<{ quoi: string; boite: DOMRect }> = []
+        const marcheur = document.createTreeWalker(conteneur, NodeFilter.SHOW_TEXT)
+        for (let noeud = marcheur.nextNode(); noeud; noeud = marcheur.nextNode()) {
+          if (!noeud.textContent?.trim() || noeud.parentElement?.closest('.cosmetic-frame')) continue
+          const plage = document.createRange()
+          plage.selectNodeContents(noeud)
+          for (const boite of plage.getClientRects()) boites.push({ quoi: noeud.textContent.trim(), boite })
+        }
+        for (const element of conteneur.querySelectorAll('.mm-home-rank img, .mm-home-account-xp')) boites.push({ quoi: element.className || 'rang', boite: element.getBoundingClientRect() })
+        return {
+          hauteur: conteneur.getBoundingClientRect().height,
+          // Le pseudo : un <h1> à l'accueil et au profil, un <strong> dans l'aperçu.
+          // Repéré dans sa carte, pas dans l'écran : la page entre en glissant.
+          pseudo: (({ left, top }, carte) => ({ left: left - carte.left, top: top - carte.top }))(conteneur.querySelector('h1, strong')!.getBoundingClientRect(), conteneur.getBoundingClientRect()),
+          // Un pixel de jour au moins entre l'art et chaque texte, dans les deux sens.
+          touches: boites
+            .filter(({ boite }) => boite.width > 0 && boite.left < cx + demi + 1 && boite.right > cx - demi - 1 && boite.top < cy + demi + 1 && boite.bottom > cy - demi - 1)
+            .map(({ quoi }) => quoi),
+        }
+      })
+    }
     try {
       await page.goto('/#accueil')
       await page.evaluate(() => document.documentElement.classList.add('native-runtime'))
