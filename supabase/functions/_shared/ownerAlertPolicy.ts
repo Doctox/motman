@@ -28,10 +28,12 @@
 // CE QUE ÇA COÛTE, ASSUMÉ : un téléphone verrouillé deux minutes puis rouvert
 // est une arrivée. C'est le prix de « je veux le savoir à chaque fois ».
 //
-// AUCUN PSEUDO, décidé par le propriétaire le même jour. Le pouls du jeu a été
-// construit exprès avec des nombres et jamais des noms ; cette notification
-// suit la même règle, et pour une raison de plus : elle s'affiche sur un écran
-// verrouillé, parfois devant quelqu'un d'autre.
+// LE PSEUDO, DEPUIS LE 15/10/2026. La première version ne nommait personne
+// (choix du propriétaire le 23/09 : une notification se lit sur un écran
+// verrouillé). Il est revenu dessus : « mets le pseudo de celui qui se
+// connecte, que je sache si c'est quelqu'un qui a un souci ou si c'est des
+// personnes différentes ». Cinq arrivées du même joueur en dix minutes, c'est
+// une connexion qui lâche ; cinq pseudos différents, c'est du monde.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PushMessage } from './pushNotifications.ts'
@@ -54,37 +56,27 @@ export function dansLeSilence(now: number): boolean {
 }
 
 /**
- * Le texte de la notification. Un seul fil (`tag`) : trois arrivées font trois
- * vibrations, mais une seule ligne dans le tiroir, mise à jour — sans pseudo,
- * trois lignes identiques empilées n’apprendraient rien de plus.
+ * Le texte de la notification, avec le pseudo de celui qui arrive.
+ *
+ * UNE LIGNE PAR ARRIVÉE dans le tiroir : l'étiquette (`tag`) change à chaque
+ * fois. Avec une étiquette commune, chaque arrivée remplaçait la précédente, et
+ * « le même joueur cinq fois » ne se distinguait plus de « cinq joueurs » —
+ * exactement ce que le propriétaire veut lire. `instant` ne sert qu'à ça.
+ *
+ * Le pseudo reste dans le titre et le texte, jamais dans `data`.
  */
-export function messageArrivee(enLigne: number): PushMessage {
+export function messageArrivee(pseudo: string, enLigne: number, instant: number): PushMessage {
+  const qui = pseudo.trim() || 'Quelqu’un'
   return {
-    title: 'Un joueur arrive',
+    title: `${qui} arrive`,
     body: enLigne > 1
-      ? `Quelqu’un vient d’ouvrir MotMan · ${enLigne} joueurs en ligne.`
-      : 'Quelqu’un vient d’ouvrir MotMan.',
+      ? `${qui} vient d’ouvrir MotMan · ${enLigne} joueurs en ligne.`
+      : `${qui} vient d’ouvrir MotMan.`,
     data: { type: 'player_arrival' },
-    tag: 'arrivee',
+    tag: `arrivee-${instant}`,
   }
 }
 
-/**
- * « Quelqu'un cherche une partie classée. »
- *
- * Demandé le 25/09/2026 : « comme ça je vais faire acte de présence et aider
- * les gens. » Le classé demande DEUX humains au même moment ; avec une poignée
- * de comptes, une recherche qui s'ouvre sans que personne ne le sache tourne
- * dix minutes dans le vide et s'éteint.
- *
- * Sans pseudo, comme l'arrivée. Son propre fil (`tag`), pour ne pas recouvrir
- * la notification d'arrivée : les deux disent des choses différentes.
- */
-export function messageRechercheClassee(): PushMessage {
-  return {
-    title: 'Une partie classée cherche quelqu’un',
-    body: 'Ouvre MotMan et lance une recherche classée pour la prendre.',
-    data: { type: 'ranked_search' },
-    tag: 'classe',
-  }
-}
+// L'alerte « une partie classée cherche quelqu'un » (25/09/2026) a été retirée
+// le 15/10/2026, à la demande du propriétaire : « enlève les notifs classé pour
+// moi ». Le fantôme (match-api/ghost.ts) donne déjà la partie à sa place.

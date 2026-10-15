@@ -64,13 +64,24 @@ Deno.test('le seuil d’arrivée est celui du jeu, sans plafond par-dessus', () 
   assertEquals(ARRIVEE_APRES_MS, 75_000)
 })
 
-Deno.test('la notification ne nomme personne', () => {
-  const seul = messageArrivee(1)
-  assertEquals(seul.body, 'Quelqu’un vient d’ouvrir MotMan.')
-  assertEquals(messageArrivee(3).body, 'Quelqu’un vient d’ouvrir MotMan · 3 joueurs en ligne.')
-  // Un seul fil : trois arrivées ne font pas trois lignes empilées.
-  assertEquals(seul.tag, 'arrivee')
+Deno.test('la notification nomme celui qui arrive (15/10/2026)', () => {
+  // « Que je sache si c'est quelqu'un qui a un souci ou si c'est des personnes
+  // différentes. »
+  const seul = messageArrivee('Lina', 1, 1_000)
+  assertEquals(seul.title, 'Lina arrive')
+  assertEquals(seul.body, 'Lina vient d’ouvrir MotMan.')
+  assertEquals(messageArrivee('Lina', 3, 1_000).body, 'Lina vient d’ouvrir MotMan · 3 joueurs en ligne.')
+  // Sans pseudo connu, la phrase reste lisible.
+  assertEquals(messageArrivee('  ', 1, 1_000).title, 'Quelqu’un arrive')
   assertEquals(seul.data.type, 'player_arrival')
-  // Rien d'identifiant ne doit pouvoir se glisser dans la charge utile.
+  // Le pseudo est à l'écran, pas dans la charge utile.
   assertEquals(Object.keys(seul.data), ['type'])
+})
+
+Deno.test('chaque arrivée garde sa ligne dans le tiroir', () => {
+  // Une étiquette commune remplaçait l'arrivée précédente : « Lina » cinq fois
+  // et cinq joueurs différents ne laissaient alors qu'une seule ligne.
+  const premiere = messageArrivee('Lina', 1, 1_000)
+  const seconde = messageArrivee('Lina', 1, 2_000)
+  assertEquals(premiere.tag === seconde.tag, false)
 })

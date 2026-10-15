@@ -107,23 +107,26 @@ async function battementDePresence(
     return
   }
   const arrivee = data as { alerte?: boolean; enLigne?: number } | null
-  if (arrivee?.alerte) queuePush(prevenirDuneArrivee(admin, arrivee.enLigne ?? 1))
+  if (arrivee?.alerte) queuePush(prevenirDuneArrivee(admin, userId, arrivee.enLigne ?? 1))
 }
 
 /**
- * « Un joueur arrive. » Sans pseudo, par choix du propriétaire : le pouls du
- * jeu donne des nombres et jamais des noms, et une notification se lit sur un
- * écran verrouillé, parfois devant quelqu'un d'autre.
+ * « Lina arrive. » Avec le pseudo depuis le 15/10/2026, à la demande du
+ * propriétaire (voir ownerAlertPolicy.ts).
  *
  * Seul le rôle `admin` est prévenu : c'est une information d'audience, pas de
  * modération — les modérateurs n'ont rien à faire de qui ouvre l'appli.
  */
 async function prevenirDuneArrivee(
   admin: ReturnType<typeof createAdminClient>,
+  arrivantId: string,
   enLigne: number,
 ): Promise<void> {
-  const { data: proprietaires } = await admin.from('profiles').select('id').eq('role', 'admin')
-  const message = messageArrivee(enLigne)
+  const [{ data: proprietaires }, { data: arrivant }] = await Promise.all([
+    admin.from('profiles').select('id').eq('role', 'admin'),
+    admin.from('profiles').select('display_name').eq('id', arrivantId).maybeSingle(),
+  ])
+  const message = messageArrivee(arrivant?.display_name ?? '', enLigne, Date.now())
   await Promise.all((proprietaires ?? []).map(proprietaire => sendPushToUser(admin, proprietaire.id, message)))
 }
 
