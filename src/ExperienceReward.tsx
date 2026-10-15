@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { ExperienceAward } from './playerProgress'
 import { MAX_PLAYER_LEVEL } from './playerProgress'
 import { Feather, Flame, Sparkles } from 'lucide-react'
@@ -28,7 +29,7 @@ export function ExperienceReward({ award }: { award: ExperienceAward }) {
       {award.breakdown.resultXp ? <span>Résultat<b>+{award.breakdown.resultXp}</b></span> : null}
     </div>
     <div className="experience-level"><span>{reachedMax ? 'Niveau maximum' : `Niveau ${award.levelAfter}`}</span>{levelUp ? <strong>Niveau supérieur !</strong> : reachedMax ? <strong>50</strong> : <small>{award.xpAfter} / {award.xpGoalAfter}</small>}</div>
-    <i className="experience-progress"><b style={{ width: `${progress}%` }} /></i>
+    <i className="experience-progress"><b style={{ '--part': progress / 100 } as CSSProperties} /></i>
     {award.unlockedTitles?.map(title => <div className="experience-title-unlocked" key={title.id}><Sparkles /><span><small>Nouveau titre</small><strong>{title.name}</strong></span></div>)}
   </section>
 }

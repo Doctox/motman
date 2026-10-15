@@ -40,6 +40,7 @@ import { SilhouetteEpicerie } from './menu/Silhouettes'
 import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
 import { CreatorNote } from './menu/CreatorNote'
+import { fondreLeTheme } from './transitionPartie'
 
 export type { MenuPage } from './menu/types'
 
@@ -503,7 +504,7 @@ export function MenuApp({
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page" role="status" aria-label="Ouverture de l’Épicerie"><SilhouetteEpicerie /></div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
-    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={setTheme} /> : null}
+    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={suivant => fondreLeTheme(suivant, () => setTheme(suivant))} /> : null}
     {legalOpen ? <Suspense fallback={<div className="mm-page mm-route-loading" role="status">Ouverture des informations…</div>}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}

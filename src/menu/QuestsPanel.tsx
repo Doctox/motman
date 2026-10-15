@@ -192,7 +192,7 @@ function QuestRow({ quest, reward, eyebrow, decoupee = false, gagnee, enCours, r
         // Borne dure : `target` vient du serveur, et un nombre aberrant
         // construirait ici un tableau de plusieurs milliers d'éléments.
         ? Array.from({ length: Math.min(20, Math.max(0, quest.target)) }, (_, index) => <i key={index} className={index < quest.progress ? 'is-faite' : ''} />)
-        : <i style={{ width: `${pourcentage}%` }} />}
+        : <i style={{ '--part': pourcentage / 100 } as CSSProperties} />}
     </div>}
 
     {gagnee ? <p className="mm-quest-gagnee" role="status">

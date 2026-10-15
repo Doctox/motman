@@ -275,3 +275,6 @@
 html[data-motion="off"] .mm-tutorial{animation:none}
 html[data-motion="off"] .mm-tutorial-progress i{transition:none}
 html[data-motion="off"] .mm-tutorial-rack-visual .mini-rack .selected{transform:none}
+
+/* H18 : le guide se feuillette au doigt ; le geste vertical reste au défilement. */
+.mm-tutorial-content{touch-action:pan-y}

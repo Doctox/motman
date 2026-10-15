@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, Backpack, Check, Feather, Gift, PackageOpen, Palette, ShoppingBasket, Snowflake, Sparkles, User } from 'lucide-react'
@@ -290,7 +290,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       <button type="button" onClick={back} aria-label="Retour au profil"><ArrowLeft /></button>
       <div className="mm-shop-collection" role="img" aria-label={`Collection : ${collection.owned} objets sur ${collection.total}`}>
         <span>Collection<em>{collection.owned} / {collection.total}</em></span>
-        <i><b style={{ width: `${collection.total ? collection.owned / collection.total * 100 : 0}%` }} /></i>
+        <i><b style={{ '--part': collection.total ? collection.owned / collection.total : 0 } as CSSProperties} /></i>
       </div>
       <b><Feather /><ChiffresQuiRoulent valeur={cosmetics.plumes} /></b>
     </section>

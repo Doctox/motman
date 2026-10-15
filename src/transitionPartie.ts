@@ -78,6 +78,21 @@ export function entrerDansLaPartie(changer: () => void): void {
   void transition.finished.catch(() => undefined).finally(() => { nommer(racine, ''); marquer(false) })
 }
 
+/**
+ * Le thème clair ou sombre change en fondu (H18, 15/10/2026) : le navigateur
+ * fond l'ancien écran dans le nouveau. Le thème est posé sur <html> dans la
+ * transition même, sans attendre l'effet qui le pose d'habitude.
+ */
+export function fondreLeTheme(theme: string, changer: () => void): void {
+  if (!transitionsPossibles()) { changer(); return }
+  const transition = (document as DocumentAvecTransitions).startViewTransition!(() => {
+    document.documentElement.dataset.theme = theme
+    flushSync(changer)
+  })
+  transition.ready.catch(() => undefined)
+  void transition.finished.catch(() => undefined)
+}
+
 /** Quitte la partie (`changer`) ; l'écran se range dans sa carte si elle est à l'écran. */
 export function sortirDeLaPartie(changer: () => void): void {
   const cle = derniereCle

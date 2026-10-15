@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LoaderCircle, X } from 'lucide-react'
 
 import type { GeneratedGrid } from '../generator'
@@ -47,7 +47,11 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
   // faisait rien tant que la relecture était ouverte (relevé le 19/09/2026).
   const dialogRef = useDialogFocus<HTMLDivElement>(onClose)
 
-  return <div ref={dialogRef} className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`} tabIndex={-1}>
+  // Toucher le fond ferme la relecture (H18), comme les autres fenêtres.
+  const toucheSurLeFond = useRef(false)
+  return <div ref={dialogRef} className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`} tabIndex={-1}
+    onPointerDown={event => { toucheSurLeFond.current = event.target === event.currentTarget }}
+    onClick={event => { if (toucheSurLeFond.current && event.target === event.currentTarget) onClose(); toucheSurLeFond.current = false }}>
     <section className="mm-replay-panel">
       <header>
         <div>
@@ -72,7 +76,7 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
                 </div>
               }
               const posee = lettres.get(index)
-              return <div className={`mm-replay-cell slot ${posee ? posee.mine ? 'mine' : 'theirs' : 'vide'}`} key={index}>
+              return <div className={`mm-replay-cell slot ${posee ? posee.mine ? 'mine' : 'theirs' : 'vide'}`} style={posee ? { animationDelay: `${index * 9}ms` } : undefined} key={index}>
                 {posee ? posee.letter : ''}
               </div>
             })}

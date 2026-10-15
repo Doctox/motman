@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Check,
   ChevronLeft,
@@ -121,6 +121,27 @@ export function FirstRunTutorial({
     dialog.querySelector<HTMLElement>('[data-tutorial-primary]')?.focus({ preventScroll: true })
   }, [dialogRef, stepIndex])
 
+  // Le guide se feuillette aussi au doigt (H18, 15/10/2026) : vers la gauche
+  // l'étape suivante, vers la droite la précédente. Les boutons restent.
+  const contenu = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const zone = contenu.current
+    if (!zone) return
+    let depart: { x: number; y: number } | null = null
+    const bas = (evenement: PointerEvent) => { depart = { x: evenement.clientX, y: evenement.clientY } }
+    const haut = (evenement: PointerEvent) => {
+      if (!depart) return
+      const dx = evenement.clientX - depart.x, dy = evenement.clientY - depart.y
+      depart = null
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+      setStepIndex(index => Math.max(0, Math.min(STEPS.length - 1, index + (dx < 0 ? 1 : -1))))
+    }
+    zone.addEventListener('pointerdown', bas)
+    zone.addEventListener('pointerup', haut)
+    zone.addEventListener('pointercancel', () => { depart = null })
+    return () => { zone.removeEventListener('pointerdown', bas); zone.removeEventListener('pointerup', haut) }
+  }, [])
+
   return <div className="mm-modal-layer mm-tutorial-layer" role="presentation">
     <section
       ref={dialogRef}
@@ -139,7 +160,7 @@ export function FirstRunTutorial({
       {/* Toutes les étapes sont posées dans la même case, une seule visible :
           la carte prend la hauteur de la plus haute, et « Suivant » ne bouge
           plus sous le doigt d'une étape à l'autre (15/10/2026, B3). */}
-      <div className="mm-tutorial-content" aria-live="polite">
+      <div ref={contenu} className="mm-tutorial-content" aria-live="polite">
         {STEPS.map((etape, index) => <div className={`mm-tutorial-page ${index === stepIndex ? 'is-active' : ''}`} aria-hidden={index !== stepIndex} key={etape.title}>
           <div className="mm-tutorial-visual">{etape.visual}</div>
           <div className="mm-tutorial-copy">

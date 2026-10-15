@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { ChevronRight, Copy, Feather, Gamepad2, UserPlus } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { ChiffresQuiRoulent } from '../ChiffresQuiRoulent'
@@ -98,7 +98,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
           </span>
           <span className="mm-home-feathers" aria-label={`${frenchNumber.format(cosmetics.plumes)} plumes`}><Feather aria-hidden="true" /><b><ChiffresQuiRoulent valeur={cosmetics.plumes} /></b></span>
         </div>
-        <i className="mm-home-account-xp" aria-hidden="true"><b style={{ width: `${xpPercent}%` }} /></i>
+        <i className="mm-home-account-xp" aria-hidden="true"><b style={{ '--part': xpPercent / 100 } as CSSProperties} /></i>
         <div className="mm-home-account-line">
           <small>Niveau {progress.level}{progress.level >= MAX_PLAYER_LEVEL ? '' : ` · ${progress.xp} / ${xpGoal} XP`}</small>
           <strong className="mm-home-rank"><img src={rankImage(currentRank)} alt="" />{currentRank.label}</strong>

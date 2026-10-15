@@ -15,6 +15,8 @@ import { installInstallPromptCapture } from './installApp'
 import { installMotionAttribute } from './sensoryPreferences'
 import { installerClavierVisible } from './clavierVisible'
 import { installerSortiesEnDouceur } from './sortiesEnDouceur'
+// Une seule cadence pour toute l'appli (H16), chargée après les feuilles de base.
+import './cadence.css'
 import { installTextZoomCap } from './textZoom'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé

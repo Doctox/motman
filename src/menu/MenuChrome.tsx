@@ -1,5 +1,6 @@
 import { useNouveauteEnAttente } from '../nouveautes'
-import type { CSSProperties, ReactNode } from 'react'
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { envolerVersLEnTete } from '../logoEnVol'
 import { BarChart3, Gamepad2, Home, Settings, ShoppingBasket, User } from 'lucide-react'
 import { assetUrl } from '../assetUrl'
 import { CosmeticPortrait } from '../CosmeticPortrait'
@@ -13,7 +14,10 @@ import { QuestsChip } from './QuestsPanel'
 import './menu-nouveautes.css'
 
 function Brand() {
-  return <div className="mm-brand"><img src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /></div>
+  // À la première apparition du menu, le logo arrive de l'écran de lancement (H11).
+  const logo = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => envolerVersLEnTete(logo.current), [])
+  return <div ref={logo} className="mm-brand"><img src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /></div>
 }
 
 export function Avatar({ label = 'A', small = false }: { label?: string; small?: boolean }) {

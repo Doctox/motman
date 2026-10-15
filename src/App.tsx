@@ -29,7 +29,8 @@ const MultiplayerGameScreen = lazy(() => import('./MultiplayerGame').then(module
  * un autre style, prenait le relais.
  */
 function AppLoading({ label }: { label?: string }) {
-  return <LaunchScreen mode="ouverture" stage="preparation" etiquette={label} />
+  // Sans étiquette, c'est le menu qui arrive : son logo partira de celui-ci (H11).
+  return <LaunchScreen mode="ouverture" stage="preparation" etiquette={label} versLEnTete={!label} />
 }
 
 export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: RequiredAppUpdate | null }) {

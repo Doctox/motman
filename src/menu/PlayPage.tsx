@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BarChart3, ChevronRight, History, Trophy, UserPlus, Users } from 'lucide-react'
 import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
 import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState } from '../matches'
@@ -11,6 +11,7 @@ import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { asyncTimeLeft, matchOpponent } from './HomePage'
 import { noterOrigineDeLaPartie } from '../transitionPartie'
+import { useHauteurAnimee } from './hauteurAnimee'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // L'ÉCRAN JOUER — trois onglets, une carte, l'historique toujours là.
@@ -148,6 +149,9 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   const asyncSearching = Boolean(asyncSearch)
   const normalSearching = realtimeSearching || asyncSearching
   const rankedSearching = ranked.status === 'searching' || ranked.status === 'ready' || ranked.status === 'accepted'
+  // La carte du mode change de forme en glissant (H8) : onglet, recherche lancée ou annulée.
+  const panneauMode = useRef<HTMLDivElement>(null)
+  useHauteurAnimee(panneauMode, `${onglet}|${normalSearching}|${rankedSearching}`)
   const currentRank = rankedDivision(ranked.progress.points, ranked.progress.matches)
   const reprise = partieAReprendre(lobby.active, identity.playerId)
   const amisEnLigne = social.friends.filter(friend => friend.online).length
@@ -199,7 +203,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       <span className="mm-play-resume-go">Reprendre</span>
     </button> : null}
 
-    <div id="mm-play-mode" className="mm-play-mode" role="tabpanel" aria-labelledby={`mm-${onglet}-tab`}>
+    <div ref={panneauMode} id="mm-play-mode" className="mm-play-mode" role="tabpanel" aria-labelledby={`mm-${onglet}-tab`}>
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
           titre="On te trouve un adversaire…"
