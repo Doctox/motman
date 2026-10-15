@@ -31,6 +31,23 @@ for (const reference of assets) {
   assert.ok(relativePath && existsSync(resolve(distributionDirectory, relativePath)), `Ressource construite introuvable : ${reference}`)
 }
 
+// ── Polices préchargées (15/10/2026) ────────────────────────────────────────
+// Une police préchargée sous une autre adresse que celle de la feuille se
+// télécharge deux fois, sans rien casser à l'écran (src/polices.test.ts).
+const adressesDesFeuilles = new Set(assets
+  .filter(reference => reference.endsWith('.css'))
+  .flatMap(reference => [...readFileSync(resolve(distributionDirectory, reference.slice(expectedBase.length)), 'utf8').matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)])
+  .map(match => match[1]))
+const policesPrechargees = [...html.matchAll(/<link\b[^>]*>/g)]
+  .map(match => match[0])
+  .filter(lien => /\brel="preload"/.test(lien) && /\bas="font"/.test(lien))
+  .map(lien => lien.match(/\bhref="([^"]+)"/)?.[1] ?? '')
+assert.ok(policesPrechargees.length > 0, 'Aucune police préchargée par la page.')
+for (const adresse of policesPrechargees) {
+  assert.ok(adressesDesFeuilles.has(adresse), `Police préchargée que la feuille demande sous une autre adresse : ${adresse} (téléchargée deux fois)`)
+  assert.ok(existsSync(resolve(distributionDirectory, adresse.slice(expectedBase.length))), `Police préchargée introuvable dans le build : ${adresse}`)
+}
+
 const legalDocuments = ['confidentialite.html', 'conditions.html', 'credits.html', 'suppression-compte.html']
 for (const documentName of legalDocuments) {
   const documentPath = resolve(legalDirectory, documentName)
@@ -81,4 +98,4 @@ const adressesSitemap = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match 
 assert.ok(adressesSitemap.length >= pagesReferencees.length, 'sitemap.xml ne liste pas les pages publiques.')
 for (const adresse of adressesSitemap) assert.ok(existsSync(fichierPublic(adresse)), `sitemap.xml cite une page absente du build : ${adresse}`)
 
-console.log(`Artefact GitHub Pages valide : base ${expectedBase}, ${assets.length} ressources CSS/JS, ${legalDocuments.length} documents légaux et ${adressesSitemap.length} pages du plan du site vérifiés.`)
+console.log(`Artefact GitHub Pages valide : base ${expectedBase}, ${assets.length} ressources CSS/JS, ${policesPrechargees.length} polices préchargées, ${legalDocuments.length} documents légaux et ${adressesSitemap.length} pages du plan du site vérifiés.`)

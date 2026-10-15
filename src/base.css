@@ -13,12 +13,21 @@
 *,*::before,*::after{font-feature-settings:"lnum" 1!important}
 /* H15 (15/10/2026) : une fenêtre du bas remonte au-dessus du clavier (src/clavierVisible.ts). */
 .mm-modal-layer{padding-bottom:var(--mm-clavier,0px);transition:padding-bottom .2s ease}
+/* DM Sans et Playfair Display : les fichiers de `public/assets/fonts/`, par
+   une adresse ABSOLUE, que Vite préfixe de la base (/motman/ pour le site, /
+   pour l'APK) sans les renommer. Ce sont ceux que index.html précharge, et
+   ceux de la page de présentation : une seule adresse par police, un seul
+   téléchargement. Jusqu'au 15/10/2026, une adresse relative faisait empaqueter
+   une seconde copie, renommée avec une empreinte : chaque première visite
+   téléchargeait chaque police deux fois, et le préchargement ne servait à
+   rien. polices.test.ts et audit:pages tiennent l'accord.
+   Le nom n'a pas d'empreinte : une police qui change doit changer de nom. */
 @font-face {
   font-family: 'DM Sans';
   font-style: normal;
   font-display: swap;
   font-weight: 100 1000;
-  src: url('./assets/fonts/dm-sans-latin-variable.woff2') format('woff2-variations');
+  src: url('/assets/fonts/dm-sans-latin-variable.woff2') format('woff2-variations');
 }
 
 @font-face {
@@ -26,7 +35,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 400 900;
-  src: url('./assets/fonts/playfair-display-latin-variable.woff2') format('woff2-variations');
+  src: url('/assets/fonts/playfair-display-latin-variable.woff2') format('woff2-variations');
 }
 
 /* Les définitions de la grille, et elles seules (15/10/2026). Atkinson
