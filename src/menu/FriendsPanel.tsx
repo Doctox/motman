@@ -17,6 +17,7 @@ import {
 import { normalizeSocialSearch, SOCIAL_SEARCH_MIN_LENGTH } from '../socialSearchPolicy'
 import { useDialogFocus } from '../useDialogFocus'
 import { useTirerPourFermer } from './tirerPourFermer'
+import { LigneBalayable } from './LigneBalayable'
 import { SocialPortrait, presenceLabel } from './MenuChrome'
 
 export function FriendsPanel({ identity, social, setSocial, close, notify }: {
@@ -183,7 +184,13 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
 
         <section className="mm-social-section">
           <h3>Mes amis <b>{social.friends.length}</b></h3>
-          {social.friends.length ? social.friends.map(friend => <article className="mm-social-row friend" key={friend.playerId}>
+          {/* Glisser la ligne d'un ami vers la gauche montre ses actions (G8, 15/10/2026) ;
+              le bouton « ••• » reste pour le clavier et pour qui ne glisse pas. */}
+          {social.friends.length ? social.friends.map(friend => <LigneBalayable key={friend.playerId} id={friend.playerId} actions={[
+            { cle: 'signaler', libelle: 'Signaler', icone: <Shield aria-hidden="true" />, desactivee: busy !== null, agir: () => setReportTarget(friend) },
+            { cle: 'retirer', libelle: 'Retirer', icone: <UserMinus aria-hidden="true" />, desactivee: busy !== null, agir: () => void run(friend.playerId, () => updateFriend(identity.playerId, friend.playerId, 'remove'), 'Ami retiré') },
+            { cle: 'bloquer', libelle: 'Bloquer', icone: <Ban aria-hidden="true" />, danger: true, desactivee: busy !== null, agir: () => void run(friend.playerId, () => updateFriend(identity.playerId, friend.playerId, 'block'), 'Joueur bloqué') },
+          ]}><article className="mm-social-row friend">
             <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span><span><strong>{friend.displayName}</strong>{nomDuTitre(friend.titleId, catalogueDesTitres) ? <em className="mm-social-title">{nomDuTitre(friend.titleId, catalogueDesTitres)}</em> : null}<small>{presenceLabel(friend.activity)} · {friend.code}</small></span>
             <button type="button" className="manage" onClick={() => setManagedFriend(current => current === friend.playerId ? null : friend.playerId)} aria-label={`Gérer ${friend.displayName}`}>•••</button>
             {managedFriend === friend.playerId ? <div className="mm-friend-actions">
@@ -191,7 +198,7 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
               <button type="button" disabled={busy !== null} onClick={() => setReportTarget(friend)}><Shield />Signaler</button>
               <button type="button" className="danger" disabled={busy !== null} onClick={() => void run(friend.playerId, () => updateFriend(identity.playerId, friend.playerId, 'block'), 'Joueur bloqué')}><Ban />Bloquer</button>
             </div> : null}
-          </article>) : <div className="mm-social-empty"><Users /><strong>Ta liste est vide</strong><span>Recherche ton premier ami par son pseudo.</span></div>}
+          </article></LigneBalayable>) : <div className="mm-social-empty"><Users /><strong>Ta liste est vide</strong><span>Recherche ton premier ami par son pseudo.</span></div>}
         </section>
 
         {social.outgoing.length ? <section className="mm-social-section subdued">

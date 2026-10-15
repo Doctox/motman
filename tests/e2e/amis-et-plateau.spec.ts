@@ -138,6 +138,53 @@ test('toucher un ami à l’accueil ouvre Jouer sur l’onglet Amis', async ({ b
   }
 })
 
+test('glisser la ligne d’un ami vers la gauche montre ses actions, et « Retirer » le retire', async ({ browser, browserName }) => {
+  // « MotMan au toucher », G8 (15/10/2026), avec de vrais événements tactiles.
+  test.skip(browserName !== 'chromium', 'Les événements tactiles passent par le protocole de Chromium.')
+  const moi = identite('Balayeur'), ami = identite('Balayé')
+  const apiMoi = await session(moi), apiAmi = await session(ami)
+  await lier(apiMoi, ami, apiAmi, moi)
+  const context = await browser.newContext({ viewport: { width: 412, height: 869 }, hasTouch: true, isMobile: true })
+  await context.addInitScript(stocke => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stocke))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+  }, moi)
+  const page = await context.newPage()
+  const cdp = await context.newCDPSession(page)
+  const glisser = async (de: [number, number], vers: [number, number]) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: de[0], y: de[1] }] })
+    for (let etape = 1; etape <= 10; etape += 1) {
+      await page.waitForTimeout(25)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: de[0] + (vers[0] - de[0]) * etape / 10, y: de[1] + (vers[1] - de[1]) * etape / 10 }] })
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+
+  try {
+    await page.goto('/#accueil')
+    await page.locator('.mm-roue').click()
+    await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /Amis/ }).first().click()
+    const panneau = page.getByRole('dialog', { name: 'Gestion des amis' })
+    const ligne = panneau.locator('.mm-ligne-balayable', { hasText: 'Balayé' })
+    await expect(ligne).toBeVisible()
+    // Cachées aux lecteurs d'écran tant que la ligne est fermée : on les vise par leur place.
+    const retirer = ligne.locator('.mm-ligne-actions button', { hasText: 'Retirer' })
+    await expect(retirer).toHaveAttribute('tabindex', '-1')
+
+    const boite = (await ligne.boundingBox())!
+    await glisser([boite.x + boite.width - 40, boite.y + boite.height / 2], [boite.x + 60, boite.y + boite.height / 2])
+    await expect(ligne).toHaveClass(/est-ouverte/)
+    await expect(retirer).toHaveAttribute('tabindex', '0')
+    await retirer.click()
+    await expect(panneau.locator('.mm-ligne-balayable', { hasText: 'Balayé' })).toHaveCount(0)
+  } finally {
+    await context.close()
+    await apiMoi.dispose()
+    await apiAmi.dispose()
+  }
+})
+
 test('une définition trop longue pour sa case finit par « … » au lieu d’être rognée', async ({ browser, request }) => {
   const premier = identite('Plateau A')
   const second = identite('Plateau B')

@@ -1,0 +1,16 @@
+/* Balayer une ligne pour agir (LigneBalayable.tsx, G8). La ligne glisse sur
+   ses actions, posées derrière elle à droite ; elle garde son propre fond pour
+   les cacher tant qu'elle est fermée. */
+.mm-ligne-balayable{position:relative;overflow:hidden}
+.mm-ligne-actions{position:absolute;inset:0 0 0 auto;display:flex}
+.mm-ligne-actions button{
+  flex:1;display:grid;place-content:center;justify-items:center;gap:3px;border:0;border-radius:0;
+  background:var(--mm-ink);color:var(--mm-paper);font:700 0.6875rem/1.1 'DM Sans',sans-serif;cursor:pointer;
+}
+.mm-ligne-actions button:nth-child(2){background:color-mix(in srgb,var(--mm-ink) 82%,var(--mm-gold))}
+.mm-ligne-actions button.danger{background:var(--mm-coral,#c94d29);color:#fff}
+.mm-ligne-actions button svg{width:18px;height:18px}
+.mm-ligne-actions button:disabled{opacity:.5}
+.mm-ligne-face{position:relative;background:var(--mm-paper);touch-action:pan-y;transition:translate .42s cubic-bezier(.34,1.25,.55,1)}
+.mm-ligne-face.glisse{transition:none}
+html[data-motion="off"] .mm-ligne-face{transition:none}
