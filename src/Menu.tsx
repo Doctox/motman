@@ -60,6 +60,13 @@ function sameState<T>(left: T, right: T): boolean {
   return JSON.stringify(left) === JSON.stringify(right)
 }
 
+// Ce que le menu affichait en partant jouer (H7, 15/10/2026). Le menu est
+// démonté pendant la partie : au retour, il repartait d'un état vide, et
+// l'accueil montrait un instant « Ajouter ton premier ami » avant de sauter sur
+// les vrais amis. Gardé en mémoire seulement, jamais sur le disque, et
+// remplacé dès que le serveur répond.
+let memoireDuMenu: { playerId: string; social: SocialState; lobby: MatchLobbyState } | null = null
+
 export function MenuApp({
   onStartMatch,
   ranked,
@@ -110,8 +117,9 @@ export function MenuApp({
   const [identity, setIdentity] = useState<GuestIdentity>(loadPlayerIdentity)
   const [progress, setProgress] = useState<PlayerProgress>(() => loadPlayerProgress(identity.playerId))
   const [cosmetics, setCosmetics] = useState<PlayerCosmetics>(() => loadPlayerCosmetics(identity.playerId))
-  const [social, setSocial] = useState<SocialState>(EMPTY_SOCIAL_STATE)
-  const [matchLobby, setMatchLobby] = useState<MatchLobbyState>(EMPTY_MATCH_LOBBY)
+  const [social, setSocial] = useState<SocialState>(() => memoireDuMenu?.playerId === identity.playerId ? memoireDuMenu.social : EMPTY_SOCIAL_STATE)
+  const [matchLobby, setMatchLobby] = useState<MatchLobbyState>(() => memoireDuMenu?.playerId === identity.playerId ? memoireDuMenu.lobby : EMPTY_MATCH_LOBBY)
+  useEffect(() => { memoireDuMenu = { playerId: identity.playerId, social, lobby: matchLobby } }, [identity.playerId, social, matchLobby])
   const [matchBusy, setMatchBusy] = useState(false)
   const [pendingSearch, setPendingSearch] = useState<MatchPace | null>(null)
   const [toast, setToast] = useState<string | null>(null)

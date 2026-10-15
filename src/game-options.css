@@ -25,7 +25,7 @@
   display:grid;place-items:center;background:var(--mm-surface);color:var(--mm-ink);cursor:pointer;
   box-shadow:0 4px 12px #49391f10;transition:transform .18s var(--mm-ease),background .18s ease;
 }
-.mm-settings>header button:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--mm-sage) 60%,var(--mm-surface))}
+@media (hover:hover) and (pointer:fine){.mm-settings>header button:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--mm-sage) 60%,var(--mm-surface))}}
 .mm-settings>header button svg{width:19px}
 .mm-theme-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:17px}
 .mm-theme-choice button{

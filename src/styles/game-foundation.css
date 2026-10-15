@@ -6,14 +6,14 @@
 .board{overflow:visible}
 .clue.double-clue{display:grid;grid-template-rows:1fr 1fr;padding:0}.clue .clue-entry{position:relative;width:100%;height:100%;display:flex;-webkit-line-clamp:unset;align-items:center;justify-content:center;padding:2px 7px 2px 1px;overflow:hidden}.clue.double-clue .clue-entry+.clue-entry{border-top:1px solid #a9aa9f}.clue .clue-entry b{position:absolute;right:1px;bottom:0;font-size:0.5625rem}
 .clue .image-entry{display:grid;place-items:center;padding:2px}.clue-image{display:block;width:min(76%,28px);height:min(76%,28px);object-fit:contain}.double-clue .clue-image{width:min(68%,19px);height:min(68%,19px)}
-.clue button.clue-entry{appearance:none;border:0;background:transparent;font:inherit;color:inherit;cursor:zoom-in;overflow-wrap:anywhere;transition:background .16s ease,box-shadow .16s ease,transform .12s ease}.clue button.clue-entry:hover,.clue button.clue-entry:focus-visible{background:#ffffff52;box-shadow:inset 0 0 0 1.5px #15483a66;outline:0}.clue button.clue-entry:active{transform:scale(.95)}
+.clue button.clue-entry{appearance:none;border:0;background:transparent;font:inherit;color:inherit;cursor:zoom-in;overflow-wrap:anywhere;transition:background .16s ease,box-shadow .16s ease,transform .12s ease}.clue button.clue-entry:focus-visible{background:#ffffff52;box-shadow:inset 0 0 0 1.5px #15483a66;outline:0}@media (hover:hover) and (pointer:fine){.clue button.clue-entry:hover{background:#ffffff52;box-shadow:inset 0 0 0 1.5px #15483a66;outline:0}}.clue button.clue-entry:active{transform:scale(.95)}
 .clue-zoom-backdrop{position:fixed;z-index:2000;inset:0;display:grid;place-items:center;padding:24px;animation:clueBackdropIn .18s ease-out}
 .clue-popover{position:relative;width:min(86vw,var(--clue-card-width,240px));min-height:0;border:1px solid #d9c8a9;border-radius:21px;background:#fffaf0;color:var(--green);padding:22px 20px 18px;box-shadow:0 20px 52px #081e1952,0 2px 0 #fff inset;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;animation:clueCardIn .28s cubic-bezier(.2,.85,.24,1.12)}
-.clue-popover-close{position:absolute;right:8px;top:8px;width:30px;height:30px;border:1px solid #d8cbb6;border-radius:50%;display:grid;place-items:center;background:#fffdf7;color:var(--green);cursor:pointer;transition:transform .15s ease,background .15s ease}.clue-popover-close:hover,.clue-popover-close:focus-visible{background:#edf1e8;transform:scale(1.05);outline:2px solid #c9a95f;outline-offset:2px}.clue-popover-close svg{width:15px;height:15px}
+.clue-popover-close{position:absolute;right:8px;top:8px;width:30px;height:30px;border:1px solid #d8cbb6;border-radius:50%;display:grid;place-items:center;background:#fffdf7;color:var(--green);cursor:pointer;transition:transform .15s ease,background .15s ease}.clue-popover-close:focus-visible{background:#edf1e8;transform:scale(1.05);outline:2px solid #c9a95f;outline-offset:2px}@media (hover:hover) and (pointer:fine){.clue-popover-close:hover{background:#edf1e8;transform:scale(1.05);outline:2px solid #c9a95f;outline-offset:2px}}.clue-popover-close svg{width:15px;height:15px}
 .clue-popover-direction{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:999px;background:#f3e8c8;color:#6c5421;font:700 0.5rem/1 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase}.clue-popover-direction b{font-size:0.9375rem;line-height:.6;color:var(--green)}
 .clue-popover strong{max-width:100%;font:600 clamp(19px,5.3vw,25px)/1.2 'Playfair Display',serif;text-wrap:balance}.clue-popover-image{width:128px;height:118px;border:1px solid #ddd0b8;border-radius:16px;background:#fffdf8;display:grid;place-items:center;box-shadow:inset 0 0 24px #cfba8b18}.clue-popover-image img{display:block;max-width:104px;max-height:94px;object-fit:contain}
 @keyframes clueBackdropIn{from{opacity:0}to{opacity:1}}@keyframes clueCardIn{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
-[data-theme="dark"] .clue-popover{background:#17352f;color:#f8efdc;border-color:#556b61;box-shadow:0 24px 65px #0009,0 1px 0 #ffffff12 inset}[data-theme="dark"] .clue-popover-close{background:#21433b;color:#f8efdc;border-color:#60746b}[data-theme="dark"] .clue-popover-close:hover,[data-theme="dark"] .clue-popover-close:focus-visible{background:#2b5047}[data-theme="dark"] .clue-popover-direction{background:#4a432d;color:#f1d991}[data-theme="dark"] .clue-popover-direction b{color:#f8efdc}[data-theme="dark"] .clue-popover-image{background:#f8f2e6;border-color:#756e5f}
+[data-theme="dark"] .clue-popover{background:#17352f;color:#f8efdc;border-color:#556b61;box-shadow:0 24px 65px #0009,0 1px 0 #ffffff12 inset}[data-theme="dark"] .clue-popover-close{background:#21433b;color:#f8efdc;border-color:#60746b}[data-theme="dark"] .clue-popover-close:focus-visible{background:#2b5047}@media (hover:hover) and (pointer:fine){[data-theme="dark"] .clue-popover-close:hover{background:#2b5047}}[data-theme="dark"] .clue-popover-direction{background:#4a432d;color:#f1d991}[data-theme="dark"] .clue-popover-direction b{color:#f8efdc}[data-theme="dark"] .clue-popover-image{background:#f8f2e6;border-color:#756e5f}
 
 /* Gentle help after three turns without a correct placement. */
 
@@ -24,7 +24,7 @@ body{background:#deddd6}
 .app-shell>header:after{position:absolute;left:50%;translate:-50% 0;text-align:center;font:1.125rem/1 'Playfair Display',serif;color:var(--green)}
 :where(.app-shell) header h1{font-size:1.6875rem;font-weight:600;letter-spacing:.055em;color:var(--green)}
 :where(.app-shell) header button{width:39px;height:39px;border:0;border-radius:50%;background:var(--green);color:#fff5df;box-shadow:inset 0 0 0 1px #ffffff24,0 3px 8px #123f3724;transition:transform .18s ease,filter .18s ease}
-:where(.app-shell) header button:hover{filter:brightness(1.1);transform:translateY(-1px)}:where(.app-shell) header button:active{transform:scale(.94)}
+@media (hover:hover) and (pointer:fine){:where(.app-shell) header button:hover{filter:brightness(1.1);transform:translateY(-1px)}}:where(.app-shell) header button:active{transform:scale(.94)}
 .player,.turn{background:#fffaf0}
 .avatar{color:var(--green);border:1px solid #cfa67f}
 .player small{color:var(--green)}.player:first-child strong{color:var(--terra)}
@@ -33,11 +33,11 @@ body{background:#deddd6}
 .clue .clue-entry b{color:var(--green);font-family:'DM Sans',sans-serif;font-weight:700}
 .letter-only{color:var(--green)}.rack-heading strong{font:600 1.125rem 'Playfair Display',serif;color:var(--green)}.rack-heading span{color:#7b7467}
 .rack-letter{color:var(--green);font-weight:600}.rack-letter:active{box-shadow:0 1px 0 #cdbb9e,0 3px 6px #49341e20,inset 0 0 0 2px #fff}
-.validate,.new-game{font-family:'Playfair Display',serif;font-size:1.0625rem}.validate:hover{filter:brightness(1.05);transform:translateY(-1px)}.validate:active{transform:translateY(3px);box-shadow:inset 0 1px 0 #f29474,0 1px 0 #96351e,0 3px 7px #80321c20}
+.validate,.new-game{font-family:'Playfair Display',serif;font-size:1.0625rem}@media (hover:hover) and (pointer:fine){.validate:hover{filter:brightness(1.05);transform:translateY(-1px)}}.validate:active{transform:translateY(3px);box-shadow:inset 0 1px 0 #f29474,0 1px 0 #96351e,0 3px 7px #80321c20}
 @media(max-height:780px){header{height:47px}}
 
 .validate,.new-game{width:min(76%,290px);height:44px;margin:14px auto 0;border:1px solid #aa452b;border-radius:12px;color:#fffaf0;font:700 0.875rem 'DM Sans',sans-serif;letter-spacing:.01em;transition:transform .14s ease,background .14s ease,box-shadow .14s ease}
-.validate:hover,.new-game:hover{background:#d45733;filter:none;transform:translateY(-1px);box-shadow:0 5px 11px #74301e2b}
+@media (hover:hover) and (pointer:fine){.validate:hover,.new-game:hover{background:#d45733;filter:none;transform:translateY(-1px);box-shadow:0 5px 11px #74301e2b}}
 .validate:active,.new-game:active{background:#b94325;transform:translateY(1px);box-shadow:0 1px 4px #74301e20}
 .validate:disabled{background:#b96c55;border-color:#a9634f;box-shadow:none;opacity:.82}
 .drag-ghost{left:0;top:0;transform:translate3d(-50%,-50%,0);animation:mobileLetterLift .12s ease-out}
@@ -57,7 +57,7 @@ body{background:#deddd6}
 [data-theme="dark"] .board{background:#17231f;border-color:#7eb19f;box-shadow:0 7px 22px #0006}
 [data-theme="dark"] .cell{border-color:#4b5e57}
 [data-theme="dark"] .slot{background:#17231f}
-[data-theme="dark"] .slot:hover{background:#1d2d28}
+@media (hover:hover) and (pointer:fine){[data-theme="dark"] .slot:hover{background:#1d2d28}}
 [data-theme="dark"] .clue{background:#2a3932!important;color:#e5eee8}
 [data-theme="dark"] .clue:nth-child(4n+1){background:#46322d!important}
 [data-theme="dark"] .clue:nth-child(4n+2){background:#443d28!important}
@@ -151,7 +151,7 @@ body{overscroll-behavior-y:none}
 .app-shell>header button{
   transition:transform .18s var(--motion),filter .18s ease,box-shadow .18s ease;
 }
-.app-shell>header button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #ffffff25,0 7px 17px #073f362b}
+@media (hover:hover) and (pointer:fine){.app-shell>header button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #ffffff25,0 7px 17px #073f362b}}
 .app-shell>header button:active{transform:translateY(1px) scale(.96)}
 .app-shell>header button:disabled{opacity:.45;box-shadow:none}
 .player,.turn{
@@ -170,7 +170,7 @@ body{overscroll-behavior-y:none}
 }
 .cell{border-color:#aeb0a5}
 .slot{background:var(--surface);transition:background-color .2s ease,box-shadow .2s ease,filter .2s ease}
-.slot:hover{background:#fff9ec}
+@media (hover:hover) and (pointer:fine){.slot:hover{background:#fff9ec}}
 .clue{background:#e7ebe0;line-height:1.05}
 .clue-entry{padding:1px}
 .clue b{right:2px;bottom:0}
@@ -190,20 +190,20 @@ body{overscroll-behavior-y:none}
   box-shadow:0 4px 0 #cdbb9e,0 8px 14px #49341e20,inset 0 0 0 2px #fff;
   transition:transform .2s var(--motion),box-shadow .2s var(--motion),color .18s ease,opacity .12s ease;
 }
-.rack-letter:hover{transform:translateY(-3px);box-shadow:0 6px 0 #cdbb9e,0 11px 18px #49341e24,inset 0 0 0 2px #fff}
+@media (hover:hover) and (pointer:fine){.rack-letter:hover{transform:translateY(-3px);box-shadow:0 6px 0 #cdbb9e,0 11px 18px #49341e24,inset 0 0 0 2px #fff}}
 .rack-letter:active{transform:translateY(2px) scale(.98)}
 .rack-letter.selected{transform:translateY(-4px) scale(1.025);color:var(--terra);box-shadow:0 6px 0 #c99e87,0 12px 20px #7c392328,inset 0 0 0 2px #fff}
 .hint-button,.validate,.new-game{
   height:43px;border-radius:13px;transition:transform .18s var(--motion),box-shadow .18s ease,filter .18s ease,background-color .18s ease;
 }
 .hint-button{border-color:#c6b9a2}
-.hint-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 15px #49341e1d}
+@media (hover:hover) and (pointer:fine){.hint-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 15px #49341e1d}}
 .hint-button:active:not(:disabled){transform:translateY(1px) scale(.985)}
 .validate,.new-game{
   border-color:#a53f25;background:linear-gradient(180deg,#d85a35,#c94d29);
   box-shadow:inset 0 1px 0 #ffffff42,0 4px 0 #9e3b22,0 8px 15px #74301e20;
 }
-.validate:hover:not(:disabled),.new-game:hover{transform:translateY(-1px);background:linear-gradient(180deg,#df6440,#cf512d);box-shadow:inset 0 1px 0 #ffffff42,0 5px 0 #9e3b22,0 10px 18px #74301e24}
+@media (hover:hover) and (pointer:fine){.validate:hover:not(:disabled),.new-game:hover{transform:translateY(-1px);background:linear-gradient(180deg,#df6440,#cf512d);box-shadow:inset 0 1px 0 #ffffff42,0 5px 0 #9e3b22,0 10px 18px #74301e24}}
 .validate:active:not(:disabled),.new-game:active{transform:translateY(3px);box-shadow:inset 0 1px 0 #ffffff30,0 1px 0 #9e3b22,0 4px 8px #74301e18}
 
 /* Rewards belong to the board, never to the middle of the screen. */

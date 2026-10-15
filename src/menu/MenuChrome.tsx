@@ -8,7 +8,7 @@ import type { PlayerProgress } from '../playerProgress'
 import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
 import type { SocialUser } from '../social'
 import type { MenuPage } from './types'
-import { haptic } from '../sensoryPreferences'
+import { haptic, motionReduced } from '../sensoryPreferences'
 import { QuestsChip } from './QuestsPanel'
 import './menu-nouveautes.css'
 
@@ -42,6 +42,11 @@ export function AppHeader({ onSettings }: { onSettings: () => void }) {
   </header>
 }
 
+/** Retoucher l'onglet où l'on est remonte la page en haut, comme sur iPhone (H17, 15/10/2026). */
+function remonterEnHaut() {
+  document.querySelector('.mm-shell > .mm-page')?.scrollTo({ top: 0, behavior: motionReduced() ? 'auto' : 'smooth' })
+}
+
 export function BottomNav({ page, setPage, basketAffordable = false }: { page: MenuPage; setPage: (page: MenuPage) => void; basketAffordable?: boolean }) {
   // L'Épicerie A SON ONGLET. Elle était déjà une page à part entière, mais on
   // n'y arrivait que depuis le profil — et la barre allumait alors « Profil »
@@ -61,7 +66,7 @@ export function BottomNav({ page, setPage, basketAffordable = false }: { page: M
       // Assez de plumes pour un panier : une pastille le rappelle, sauf quand on
       // est déjà dans l'Épicerie.
       const badge = id === 'shop' && basketAffordable && page !== 'shop'
-      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à ta portée` : undefined} onClick={() => { if (id !== page) haptic(8); setPage(id) }}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
+      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à ta portée` : undefined} onClick={() => { if (id === page) { remonterEnHaut(); return } haptic(8); setPage(id) }}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
     })}
   </nav>
 }

@@ -19,7 +19,7 @@
   border:1px solid var(--game-button-secondary-border)!important;background:var(--game-button-secondary)!important;color:var(--green)!important;
   box-shadow:0 4px 12px #49391f0e!important;
 }
-.hint-button:hover:not(:disabled),.end-game-home:hover:not(:disabled){transform:translateY(-1px);border-color:#c7a24d!important;background:#fffdf8!important;box-shadow:0 7px 16px #49391f16!important}
+@media (hover:hover) and (pointer:fine){.hint-button:hover:not(:disabled),.end-game-home:hover:not(:disabled){transform:translateY(-1px);border-color:#c7a24d!important;background:#fffdf8!important;box-shadow:0 7px 16px #49391f16!important}}
 .hint-button:active:not(:disabled),.end-game-home:active:not(:disabled){transform:translateY(1px) scale(.992);box-shadow:0 3px 8px #49391f0d!important}
 .hint-button svg{color:#b98932;stroke-width:1.7}
 
@@ -28,7 +28,7 @@
   background:linear-gradient(180deg,#db6846,#c95130)!important;color:#fffaf0!important;
   box-shadow:inset 0 1px 0 #ffffff38,0 7px 17px #74301e20!important;
 }
-.validate:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.035);box-shadow:inset 0 1px 0 #ffffff42,0 9px 20px #74301e28!important}
+@media (hover:hover) and (pointer:fine){.validate:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.035);box-shadow:inset 0 1px 0 #ffffff42,0 9px 20px #74301e28!important}}
 .validate:active:not(:disabled){transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff28,0 4px 9px #74301e18!important}
 
 .new-game{
@@ -36,14 +36,14 @@
   background:linear-gradient(180deg,var(--game-button-primary-top),var(--game-button-primary-bottom))!important;color:#fffaf0!important;
   box-shadow:inset 0 1px 0 #ffffff2e,0 7px 17px #073f3622!important;
 }
-.new-game:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.045);box-shadow:inset 0 1px 0 #ffffff36,0 9px 21px #073f362b!important}
+@media (hover:hover) and (pointer:fine){.new-game:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.045);box-shadow:inset 0 1px 0 #ffffff36,0 9px 21px #073f362b!important}}
 .new-game:active:not(:disabled){transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff22,0 4px 10px #073f361a!important}
 
 .reroll-button{
   border-radius:16px!important;background:linear-gradient(145deg,#0d6755,#075044)!important;border-color:#06483b!important;
   box-shadow:inset 0 1px 0 #ffffff2d,0 7px 15px #073f3628!important;
 }
-.reroll-button:hover:not(:disabled){box-shadow:inset 0 1px 0 #ffffff35,0 9px 19px #073f3632!important}
+@media (hover:hover) and (pointer:fine){.reroll-button:hover:not(:disabled){box-shadow:inset 0 1px 0 #ffffff35,0 9px 19px #073f3632!important}}
 
 .clue-popover-close{
   border:1px solid var(--game-button-secondary-border)!important;border-radius:50%!important;
@@ -63,7 +63,7 @@
   background:#fffaf0!important;color:#073f36!important;
   box-shadow:0 4px 12px #49391f0e!important;font-family:'Playfair Display',serif!important;font-weight:600!important;
 }
-.mm-pause>button:not(:disabled):hover{transform:translateY(-1px);filter:brightness(1.035)}
+@media (hover:hover) and (pointer:fine){.mm-pause>button:not(:disabled):hover{transform:translateY(-1px);filter:brightness(1.035)}}
 .mm-pause>button:not(:disabled):active{transform:translateY(1px) scale(.992)}
 
 .hint-button:disabled,.validate:disabled,.new-game:disabled,.end-game-home:disabled,.reroll-button:disabled{

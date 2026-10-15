@@ -114,7 +114,7 @@
   height:51px;border-color:#06483b;border-radius:26px;background:linear-gradient(180deg,#0d6553,#075043);color:#fffaf0;
   box-shadow:inset 0 1px 0 #ffffff2e,0 8px 19px #073f3624;
 }
-.game-result-screen .end-game-actions .new-game:hover{background:linear-gradient(180deg,#11735d,#075244)}
+@media (hover:hover) and (pointer:fine){.game-result-screen .end-game-actions .new-game:hover{background:linear-gradient(180deg,#11735d,#075244)}}
 .game-result-screen .end-game-actions .new-game:active{transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff2e,0 4px 10px #073f361c}
 .game-result-screen .end-game-actions .new-game svg{width:20px;height:20px;stroke-width:1.5}
 .game-result-screen .end-game-actions .end-game-home{height:45px;border-radius:23px;background:#fffaf0;border-color:#d7b86b;box-shadow:0 4px 12px #49391f0e}

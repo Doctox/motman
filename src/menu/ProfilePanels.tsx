@@ -99,13 +99,18 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale }: 
 // montrerait donc deux nombres de défaites différents sur le même écran.
 //
 // On garde celui-ci, qui distingue les deux et le dit.
+// Les statistiques déjà lues restent à l'écran au retour sur le profil, le
+// temps que le serveur réponde (H7, 15/10/2026) : sans elles, le bloc
+// apparaissait d'un coup et poussait la page vers le bas.
+let statsEnMemoire: PlayerStats | null = null
+
 function PlayerStatsPanel() {
-  const [stats, setStats] = useState<PlayerStats>(EMPTY_PLAYER_STATS)
-  const [chargement, setChargement] = useState(true)
+  const [stats, setStats] = useState<PlayerStats>(() => statsEnMemoire ?? EMPTY_PLAYER_STATS)
+  const [chargement, setChargement] = useState(() => statsEnMemoire === null)
   useEffect(() => {
     let vivant = true
     loadPlayerStats()
-      .then(next => { if (vivant) setStats(next) })
+      .then(next => { statsEnMemoire = next; if (vivant) setStats(next) })
       .catch(() => { if (vivant) setStats(EMPTY_PLAYER_STATS) })
       .finally(() => { if (vivant) setChargement(false) })
     return () => { vivant = false }
@@ -181,7 +186,7 @@ export function EditGuestPanel({ identity, progress, cosmetics, close, save }: {
       <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de ton avatar" /><span><strong>{normalized || 'Ton pseudo'}</strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `Code ami ${friendCodeOf(identity)}`}</small></span></div>
       <div className="mm-profile-editor-scroll">
       <label htmlFor="guest-display-name">Pseudo</label>
-      <input id="guest-display-name" value={displayName} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" aria-invalid={!nameValidation.valid} aria-describedby="guest-display-name-help" onChange={event => setDisplayName(event.target.value)} />
+      <input id="guest-display-name" value={displayName} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" autoCorrect="off" spellCheck={false} enterKeyHint="done" aria-invalid={!nameValidation.valid} aria-describedby="guest-display-name-help" onChange={event => setDisplayName(event.target.value)} />
       <p id="guest-display-name-help" className={`mm-name-help ${nameValidation.valid ? 'valid' : 'invalid'}`} role="status">
         {nameValidation.valid ? `${Array.from(normalized).length}/${PLAYER_NAME_MAX_LENGTH}` : nameValidation.error}
       </p>

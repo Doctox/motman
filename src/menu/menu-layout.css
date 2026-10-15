@@ -34,7 +34,7 @@
   border-radius:50%;box-shadow:0 4px 12px var(--mm-shadow);
 }
 .mm-icon-button svg{width:22px;height:22px}
-.mm-icon-button:hover{border-color:var(--mm-line-strong);box-shadow:0 7px 18px var(--mm-shadow)}
+@media (hover:hover) and (pointer:fine){.mm-icon-button:hover{border-color:var(--mm-line-strong);box-shadow:0 7px 18px var(--mm-shadow)}}
 
 .mm-page{
   scroll-padding:20px;

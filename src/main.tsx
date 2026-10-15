@@ -13,6 +13,7 @@ import { installStaleDeployRecovery } from './staleDeployRecovery'
 import { installTabletViewport } from './tabletViewport'
 import { installInstallPromptCapture } from './installApp'
 import { installMotionAttribute } from './sensoryPreferences'
+import { installerClavierVisible } from './clavierVisible'
 import { installTextZoomCap } from './textZoom'
 
 // Une page ouverte avant une mise en ligne demande des fichiers qui ont changé
@@ -32,6 +33,8 @@ installInstallPromptCapture()
 // Animations : c'est MOTMAN qui décide (paramètre « Animations »), pas l'appareil.
 // Tout le CSS d'animation est accroché à `data-motion`. Voir sensoryPreferences.ts.
 installMotionAttribute()
+// Les fenêtres du bas remontent au-dessus du clavier (H15) : voir clavierVisible.ts.
+installerClavierVisible()
 
 // Le thème AVANT la première image : l'écran de lancement doit déjà être sombre
 // pour qui a choisi le sombre. Le menu le repose ensuite, avec la même règle.

@@ -11,6 +11,8 @@
    (les chiffres à chasse fixe du chrono) reste libre. DM Sans, déjà alignée,
    n'en change pas. */
 *,*::before,*::after{font-feature-settings:"lnum" 1!important}
+/* H15 (15/10/2026) : une fenêtre du bas remonte au-dessus du clavier (src/clavierVisible.ts). */
+.mm-modal-layer{padding-bottom:var(--mm-clavier,0px);transition:padding-bottom .2s ease}
 @font-face {
   font-family: 'DM Sans';
   font-style: normal;

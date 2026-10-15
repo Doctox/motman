@@ -48,7 +48,7 @@
   font-weight:800;
   cursor:pointer;
 }
-.mm-tutorial>header button:hover{background:var(--mm-sage)}
+@media (hover:hover) and (pointer:fine){.mm-tutorial>header button:hover{background:var(--mm-sage)}}
 .mm-tutorial-content{
   min-height:0;
   overflow-y:auto;

@@ -113,8 +113,8 @@
   transition:transform .18s var(--motion),box-shadow .18s ease,filter .18s ease;
 }
 .reroll-button svg{width:23px;height:23px;stroke-width:2.2;color:currentColor;transition:transform .42s var(--motion)}
-.reroll-button:hover:not(:disabled){transform:translateY(-2px);box-shadow:inset 0 1px 0 #ffffff2b,0 7px 13px #073f3645}
-.reroll-button:hover:not(:disabled) svg{transform:rotate(26deg)}
+@media (hover:hover) and (pointer:fine){.reroll-button:hover:not(:disabled){transform:translateY(-2px);box-shadow:inset 0 1px 0 #ffffff2b,0 7px 13px #073f3645}}
+@media (hover:hover) and (pointer:fine){.reroll-button:hover:not(:disabled) svg{transform:rotate(26deg)}}
 .reroll-button:active:not(:disabled){transform:translateY(1px) scale(.98)}
 .reroll-button:disabled{opacity:.38;cursor:default;box-shadow:none;filter:saturate(.45)}
 .rack.is-rerolling .rack-slot{animation:rackRenew .58s var(--motion) both}

@@ -83,7 +83,7 @@
 .mm-daily-reward-milestone { margin: 0; font-size:0.8125rem; font-weight: 600; color: var(--mm-coral); }
 
 html[data-motion="off"] .mm-daily-hero{transition: none;}
-html[data-motion="off"] .mm-daily-hero:hover,html[data-motion="off"] .mm-daily-hero:active{transform: none;}
+html[data-motion="off"] .mm-daily-hero:active{transform: none;}@media (hover:hover) and (pointer:fine){html[data-motion="off"] .mm-daily-hero:hover{transform: none;}}
 
 /* ── Classement du défi du jour ──────────────────────────────────────────────
    Il n'a PLUS de mise en forme propre : il emprunte `.mm-leaderboard` et

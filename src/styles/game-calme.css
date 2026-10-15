@@ -61,9 +61,9 @@ html[data-motion="off"] .turn-alerting .rack{animation:none!important}
   background:transparent!important;border-color:#d8ccb4!important;color:#5d6b63!important;box-shadow:none!important;
 }
 .validate.is-pass svg{opacity:.5}
-.validate.is-pass:hover:not(:disabled){filter:none;box-shadow:none!important;background:#f6f1e6!important}
+@media (hover:hover) and (pointer:fine){.validate.is-pass:hover:not(:disabled){filter:none;box-shadow:none!important;background:#f6f1e6!important}}
 [data-theme="dark"] .validate.is-pass{border-color:#4a5a52!important;color:#b9c6bf!important}
-[data-theme="dark"] .validate.is-pass:hover:not(:disabled){background:#22302b!important}
+@media (hover:hover) and (pointer:fine){[data-theme="dark"] .validate.is-pass:hover:not(:disabled){background:#22302b!important}}
 
 /* A6 — Une erreur pâlit au lieu de trembler.
    Plus de rouge vif, de halo ni de secousse : la case prend une terre douce,

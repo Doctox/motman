@@ -75,7 +75,7 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .end-game-actions button svg{width:17px;height:17px}
 .end-game-actions button:disabled{cursor:wait;opacity:.72}
 .end-game-home{border:1px solid #b8c6bf;background:#fffdf7;color:var(--green);box-shadow:0 3px 9px #29473f10;transition:transform .16s var(--motion),border-color .16s ease,background .16s ease}
-.end-game-home:hover{transform:translateY(-1px);border-color:#719386;background:#f5faf6}
+@media (hover:hover) and (pointer:fine){.end-game-home:hover{transform:translateY(-1px);border-color:#719386;background:#f5faf6}}
 .end-game-home:active{transform:translateY(1px)}
 [data-theme="dark"] .end-game-home{background:#22322d;border-color:#50635a;color:#e8f3ec}
 @media(max-width:360px){.end-game-actions{grid-template-columns:1fr}.end-game-actions .new-game,.end-game-home{height:42px}}
