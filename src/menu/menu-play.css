@@ -286,5 +286,3 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 .mm-ranked-seeker small{display:block;margin-top:2px;color:var(--mm-muted);font-size:0.6875rem;line-height:1.3}
 .mm-shell .mm-ranked-seeker button{grid-column:1 / -1;width:100%;min-height:44px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:3px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:11px;background:var(--mm-coral);color:#fff;font:700 0.8125rem/1 'DM Sans',sans-serif}
 .mm-shell .mm-ranked-seeker button svg{width:15px;height:15px}
-/* Bonjour, bonsoir (15/10/2026, E2) : une ligne douce au-dessus du défi du jour. */
-.mm-home-salut{margin:0 4px 2px;color:var(--mm-muted);font:600 0.9375rem/1.35 'Playfair Display',serif}
