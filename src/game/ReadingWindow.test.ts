@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { MatchState } from '../matches'
-import { ReadingWindow, useReadingWindow } from './ReadingWindow'
+import { useReadingWindow } from './ReadingWindow'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LA FENÊTRE DE LECTURE, CÔTÉ ÉCRAN.
@@ -77,21 +77,5 @@ describe('la fenêtre de lecture', () => {
     expect(monte(partie({ pace: 'async' })).dernier()).toBeNull()
     expect(monte(partie({ status: 'finished' })).dernier()).toBeNull()
     expect(monte(null).dernier()).toBeNull()
-  })
-
-  it('affiche la consigne, et laisse le décompte au cercle du jeu', () => {
-    ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-    const hote = document.createElement('div')
-    document.body.appendChild(hote)
-    act(() => { createRoot(hote).render(createElement(ReadingWindow)) })
-
-    expect(hote.textContent).toContain('Lis la grille')
-    expect(hote.textContent).toContain('Touche une définition')
-    expect(hote.querySelector('[role="status"]')).not.toBeNull()
-    // Aucun chiffre ici : il vit dans le cercle du jeu, là où le joueur regarde
-    // déjà le temps. Deux cadrans pour la même information, c'était un de trop —
-    // et un texte qui change chaque seconde dans une région `status` ferait
-    // répéter la consigne en boucle.
-    expect(hote.textContent).not.toMatch(/\d/)
   })
 })

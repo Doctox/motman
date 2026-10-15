@@ -88,3 +88,9 @@ html[data-motion="off"] .failed-reveal-letter{animation:none!important}
    la grille. Un vert sauge garde l'idée de « case pleine » sans l'écraser, en
    restant nettement plus soutenu que les définitions pastel. */
 .board .cell.blocked{background-color:#8fa596}
+
+/* D3 — La lecture de la grille (15/10/2026). La consigne était une bulle posée
+   sur le titre du chevalet, dont on devinait le texte dessous ; elle EST
+   maintenant ce titre. Sa ligne d'aide passe de 9 à 11 px : c'est la seule
+   chose à lire sous la grille pendant ces secondes-là. */
+.rack-heading.is-lecture>span{font-size:0.6875rem;text-align:right}

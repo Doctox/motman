@@ -1191,9 +1191,13 @@ test('la grille s’ouvre sur une fenêtre de lecture, et le premier tour part e
   const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 844 })
 
   try {
-    const bandeau = page.locator('.turn-reading')
+    // La consigne est le titre du chevalet, et non plus une bulle posée dessus
+    // (15/10/2026) : rien ne la recouvre, et elle ne recouvre rien.
+    const bandeau = page.locator('.rack-heading.is-lecture')
     await expect(bandeau).toBeVisible()
     await expect(bandeau).toContainText('Lis la grille')
+    await expect(bandeau).toContainText('Touche une définition')
+    await expect(page.locator('.turn-reading')).toHaveCount(0)
     // Le chevalet reste fermé : personne ne pose de lettre pendant la lecture.
     const lettre = page.locator('.rack-letter').first()
     await expect(lettre).toBeDisabled()

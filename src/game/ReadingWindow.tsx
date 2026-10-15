@@ -46,17 +46,8 @@ export function useReadingWindow(match: MatchState | null): number | null {
   return restant
 }
 
-/**
- * La consigne, en fenêtre flottante au-dessus du chevalet. Elle ne recouvre pas
- * la grille : c'est elle qu'il faut lire pendant ces dix secondes.
- *
- * Le décompte n'est PAS ici : il vit dans le cercle du jeu, là où le joueur
- * regarde déjà le temps (TurnTiming.tsx). Un second cadran à côté du plateau
- * aurait demandé d'apprendre deux endroits pour la même information.
- */
-export function ReadingWindow() {
-  return <div className="turn-reading" role="status">
-    <strong>Lis la grille</strong>
-    <small>Touche une définition pour l’agrandir.</small>
-  </div>
-}
+// La consigne n'est plus une bulle flottante (15/10/2026, D3) : posée sur le
+// titre du chevalet, elle en cachait le texte, qu'on devinait dessous. Elle EST
+// maintenant ce titre, le temps de la lecture (MultiplayerGame.tsx,
+// `.rack-heading.is-lecture`). Le décompte, lui, reste dans le cercle du jeu,
+// là où le joueur regarde déjà le temps (TurnTiming.tsx).
