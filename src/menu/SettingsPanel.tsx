@@ -7,6 +7,7 @@ import type { GuestIdentity } from '../playerIdentity'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
 import { haptic, useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
+import { useTirerPourFermer } from './tirerPourFermer'
 import { TUTORIAL_STEP_COUNT } from './FirstRunTutorial'
 import { InstallAppRow } from './InstallAppRow'
 import { AvertissementsRecus } from './AvertissementsRecus'
@@ -28,6 +29,8 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
   const nouveauteEnAttente = useNouveauteEnAttente()
   const [serverVersion, setServerVersion] = useState(readCachedServerAppVersion)
   const dialogRef = useDialogFocus<HTMLElement>(close)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, close)
   useEffect(() => {
     let mounted = true
     void refreshServerAppVersion().then(version => {

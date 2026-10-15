@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BookOpen, Copy, FileText, Info, MessageSquareText, Paperclip, Scale, Send, ShieldCheck, X } from 'lucide-react'
 import { useDialogFocus } from './useDialogFocus'
+import { useTirerPourFermer } from './menu/tirerPourFermer'
 import { assetUrl } from './assetUrl'
 import { appVersion, appVersionDisplay } from './appVersion'
 import { CONTACT_EMAIL, CONTACT_SUJETS, contactCorps, contactMailto, decrireAppareil, joindreTechnique, type ContactSujet, type ContactTechnique } from './contactMail'
@@ -13,6 +14,8 @@ export function LegalPanel({ close, identity }: { close: () => void; identity?: 
   // « Nous écrire » d'abord : c'est ce qu'on vient chercher le plus souvent ici.
   const [tab, setTab] = useState<LegalTab>('contact')
   const dialogRef = useDialogFocus<HTMLElement>(close)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, close)
   return <div className="mm-modal-layer mm-legal-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
     <section ref={dialogRef} className="mm-legal-panel" role="dialog" aria-modal="true" aria-label="Informations" tabIndex={-1}>
       <header><div><small>MotMan</small><h2>Informations</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>

@@ -16,6 +16,7 @@ import {
 } from '../social'
 import { normalizeSocialSearch, SOCIAL_SEARCH_MIN_LENGTH } from '../socialSearchPolicy'
 import { useDialogFocus } from '../useDialogFocus'
+import { useTirerPourFermer } from './tirerPourFermer'
 import { SocialPortrait, presenceLabel } from './MenuChrome'
 
 export function FriendsPanel({ identity, social, setSocial, close, notify }: {
@@ -49,6 +50,8 @@ export function FriendsPanel({ identity, social, setSocial, close, notify }: {
   const [reportError, setReportError] = useState<string | null>(null)
   const ownCode = friendCodeOf(identity)
   const dialogRef = useDialogFocus<HTMLElement>(close)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, close)
 
   const run = async (key: string, action: () => Promise<SocialState>, success?: string) => {
     setBusy(key)

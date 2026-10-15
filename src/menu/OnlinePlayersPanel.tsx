@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw, Users } from 'lucide-react'
 import { loadOnlinePlayers, type OnlineActivity, type OnlinePlayer } from '../matches'
 import { useDialogFocus } from '../useDialogFocus'
+import { useTirerPourFermer } from './tirerPourFermer'
 import './menu-online.css'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,6 +55,8 @@ export function OnlinePlayersPanel({ fermer, charger = loadOnlinePlayers }: {
   charger?: () => Promise<OnlinePlayer[]>
 }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(fermer)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, fermer)
   const [joueurs, setJoueurs] = useState<OnlinePlayer[] | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [tour, setTour] = useState(0)

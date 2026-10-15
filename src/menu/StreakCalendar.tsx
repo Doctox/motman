@@ -6,6 +6,7 @@ import { isDailyWon, type DailyChallengeState } from '../dailyChallenge'
 import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from '../dailyStreakRule'
 import { addDays, mondayOf, nextStreakRewardDay, streakDayMarks, weekDays, weekLabel, type DayMark } from '../streakCalendar'
 import { useDialogFocus } from '../useDialogFocus'
+import { useTirerPourFermer } from './tirerPourFermer'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LA FENÊTRE DE SÉRIE — ouverte en touchant la flamme de l'en-tête.
@@ -72,6 +73,8 @@ export function StreakCalendar({ state, today, streak, freezes, countedToday, cl
   close: () => void
 }) {
   const dialogRef = useDialogFocus<HTMLElement>(close)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, close)
   const joursJoues = useMemo(() => knownPlayDays(state), [state])
   const marques = useMemo(() => streakDayMarks(knownWinDays(state), knownFrozenDays(state), today, joursJoues), [joursJoues, state, today])
   const semaineActuelle = mondayOf(today)

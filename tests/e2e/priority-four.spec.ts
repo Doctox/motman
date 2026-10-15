@@ -198,6 +198,53 @@ test('glisser le doigt passe d’une page du menu à sa voisine, sans gêner le 
   }
 })
 
+test('au doigt, la page se tire pour s’actualiser et la fenêtre du Menu se tire pour se fermer', async ({ browser, browserName }) => {
+  // « MotMan au toucher », G2 et G3 (15/10/2026), avec de vrais événements
+  // tactiles comme pour le glissement entre les pages.
+  test.skip(browserName !== 'chromium', 'Les événements tactiles passent par le protocole de Chromium.')
+  const context = await browser.newContext({ viewport: { width: 412, height: 869 }, hasTouch: true, isMobile: true })
+  await context.addInitScript(() => {
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+    localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+  })
+  const page = await context.newPage()
+  const cdp = await context.newCDPSession(page)
+  const glisser = async (de: [number, number], vers: [number, number], duree = 320) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: de[0], y: de[1] }] })
+    for (let etape = 1; etape <= 12; etape += 1) {
+      await page.waitForTimeout(duree / 12)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: de[0] + (vers[0] - de[0]) * etape / 12, y: de[1] + (vers[1] - de[1]) * etape / 12 }] })
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+
+  try {
+    await page.goto('/')
+    await expect(page.locator('.mm-bottom-nav')).toBeVisible()
+
+    // G3 : tirée au-delà du cran, la page descend, la plume tourne, puis tout remonte.
+    await glisser([206, 260], [206, 520], 400)
+    await expect(page.locator('.mm-actualiser.tourne')).toHaveCount(1)
+    await expect(page.locator('.mm-actualiser.tourne')).toHaveCount(0, { timeout: 3_000 })
+    await expect.poll(() => page.locator('.mm-shell > .mm-page').evaluate(element => getComputedStyle(element).translate)).toMatch(/^(none|0px)$/)
+
+    // G2 : un petit tirage laisse la fenêtre en place, un grand la ferme.
+    const menu = page.getByRole('dialog', { name: 'Menu' })
+    await page.locator('.mm-roue').click()
+    await expect(menu).toBeVisible()
+    await page.waitForTimeout(600)
+    const tete = (await menu.locator(':scope > :first-child').boundingBox())!
+    const prise: [number, number] = [206, tete.y + tete.height / 2]
+    await glisser(prise, [206, prise[1] + 50], 500)
+    await page.waitForTimeout(600)
+    await expect(menu).toBeVisible()
+    await glisser(prise, [206, prise[1] + 320])
+    await expect(menu).toHaveCount(0)
+  } finally {
+    await context.close()
+  }
+})
+
 test('la navigation native reste entièrement au-dessus de la barre système Android', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'Le runtime Android utilise Chromium WebView.')
   await page.goto('/')

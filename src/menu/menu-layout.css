@@ -50,7 +50,9 @@
   content:'';position:absolute;background:transparent;z-index:-1;
   transition:background-color .2s ease,transform .2s var(--mm-ease);
 }
-.mm-bottom-nav button:hover:before{background:color-mix(in srgb,var(--mm-sage) 58%,transparent)}
+/* Survol réservé à la souris : au doigt, il restait collé à l'ancien onglet
+   pendant que la pastille partait vers le nouveau (15/10/2026). */
+@media (hover:hover) and (pointer:fine){.mm-bottom-nav button:hover:before{background:color-mix(in srgb,var(--mm-sage) 58%,transparent)}}
 .mm-bottom-nav button.active{background:transparent;color:var(--mm-ink)}
 .mm-bottom-nav button.active:before{transform:scale(1)}
 /* G1 (15/10/2026) : un seul fond pour toute la barre, qui glisse d'un onglet à

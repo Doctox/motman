@@ -14,6 +14,7 @@ import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, WEEKLY_QUEST_PLU
 import { MAX_STREAK_FREEZES } from '../dailyStreakRule'
 import { useQuestBoard } from '../questBoardState'
 import { useDialogFocus } from '../useDialogFocus'
+import { useTirerPourFermer } from './tirerPourFermer'
 import { useDailyCountdown } from './DailyChallenge'
 import { PremierPassageCarte } from './PremierPassage'
 import './menu-quests.css'
@@ -63,6 +64,8 @@ export function QuestsChip() {
 function QuestsPanel({ close }: { close: () => void }) {
   const board = useQuestBoard()
   const dialogRef = useDialogFocus<HTMLElement>(close)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, close)
   const countdown = useDailyCountdown()
   const [enCours, setEnCours] = useState('')
   const [erreur, setErreur] = useState('')

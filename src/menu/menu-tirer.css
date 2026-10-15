@@ -1,0 +1,8 @@
+/* La poignée des fenêtres qu'on tire pour fermer (tirerPourFermer.ts, G2).
+   L'en-tête (premier enfant) ne laisse pas le navigateur prendre le geste :
+   sans `touch-action:none`, Chrome l'annulait pour un défilement. */
+.mm-tirable::before{
+  content:'';position:absolute;z-index:2;top:7px;left:50%;width:38px;height:5px;margin-left:-19px;
+  border-radius:5px;background:var(--mm-line);pointer-events:none;
+}
+.mm-tirable>:first-child{touch-action:none}

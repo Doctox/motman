@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { currentDailyDateKey } from '../dailyDate'
 import { EMPTY_DAILY_LEADERBOARD, loadDailyLeaderboard, type DailyLeaderboard } from '../dailyLeaderboard'
+import { useActualisation } from './actualiser'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LE JOUR QUI CHANGE PENDANT QU'ON REGARDE.
@@ -57,10 +58,15 @@ export type DailyLeaderboardState = {
  */
 export function useDailyLeaderboard(): DailyLeaderboardState {
   const jour = useDailyDateKey()
+  // Tiré pour actualiser (G3) : le classement affiché reste en place pendant la
+  // relecture. Un nouveau jour, lui, repart de zéro.
+  const actualisation = useActualisation()
+  const jourCharge = useRef<string | null>(null)
   const [etat, setEtat] = useState<DailyLeaderboardState>({ classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
   useEffect(() => {
     let vivant = true
-    setEtat({ classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
+    if (jourCharge.current !== jour) setEtat({ classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
+    jourCharge.current = jour
     loadDailyLeaderboard()
       .then(classement => { if (vivant) setEtat({ classement, chargement: false, erreur: null }) })
       .catch(raison => {
@@ -71,6 +77,6 @@ export function useDailyLeaderboard(): DailyLeaderboardState {
         })
       })
     return () => { vivant = false }
-  }, [jour])
+  }, [jour, actualisation])
   return etat
 }

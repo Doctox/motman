@@ -12,6 +12,7 @@ import { useDialogFocus } from '../useDialogFocus'
 import { DailyLeaderboardPanel } from './DailyChallenge'
 import { RankProgress, SocialPortrait } from './MenuChrome'
 import { SilhouettesDeRangs } from './Silhouettes'
+import { useActualisation } from './actualiser'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -33,6 +34,8 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale }: 
   const [tab, setTab] = useState<'general' | 'friends'>('general')
   const [leaderboard, setLeaderboard] = useState<RankedLeaderboard>({ general: [], friends: [] })
   const [loading, setLoading] = useState(true)
+  // Tirer la page vers le bas relit le classement (G3).
+  const actualisation = useActualisation()
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -41,7 +44,7 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale }: 
       .catch(() => { if (active) setLeaderboard({ general: [], friends: [] }) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [progress.rankedMatches, progress.rankedPoints])
+  }, [progress.rankedMatches, progress.rankedPoints, actualisation])
   const entries = leaderboard[tab]
   return <div className="mm-page mm-ranking-page">
     <div className="mm-segmented mm-ranking-epreuve" role="group" aria-label="Épreuve">

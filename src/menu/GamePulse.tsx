@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Activity, ChevronRight, Ghost, RefreshCw, ShieldAlert } from 'lucide-react'
 import { loadGamePulse, setGhostSwitch, type GamePulse } from '../matches'
 import { useDialogFocus } from '../useDialogFocus'
+import { useTirerPourFermer } from './tirerPourFermer'
 import { ModerationPanel } from './ModerationPanel'
 import { OnlinePlayersPanel } from './OnlinePlayersPanel'
 import './menu-pulse.css'
@@ -174,6 +175,8 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEn
   ouvrirEnLigne: () => void
 }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(fermer)
+  // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
+  useTirerPourFermer(dialogRef, fermer)
   return (
     <div
       className="mm-modal-layer mm-pulse-layer"

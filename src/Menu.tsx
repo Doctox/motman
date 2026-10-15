@@ -34,6 +34,7 @@ import type { MenuAppProps, MenuPage, Theme } from './menu/types'
 import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
 import { ouvrirPremiersPassages } from './premiersPassages'
 import { useBalayageEntrePages } from './menu/balayage'
+import { demanderActualisation, useTirerPourActualiser } from './menu/actualiser'
 import { SilhouetteEpicerie } from './menu/Silhouettes'
 import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
@@ -356,6 +357,12 @@ export function MenuApp({
   // Glisser le doigt passe d'une page de la barre du bas à sa voisine (15/10/2026).
   const [coquille, setCoquille] = useState<HTMLElement | null>(null)
   useBalayageEntrePages(coquille, page, nextPage => navigate(nextPage))
+  // Tirer une page vers le bas la remet à jour (G3) : amis, parties, classements.
+  useTirerPourActualiser(coquille, () => {
+    socialPolling.current?.wake()
+    lobbyPolling.current?.wake()
+    demanderActualisation()
+  })
 
   const closeTutorial = (openPlay = false) => {
     completeFirstRunTutorial()
