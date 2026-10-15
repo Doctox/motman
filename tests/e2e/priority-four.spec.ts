@@ -56,35 +56,21 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   await expect(tutorial).toBeVisible()
   await expect(tutorial).toContainText('Chaque lettre correcte colore une case')
 
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
-  await expect(page.getByRole('heading', { name: 'Suis les flèches' })).toBeVisible()
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
+  // Trois étapes depuis le 15/10/2026 (B3), et une carte qui ne change plus de
+  // taille : le bouton « Suivant » reste sous le doigt d'une étape à l'autre.
+  const suivant = tutorial.getByRole('button', { name: 'Suivant' })
+  const position = async () => Math.round((await suivant.boundingBox())?.y ?? -1)
+  const premiere = await position()
+  await suivant.click()
   await expect(page.getByRole('heading', { name: 'Pose tes lettres, puis valide' })).toBeVisible()
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
+  expect(await position()).toBe(premiere)
+  await suivant.click()
   await expect(page.getByRole('heading', { name: 'Le défi du jour et ta série' })).toBeVisible()
   await expect(tutorial).toContainText('1 panier offert')
-  await page.screenshot({ path: `output/quality/first-run-tutorial-serie-${testInfo.project.name}.png`, fullPage: false })
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
-  await expect(page.getByRole('heading', { name: 'Les quêtes remplissent la bourse' })).toBeVisible()
-  await expect(tutorial).toContainText('60 plumes et 30 XP')
-  await expect(tutorial).toContainText('Récupérer')
-  await page.screenshot({ path: `output/quality/first-run-tutorial-quetes-${testInfo.project.name}.png`, fullPage: false })
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
-  await expect(page.getByRole('heading', { name: 'Un profil à ton image' })).toBeVisible()
-  await expect(tutorial).toContainText('Modifier')
-  await page.screenshot({ path: `output/quality/first-run-tutorial-profil-${testInfo.project.name}.png`, fullPage: false })
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
-  await expect(page.getByRole('heading', { name: 'À chacun sa façon de jouer' })).toBeVisible()
-  await expect(tutorial).toContainText('Normal')
-  await expect(tutorial).toContainText('Classé')
-  await expect(tutorial).toContainText('Amis')
-  await tutorial.getByRole('button', { name: 'Suivant' }).click()
-  await expect(page.getByRole('heading', { name: 'Rapide ou à reprendre plus tard' })).toBeVisible()
-  await expect(tutorial).toContainText('45 s par tour')
-  await expect(tutorial).toContainText('24 h par tour')
-
   await page.screenshot({ path: `output/quality/first-run-tutorial-${testInfo.project.name}.png`, fullPage: false })
-  await tutorial.getByRole('button', { name: 'Choisir un mode' }).click()
+  const choisir = tutorial.getByRole('button', { name: 'Choisir un mode' })
+  expect(Math.round((await choisir.boundingBox())?.y ?? -2)).toBe(premiere)
+  await choisir.click()
   await expect(page).toHaveURL(/#jouer$/)
   await expect(tutorial).toBeHidden()
 
@@ -98,10 +84,11 @@ test('le tutoriel accompagne la première ouverture et reste rejouable', async (
   await page.getByRole('button', { name: 'Passer' }).click()
 })
 
-test('le tutoriel rouvert par une nouveauté commence sur l’étape nouvelle', async ({ page }) => {
-  // Un joueur qui avait fini la version 1 : il connaît le duel, la grille et la
-  // série. Lui refaire les sept étapes pour lui montrer les quêtes serait une
-  // punition — le tutoriel doit s'ouvrir sur ce qu'il n'a pas vu.
+test('un joueur qui n’avait fini que l’ancienne version revoit le guide court, depuis le début', async ({ page }) => {
+  // Jusqu'au 15/10/2026, une étape « Quêtes » ajoutée en version 2 rouvrait le
+  // tutoriel directement sur elle. Le guide n'a plus que trois étapes, sans
+  // nouveauté : celui qui n'avait vu que la version 1 le reprend en entier,
+  // et une seule fois.
   await page.addInitScript(() => {
     localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 1, completedAt: '2026-07-30T12:00:00.000Z' }))
   })
@@ -109,9 +96,7 @@ test('le tutoriel rouvert par une nouveauté commence sur l’étape nouvelle', 
 
   const tutorial = page.getByRole('dialog', { name: 'Tutoriel MotMan' })
   await expect(tutorial).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Les quêtes remplissent la bourse' })).toBeVisible()
-  // Le retour reste possible pour qui veut relire le reste.
-  await expect(tutorial.getByRole('button', { name: 'Retour' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Le mot fléché devient un duel' })).toBeVisible()
 
   await tutorial.getByRole('button', { name: 'Passer' }).click()
   await expect(tutorial).toBeHidden()
