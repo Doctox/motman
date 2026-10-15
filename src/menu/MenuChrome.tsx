@@ -1,5 +1,5 @@
 import { useNouveauteEnAttente } from '../nouveautes'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { BarChart3, Gamepad2, Home, Settings, ShoppingBasket, User } from 'lucide-react'
 import { assetUrl } from '../assetUrl'
 import { CosmeticPortrait } from '../CosmeticPortrait'
@@ -8,6 +8,7 @@ import type { PlayerProgress } from '../playerProgress'
 import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
 import type { SocialUser } from '../social'
 import type { MenuPage } from './types'
+import { haptic } from '../sensoryPreferences'
 import { QuestsChip } from './QuestsPanel'
 import './menu-nouveautes.css'
 
@@ -51,12 +52,16 @@ export function BottomNav({ page, setPage, basketAffordable = false }: { page: M
     ['ranking', 'Classement', <BarChart3 />], ['shop', 'Épicerie', <ShoppingBasket />],
     ['profile', 'Profil', <User />],
   ]
-  return <nav className="mm-bottom-nav" aria-label="Navigation principale">
+  // La pastille glisse d'un onglet à l'autre (15/10/2026, G1) : un seul fond
+  // pour toute la barre, déplacé, plutôt qu'un fond par bouton qui s'allume.
+  const rang = Math.max(0, items.findIndex(([id]) => id === page))
+  return <nav className="mm-bottom-nav" aria-label="Navigation principale" style={{ '--mm-nav-rang': rang, '--mm-nav-nombre': items.length } as CSSProperties}>
+    <span className="mm-nav-pastille" aria-hidden="true" />
     {items.map(([id, label, icon]) => {
       // Assez de plumes pour un panier : une pastille le rappelle, sauf quand on
       // est déjà dans l'Épicerie.
       const badge = id === 'shop' && basketAffordable && page !== 'shop'
-      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à ta portée` : undefined} onClick={() => setPage(id)}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
+      return <button key={id} type="button" className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined} aria-label={badge ? `${label} · un panier est à ta portée` : undefined} onClick={() => { if (id !== page) haptic(8); setPage(id) }}>{icon}<span>{label}</span>{badge ? <i className="mm-nav-badge" aria-hidden="true" /> : null}</button>
     })}
   </nav>
 }

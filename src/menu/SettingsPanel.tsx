@@ -5,7 +5,7 @@ import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
 import { isNativeRuntime } from '../nativeRuntime'
 import type { GuestIdentity } from '../playerIdentity'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
-import { useSensoryPreferences } from '../sensoryPreferences'
+import { haptic, useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { TUTORIAL_STEP_COUNT } from './FirstRunTutorial'
 import { InstallAppRow } from './InstallAppRow'
@@ -58,7 +58,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
           <button type="button" onClick={close} aria-label="Fermer"><X /></button>
         </header>
         <ToggleRow icon={<Volume2 />} label="Effets" checked={preferences.effects} setChecked={value => setPreference('effects', value)} />
-        <ToggleRow icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => setPreference('vibration', value)} />
+        <ToggleRow icon={<Vibrate />} label="Vibrations" checked={preferences.vibration} setChecked={value => { setPreference('vibration', value); haptic(12) }} />
         {/* « Animations » est arrivé le 16/09/2026 : tout le CSS suivait jusque-là
             le réglage de l'appareil, et un joueur qui avait coupé les animations
             dans Windows ne pouvait plus les rallumer dans le jeu. */}

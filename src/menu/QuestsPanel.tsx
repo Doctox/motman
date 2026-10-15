@@ -7,7 +7,7 @@ import {
 import { claimQuest, type ClaimedQuestReward } from '../auth'
 import { loadPlayerCosmetics } from '../cosmetics'
 import { loadPlayerIdentity } from '../playerIdentity'
-import { motionReduced } from '../sensoryPreferences'
+import { haptic, motionReduced } from '../sensoryPreferences'
 import { DAILY_QUEST_PLUMES, DAILY_QUEST_XP, hasClaimableQuest, WEEKLY_QUEST_PLUMES_IF_FULL, type QuestCounter, type QuestView } from '../quests'
 import { MAX_STREAK_FREEZES } from '../dailyStreakRule'
 import { useQuestBoard } from '../questBoardState'
@@ -114,6 +114,7 @@ function QuestsPanel({ close }: { close: () => void }) {
         setGagnees(precedentes => ({ ...precedentes, [quest.id]: recompense }))
         setBourse(recompense.feathers)
         setGain({ cle: Date.now(), plumes: recompense.plumes, xp: recompense.xp, gels: recompense.freezes })
+        haptic([12, 40, 18])
       }
     } catch (raison) {
       setErreur(raison instanceof Error ? raison.message : 'Récupération impossible.')

@@ -54,9 +54,22 @@
 
 .mm-shell button:not(:disabled).is-pressed,
 .mm-shell [role="button"]:not([aria-disabled="true"]).is-pressed {
-  transform: translateY(1px) scale(.985);
+  transform: translateY(1px) scale(.965);
   transition-duration: var(--mm-t-tap);
 }
+
+/* ── LE RESSORT (15/10/2026, G11) ─────────────────────────────────────────
+   Le bouton cède franchement sous le doigt (.965 au lieu de .985), puis revient
+   avec un petit rebond quand le doigt se lève dessus (`is-released`, posée par
+   `src/pressFeedback.ts`). Une animation et non une transition : chaque bouton
+   garde sa propre liste de transitions sans qu'on la réécrive ici. */
+.mm-shell button.is-released,
+.mm-shell [role="button"].is-released,
+.game-result-screen button.is-released {
+  animation: mmRessort .46s cubic-bezier(.34,1.4,.55,1);
+}
+@keyframes mmRessort{0%{transform:translateY(1px) scale(.965)}55%{transform:scale(1.018)}100%{transform:none}}
+html[data-motion="off"] .mm-shell .is-released,html[data-motion="off"] .game-result-screen .is-released{animation:none!important}
 
 /* ── L'APPUI ──────────────────────────────────────────────────────────────
    Le relâchement garde la durée normale, héritée de `menu-layout.css`. Seul

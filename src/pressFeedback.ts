@@ -35,6 +35,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CLASSE = 'is-pressed'
+// Le rebond du relâchement (15/10/2026, G11) : posé seulement quand le doigt se
+// lève sur le bouton, jamais quand le geste est devenu un défilement.
+const REBOND = 'is-released'
+const REBOND_MS = 460
 const SELECTEUR = 'button, [role="button"], a[href]'
 
 /** Vrai si l'élément ne doit pas réagir : désactivé, ou en cours de traitement. */
@@ -50,6 +54,17 @@ export function installPressFeedback(racine: ParentNode & EventTarget = document
     presse = null
   }
 
+  const lever = (evenement: Event) => {
+    const bouton = presse
+    relacher()
+    if (!bouton || evenement.type !== 'pointerup' || !bouton.isConnected) return
+    bouton.classList.remove(REBOND)
+    // Relire la mise en page relance l'animation si on retape pendant le rebond.
+    void (bouton as HTMLElement).offsetWidth
+    bouton.classList.add(REBOND)
+    window.setTimeout(() => bouton.classList.remove(REBOND), REBOND_MS)
+  }
+
   const enfoncer = (evenement: Event) => {
     const cible = (evenement.target as Element | null)?.closest?.(SELECTEUR)
     if (!cible || inerte(cible)) return
@@ -63,7 +78,8 @@ export function installPressFeedback(racine: ParentNode & EventTarget = document
   racine.addEventListener('pointerdown', enfoncer, options)
   // `pointercancel` part quand le geste devient un défilement : sans lui, le
   // bouton resterait enfoncé pendant tout le glissement.
-  for (const nom of ['pointerup', 'pointercancel', 'pointerleave', 'dragstart']) {
+  racine.addEventListener('pointerup', lever, options)
+  for (const nom of ['pointercancel', 'pointerleave', 'dragstart']) {
     racine.addEventListener(nom, relacher, options)
   }
   // Un défilement lancé au doigt ne passe pas toujours par `pointercancel`
@@ -75,7 +91,8 @@ export function installPressFeedback(racine: ParentNode & EventTarget = document
   return () => {
     relacher()
     racine.removeEventListener('pointerdown', enfoncer, options)
-    for (const nom of ['pointerup', 'pointercancel', 'pointerleave', 'dragstart']) {
+    racine.removeEventListener('pointerup', lever, options)
+    for (const nom of ['pointercancel', 'pointerleave', 'dragstart']) {
       racine.removeEventListener(nom, relacher, options)
     }
     window.removeEventListener('scroll', relacher, { capture: true } as EventListenerOptions)

@@ -12,6 +12,7 @@ import { buyServerStreakFreeze, equipServerCosmetic, openServerBasket, purchaseS
 import { MAX_STREAK_FREEZES, STREAK_FREEZE_PRICE } from './dailyStreakRule'
 import { BASKET_DUPLICATE_REFUND_PERCENT } from './progressionRewards'
 import { useDialogFocus } from './useDialogFocus'
+import { haptic } from './sensoryPreferences'
 import { PremierPassageCarte } from './menu/PremierPassage'
 
 type ShopTab = 'avatars' | 'frames' | 'animations' | 'baskets' | 'objects'
@@ -169,6 +170,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       const response = await (owned ? equipServerCosmetic(kind, id) : purchaseServerCosmetic(kind, id))
       if (!response.cosmetics) throw new Error('Collection serveur indisponible.')
       setCosmetics(response.cosmetics)
+      haptic(10)
       notify(owned ? 'Style équipé' : 'Trouvaille ajoutée et équipée')
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Achat impossible')
@@ -198,6 +200,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
     try {
       const response = await buyServerStreakFreeze()
       if (response.cosmetics) setCosmetics(response.cosmetics)
+      haptic(10)
       notify('Gel de série rangé dans ta poche')
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Achat impossible')
@@ -214,12 +217,15 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
       return
     }
     setBasketState('opening')
+    haptic(8)
     try {
       const remote = await openServerBasket(basketId)
       if (!remote.cosmetics || !remote.reward) throw new Error('Ouverture serveur incomplète.')
       setCosmetics(remote.cosmetics)
       setReward(remote.reward)
       basketTimerRef.current = window.setTimeout(() => {
+        // Une petite montée au dévoilement (G12) : le panier s'ouvre aussi sous le doigt.
+        haptic([8, 30, 12, 30, 20, 30, 40])
         setBasketState('revealed')
         basketTimerRef.current = null
       }, BASKET_SUSPENSE_MS)

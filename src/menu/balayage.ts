@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { motionReduced } from '../sensoryPreferences'
+import { haptic, motionReduced } from '../sensoryPreferences'
 import type { MenuPage } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,16 +72,18 @@ export function useBalayageEntrePages(shell: HTMLElement | null, page: MenuPage,
   pageRef.current = page
   const allerRef = useRef(aller)
   allerRef.current = aller
-  const entreeVoulue = useRef<'droite' | 'gauche' | null>(null)
+  const pagePrecedente = useRef<MenuPage | null>(null)
 
   // Posé APRÈS le changement de page et avant qu'il soit peint : la nouvelle
-  // page entre par le côté, l'ancienne est déjà partie. Une page ouverte par la
-  // barre du bas efface l'attribut et garde son entrée habituelle.
+  // page entre du côté de son onglet dans la barre, que l'on y vienne d'un
+  // glissement, de la barre ou d'un bouton (15/10/2026, G1). La toute première
+  // page garde son entrée habituelle, qui monte du bas.
   useLayoutEffect(() => {
     if (!shell) return
-    if (entreeVoulue.current) shell.dataset.entree = entreeVoulue.current
-    else delete shell.dataset.entree
-    entreeVoulue.current = null
+    const avant = pagePrecedente.current
+    pagePrecedente.current = page
+    if (!avant || avant === page) return
+    shell.dataset.entree = ORDRE_DES_PAGES.indexOf(page) > ORDRE_DES_PAGES.indexOf(avant) ? 'droite' : 'gauche'
   }, [page, shell])
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export function useBalayageEntrePages(shell: HTMLElement | null, page: MenuPage,
       if (!voisine) { ramener(); return }
       const element = pageAffichee()
       if (element) { element.style.transition = ''; element.style.translate = '' }
-      entreeVoulue.current = sens === 1 ? 'droite' : 'gauche'
+      haptic(8)
       allerRef.current(voisine)
     }
     const annuler = () => { depart = null; ramener() }
