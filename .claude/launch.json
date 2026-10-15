@@ -4,20 +4,38 @@
     {
       "name": "motman",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "motman-local",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "set VITE_MOTMAN_LOCAL_TEST_SERVER=true&& npm run dev -- --port 4176 --strictPort"],
+      "runtimeArgs": [
+        "/c",
+        "set VITE_MOTMAN_LOCAL_TEST_SERVER=true&& npm run dev -- --port 4176 --strictPort"
+      ],
       "port": 4176
     },
     {
       "name": "motman-dist",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "set GITHUB_REPOSITORY=Doctox/motman&& npx vite preview --port 4180 --strictPort"],
+      "runtimeArgs": [
+        "/c",
+        "set GITHUB_REPOSITORY=Doctox/motman&& npx vite preview --port 4180 --strictPort"
+      ],
       "port": 4180
+    },
+    {
+      "name": "motman-iphone",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set VITE_MOTMAN_LOCAL_TEST_SERVER=true&& npm run dev -- --port 4177 --strictPort --host"
+      ],
+      "port": 4177
     }
   ]
 }
