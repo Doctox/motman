@@ -516,12 +516,30 @@
     },
     {
       "kind": "frame",
+      "id": "cadre-osier",
+      "name": "Osier",
+      "rarity": "commun",
+      "pricePlumes": 1400,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-osier.webp"
+    },
+    {
+      "kind": "frame",
       "id": "cadre-rosee",
       "name": "Rosée",
       "rarity": "singulier",
       "pricePlumes": 1600,
       "availability": "epicerie",
       "asset": "/assets/frames/cadre-rosee.webp"
+    },
+    {
+      "kind": "frame",
+      "id": "cadre-paquerettes",
+      "name": "Pâquerettes",
+      "rarity": "singulier",
+      "pricePlumes": 1650,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-paquerettes.webp"
     },
     {
       "kind": "frame",
@@ -543,6 +561,15 @@
     },
     {
       "kind": "frame",
+      "id": "cadre-tricot",
+      "name": "Tricot",
+      "rarity": "singulier",
+      "pricePlumes": 1850,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-tricot.webp"
+    },
+    {
+      "kind": "frame",
       "id": "cadre-herbier",
       "name": "Herbier",
       "rarity": "rare",
@@ -558,6 +585,24 @@
       "pricePlumes": 2300,
       "availability": "epicerie",
       "asset": "/assets/frames/cadre-maree.webp"
+    },
+    {
+      "kind": "frame",
+      "id": "cadre-ruche",
+      "name": "Ruche",
+      "rarity": "rare",
+      "pricePlumes": 2300,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-ruche.webp"
+    },
+    {
+      "kind": "frame",
+      "id": "cadre-salon-the",
+      "name": "Salon de thé",
+      "rarity": "rare",
+      "pricePlumes": 2400,
+      "availability": "epicerie",
+      "asset": "/assets/frames/cadre-salon-the.webp"
     },
     {
       "kind": "frame",
@@ -705,6 +750,15 @@
     },
     {
       "kind": "animation",
+      "id": "tasse-the",
+      "name": "Tasse de thé",
+      "rarity": "commun",
+      "pricePlumes": 1300,
+      "availability": "epicerie",
+      "asset": "/assets/animations/lab/tasse-the.png"
+    },
+    {
+      "kind": "animation",
       "id": "souffle",
       "name": "Souffle",
       "rarity": "commun",
@@ -741,12 +795,30 @@
     },
     {
       "kind": "animation",
+      "id": "escargot",
+      "name": "Escargot",
+      "rarity": "singulier",
+      "pricePlumes": 1800,
+      "availability": "epicerie",
+      "asset": "/assets/animations/lab/escargot.png"
+    },
+    {
+      "kind": "animation",
       "id": "brume-irisee",
       "name": "Brume irisée",
       "rarity": "singulier",
       "pricePlumes": 1850,
       "availability": "epicerie",
       "asset": "/assets/animations/lab/brume-irisee.png"
+    },
+    {
+      "kind": "animation",
+      "id": "coccinelle",
+      "name": "Coccinelle",
+      "rarity": "singulier",
+      "pricePlumes": 1900,
+      "availability": "epicerie",
+      "asset": "/assets/animations/lab/coccinelle.png"
     },
     {
       "kind": "animation",
@@ -777,12 +849,30 @@
     },
     {
       "kind": "animation",
+      "id": "chat-endormi",
+      "name": "Chat endormi",
+      "rarity": "rare",
+      "pricePlumes": 2600,
+      "availability": "epicerie",
+      "asset": "/assets/animations/lab/chat-endormi.png"
+    },
+    {
+      "kind": "animation",
       "id": "lune-vagabonde",
       "name": "Lune vagabonde",
       "rarity": "rare",
       "pricePlumes": 2700,
       "availability": "epicerie",
       "asset": "/assets/animations/lab/lune-vagabonde.png"
+    },
+    {
+      "kind": "animation",
+      "id": "rouge-gorge",
+      "name": "Rouge-gorge",
+      "rarity": "rare",
+      "pricePlumes": 2700,
+      "availability": "epicerie",
+      "asset": "/assets/animations/lab/rouge-gorge.png"
     },
     {
       "kind": "animation",
