@@ -280,5 +280,10 @@
     "ajoute": "2026-10-16T23:17",
     "titre": "Tes lettres tiennent jusqu'au bout",
     "texte": "En temps limité, si ta connexion flanche juste à la fin du chrono, les lettres que tu as posées sont jouées quand même : ton tour n'est plus perdu."
+  },
+  {
+    "ajoute": "2026-10-16T23:49",
+    "titre": "Revanche en classée",
+    "texte": "En classée, tu peux retomber tout de suite sur l'adversaire que tu viens d'affronter : plus besoin d'attendre dix minutes."
   }
 ]
