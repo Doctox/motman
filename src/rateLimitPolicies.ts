@@ -47,6 +47,11 @@ export function actionRateLimits(
   if (api === 'match' && (action === 'ranked-ready-response' || action === 'ranked-cancel')) {
     return [{ bucket: `match:${action}`, maxRequests: 12, windowSeconds: 60 }]
   }
+  // Les lettres posées, envoyées au fil du tour (16/10/2026) : une par geste au
+  // plus, regroupées par le téléphone. Large pour un joueur, étroit pour un flot.
+  if (api === 'match' && action === 'draft') {
+    return [{ bucket: 'match:draft', maxRequests: 90, windowSeconds: 60 }]
+  }
   if (api === 'match' && action === 'ranked-leaderboard') {
     return [{ bucket: 'match:ranked-leaderboard', maxRequests: 30, windowSeconds: 60 }]
   }

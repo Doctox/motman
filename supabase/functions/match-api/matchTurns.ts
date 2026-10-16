@@ -107,6 +107,19 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
  * Dans ce cas la présence est aussi tenue pour prouvée : son geste vaut
  * « Je suis là », sinon la fenêtre se rouvrirait au tour d'après.
  */
+/**
+ * Le tour échoit sans coup reçu à temps (16/10/2026, matchDrafts.ts). S'il
+ * reste des lettres valables dans le brouillon du joueur, elles sont jouées
+ * comme un coup ordinaire — c'était sa main, posée pendant son tour. Sinon,
+ * c'est un tour manqué, exactement comme avant.
+ */
+export function closeExpiredTurn(row: MatchRow, grid: CatalogGrid, brouillon: Array<{ cellIndex: number; letter: string }>, { absence = true }: { absence?: boolean } = {}): void {
+  const valides = sanitizePlacements(row, grid, row.current_player_id, brouillon).sanitized
+  if (!valides.length) { timeoutTurn(row, { absence }); return }
+  const tour = applyTurn(row, grid, row.current_player_id, valides)
+  tour.fromDraft = true
+}
+
 export function timeoutTurn(row: MatchRow, { absence = true }: { absence?: boolean } = {}) {
   const state = row.state
   const playerId = row.current_player_id

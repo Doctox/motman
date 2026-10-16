@@ -18,7 +18,8 @@ import { ensureFinalSprintRacks, ensureSharedLetterBag, ruleGrid } from './match
 import type { MatchRow } from './matchModel.ts'
 import { notifyCurrentTurn } from './matchNotifications.ts'
 import { MatchStateConflictError, persist } from './matchSetup.ts'
-import { absentSansTemoin, applyTurn, botPlacements, forfeitAbsentPlayer, presenceExpired, timeoutTurn } from './matchTurns.ts'
+import { lettresDuBrouillon, lireBrouillon } from './matchDrafts.ts'
+import { absentSansTemoin, applyTurn, botPlacements, closeExpiredTurn, forfeitAbsentPlayer, presenceExpired } from './matchTurns.ts'
 import { gridLoader, type GridLoader } from './matchView.ts'
 
 /** Délai après la fin officielle du tour avant de le déclarer passé : laisse arriver un envoi automatique en retard. */
@@ -63,7 +64,9 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
       // Temps limité : 30 s sans « Je suis là » ni coup après un tour manqué.
       forfeitAbsentPlayer(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (turnExpired(row, recuA)) {
-      timeoutTurn(row); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
+      // Aucun coup reçu à temps : les lettres du brouillon, s'il y en a (matchDrafts.ts).
+      closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)))
+      row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (initializedBag || initializedFinale) row = await persist(admin, row)
     if (turnAdvanced && row.current_player_id !== previousPlayerId) notifyCurrentTurn(admin, row)
     return row

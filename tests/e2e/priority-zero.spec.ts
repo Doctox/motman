@@ -736,6 +736,82 @@ test('une validation automatique mobile retardée conserve les lettres posées',
   expect(accepted.match.board[placement.cellIndex]?.letter).toBe(placement.letter)
 })
 
+// LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026). Partie classée du
+// propriétaire : son envoi de 00:00 ne lui est jamais parvenu, il a perdu
+// toutes ses lettres, plus une absence. Le brouillon reçu pendant le tour les
+// sauve (match-api/matchDrafts.ts, même règle sur ce serveur de test).
+test('sans envoi de fin de tour, le serveur joue les lettres reçues au fil du tour', async ({ request, browserName }) => {
+  test.skip(browserName === 'webkit', 'Règle serveur, indépendante du moteur visuel.')
+  test.setTimeout(90_000)
+  const { first, matchId } = await createNormalMatch(request, 'realtime', 'Brouillon')
+  const match = await loadMatch(request, first.playerId, matchId)
+  const placement = playablePlacements(match)[0]
+  expect(placement).toBeTruthy()
+  const depart = new Date(match.turnStartedAt).getTime() + 10 - Date.now()
+  if (depart > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, depart))
+
+  // Une relance, comme `loadMatch` : après la longue attente de la fenêtre de
+  // lecture, la connexion gardée ouverte peut être coupée (ECONNRESET, vu le 16/10).
+  const brouillon = async (version: number) => {
+    const envoi = () => request.post('/api/matches/draft', {
+      data: { playerId: match.currentPlayerId, matchId, turnNumber: match.turnNumber, placements: [placement], version },
+    })
+    try { return await envoi() } catch { return envoi() }
+  }
+  expect(await (await brouillon(2)).json()).toEqual({ ok: true })
+  // Un brouillon plus ancien, arrivé après, ne remplace pas le plus récent.
+  expect(await (await brouillon(1)).json()).toEqual({ ok: false })
+
+  // Rien n'arrive à 00:00. Passé la marge de l'envoi automatique (4 s sur ce
+  // serveur), la première relecture clôt le tour — avec les lettres.
+  const attente = new Date(match.turnEndsAt).getTime() + 4_300 - Date.now()
+  if (attente > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, attente))
+  const apres = await loadMatch(request, first.playerId, matchId)
+  expect(apres.lastTurn?.playerId).toBe(match.currentPlayerId)
+  expect(apres.lastTurn?.correct).toContain(placement.cellIndex)
+  expect(apres.board[String(placement.cellIndex)]?.letter).toBe(placement.letter)
+  expect(apres.inactivity[match.currentPlayerId] ?? 0).toBe(0)
+  // Le tour passé, plus aucun brouillon n'est reçu pour lui.
+  expect(await (await brouillon(3)).json()).toEqual({ ok: false })
+})
+
+test('à l’écran, une lettre posée survit à un envoi de fin de tour bloqué en route', async ({ browser, request }) => {
+  test.setTimeout(120_000)
+  // Temps limité, comme la classée du 16/10 — le brouillon n'existe qu'en limité.
+  // Un tour de 20 s : de quoi poser une lettre, sans attendre la minute.
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Brouillon écran', 20_000)
+  const initial = await loadMatch(request, first.playerId, matchId)
+  const actor = initial.currentPlayerId === first.playerId ? second : first
+  const { context, page } = await openGame(browser, actor, matchId, { width: 390, height: 844 })
+  try {
+    // Tout envoi de coup reste coincé en route, comme l'appel bloqué sur Starlink.
+    await page.route('**/api/matches/turn', route => route.abort('failed'))
+    // L'adversaire passe : la main revient à l'observé, sur un tour neuf qui
+    // commence sous ses yeux (l'éclair « À toi » en est le signal).
+    await submitTurn(request, initial, [], false)
+    const aJouer = await loadMatch(request, actor.playerId, matchId)
+    expect(aJouer.currentPlayerId).toBe(actor.playerId)
+    const placement = playablePlacements(aJouer)[0]
+    expect(placement).toBeTruthy()
+    const lettre = page.getByRole('button', { name: `Lettre ${placement.letter}` }).first()
+    await attendreTourJouable(page, lettre)
+    await lettre.click({ force: true })
+    const caseVisee = page.locator(`[data-cell="${placement.cellIndex}"]`)
+    await caseVisee.click({ force: true })
+    await expect(caseVisee).toContainText(placement.letter)
+
+    // Ni « Valider » ni l'envoi de 00:00 ne passent : le serveur clôt le tour seul.
+    await expect.poll(async () => (await loadMatch(request, actor.playerId, matchId)).lastTurn?.turnNumber, { timeout: 60_000 }).toBe(aJouer.turnNumber)
+    const apres = await loadMatch(request, actor.playerId, matchId)
+    expect(apres.lastTurn?.playerId).toBe(actor.playerId)
+    expect(apres.board[String(placement.cellIndex)]?.letter).toBe(placement.letter)
+    // Pas un tour manqué : aucune absence, pas de « Tu es toujours là ? ».
+    expect(apres.inactivity[actor.playerId] ?? 0).toBe(0)
+  } finally {
+    await context.close()
+  }
+})
+
 // Règle du propriétaire du 18/09/2026 (src/gameRules.ts) : plus de trois tours
 // manqués. En illimité, un tour de 24 h laissé passer est un abandon ; en
 // limité, c'est « Tu es toujours là ? » (30 s) qui tranche, jamais le compte.

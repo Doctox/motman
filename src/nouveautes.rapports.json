@@ -275,5 +275,10 @@
     "titre": "Atelier & Maison fait peau neuve",
     "texte": "Le défi Atelier & Maison change toutes ses grilles : 25 neuves, avec des outils, des pièces de la maison et des petits travaux.",
     "genre": "theme"
+  },
+  {
+    "ajoute": "2026-10-16T23:17",
+    "titre": "Tes lettres tiennent jusqu'au bout",
+    "texte": "En temps limité, si ta connexion flanche juste à la fin du chrono, les lettres que tu as posées sont jouées quand même : ton tour n'est plus perdu."
   }
 ]

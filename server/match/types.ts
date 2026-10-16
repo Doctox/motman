@@ -66,7 +66,12 @@ export type StoredTurn = {
   scoreGained: number
   inactivityCount: number
   createdAt: string
+  /** Joué avec les lettres du brouillon (match-api/matchDrafts.ts, 16/10/2026). */
+  fromDraft?: boolean
 }
+
+/** Les lettres posées, reçues au fil du tour : jamais montrées au client (publicMatch les retire). */
+export type StoredDraft = { turnNumber: number; version: number; placements: Array<{ cellIndex: number; letter: string }>; receivedAt: number }
 
 export type StoredMatch = {
   id: string
@@ -104,6 +109,8 @@ export type StoredMatch = {
   hintUsed: Record<string, boolean | number>
   rerollUsed: Record<string, boolean | number>
   lastTurn: StoredTurn | null
+  /** Le dernier brouillon de chaque joueur, par identifiant (16/10/2026). */
+  brouillons?: Record<string, StoredDraft>
   status: 'active' | 'finished'
   winnerId: string | null
   finishReason: 'completed' | 'timeout' | 'forfeit' | null

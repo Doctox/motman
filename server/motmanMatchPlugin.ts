@@ -186,6 +186,8 @@ function publicMatch(match: StoredMatch) {
     letterBag: _privateLetterBag,
     resultAcknowledgedBy: _resultAcknowledgedBy,
     resultFeedbackBy: _resultFeedbackBy,
+    // Les lettres posées au fil du tour ne sortent jamais vers un client.
+    brouillons: _brouillons,
     ...safeMatch
   } = match
   const players = match.playerIds.map(playerId => playerId === match.bot?.playerId ? botUser(match.bot) : publicUser(playerId)).filter(Boolean)
@@ -322,6 +324,24 @@ function resolveReadyBots(now = Date.now()): boolean {
   return changed
 }
 
+/**
+ * Le tour échoit sans coup reçu : s'il reste des lettres valables dans le
+ * brouillon du joueur au trait, reçu pendant ce tour, elles sont jouées comme
+ * un coup ordinaire. Même règle que `closeExpiredTurn` de match-api.
+ */
+function jouerLeBrouillon(match: StoredMatch): StoredTurn | null {
+  // Temps limité seulement : en illimité, 24 h sans jouer reste un abandon.
+  if (match.pace !== 'realtime') return null
+  const brouillon = match.brouillons?.[match.currentPlayerId]
+  if (!brouillon || brouillon.turnNumber !== match.turnNumber) return null
+  if (!(brouillon.receivedAt < new Date(match.turnEndsAt).getTime() + TURN_SUBMIT_GRACE_MS)) return null
+  const valides = sanitizePlacements(match, match.currentPlayerId, brouillon.placements)
+  if (!valides.length) return null
+  const tour = applyPlayedTurn(match, match.currentPlayerId, valides)
+  tour.fromDraft = true
+  return tour
+}
+
 function resolveExpired(): void {
   const now = Date.now()
   // Bots live in the authoritative simulation too. Resolve their move before
@@ -349,6 +369,9 @@ function resolveExpired(): void {
     // Give the automatic 00:00 payload enough time to leave a sleeping mobile
     // radio before a poll resolves the turn as an inactivity timeout.
     if (match.status !== 'active' || !isTurnSubmissionExpired(now, new Date(match.turnEndsAt).getTime(), AUTOMATIC_TURN_SUBMIT_GRACE_MS)) return
+    // Les lettres reçues au fil du tour, plutôt qu'un tour manqué (match-api,
+    // matchDrafts.ts) : même règle qu'en production.
+    if (jouerLeBrouillon(match)) { changed = true; return }
     const inactivePlayerId = match.currentPlayerId
     const inactivityCount = (match.inactivity[inactivePlayerId] ?? 0) + 1
     match.inactivity[inactivePlayerId] = inactivityCount
@@ -486,7 +509,7 @@ function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: Mat
 const requestContext = {
   database, cleanPlayerId, publicUser, areFriends, activeMatches, resolveExpired, lobbyState,
   ensureFinalSprintRacks, publicMatch, saveDatabase, createMatch, finishMatch, gridForMatch,
-  replenishRack, sanitizePlacements, startNextTurn, applyPlayedTurn,
+  replenishRack, sanitizePlacements, startNextTurn, applyPlayedTurn, jouerLeBrouillon,
 }
 
 function attachMatchApi(middlewares: { use: (route: string, handler: (request: IncomingMessage, response: ServerResponse) => void) => void }): void {

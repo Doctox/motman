@@ -16,7 +16,7 @@ import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
   acknowledgeMatchResult, cancelMatchInvitation, confirmMatchPresence, createInstantMatch, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn,
-  requestMatchHint, rerollMatchRack, respondToMatchInvitation,
+  requestMatchHint, rerollMatchRack, respondToMatchInvitation, saveMatchDraft,
   type MatchInvitation, type MatchState, type MatchTurn,
   type MatchPace,
 } from './matches'
@@ -38,6 +38,7 @@ import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
 import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel, type EtatRevanche } from './game/DuelPresentation'
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
+import { attenteAvantEnvoi, brouillonAEnvoyer, cleDuBrouillon, lettresGardeesApresConflit, placementsDuBrouillon, versionSuivante, type BrouillonEnvoye } from './game/brouillonDuTour'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
@@ -197,6 +198,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const resolvingRef = useRef(false)
   const submittedTurns = useRef(new Set<number>())
   const submitTurnRef = useRef<(automatic?: boolean) => void>(() => undefined)
+  // Le brouillon de lettres (game/brouillonDuTour.ts) : le dernier parti, sa
+  // version, et le tour déjà relancé une fois après un conflit.
+  const brouillonEnvoye = useRef<BrouillonEnvoye | null>(null)
+  const brouillonVersion = useRef(0)
+  const relanceApresConflit = useRef<string | null>(null)
   const wasMyTurn = useRef(false)
   const turnAlertTimer = useRef<number | null>(null)
   const rerollTimer = useRef<number | null>(null)
@@ -440,11 +446,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     return reason instanceof Error && /introuvable/i.test(reason.message)
   }
 
-  const recoverConcurrentUpdate = (reason: unknown) => {
+  const recoverConcurrentUpdate = (reason: unknown, gardees: Record<number, Tile> = {}) => {
     const latest = matchStateFromConflict<MatchState>(reason)
     if (!latest) return false
-    provisionalRef.current = {}
-    setProvisional({})
+    provisionalRef.current = gardees
+    setProvisional(gardees)
     setSelected(null)
     acceptRemoteSnapshot(latest)
     pollingRef.current?.wake()
@@ -562,6 +568,39 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
       submitTurnRef.current(true)
     }
   }, [assignedToMe, match, match?.pause, turnHasStarted, turnPhase.expired])
+
+  // LE BROUILLON DE LETTRES (16/10/2026, game/brouillonDuTour.ts) : les lettres
+  // posées partent au serveur au fil du tour, sans que l'adversaire les voie. Si
+  // l'envoi de fin de tour se perd en route, c'est elles que le serveur joue, au
+  // lieu de compter un tour manqué.
+  const [relanceBrouillon, setRelanceBrouillon] = useState(0)
+  useEffect(() => {
+    const partie = matchRef.current
+    // Temps limité seulement : en illimité, le serveur ne s'en servirait pas
+    // (24 h sans jouer reste un abandon, match-api/matchDrafts.ts).
+    if (!canAct || resolving || !partie || partie.pace !== 'realtime') return
+    const placements = placementsDuBrouillon(provisional)
+    const cle = cleDuBrouillon(placements)
+    if (!brouillonAEnvoyer(brouillonEnvoye.current, partie.id, partie.turnNumber, cle)) return
+    const envoyer = () => {
+      brouillonVersion.current = versionSuivante(brouillonVersion.current)
+      const envoi: BrouillonEnvoye = { matchId: partie.id, turnNumber: partie.turnNumber, cle }
+      brouillonEnvoye.current = envoi
+      saveMatchDraft(playerId, partie.id, partie.turnNumber, placements, brouillonVersion.current).catch(() => {
+        // Perdu en route : il repart une seconde plus tard s'il est encore le
+        // dernier. La marque d'échec force le renvoi, plateau vide compris.
+        if (brouillonEnvoye.current !== envoi) return
+        brouillonEnvoye.current = { ...envoi, cle: '\u0000' }
+        window.setTimeout(() => setRelanceBrouillon(compte => compte + 1), 1_000)
+      })
+    }
+    // Dans les dernières secondes, chaque lettre part tout de suite : le minuteur
+    // serait annulé par la fin du tour avant d'avoir sonné.
+    const attente = attenteAvantEnvoi(new Date(partie.turnEndsAt).getTime() - serverNow())
+    if (attente === 0) { envoyer(); return }
+    const minuteur = window.setTimeout(envoyer, attente)
+    return () => window.clearTimeout(minuteur)
+  }, [provisional, canAct, resolving, match?.turnNumber, relanceBrouillon]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!match || resolving) return
@@ -754,7 +793,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         animateTurn(response.result, 'player', response.match.scores, response.match.status === 'active' ? new Date(response.match.turnStartedAt).getTime() : null)
       }
     } catch (reason) {
-      const recovered = recoverConcurrentUpdate(reason)
+      // La partie a bougé depuis le dernier sondage. Avant le 16/10/2026, le
+      // plateau se vidait et rien ne repartait : à 00:00, le joueur perdait ses
+      // lettres. Tant que le tour est encore le sien, il les garde et l'envoi
+      // repart aussitôt — une fois par tour, pour ne jamais boucler.
+      const latest = matchStateFromConflict<MatchState>(reason)
+      const gardees = latest ? lettresGardeesApresConflit(provisionalRef.current, latest, playerId, currentMatch.turnNumber) : {}
+      const recovered = recoverConcurrentUpdate(reason, gardees)
       const payload = (reason as { payload?: { match?: MatchState } })?.payload
       if (!recovered && payload?.match) applyMatchState(payload.match)
       // A lost response must not permanently lock the local turn. Retrying is
@@ -762,6 +807,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
       submittedTurns.current.delete(currentMatch.turnNumber)
       resolvingRef.current = false; setResolving(false)
       if (!recovered) setError(reason instanceof Error ? reason.message : 'Validation impossible')
+      const ceTour = `${currentMatch.id}:${currentMatch.turnNumber}`
+      if (recovered && Object.keys(gardees).length && relanceApresConflit.current !== ceTour) {
+        relanceApresConflit.current = ceTour
+        window.setTimeout(() => submitTurnRef.current(automatic), 0)
+      }
     }
   }
   submitTurnRef.current = automatic => { void validate(Boolean(automatic)) }

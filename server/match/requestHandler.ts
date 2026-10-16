@@ -31,13 +31,14 @@ export type MatchRequestContext = {
   sanitizePlacements(match: StoredMatch, playerId: string, placements: unknown[]): Array<{ cellIndex: number; letter: string }>
   startNextTurn(match: StoredMatch, completedAt: Date, turn: StoredTurn): void
   applyPlayedTurn(match: StoredMatch, playerId: string, placements: Array<{ cellIndex: number; letter: string }>): StoredTurn
+  jouerLeBrouillon(match: StoredMatch): StoredTurn | null
 }
 
 export async function handleMatchRequest(request: IncomingMessage, response: ServerResponse, context: MatchRequestContext): Promise<void> {
   const {
     database, cleanPlayerId, publicUser, areFriends, activeMatches, resolveExpired, lobbyState,
     ensureFinalSprintRacks, publicMatch, saveDatabase, createMatch, finishMatch, gridForMatch,
-    replenishRack, sanitizePlacements, startNextTurn, applyPlayedTurn,
+    replenishRack, sanitizePlacements, startNextTurn, applyPlayedTurn, jouerLeBrouillon,
   } = context
   const url = new URL(request.url ?? '/', 'http://motman.local')
   const route = url.pathname.replace(/^\/api\/matches\/?/, '').replace(/^\/+/, '')
@@ -249,6 +250,26 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   }
   if (match.status !== 'active') return sendJson(response, 409, { error: 'Cette partie est terminée.', match: publicMatch(match) })
 
+  // Les lettres posées au fil du tour (16/10/2026) : même règle que match-api
+  // (matchDrafts.ts). Rangées à part, jamais renvoyées au client.
+  if (route === 'draft') {
+    const maintenant = Date.now()
+    const version = Number(body.version)
+    const recevable = match.pace === 'realtime'
+      && match.currentPlayerId === playerId
+      && requestedTurnNumber === match.turnNumber
+      && hasTurnStarted(maintenant, new Date(match.turnStartedAt).getTime())
+      && maintenant < new Date(match.turnEndsAt).getTime() + TURN_SUBMIT_GRACE_MS
+      && Number.isSafeInteger(version) && version > 0
+    const precedent = match.brouillons?.[playerId]
+    const plusRecent = !precedent || precedent.turnNumber < match.turnNumber || (precedent.turnNumber === match.turnNumber && precedent.version < version)
+    if (!recevable || !plusRecent) return sendJson(response, 200, { ok: false })
+    const placements = sanitizePlacements(match, playerId, Array.isArray(body.placements) ? body.placements : [])
+    match.brouillons = { ...(match.brouillons ?? {}), [playerId]: { turnNumber: match.turnNumber, version, placements, receivedAt: maintenant } }
+    saveDatabase()
+    return sendJson(response, 200, { ok: true })
+  }
+
   // « Je suis là » : même règle que match-api (acknowledgePresence).
   if (route === 'present') {
     const manques = match.inactivity[playerId] ?? 0
@@ -342,6 +363,12 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   // Reaching zero with placed letters validates them exactly like the button.
   // Reaching zero without a placement remains a genuine inactivity timeout.
   if (body.automatic === true && sanitized.length === 0 && !hasPlacedHint) {
+    // Rien d'envoyé à 00:00 : les lettres reçues au fil du tour, s'il y en a.
+    const joue = jouerLeBrouillon(match)
+    if (joue) {
+      saveDatabase()
+      return sendJson(response, 200, { match: publicMatch(match), result: joue })
+    }
     const inactivityCount = (match.inactivity[playerId] ?? 0) + 1
     match.inactivity[playerId] = inactivityCount
     const occurredAt = new Date()

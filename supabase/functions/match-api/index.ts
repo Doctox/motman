@@ -14,7 +14,6 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3
 import { awardFinished, recordDailyPlay, recordMatchHistory } from './awards.ts'
 import { nowIso, type MatchRow, type Pace } from './matchModel.ts'
 
-const MANUAL_SUBMIT_GRACE_MS = 2_000
 // Doit rester égal au seuil de `server_create_bot_match_atomic` (migration
 // 20260914090000) : en dessous, le RPC répond `waiting` et rien ne se passe.
 const BOT_SEARCH_MS = 15_000
@@ -29,7 +28,8 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 // `matchGrid.ts` et `matchTurns.ts`. Sorties d'ici pour devenir testables —
 // ce fichier démarre un serveur à l'import.
 import { ensureFinalSprintRacks, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
-import { acknowledgePresence, applyTurn, finish, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
+import { acknowledgePresence, applyTurn, closeExpiredTurn, finish, sanitizePlacements } from './matchTurns.ts'
+import { brouillonRecevable, lettresDuBrouillon, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
 import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
@@ -656,6 +656,17 @@ Deno.serve(async request => {
       if (body.knownUpdatedAt === row.updated_at) return json(200, { unchanged: true })
       return json(200, { match: await view(admin, row, user.id, grid) })
     }
+    // LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026, matchDrafts.ts). Vérifiées
+    // comme un coup, rangées à part, et la réponse ne dit RIEN de leur justesse.
+    // Hors du tour du joueur, le brouillon est simplement ignoré.
+    if (action === 'draft') {
+      const version = Number(body.version)
+      if (!Number.isSafeInteger(version) || version <= 0) return json(400, { error: 'Brouillon invalide.' })
+      if (!brouillonRecevable(row, user.id, Number(body.turnNumber), recuA)) return json(200, { ok: false })
+      const placements = Array.isArray(body.placements) ? body.placements as Array<{ cellIndex: number; letter: string }> : []
+      await noterBrouillon(admin, row, user.id, version, sanitizePlacements(row, grid, user.id, placements).sanitized, recuA)
+      return json(200, { ok: true })
+    }
     if (row.paused_at) {
       return json(409, {
         error: 'La partie est en pause pendant la confirmation du match classé.',
@@ -735,8 +746,11 @@ Deno.serve(async request => {
       // Le carnet du propriétaire se lit AVANT le coup : `applyTurn` réécrit le
       // numéro et le début du tour.
       if (accessProfile?.role === 'admin') carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
-      if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) timeoutTurn(row, { absence: automatic })
-      else applyTurn(row, grid, user.id, valid)
+      // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu
+      // pendant le tour, s'il y en a, plutôt qu'un tour manqué (matchDrafts.ts).
+      if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) {
+        closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic })
+      } else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
       if (!canUseHint(row.state.hintUsed[user.id])) return json(409, { error: 'Ton indice a déjà été utilisé.' })
       const pendingPlacements = sanitizePlacements(

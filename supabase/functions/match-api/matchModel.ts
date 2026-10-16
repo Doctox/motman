@@ -31,7 +31,9 @@ export type Turn = {
   id: string; kind: 'played' | 'timeout'; playerId: string; turnNumber: number; correct: number[]; wrong: number[];
   wrongPlacements: Array<{ cellIndex: number; letter: string }>; aidedCell: number | null; letterPoints: number;
   wordBonuses: Array<{ cells: number[]; points: number; direction: 'across' | 'down' }>;
-  rackBonus: number; scoreGained: number; inactivityCount: number; createdAt: string
+  rackBonus: number; scoreGained: number; inactivityCount: number; createdAt: string;
+  /** Joué avec les lettres du brouillon, l'envoi de fin de tour n'étant pas arrivé (matchDrafts.ts, 16/10/2026). */
+  fromDraft?: boolean
 }
 export type State = {
   invitationId: string | null; difficulty: 'easy' | 'normal' | 'hard'; playerIds: [string, string]; bot: Bot | null;

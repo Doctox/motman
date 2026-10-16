@@ -9,7 +9,7 @@ const client = vi.hoisted(() => ({ invoke: vi.fn() }))
 vi.mock('./supabaseClient', () => ({ supabase: { functions: { invoke: client.invoke } } }))
 vi.mock('./clientVersion', () => ({ functionClientHeaders: () => ({}) }))
 
-import { ATTEMPT_TIMEOUT_MS, FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, isReplayable, RETRY_DELAY_MS } from './supabaseFunctions'
+import { ATTEMPT_TIMEOUT_MS, FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, isReplayable, RELANCES_FIN_DE_TOUR, RELANCES_ORDINAIRES, RETRY_DELAY_MS } from './supabaseFunctions'
 
 class FunctionsFetchError extends Error { name = 'FunctionsFetchError' }
 const echecReseau = () => ({ data: null, error: new FunctionsFetchError('Failed to send a request to the Edge Function') })
@@ -110,5 +110,33 @@ describe('un appel qui reste muet', () => {
     await vi.advanceTimersByTimeAsync(FUNCTION_TIMEOUT_MS)
     await verdict
     expect(client.invoke).toHaveBeenCalledTimes(2)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LA FIN DU TOUR (16/10/2026) : le serveur n'attend l'envoi automatique de 00:00
+// que 8 s. Relancé au bout de 7 s, un envoi bloqué arrivait trop tard.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('l’envoi de fin de tour', () => {
+  it('est relancé toutes les 2,5 s, et la quatrième relance part avant les 8 s du serveur', async () => {
+    client.invoke
+      .mockImplementationOnce(appelMuet)
+      .mockImplementationOnce(appelMuet)
+      .mockImplementationOnce(appelMuet)
+      .mockResolvedValueOnce({ data: { match: 'ok' }, error: null })
+    const appel = invokeSupabaseFunction('match-api', { action: 'turn', automatic: true }, FUNCTION_TIMEOUT_MS, RELANCES_FIN_DE_TOUR)
+    await vi.advanceTimersByTimeAsync(3 * RELANCES_FIN_DE_TOUR.essaiMs)
+    await expect(appel).resolves.toEqual({ match: 'ok' })
+    expect(client.invoke).toHaveBeenCalledTimes(4)
+    expect(3 * RELANCES_FIN_DE_TOUR.essaiMs).toBeLessThan(8_000)
+  })
+
+  it('ne change rien aux autres appels : deux essais, le premier de 7 s', async () => {
+    expect(RELANCES_ORDINAIRES).toEqual({ essaiMs: ATTEMPT_TIMEOUT_MS, essais: 2 })
+  })
+
+  it('le brouillon de lettres se rejoue sans risque', () => {
+    expect(isReplayable('match-api', { action: 'draft' })).toBe(true)
   })
 })

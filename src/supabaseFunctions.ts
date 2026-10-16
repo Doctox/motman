@@ -34,17 +34,30 @@ function timeoutFailure(name: string): FunctionFailure {
 // Mesuré ce soir-là : un appel normal prend 0,8 à 2 s, 3,5 s au pire.
 export const ATTEMPT_TIMEOUT_MS = 7_000
 
+/** Le rythme des relances d'un appel rejouable : la durée d'un essai muet, et le nombre d'essais. */
+export type Relances = { essaiMs: number; essais: number }
+export const RELANCES_ORDINAIRES: Relances = { essaiMs: ATTEMPT_TIMEOUT_MS, essais: 2 }
+
+// LA FIN DU TOUR (16/10/2026). À 00:00, le téléphone envoie lui-même les lettres
+// posées, et le serveur ne l'attend que 8 s avant de déclarer le tour manqué
+// (AUTOMATIC_SUBMIT_GRACE_MS, match-api). Un envoi bloqué en route n'était
+// relancé qu'au bout de 7 s : la relance arrivait à la limite, ou après, et le
+// joueur perdait des lettres bien posées (partie classée du propriétaire, le
+// 16/10 au soir). Cet envoi-là est donc relancé toutes les 2,5 s.
+export const RELANCES_FIN_DE_TOUR: Relances = { essaiMs: 2_500, essais: 4 }
+
 export async function invokeSupabaseFunction<T>(
   name: string,
   body: Record<string, unknown>,
   timeoutMs: number = FUNCTION_TIMEOUT_MS,
+  relances: Relances = RELANCES_ORDINAIRES,
 ): Promise<T> {
   let expiration: ReturnType<typeof setTimeout> | undefined
   const deadline = new Promise<never>((_, reject) => {
     expiration = setTimeout(() => reject(timeoutFailure(name)), timeoutMs)
   })
   try {
-    return await Promise.race([callWithRetry<T>(name, body, Date.now() + timeoutMs), deadline])
+    return await Promise.race([callWithRetry<T>(name, body, Date.now() + timeoutMs, relances), deadline])
   } finally {
     if (expiration !== undefined) clearTimeout(expiration)
   }
@@ -62,7 +75,7 @@ export async function invokeSupabaseFunction<T>(
 // un tour déjà joué et renvoie le même résultat.
 export const RETRY_DELAY_MS = 600
 const REPLAYABLE: Record<string, ReadonlySet<string>> = {
-  'match-api': new Set(['state', 'match', 'turn', 'daily-leaderboard', 'player-stats', 'history-grid', 'ranked-state', 'ranked-leaderboard']),
+  'match-api': new Set(['state', 'match', 'turn', 'draft', 'daily-leaderboard', 'player-stats', 'history-grid', 'ranked-state', 'ranked-leaderboard']),
 }
 
 export function isReplayable(name: string, body: Record<string, unknown>): boolean {
@@ -80,19 +93,24 @@ function isAttemptTimeout(error: unknown): boolean {
   return (error as { payload?: { code?: string } } | null)?.payload?.code === 'REQUEST_TIMEOUT'
 }
 
-async function callWithRetry<T>(name: string, body: Record<string, unknown>, finMs: number): Promise<T> {
+async function callWithRetry<T>(name: string, body: Record<string, unknown>, finMs: number, relances: Relances): Promise<T> {
   const reste = () => Math.max(1, finMs - Date.now())
   // Un appel qui dépense quelque chose ne part qu'une fois : il garde tout le
   // budget, et n'est abandonné qu'à son terme.
   if (!isReplayable(name, body)) return callSupabaseFunction<T>(name, body, reste())
-  try {
-    return await callSupabaseFunction<T>(name, body, Math.min(ATTEMPT_TIMEOUT_MS, reste()))
-  } catch (error) {
-    // Resté muet : on relance tout de suite, la route est souvent déjà libre.
-    if (isAttemptTimeout(error)) return callSupabaseFunction<T>(name, body, reste())
-    if (!isUnreachable(error)) throw error
-    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
-    return callSupabaseFunction<T>(name, body, reste())
+  for (let essai = 1; ; essai += 1) {
+    // Le dernier essai reçoit tout le reste du budget : de quoi laisser finir un
+    // appel vraiment long.
+    const dernier = essai >= relances.essais
+    try {
+      return await callSupabaseFunction<T>(name, body, dernier ? reste() : Math.min(relances.essaiMs, reste()))
+    } catch (error) {
+      if (dernier) throw error
+      // Resté muet : on relance tout de suite, la route est souvent déjà libre.
+      if (isAttemptTimeout(error)) continue
+      if (!isUnreachable(error)) throw error
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
+    }
   }
 }
 

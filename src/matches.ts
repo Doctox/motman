@@ -1,7 +1,7 @@
 import type { SocialUser } from './social'
 import type { GeneratedGrid } from './generator'
 import { hasSupabaseSession } from './supabaseClient'
-import { invokeSupabaseFunction } from './supabaseFunctions'
+import { FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, RELANCES_FIN_DE_TOUR, type Relances } from './supabaseFunctions'
 import type { BoardSnapshot } from './matchBoardSnapshot'
 import type { MatchHistoryOutcome } from './matchHistory'
 
@@ -62,6 +62,12 @@ export type MatchTurn = {
   scoreGained: number
   inactivityCount: number
   createdAt: string
+  /**
+   * Le tour a été joué par le serveur avec les lettres que le joueur avait
+   * posées, parce que son envoi de fin de tour n'est pas arrivé à temps
+   * (16/10/2026, voir saveMatchDraft).
+   */
+  fromDraft?: boolean
 }
 
 export type MatchState = {
@@ -148,9 +154,9 @@ async function localMatch<T>(path: string, body?: Record<string, unknown>): Prom
   return payload as T
 }
 
-async function supabaseMatch<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
+async function supabaseMatch<T>(action: string, body: Record<string, unknown> = {}, delaiMs = FUNCTION_TIMEOUT_MS, relances?: Relances): Promise<T> {
   if (!await hasSupabaseSession()) throw new Error('Ta session MotMan a expiré. Reconnecte-toi.')
-  return invokeSupabaseFunction<T>('match-api', { action, ...body })
+  return invokeSupabaseFunction<T>('match-api', { action, ...body }, delaiMs, relances)
 }
 
 export async function loadMatchLobby(playerId: string): Promise<MatchLobbyState> {
@@ -231,7 +237,28 @@ export async function loadMatch(playerId: string, matchId: string, knownUpdatedA
 export async function playMatchTurn(playerId: string, matchId: string, turnNumber: number, placements: Array<{ cellIndex: number; letter: string }>, automatic = false, knownUpdatedAt?: string): Promise<{ match: MatchState; result: MatchTurn }> {
   if (localTestServer) return localMatch('turn', { playerId, matchId, turnNumber, placements, automatic, knownUpdatedAt })
   void playerId
-  return supabaseMatch<{ match: MatchState; result: MatchTurn }>('turn', { matchId, turnNumber, placements, automatic, knownUpdatedAt })
+  return supabaseMatch<{ match: MatchState; result: MatchTurn }>('turn', { matchId, turnNumber, placements, automatic, knownUpdatedAt }, FUNCTION_TIMEOUT_MS, automatic ? RELANCES_FIN_DE_TOUR : undefined)
+}
+
+/** Un brouillon qui traîne ne sert plus à rien : le suivant le remplace. */
+const BROUILLON_DELAI_MS = 4_000
+
+/**
+ * LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026). Le joueur pose ses lettres ;
+ * le téléphone les envoie au serveur au fur et à mesure, sans rien en montrer à
+ * l'adversaire. Si l'envoi de fin de tour n'arrive pas à temps (réseau bloqué),
+ * le serveur joue ces lettres-là au lieu de compter un tour manqué. En temps
+ * limité seulement : en illimité, 24 h sans jouer reste un abandon.
+ *
+ * `version` : croissante dans le tour. Deux brouillons qui se croisent en route,
+ * le plus ancien ne remplace jamais le plus récent.
+ *
+ * Sans retour utile : un brouillon perdu n'est pas une erreur à montrer.
+ */
+export async function saveMatchDraft(playerId: string, matchId: string, turnNumber: number, placements: Array<{ cellIndex: number; letter: string }>, version: number): Promise<void> {
+  if (localTestServer) { await localMatch('draft', { playerId, matchId, turnNumber, placements, version }); return }
+  void playerId
+  await supabaseMatch<{ ok: boolean }>('draft', { matchId, turnNumber, placements, version }, BROUILLON_DELAI_MS)
 }
 
 export async function requestMatchHint(playerId: string, matchId: string, placements: Array<{ cellIndex: number; letter: string }>, knownUpdatedAt?: string): Promise<MatchState> {
