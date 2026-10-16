@@ -223,8 +223,9 @@ export async function tenterLeFantome(admin: AdminClient, userId: string): Promi
     adversairesAutomatiques(admin),
     admin.from('player_progress').select('ranked_points,ranked_matches').eq('user_id', userId).maybeSingle(),
     admin.from('ranked_rating_events').select('opponent_id').eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    // L'historique des grilles garde le NOM de l'adversaire 60 jours ; les
-    // évènements classés partent avec la partie au bout de 26 h.
+    // L'historique des grilles garde le NOM de l'adversaire 60 jours. Les
+    // évènements classés, eux, partaient avec la partie au bout de 26 h jusqu'au
+    // 16/10/2026 (migration 20261016100000) : l'historique reste la source.
     admin.from('grid_player_history').select('opponent_name').eq('user_id', userId)
       .gt('completed_at', new Date(Date.now() - MEMOIRE_JOURS * 24 * 60 * 60 * 1000).toISOString())
       .order('completed_at', { ascending: false }).limit(12),
