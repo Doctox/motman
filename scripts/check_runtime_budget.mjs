@@ -65,7 +65,10 @@ const limits = {
   tirageParPartie: 300_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
-  avatarsTotal: 1_500_000,
+  // 16/10/2026 : relevé de 1,5 à 2,5 Mo sur décision du propriétaire (« on augmentera »).
+  // Les avatars ne se chargent qu'à l'affichage ; ce seuil sert à voir la croissance,
+  // pas à brider l'Épicerie. 1,33 Mo en ligne, ~1,46 Mo avec les vagues prêtes.
+  avatarsTotal: 2_500_000,
   publicAssetsTotal: 15_000_000,
 }
 
