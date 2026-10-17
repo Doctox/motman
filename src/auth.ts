@@ -11,7 +11,7 @@ import { isNativeRuntime, NATIVE_AUTH_REDIRECT, openNativeAuthentication } from 
 import { getCaptchaToken } from './turnstile'
 import { parseGoogleAuthIssue, takeRememberedGoogleAuthIssue, type GoogleAuthIssue } from './googleAuthCallback'
 import { messageAuth } from './authErrors'
-import { sourceDuJoueur } from './sourceDuJoueur'
+import { noterLaSourceAuLancement, sourceDuJoueur } from './sourceDuJoueur'
 
 const recoveryListeners = new Set<() => void>()
 let passwordRecoveryPending = false
@@ -115,6 +115,10 @@ async function accountAction(action: string, body: Record<string, unknown> = {})
 }
 
 export async function bootstrapPlayerSession(): Promise<GuestIdentity> {
+  // D'où vient le joueur (17/10/2026, sourceDuJoueur.ts) : lu EN PREMIER, avant
+  // que le retour d'une connexion Google ne réécrive l'adresse juste en dessous.
+  // Ici et non au démarrage : le fichier de démarrage a son budget de taille.
+  noterLaSourceAuLancement(isNativeRuntime())
   googleAuthIssuePending = parseGoogleAuthIssue(location.search, location.hash)
     ?? takeRememberedGoogleAuthIssue(sessionStorage)
   if (googleAuthIssuePending) {
