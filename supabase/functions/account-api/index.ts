@@ -7,6 +7,7 @@ import { parisDateKey } from '../_shared/dailyCalendar.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
 import { createAdminClient, createAuthClient, type AdminClient } from '../_shared/supabaseClients.ts'
+import { compteNeuf, sourceRecue } from './playerSource.ts'
 
 const starterItems = {
   avatar: 'plume-motman',
@@ -332,6 +333,18 @@ Deno.serve(async request => {
           ...(checkedName.valid ? { display_name: checkedName.name } : {}),
           legacy_imported_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }).eq('id', user.id)
+      }
+      // D'où vient le joueur (17/10/2026, playerSource.ts) : pour un compte de
+      // moins d'un jour, la première fois seulement. Ne bloque jamais l'ouverture.
+      const source = sourceRecue(body.source)
+      if (source && compteNeuf(user.created_at)) {
+        const { error: sourceError } = await admin.rpc('server_note_player_source', {
+          p_user_id: user.id,
+          p_canal: source.canal,
+          p_referrer_host: source.referrerHost,
+          p_plateforme: source.plateforme,
+        })
+        if (sourceError) logServerError('account-api:source', sourceError, { userId: user.id })
       }
     } else if (action === 'update-profile') {
       const checkedName = normalizeName(body.displayName)

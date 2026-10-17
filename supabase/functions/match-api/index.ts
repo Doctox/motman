@@ -41,6 +41,7 @@ import { invitationCroisee, jeDoisAccepter, type InvitationRow } from './matchIn
 import { avantLeTour, echantillonDuTour, noterLeTour, type AvantLeTour } from './ownerTurnLog.ts'
 import { allumerFantome, fantomeAllume } from './ghost.ts'
 import { joueursEnLigne } from './onlinePlayers.ts'
+import { bilanDesSources, jourAvant } from './playerSources.ts'
 
 Deno.serve(async request => {
   // L'instant où la requête ARRIVE. Toutes les échéances du joueur se lisent
@@ -385,7 +386,12 @@ Deno.serve(async request => {
         points: Number(noteDe.get(String(ligne.user_id))?.ranked_points ?? 0),
         parties: Number(noteDe.get(String(ligne.user_id))?.ranked_matches ?? 0),
       }))
-      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), fantomeNote: noteFantome ?? null, ombres: listeOmbres } })
+      // D'où viennent les nouveaux joueurs (17/10/2026, playerSources.ts).
+      const aujourdhui = parisDateKey(new Date())
+      const { data: lignesSources } = await admin.from('player_source_daily')
+        .select('jour,canal,joueurs').gte('jour', jourAvant(aujourdhui, 29))
+      const sources = bilanDesSources((lignesSources ?? []).map(ligne => ({ jour: String(ligne.jour), canal: String(ligne.canal), joueurs: Number(ligne.joueurs) })), aujourdhui)
+      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), fantomeNote: noteFantome ?? null, ombres: listeOmbres, sources } })
     }
 
     // QUI EST EN LIGNE ET CE QU'IL FAIT (11/10/2026), derrière « En ligne » dans

@@ -246,5 +246,18 @@ footer a{color:var(--ink-soft)}
     <nav aria-label="Informations"><a href="../legal/confidentialite.html">Confidentialité</a><a href="../legal/conditions.html">Conditions</a><a href="../legal/credits.html">Crédits</a></nav>
   </div>
 </footer>
+<script>
+  // D'où vient le visiteur (17/10/2026) : souvent de Google, ici, avant de
+  // cliquer « Jouer ». La page du jeu le lira à son premier lancement
+  // (src/sourceDuJoueur.ts). Rien n'est envoyé depuis cette page.
+  try {
+    var referent = document.referrer || '';
+    var interne = false;
+    try { interne = new URL(referent).hostname.replace(/^www\./, '') === location.hostname.replace(/^www\./, ''); } catch (e) {}
+    if (!localStorage.getItem('motman-arrivee-v1') && ((referent && !interne) || location.search)) {
+      localStorage.setItem('motman-arrivee-v1', JSON.stringify({ referent: referent, recherche: location.search }));
+    }
+  } catch (e) {}
+</script>
 </body>
 </html>

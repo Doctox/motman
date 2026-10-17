@@ -57,6 +57,31 @@ export function ligneDOmbre(ombre: { arrivee: string; points: number; parties: n
   return `${ombre.points} · ${ombre.parties} partie${ombre.parties > 1 ? 's' : ''}`
 }
 
+const NOMS_DES_CANAUX: Record<string, string> = {
+  google: 'Google',
+  recherche: 'Autre moteur de recherche',
+  'play-store': 'Play Store',
+  'app-store': 'App Store',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
+  facebook: 'Facebook',
+  site: 'Adresse tapée ou favori',
+  autre: 'Un autre site',
+}
+
+/** Le nom d'un canal d'arrivée (17/10/2026, src/sourceDuJoueur.ts) ; un lien marqué inconnu garde son marqueur. */
+export function nomDuCanal(canal: string): string {
+  if (NOMS_DES_CANAUX[canal]) return NOMS_DES_CANAUX[canal]
+  if (canal.startsWith('lien-')) return `Lien « ${canal.slice('lien-'.length)} »`
+  return canal
+}
+
+/** « 3 cette semaine · 7 sur 30 jours » */
+export function ligneDeSource(source: { semaine: number; mois: number }): string {
+  return `${source.semaine} cette semaine · ${source.mois} sur 30 jours`
+}
+
 /** « signalement » ou « signalements » : zéro reste au singulier. */
 export function libelleSignalements(nombre: number): string {
   return nombre > 1 ? 'signalements' : 'signalement'
@@ -233,6 +258,12 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEn
 
         <h3>En tout</h3>
         <dl><Ligne nom="Comptes" valeur={pouls.comptes} /></dl>
+
+        {/* D'où viennent les nouveaux (17/10/2026) : comptés depuis ce jour-là. */}
+        <h3>D’où viennent les nouveaux</h3>
+        {pouls.sources?.length
+          ? <dl>{pouls.sources.map(source => <div key={source.canal}><dt>{nomDuCanal(source.canal)}</dt><dd className="mm-pulse-ombre">{ligneDeSource(source)}</dd></div>)}</dl>
+          : <p className="mm-pulse-note">Aucune arrivée comptée pour l’instant : le décompte a commencé le 17/10.</p>}
 
         <h3>Ton fantôme</h3>
         <InterrupteurFantome allumeAuDepart={pouls.fantome !== false} />

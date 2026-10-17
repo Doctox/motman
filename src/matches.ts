@@ -313,6 +313,8 @@ export type GamePulse = {
   fantomeNote?: { points: number; matches: number; wins: number; losses: number; draws: number } | null
   /** Les joueurs de l'ombre (13/10/2026), par ordre d'arrivée. */
   ombres?: Array<{ nom: string; arrivee: string; points: number; parties: number }>
+  /** D'où viennent les nouveaux joueurs (17/10/2026) : par canal, 7 et 30 derniers jours. */
+  sources?: Array<{ canal: string; semaine: number; mois: number }>
 }
 
 export async function loadGamePulse(): Promise<GamePulse> {

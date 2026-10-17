@@ -11,6 +11,7 @@ import { isNativeRuntime, NATIVE_AUTH_REDIRECT, openNativeAuthentication } from 
 import { getCaptchaToken } from './turnstile'
 import { parseGoogleAuthIssue, takeRememberedGoogleAuthIssue, type GoogleAuthIssue } from './googleAuthCallback'
 import { messageAuth } from './authErrors'
+import { sourceDuJoueur } from './sourceDuJoueur'
 
 const recoveryListeners = new Set<() => void>()
 let passwordRecoveryPending = false
@@ -137,7 +138,9 @@ export async function bootstrapPlayerSession(): Promise<GuestIdentity> {
     if (error || !data.session) throw new Error(messageAuth(error, 'Création de la session MotMan impossible. Réessaie.'))
     sessionData = { session: data.session }
   }
-  const response = await accountAction('bootstrap', { identity: legacyIdentity })
+  // D'où vient le joueur (sourceDuJoueur.ts) : le serveur ne la retient que
+  // pour un compte créé depuis moins d'un jour.
+  const response = await accountAction('bootstrap', { identity: legacyIdentity, source: sourceDuJoueur() })
   return response.identity
 }
 

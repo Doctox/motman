@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
-import { InterrupteurFantome, libelleEnLigne, libelleSignalements, ligneDOmbre, noteDuFantome } from './GamePulse'
+import { InterrupteurFantome, libelleEnLigne, libelleSignalements, ligneDeSource, ligneDOmbre, noteDuFantome, nomDuCanal } from './GamePulse'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -82,5 +82,20 @@ describe('les joueurs de l’ombre dans le pouls', () => {
   it('puis sa note et ses parties', () => {
     expect(ligneDOmbre({ arrivee: '2026-10-13T10:00:00Z', points: 0, parties: 0 }, maintenant)).toBe('arrivé·e, pas encore joué')
     expect(ligneDOmbre({ arrivee: '2026-10-13T10:00:00Z', points: 1012, parties: 7 }, maintenant)).toBe('1012 · 7 parties')
+  })
+})
+
+// 17/10/2026 : « on a besoin de savoir d'où viennent les gens qui jouent ».
+describe('d’où viennent les nouveaux', () => {
+  it('nomme chaque canal en clair', () => {
+    expect(nomDuCanal('play-store')).toBe('Play Store')
+    expect(nomDuCanal('tiktok')).toBe('TikTok')
+    expect(nomDuCanal('site')).toBe('Adresse tapée ou favori')
+    expect(nomDuCanal('lien-flyer')).toBe('Lien « flyer »')
+    expect(nomDuCanal('inconnu')).toBe('inconnu')
+  })
+
+  it('dit la semaine et les trente jours', () => {
+    expect(ligneDeSource({ semaine: 3, mois: 7 })).toBe('3 cette semaine · 7 sur 30 jours')
   })
 })

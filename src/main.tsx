@@ -4,6 +4,7 @@ import './tokens.css'
 import './base.css'
 import './tablet.css'
 import { isNativeRuntime } from './nativeRuntime'
+import { noterLaSourceAuLancement } from './sourceDuJoueur'
 import { AppErrorBoundary } from './AppErrorBoundary'
 import { LaunchScreen } from './LaunchScreen'
 import { downloadStalled, UPDATE_CHECK_LIMIT_MS, type LaunchStage } from './launchProgress'
@@ -53,6 +54,9 @@ try {
 
 const nativeRuntime = isNativeRuntime()
 document.documentElement.classList.toggle('native-runtime', nativeRuntime)
+// D'où vient le joueur (17/10/2026) : la page précédente et le lien marqué ne
+// se lisent qu'à l'arrivée, avant toute navigation interne. Voir sourceDuJoueur.ts.
+noterLaSourceAuLancement(nativeRuntime)
 
 if (nativeRuntime) {
   // En PREMIER : si cette version vient d'être installée par une mise à jour
