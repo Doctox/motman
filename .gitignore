@@ -89,6 +89,11 @@ sauvegardes/
 # La création des joueurs de l'ombre : leurs pseudos ne doivent pas se lire
 # dans un dépôt public (supabase/prive/ombres_creation_20261013.sql).
 /supabase/prive/
+# Les outils de tournage des vidéos réseaux : ils restent en local (décision du
+# propriétaire, 19/10/2026). Leurs scènes (grille, cases, lettres) vivent hors des
+# deux dépôts, dans « MotMan Contexte/Medias reseaux/scenes/ ».
+/scripts/filmer_*.mjs
+/scripts/lib/tournage.mjs
 # <<< atelier privé
 
 # Le dossier git de l'atelier lui-même.
