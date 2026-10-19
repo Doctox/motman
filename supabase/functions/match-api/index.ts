@@ -42,6 +42,7 @@ import { avantLeTour, echantillonDuTour, noterLeTour, type AvantLeTour } from '.
 import { allumerFantome, fantomeAllume } from './ghost.ts'
 import { joueursEnLigne } from './onlinePlayers.ts'
 import { bilanDesSources, jourAvant } from './playerSources.ts'
+import { enPleinDefi } from './enPleinDefi.ts'
 
 Deno.serve(async request => {
   // L'instant où la requête ARRIVE. Toutes les échéances du joueur se lisent
@@ -283,7 +284,11 @@ Deno.serve(async request => {
       // exactement dans la partie qu'il croyait jouer contre quelqu'un.
       // Le niveau est lu une fois, pas une fois par recherche.
       const enAttente = (searches ?? []) as { id: string; pace: string; created_at: string }[]
+      // Pas de bot en temps limité pendant son défi du jour : rien ne doit l'en
+      // faire sortir (enPleinDefi.ts, 19/10/2026). Sa recherche attend la fin.
+      const enDefi = enAttente.some(search => search.pace === 'realtime') && await enPleinDefi(admin, user.id)
       const aBasculer = enAttente.filter(search => Date.now() - new Date(search.created_at).getTime() >= BOT_SEARCH_MS)
+        .filter(search => !(enDefi && search.pace === 'realtime'))
       const forceBot = aBasculer.length ? botSkillForLevel(await playerLevel(admin, user.id)) : undefined
       for (const search of aBasculer) {
         const bot = createBot(`${user.id}:${search.id}`, forceBot)

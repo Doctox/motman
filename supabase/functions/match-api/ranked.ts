@@ -20,6 +20,7 @@
 
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
+import { enPleinDefi } from './enPleinDefi.ts'
 import { tenterLeFantome } from './ghost.ts'
 import { notifyRankedReady } from './matchNotifications.ts'
 import { atomicResult, prepareAtomicMatch, type AtomicMatchResult } from './matchSetup.ts'
@@ -193,7 +194,8 @@ export async function advanceRankedSearch(
       // Personne à apparier : au bout d'une minute, et si personne d'autre
       // n'est en ligne, le fantôme du propriétaire prend la place (ghost.ts).
       // Une panne du fantôme ne doit JAMAIS casser la recherche classée.
-      if (discovery.status === 'waiting') {
+      // Pas pendant son défi du jour : rien ne doit l'en faire sortir (enPleinDefi.ts).
+      if (discovery.status === 'waiting' && !await enPleinDefi(admin, userId)) {
         try {
           return await tenterLeFantome(admin, userId) ?? discovery
         } catch (error) {

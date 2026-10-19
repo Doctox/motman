@@ -285,5 +285,10 @@
     "ajoute": "2026-10-16T23:49",
     "titre": "Revanche en classée",
     "texte": "En classée, tu peux retomber tout de suite sur l'adversaire que tu viens d'affronter : plus besoin d'attendre dix minutes."
+  },
+  {
+    "ajoute": "2026-10-19T11:21",
+    "titre": "Défi du jour sans interruption",
+    "texte": "Tu peux lancer une recherche puis jouer ton défi du jour : aucune partie ne viendra l'interrompre, et ta recherche reprend dès la fin du défi."
   }
 ]
