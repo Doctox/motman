@@ -8,7 +8,6 @@ import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAp
 import { haptic, motionReduced, useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { useTirerPourFermer } from './tirerPourFermer'
-import { TUTORIAL_STEP_COUNT } from './FirstRunTutorial'
 import { InstallAppRow } from './InstallAppRow'
 import { AvertissementsRecus } from './AvertissementsRecus'
 import { NouveautesListe } from './Nouveautes'
@@ -101,7 +100,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
       </header>
       <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button></div>
       <button className="mm-settings-link" type="button" onClick={() => setReglagesOuverts(true)}><SlidersHorizontal /><span>Paramètres<small>Sons · vibrations · animations</small></span><ChevronRight /></button>
-      <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Règles et modes de jeu · {TUTORIAL_STEP_COUNT} étapes</small></span><ChevronRight /></button>
+      <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Une petite partie guidée, en une minute</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder ta progression'}</small></span><ChevronRight /></button>
       <InstallAppRow invite={identity.accountType !== 'account'} openAccount={openAccount} />

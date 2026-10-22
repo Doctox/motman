@@ -106,3 +106,18 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 [data-theme="dark"] .ranked-result-bar b{background:#8ad6b4}
 [data-theme="dark"] .ranked-result-why{color:#a5b4ae}
 html[data-motion="off"] .ranked-result-summary{animation:none!important}
+
+/* N8 (22/10/2026) : la carte qui demande les notifications, avant la fenêtre
+   d'Android. Calme, sous les gains : une proposition, pas une alerte. */
+.result-notifications{display:grid;grid-template-columns:24px 1fr;gap:6px 10px;align-items:start;margin:10px 0 0;padding:12px 14px;border:1px solid #d9c8a9;border-radius:14px;background:#fffaf0;text-align:left}
+.result-notifications>svg{width:22px;height:22px;margin-top:2px;color:#8a6a1e}
+.result-notifications p{display:grid;gap:2px;margin:0;color:#28463e;font-size:0.875rem;line-height:1.35}
+.result-notifications strong{color:#073f36;font:600 1rem/1.25 'Playfair Display',serif}
+.result-notifications>div{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.result-notifications button{min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#073f36;color:#fffaf0;font:600 0.9375rem 'DM Sans',sans-serif;cursor:pointer}
+.result-notifications button.secondaire{border:1px solid #d8ccb4;background:transparent;color:#5d6b63}
+[data-theme="dark"] .result-notifications{background:#17352f;border-color:#556b61}
+[data-theme="dark"] .result-notifications p{color:#d5e3dc}
+[data-theme="dark"] .result-notifications strong{color:#edf5ef}
+[data-theme="dark"] .result-notifications button{background:#8fdcb8;color:#0d2a23}
+[data-theme="dark"] .result-notifications button.secondaire{background:transparent;border-color:#40524b;color:#cddbd4}

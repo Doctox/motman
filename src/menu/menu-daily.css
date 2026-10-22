@@ -260,6 +260,11 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-note svg{width:15px;height:15px;color:#4f89ad}
 .mm-shell .mm-daily-cta{width:100%;min-height:50px;margin-top:2px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:16px;background:linear-gradient(color-mix(in srgb,var(--mm-coral) 92%,#fff),var(--mm-coral));color:#fffaf0;display:flex;align-items:center;justify-content:center;gap:9px;font:800 1.0625rem 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 #ffffff38,0 6px 16px color-mix(in srgb,var(--mm-coral) 26%,transparent);cursor:pointer}
 .mm-shell .mm-daily-cta svg{width:19px;height:19px}
+/* Le défi d'un joueur neuf (N2) : jouable, mais en bouton secondaire, ivoire et
+   laiton ; la terre cuite reste au bouton plein, une fois la première partie faite. */
+.mm-shell .mm-daily-cta.is-secondary{border-color:#c9a95f;background:#fffaf0;color:var(--mm-ink);box-shadow:none}
+.mm-daily-note.mm-daily-apres{display:block;color:var(--mm-ink);font-size:0.875rem;line-height:1.35}
+[data-theme="dark"] .mm-shell .mm-daily-cta.is-secondary{border-color:#8a6b2c;background:#18241f;color:#edf5ef}
 /* U2 (22/10/2026) — La nuit, le terracotta devient le corail de nuit (#ef805d) :
    le texte ivoire n'y faisait que 2,55:1. Il passe à l'encre de nuit (6,6:1). */
 [data-theme="dark"] .mm-shell .mm-daily-cta{color:#111b18}

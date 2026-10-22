@@ -305,5 +305,10 @@
     "ajoute": "2026-10-22T16:26",
     "titre": "La grille dit mieux qui a posé quoi",
     "texte": "Tes lettres posées ont l’allure de pièces de jeu ; tes cases validées sont vert d’eau, celles de l’adversaire corail. La fiche d’une définition s’ouvre en bas, sans cacher le mot."
+  },
+  {
+    "ajoute": "2026-10-22T16:49",
+    "titre": "Une partie d’essai pour bien commencer",
+    "texte": "Le tutoriel devient une petite partie guidée : tu poses tes premières lettres, tu valides, puis « Jouer ma première partie » te trouve un adversaire."
   }
 ]

@@ -40,7 +40,7 @@ function activeMatchLabel(match: MatchState): string {
   return 'Match normal'
 }
 
-export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, resumeMatch, ranked, voirRechercheClassee }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void; ranked?: RankedMatchmakingState; voirRechercheClassee?: () => void }) {
+export function HomePage({ identity, progress, cosmetics, social, lobby, play, jouerPremierePartie, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, resumeMatch, ranked, voirRechercheClassee }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; jouerPremierePartie?: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void; ranked?: RankedMatchmakingState; voirRechercheClassee?: () => void }) {
   // MA RECHERCHE CLASSÉE SE VOIT AUSSI ICI (22/10/2026, code C3). Lancée, puis
   // l'accueil : plus rien ne disait qu'elle tournait, et une attente qu'on ne
   // voit plus ressemble à une panne. Le bandeau « des joueurs cherchent » me
@@ -79,6 +79,11 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
   const xpGoal = experienceGoalForLevel(progress.level)
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
   const currentRank = rankedDivision(progress.rankedPoints, progress.rankedMatches)
+  // UN JOUEUR NEUF (22/10/2026, N2) : aucune partie finie, aucune en cours. Le
+  // gros bouton terracotta du défi l'envoyait vers la seule partie qui ne se
+  // rejoue pas, à thème, avec un classement public. Il voit d'abord « Jouer ma
+  // première partie » ; le défi reste jouable, en bouton secondaire.
+  const neuf = Boolean(jouerPremierePartie) && !lobby.active.length
   const currentMatches = lobby.active
     .filter(match => match.pace === 'async')
     .sort((left, right) => {
@@ -104,8 +109,11 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
         </div>
         <i className="mm-home-account-xp" aria-hidden="true"><b style={{ '--part': xpPercent / 100 } as CSSProperties} /></i>
         <div className="mm-home-account-line">
-          <small>Niveau {progress.level}{progress.level >= MAX_PLAYER_LEVEL ? '' : ` · ${progress.xp} / ${xpGoal} XP`}</small>
-          <strong className="mm-home-rank"><img src={rankImage(currentRank)} alt="" />{currentRank.label}</strong>
+          {/* Des zéros qui disent quoi faire (N9) : « 0 / 100 XP » avant la
+              première partie, « Non classé » pour un invité qui ne peut pas
+              jouer en classé sans compte. */}
+          <small>Niveau {progress.level}{progress.level >= MAX_PLAYER_LEVEL ? '' : progress.lifetimeXp === 0 ? ' · joue pour monter' : ` · ${progress.xp} / ${xpGoal} XP`}</small>
+          {identity.accountType === 'account' || currentRank.id !== 'unranked' ? <strong className="mm-home-rank"><img src={rankImage(currentRank)} alt="" />{currentRank.label}</strong> : null}
         </div>
       </div>
     </section>
@@ -116,7 +124,13 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       {/* La place du jour vit DANS la carte depuis le 25/09/2026 : en ligne
           séparée, elle doublait le rang que la carte affichait déjà — et les
           deux chiffres se contredisaient. */}
-      <DailyChallengeHero onPlay={playDaily} onOpenRanking={openRanking} />
+      {neuf ? <>
+        <header className="mm-attention-heading"><h2>Partie</h2></header>
+        <button type="button" className="mm-home-new-match mm-home-first-game" onClick={jouerPremierePartie}>
+          <Gamepad2 aria-hidden="true" /><span><strong>Jouer ma première partie</strong><small>Un adversaire en quelques secondes · une dizaine de minutes</small></span><ChevronRight aria-hidden="true" />
+        </button>
+      </> : null}
+      <DailyChallengeHero onPlay={playDaily} onOpenRanking={openRanking} discret={neuf} />
       {/* Réservé au propriétaire : le serveur revérifie le rôle et refuse tout
           autre compte. Placé en haut, c'est la première chose qu'il regarde. */}
       {identity.admin ? <GamePulse /> : null}
@@ -135,10 +149,12 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
         rejoindre={playRanked}
         creerCompte={openAccount}
       />
-      <header className="mm-attention-heading">
+      {/* Chez un joueur neuf, le titre « Partie » est monté en haut, avec son
+          seul bouton : ici, il n'aurait rien dessous. */}
+      {neuf ? null : <header className="mm-attention-heading">
         <h2>Partie</h2>
         {currentMatches.length ? <span aria-label={`${currentMatches.length} partie${currentMatches.length > 1 ? 's' : ''} en cours`}>{currentMatches.length} en cours</span> : null}
-      </header>
+      </header>}
       {currentMatches.length ? <div className="mm-home-active-match-list">
         {currentMatches.map(match => {
           const opponentName = matchOpponent(match, identity.playerId)
@@ -156,7 +172,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       {/* « Nouvelle partie » ne s'affiche QUE sans partie en cours (demande du
           propriétaire) : tant qu'une partie attend, on la reprend, on n'en
           ouvre pas une autre à côté. */}
-      {currentMatches.length ? null : <button type="button" className="mm-home-new-match" onClick={play}>
+      {currentMatches.length || neuf ? null : <button type="button" className="mm-home-new-match" onClick={play}>
         <Gamepad2 aria-hidden="true" />Nouvelle partie <ChevronRight />
       </button>}
     </section>

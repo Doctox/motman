@@ -92,10 +92,10 @@ export function initializeNativePushNotifications(): Promise<void> {
       })
     }
 
-    let permission = await PushNotifications.checkPermissions()
-    if (permission.receive === 'prompt' || permission.receive === 'prompt-with-rationale') {
-      permission = await PushNotifications.requestPermissions()
-    }
+    // N8 (22/10/2026) : plus de fenêtre système au lancement. Elle ne s'ouvre
+    // qu'après « Oui, préviens-moi » sur la carte de fin de partie (voir
+    // demandeNotifications.ts). Une permission déjà accordée s'inscrit seule.
+    const permission = await PushNotifications.checkPermissions()
     if (permission.receive === 'granted') await PushNotifications.register()
 
     // Le tiroir se vide à l'ouverture, puis à chaque retour au premier plan :
@@ -107,4 +107,22 @@ export function initializeNativePushNotifications(): Promise<void> {
     })
   })()
   return initialization
+}
+
+/** L'état de la permission dans le système, ou null hors de l'appli Android. */
+export async function etatDesNotifications(): Promise<string | null> {
+  if (!isNativeRuntime()) return null
+  const { PushNotifications } = await import('@capacitor/push-notifications')
+  return (await PushNotifications.checkPermissions()).receive
+}
+
+/** « Oui, préviens-moi » : la fenêtre système, puis l'inscription si elle est accordée. */
+export async function demanderNotifications(): Promise<boolean> {
+  if (!isNativeRuntime()) return false
+  await initializeNativePushNotifications()
+  const { PushNotifications } = await import('@capacitor/push-notifications')
+  const permission = await PushNotifications.requestPermissions()
+  if (permission.receive !== 'granted') return false
+  await PushNotifications.register()
+  return true
 }

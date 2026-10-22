@@ -85,7 +85,7 @@ function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
             ? <button type="button" className="mm-recent-match-row is-replayable" key={match.id} onClick={() => setRelecture(match)} aria-label={`Revoir la partie contre ${opponentName}`}>{contenu}</button>
             : <article className="mm-recent-match-row" key={match.id}>{contenu}</article>
         })}
-      </div> : <div className="mm-recent-history-empty"><History /><strong>Aucun match terminé</strong><small>Tes prochaines parties apparaîtront ici.</small></div>}
+      </div> : <div className="mm-recent-history-empty"><History /><strong>Ta première partie t’attend</strong><small>Une partie dure une dizaine de minutes. Tu as 30 secondes pour lire la grille avant ton premier tour. Une lettre fausse ne coûte aucun point.</small></div>}
     </section>
     {relecture ? <MatchReplay match={relecture} onClose={() => setRelecture(null)} /> : null}
   </div>
@@ -119,7 +119,7 @@ function SearchingCard({ titre, detail, annuler, disabled }: { titre: string; de
   </section>
 }
 
-export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab }: {
+export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab }: {
   identity: GuestIdentity
   social: SocialState
   lobby: MatchLobbyState
@@ -127,6 +127,10 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   cancelInvite: (invitationId: string) => Promise<void>
   searchMatch: (pace: MatchPace) => Promise<void>
   cancelSearch: (pace: MatchPace) => Promise<void>
+  /** Aucune partie finie : la carte Normal lui parle de durée, pas de classement (N1). */
+  nouveau?: boolean
+  /** Un invité touche Classé : « Créer mon compte » au lieu d'un refus (N4). */
+  openAccount?: () => void
   resumeMatch: (matchId: string) => void
   openFriends: () => void
   ranked: RankedMatchmakingState
@@ -224,7 +228,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         : <section className="mm-play-card">
           <header>
             <span className="mm-play-card-icon" aria-hidden="true"><Trophy /></span>
-            <span><h2>Normal</h2><small>Adversaire au hasard · sans classement</small></span>
+            <span><h2>Normal</h2><small>{nouveau ? 'Un adversaire en quelques secondes · une dizaine de minutes' : 'Adversaire au hasard · sans classement'}</small></span>
           </header>
           <PaceChoice pace={normalPace} setPace={setNormalPace} label="Choisir le rythme de la partie" />
           <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale()}>
@@ -237,6 +241,13 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
           <span className="mm-play-card-icon" aria-hidden="true"><BarChart3 /></span>
           <span><h2>Classé</h2><small>45 s par tour · adversaire de rang proche</small></span>
         </header>
+        {/* L'INVITÉ ET LE CLASSÉ (22/10/2026, N4). Il touchait « Jouer » et
+            recevait un refus qui l'envoyait chercher « Menu → Compte ». 29 comptes
+            sur 43 sont des invités, et le classé est un pilier du jeu. */}
+        {identity.accountType !== 'account' ? <div className="mm-ranked-compte">
+          <p>Le classé se joue avec un compte : c’est gratuit, ça prend une minute, et ta progression est gardée.</p>
+          {openAccount ? <button type="button" className="mm-play-cta is-gold" onClick={openAccount}>Créer mon compte <ChevronRight /></button> : null}
+        </div> : <>
         <div className="mm-ranked-status">
           <img src={rankImage(currentRank)} alt="" />
           {/* « Classement établi » n'apprenait rien une fois les placements
@@ -257,6 +268,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
           Personne n’a été trouvé en dix minutes — la recherche s’est arrêtée. Tu peux la relancer.
         </p> : null}
         <p className="mm-ranked-explainer">Tu peux jouer ailleurs pendant la recherche : on te prévient dès qu’un adversaire est trouvé.</p>
+        </>}
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </section> : null}
 

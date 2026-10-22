@@ -49,49 +49,72 @@ test('le mot du créateur paraît une fois par jour, avec Instagram et TikTok', 
   await expect(page.getByRole('dialog', { name: 'Un mot du créateur' })).toHaveCount(0)
 })
 
-test('le tutoriel accompagne la première ouverture et reste rejouable', async ({ page }, testInfo) => {
+test('le tutoriel est une partie d’essai qui prend par la main, puis lance la vraie partie', async ({ page }, testInfo) => {
+  // Demande du propriétaire (22/10/2026) : « un tuto plus interactif, qui te
+  // prend par la main : comment lancer ta partie, comment placer ». On joue ici
+  // AU DOIGT, comme un nouveau venu : rien ne passe par l'API.
   await page.goto('/')
 
-  const tutorial = page.getByRole('dialog', { name: 'Tutoriel MotMan' })
-  await expect(tutorial).toBeVisible()
-  await expect(tutorial).toContainText('Chaque lettre correcte colore une case')
+  const essai = page.getByRole('dialog', { name: 'Partie d’essai' })
+  await expect(essai).toBeVisible()
+  await expect(essai).toContainText('Bienvenue dans MotMan')
+  await essai.getByRole('button', { name: 'Compris' }).click()
 
-  // Trois étapes depuis le 15/10/2026 (B3), et une carte qui ne change plus de
-  // taille : le bouton « Suivant » reste sous le doigt d'une étape à l'autre.
-  const suivant = tutorial.getByRole('button', { name: 'Suivant' })
-  // Mesuré à l'arrêt : la fenêtre entre en glissant, et WebKit la prenait parfois
-  // encore en vol, à 2 px de sa place (15/10/2026).
-  const aLArret = () => page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running' || !Number.isFinite(Number(animation.effect?.getComputedTiming().endTime))))
-  const position = async () => { await aLArret(); return Math.round((await suivant.boundingBox())?.y ?? -1) }
-  const premiere = await position()
+  // Pas à pas : le C d'abord, puis la première case du mot.
+  await expect(essai).toContainText('Touche la lettre C.')
+  await essai.getByRole('button', { name: 'Lettre C' }).click()
+  await expect(essai).toContainText('Puis touche la première case du mot.')
+  await essai.getByRole('button', { name: 'Il miaule, case 1 · vide' }).click()
+  await expect(essai.getByRole('button', { name: 'Il miaule, case 1 · C posée' })).toBeVisible()
+
+  // Une lettre fausse revient au chevalet, sans rien coûter.
+  for (const [lettre, rang] of [['H', 2], ['E', 3], ['T', 4]] as const) {
+    await essai.getByRole('button', { name: `Lettre ${lettre}` }).click()
+    await essai.getByRole('button', { name: `Il miaule, case ${rang} · vide` }).click()
+  }
+  await expect(essai).toContainText('touche Valider')
+  await essai.getByRole('button', { name: 'Valider' }).click()
+  await expect(essai).toContainText('Une lettre fausse ne coûte aucun point')
+  await expect(essai.getByRole('button', { name: 'Lettre E' })).toBeVisible()
+  await essai.getByRole('button', { name: 'Lettre A' }).click()
+  await essai.getByRole('button', { name: 'Il miaule, case 3 · vide' }).click()
+  await essai.getByRole('button', { name: 'Valider' }).click()
+
+  // Les vrais points : 3 lettres au premier coup, puis le A et le mot complet.
+  await expect(essai).toContainText('Bravo, +5 points !')
+  await expect(essai.locator('.essai-score-moi strong')).toHaveText('8')
+  await essai.getByRole('button', { name: 'Suivant' }).click()
+
+  // MotMan joue son mot ; « Suivant » attend la fin de son coup.
+  const suivant = essai.getByRole('button', { name: 'Suivant' })
+  await expect(suivant).toBeEnabled({ timeout: 6_000 })
+  await expect(essai.locator('.essai-score-adverse strong')).toHaveText('6')
   await suivant.click()
-  await expect(page.getByRole('heading', { name: 'Pose tes lettres, puis valide' })).toBeVisible()
-  expect(await position()).toBe(premiere)
-  await suivant.click()
-  await expect(page.getByRole('heading', { name: 'Le défi du jour et ta série' })).toBeVisible()
-  await expect(tutorial).toContainText('1 panier offert')
-  await page.screenshot({ path: `output/quality/first-run-tutorial-${testInfo.project.name}.png`, fullPage: false })
-  const choisir = tutorial.getByRole('button', { name: 'Choisir un mode' })
-  await aLArret()
-  expect(Math.round((await choisir.boundingBox())?.y ?? -2)).toBe(premiere)
-  await choisir.click()
+
+  await expect(essai.getByRole('heading', { name: 'Prends ton temps' })).toBeVisible()
+  await page.screenshot({ path: `output/quality/partie-d-essai-fin-${testInfo.project.name}.png`, fullPage: false })
+  await essai.getByRole('button', { name: 'Jouer ma première partie' }).click()
+  await expect(essai).toBeHidden()
+  // La recherche est lancée : on n'a pas à choisir un mode qu'on ne connaît pas.
   await expect(page).toHaveURL(/#jouer$/)
-  await expect(tutorial).toBeHidden()
+  await expect(page.getByText('On te trouve un adversaire…')).toBeVisible()
+  await page.getByRole('button', { name: 'Annuler' }).click()
 
   await page.reload()
-  await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeHidden()
+  await expect(page.getByRole('dialog', { name: 'Partie d’essai' })).toBeHidden()
   await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Revoir le tutoriel/ }).click()
-  await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toBeVisible()
-  // Relancé à la main, il repart du début : on veut tout revoir.
-  await expect(page.getByRole('heading', { name: 'Le mot fléché devient un duel' })).toBeVisible()
-  await page.getByRole('button', { name: 'Passer' }).click()
+  const revue = page.getByRole('dialog', { name: 'Partie d’essai' })
+  await expect(revue).toBeVisible()
+  await expect(revue).toContainText('Bienvenue dans MotMan')
+  await revue.getByRole('button', { name: 'Passer' }).click()
+  await expect(revue).toBeHidden()
 })
 
-test('un joueur qui n’avait fini que l’ancienne version revoit le guide court, depuis le début', async ({ page }) => {
+test('un joueur qui n’avait fini que l’ancienne version reçoit la partie d’essai, une seule fois', async ({ page }) => {
   // Jusqu'au 15/10/2026, une étape « Quêtes » ajoutée en version 2 rouvrait le
-  // tutoriel directement sur elle. Le guide n'a plus que trois étapes, sans
-  // nouveauté : celui qui n'avait vu que la version 1 le reprend en entier,
+  // tutoriel directement sur elle. Depuis le 22/10/2026, le tutoriel est une
+  // partie d'essai : celui qui n'avait vu que la version 1 la reçoit en entier,
   // et une seule fois.
   // Une seule fois par onglet : le script d'amorçage repasse à chaque
   // rechargement, et réécrirait la version 1 que le joueur vient de dépasser.
@@ -102,15 +125,15 @@ test('un joueur qui n’avait fini que l’ancienne version revoit le guide cour
   })
   await page.goto('/')
 
-  const tutorial = page.getByRole('dialog', { name: 'Tutoriel MotMan' })
+  const tutorial = page.getByRole('dialog', { name: 'Partie d’essai' })
   await expect(tutorial).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Le mot fléché devient un duel' })).toBeVisible()
+  await expect(tutorial).toContainText('Bienvenue dans MotMan')
 
   await tutorial.getByRole('button', { name: 'Passer' }).click()
   await expect(tutorial).toBeHidden()
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Partie' })).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Tutoriel MotMan' })).toHaveCount(0)
+  await expect(page.getByRole('dialog', { name: 'Partie d’essai' })).toHaveCount(0)
 
   // Il connaissait déjà l'Épicerie : pas de carte de premier passage pour lui.
   await page.getByRole('button', { name: 'Épicerie' }).click()
@@ -118,11 +141,11 @@ test('un joueur qui n’avait fini que l’ancienne version revoit le guide cour
   await expect(page.locator('.mm-premier-passage')).toHaveCount(0)
 })
 
-test('après le tutoriel court, l’Épicerie et les Quêtes s’expliquent une fois au nouveau venu', async ({ page }) => {
+test('après le tutoriel (la partie d’essai), l’Épicerie et les Quêtes s’expliquent une fois au nouveau venu', async ({ page }) => {
   // Le guide ne dit plus tout (15/10/2026) : le reste s'explique la première
   // fois qu'on le croise, une seule fois, et seulement à qui découvre le jeu.
   await page.goto('/')
-  await page.getByRole('dialog', { name: 'Tutoriel MotMan' }).getByRole('button', { name: 'Passer' }).click()
+  await page.getByRole('dialog', { name: 'Partie d’essai' }).getByRole('button', { name: 'Passer' }).click()
 
   await page.getByRole('button', { name: 'Épicerie' }).click()
   const epicerie = page.getByRole('complementary', { name: 'Bienvenue à l’Épicerie' })
@@ -178,6 +201,11 @@ test('glisser le doigt passe d’une page du menu à sa voisine, sans gêner le 
     await expect(ongletActif).toContainText('Jouer')
     await glisser([320, 420], [90, 420])
     await expect(ongletActif).toContainText('Classement')
+    // Un invité arrive sur le classement du DÉFI (N9, 22/10/2026), qui se charge
+    // en remplaçant son contenu : un doigt posé sur un élément remplacé en plein
+    // geste perd la suite du geste (le navigateur l'envoie à l'élément détaché).
+    // On laisse le classement se charger, comme le ferait l'œil.
+    await page.waitForTimeout(800)
     await glisser([90, 420], [320, 420])
     await expect(ongletActif).toContainText('Jouer')
     await glisser([90, 420], [320, 420])
@@ -445,16 +473,19 @@ test('l’écran Jouer ne propose plus que Normal, Classé et Amis', async ({ pa
   await expect(page.getByRole('heading', { name: 'Normal' })).toHaveCount(0)
 })
 
-test('le mode classé affiche son emblème et explique la recherche en arrière-plan', async ({ page }, testInfo) => {
+test('le mode classé dit à l’invité qu’il faut un compte, et ouvre sa création', async ({ page }, testInfo) => {
+  // N4 (22/10/2026) : l'invité touchait « Jouer » et recevait un refus qui
+  // l'envoyait chercher « Menu → Compte ». Il voit la règle, et le bouton.
   await page.goto('/#jouer')
   await page.getByRole('tab', { name: 'Classé', exact: true }).click()
 
   const ranked = page.locator('.mm-play-card.is-gold')
   await expect(ranked).toBeVisible()
-  await expect(ranked.locator('.mm-ranked-status img')).toHaveAttribute('src', /assets\/ranks\/rank-unranked\.png/)
-  await expect(ranked.getByRole('button', { name: /Jouer une partie classée/ })).toBeVisible()
   await expect(ranked).toContainText('45 s par tour')
-  await expect(ranked).toContainText('Tu peux jouer ailleurs pendant la recherche')
+  await expect(ranked).toContainText('Le classé se joue avec un compte')
+  await expect(ranked.getByRole('button', { name: /Jouer une partie classée/ })).toHaveCount(0)
+  await ranked.getByRole('button', { name: /Créer mon compte/ }).click()
+  await expect(page.getByRole('dialog', { name: 'Compte MotMan' })).toBeVisible()
 
   await page.waitForTimeout(500)
   await page.screenshot({ path: `output/quality/ranked-mode-${testInfo.project.name}.png`, fullPage: false })

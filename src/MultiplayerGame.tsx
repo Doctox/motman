@@ -29,6 +29,7 @@ import { clearDeliveredPushNotifications } from './nativePushNotifications'
 import { noteServerTime, serverNow } from './serverClock'
 import { loadPlayerIdentity, playerInitials } from './playerIdentity'
 import { loadPlayerProgress } from './playerProgress'
+import { phraseDuPremierTour } from './game/gameDisplay'
 import { nomDuTitre } from './titleNames'
 import { presenceHeartbeatDelay } from './presencePolicy'
 import { RankedMatchPausedOverlay } from './RankedReadyOverlay'
@@ -111,6 +112,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const playerId = identity.current.playerId
   const playerCosmetics = useRef(loadPlayerCosmetics(playerId))
   const myLevel = useMemo(() => loadPlayerProgress(playerId).level, [playerId])
+  // La toute première partie (N6, 22/10/2026) : une phrase par tour au-dessus du
+  // chevalet, à la place de la ligne vide. Lue au début : elle reste la première
+  // jusqu'au bout, même si l'XP arrive entre-temps.
+  const premiereVraiePartie = useMemo(() => loadPlayerProgress(playerId).lifetimeXp === 0, [playerId])
   // Les titres portés, sous les pseudos (12/10/2026) : le catalogue vient avec
   // la progression du joueur, celui de l'adversaire avec son profil public.
   const titres = useMemo(() => {
@@ -1225,7 +1230,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn && lectureRestante === null ? 'duel-rack-waiting' : ''}`}>
-        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>Touche une définition pour l’agrandir.</span></div> : <div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
+        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>Touche une définition pour l’agrandir.</span></div> : <div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
         {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.glisse && drag.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>

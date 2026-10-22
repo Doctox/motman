@@ -17,11 +17,13 @@ import { useActualisation } from './actualiser'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
-export function RankingPage({ identity, progress, cosmetics, epreuveInitiale, ranked, rankedBusy, startRanked, cancelRanked }: {
+export function RankingPage({ identity, progress, cosmetics, epreuveInitiale, openAccount, ranked, rankedBusy, startRanked, cancelRanked }: {
   identity: GuestIdentity
   progress: PlayerProgress
   cosmetics: PlayerCosmetics
   epreuveInitiale?: 'ranked' | 'daily'
+  /** Un invité : « Créer mon compte » à la place de « Jouer une classée » (N4). */
+  openAccount?: () => void
   /** La recherche classée, pour la lancer d'ici et la voir en cours (22/10/2026, code C3). */
   ranked?: RankedMatchmakingState
   rankedBusy?: boolean
@@ -91,7 +93,10 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale, ra
       </div>
       : <button type="button" className="mm-play-cta is-gold mm-ranking-jouer" disabled={rankedBusy || ranked.status === 'started'} onClick={() => void startRanked()}>
         {ranked.status === 'started' ? 'Partie classée en cours' : 'Jouer une classée'} <ChevronRight aria-hidden="true" />
-      </button> : null}
+      </button> : identity.accountType !== 'account' && openAccount ? <div className="mm-ranked-compte">
+        <p>Le classé se joue avec un compte : c’est gratuit, ça prend une minute, et ta progression est gardée.</p>
+        <button type="button" className="mm-play-cta is-gold" onClick={openAccount}>Créer mon compte <ChevronRight aria-hidden="true" /></button>
+      </div> : null}
     <div className="mm-segmented" role="group" aria-label="Type de classement"><button type="button" className={tab === 'general' ? 'active' : ''} aria-pressed={tab === 'general'} onClick={() => setTab('general')}>Général</button><button type="button" className={tab === 'friends' ? 'active' : ''} aria-pressed={tab === 'friends'} onClick={() => setTab('friends')}>Amis</button></div>
     <section className="mm-leaderboard">
       {!entries.length && tab === 'general' && progress.rankedMatches >= 5 ? <div className="mm-ranking-row you">
@@ -135,7 +140,7 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale, ra
 // apparaissait d'un coup et poussait la page vers le bas.
 let statsEnMemoire: PlayerStats | null = null
 
-function PlayerStatsPanel() {
+function PlayerStatsPanel({ jouer }: { jouer?: () => void }) {
   const [stats, setStats] = useState<PlayerStats>(() => statsEnMemoire ?? EMPTY_PLAYER_STATS)
   const [chargement, setChargement] = useState(() => statsEnMemoire === null)
   useEffect(() => {
@@ -152,6 +157,8 @@ function PlayerStatsPanel() {
     return <section className="mm-player-stats is-empty">
       <h2><Gamepad2 aria-hidden="true" />Tes parties</h2>
       <p>Tes statistiques apparaîtront après ta première partie terminée.</p>
+      {/* Un état vide qui a une issue (N9, 22/10/2026). */}
+      {jouer ? <button type="button" className="mm-home-new-match" onClick={jouer}><Gamepad2 aria-hidden="true" />Jouer ma première partie <ChevronRight aria-hidden="true" /></button> : null}
     </section>
   }
 
@@ -166,14 +173,14 @@ function PlayerStatsPanel() {
   </section>
 }
 
-export function ProfilePage({ identity, progress, cosmetics, edit, openAccount }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openAccount: () => void }) {
+export function ProfilePage({ identity, progress, cosmetics, edit, openAccount, jouerPremierePartie }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openAccount: () => void; jouerPremierePartie?: () => void }) {
   const xpGoal = experienceGoalForLevel(progress.level)
   const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
   const equippedTitle = progress.titles.find(title => title.id === progress.equippedTitleId)
   return <div className="mm-page mm-profile-page">
     <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{progress.level >= MAX_PLAYER_LEVEL ? 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{progress.level >= MAX_PLAYER_LEVEL ? <strong>Niveau maximum atteint</strong> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
-    <PlayerStatsPanel />
+    <PlayerStatsPanel jouer={jouerPremierePartie} />
     {/* La bourse, et plus l'entrée de l'Épicerie : celle-ci a son onglet depuis
         qu'elle est dans la barre du bas. Le solde reste ici parce qu'il n'a rien
         d'une navigation — c'est ce que le joueur possède, à sa place sur son

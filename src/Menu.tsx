@@ -22,7 +22,7 @@ import { presenceHeartbeatDelay } from './presencePolicy'
 import { EMPTY_SOCIAL_STATE, loadSocialState, registerSocialProfile, setSocialPresence, type SocialState } from './social'
 import { AccountPanel } from './menu/AccountPanel'
 import { AppHeader, BottomNav } from './menu/MenuChrome'
-import { FirstRunTutorial } from './menu/FirstRunTutorial'
+import { PartieDEssai } from './menu/PartieDEssai'
 import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
 import { MatchInvitationPanel, MatchWaitingPanel } from './menu/MatchActivityPanels'
@@ -89,9 +89,9 @@ export function MenuApp({
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [editingGuest, setEditingGuest] = useState(false)
   const [tutorialOpen, setTutorialOpen] = useState(() => !hasCompletedFirstRunTutorial())
-  // Ce que ce joueur a déjà lu : le tutoriel s'ouvre alors sur la première étape
-  // nouvelle pour lui. Remis à 0 quand il demande lui-même à le revoir.
-  const [tutorialSeenVersion, setTutorialSeenVersion] = useState(completedTutorialVersion)
+  // La partie d'essai rouverte depuis les paramètres : elle se termine sur
+  // « C'est compris », sans lancer de recherche.
+  const [essaiRevu, setEssaiRevu] = useState(false)
   // Un tout nouveau venu (aucun guide fini sur cet appareil) : à la fermeture
   // du guide court, l'Épicerie et les Quêtes s'expliqueront une fois à leur
   // première visite (src/premiersPassages.ts). Pas l'habitué qui le revoit.
@@ -390,11 +390,24 @@ export function MenuApp({
     demanderActualisation()
   })
 
-  const closeTutorial = (openPlay = false) => {
+  // La fin de la partie d'essai (22/10/2026). « Jouer ma première partie »
+  // lance tout de suite une recherche normale en temps limité (N1) : le guide
+  // finissait sur « Choisir un mode », trois onglets et deux rythmes posés à
+  // quelqu'un qui ne savait pas encore ce qu'ils voulaient dire.
+  const terminerEssai = (lancer: boolean) => {
+    const premiere = premiereOuverture.current && !essaiRevu
+    premiereOuverture.current = false
     completeFirstRunTutorial()
-    if (premiereOuverture.current) ouvrirPremiersPassages()
+    if (premiere) ouvrirPremiersPassages()
     setTutorialOpen(false)
-    if (openPlay) navigate('play')
+    setEssaiRevu(false)
+    if (lancer && premiere) jouerPremierePartie()
+  }
+  // Tant qu'aucune partie n'est finie, « Jouer ma première partie » lance la
+  // recherche au lieu d'ouvrir l'écran des choix (N1, N2).
+  const jouerPremierePartie = () => {
+    navigate('play')
+    void beginNormalSearch('realtime')
   }
 
   const saveGuestProfile = async (displayName: string, avatarId: string, frameId: string, animationId: string, titleId: string | null) => {
@@ -537,17 +550,17 @@ export function MenuApp({
 
   return <main ref={setCoquille} className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} ranked={ranked} voirRechercheClassee={() => navigate('play', 'ranked')} /> : null}
-    {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
-    {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} ranked={ranked} rankedBusy={rankedBusy} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
-    {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} jouerPremierePartie={progress.lifetimeXp === 0 ? jouerPremierePartie : undefined} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} ranked={ranked} voirRechercheClassee={() => navigate('play', 'ranked')} /> : null}
+    {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} nouveau={progress.lifetimeXp === 0} openAccount={() => setAccountOpen(true)} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
+    {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement ?? (identity.accountType === 'account' ? undefined : 'daily')} openAccount={() => setAccountOpen(true)} ranked={ranked} rankedBusy={rankedBusy} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
+    {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} jouerPremierePartie={progress.lifetimeXp === 0 ? jouerPremierePartie : undefined} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page" role="status" aria-label="Ouverture de l’Épicerie"><SilhouetteEpicerie /></div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     {/* Pas de pastille sur l'Épicerie avant la première partie finie (N7,
         22/10/2026) : c'était le seul signal de l'écran, et il éloignait le
         nouveau du jeu. Le panier offert devient la récompense de sa première
         partie, annoncée sur l'écran de fin. */}
     <BottomNav page={page} setPage={navigate} basketAffordable={progress.lifetimeXp > 0 && BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
-    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={suivant => fondreLeTheme(suivant, () => setTheme(suivant))} /> : null}
+    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setEssaiRevu(true); setTutorialOpen(true) }} theme={theme} setTheme={suivant => fondreLeTheme(suivant, () => setTheme(suivant))} /> : null}
     {legalOpen ? <Suspense fallback={<div className="mm-page mm-route-loading" role="status">Ouverture des informations…</div>}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}
@@ -557,7 +570,7 @@ export function MenuApp({
       <MatchWaitingPanel invitation={outgoingInvitation} busy={matchBusy} cancel={() => void cancelInvitation(outgoingInvitation.id)} />
     </div> : null}
     {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
-      ? <FirstRunTutorial seenVersion={tutorialSeenVersion} skip={() => closeTutorial()} finish={() => closeTutorial(true)} />
+      ? <PartieDEssai premiere={premiereOuverture.current && !essaiRevu} jouer={() => terminerEssai(true)} fermer={() => terminerEssai(false)} />
       : null}
     {motDuCreateur && page === 'home' && !tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
       ? <CreatorNote close={() => { motDuCreateurMontre(dailyDateKey(Date.now())); setMotDuCreateur(false) }} />

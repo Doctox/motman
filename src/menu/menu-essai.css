@@ -1,0 +1,155 @@
+/* La partie d'essai (PartieDEssai.tsx, 22/10/2026). Elle reprend l'allure de la
+   vraie partie (cases pastel des définitions, pièces de jeu, encre et terre
+   cuite) sans dépendre de ses feuilles : la grille de jeu se mesure au
+   conteneur et à 7 × 8 cases, celle-ci n'en a que 5 × 2. */
+.essai-layer{
+  position:fixed;inset:0;z-index:1900;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--mm-paper,#fffdf8);color:#073f36;
+  --essai-encre:#073f36;--essai-terre:#a13c1d;--essai-laiton:#8a6a1e;
+}
+/* Pas de z-index ici : la bulle et « Passer » doivent passer AU-DESSUS du voile,
+   qui est un frère de cette coquille. */
+.essai-layer .essai-shell{
+  position:relative;display:flex;flex-direction:column;gap:12px;
+  width:min(100%,420px);min-height:100%;margin:auto;
+  padding:calc(12px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
+}
+.essai-layer .essai-header{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.essai-layer .essai-header>span{display:inline-flex;align-items:center;gap:8px;font:600 1.125rem 'Playfair Display',serif}
+.essai-layer .essai-header>span svg{width:20px;height:20px;color:var(--essai-laiton)}
+/* « Passer » reste lisible et touchable au-dessus du voile. */
+.essai-layer .essai-passer{
+  position:relative;z-index:3;min-height:44px;padding:0 16px;border:1px solid #d8ccb4;border-radius:999px;
+  background:#fffdf8;color:#5d6b63;font:600 0.875rem 'DM Sans',sans-serif;cursor:pointer;
+}
+
+.essai-layer .essai-scores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.essai-layer .essai-score{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:10px 14px;
+  border:1px solid #e1d6c1;border-radius:14px;background:#fffaf0;
+}
+.essai-layer .essai-score small{font:600 0.9375rem 'Playfair Display',serif}
+.essai-layer .essai-score strong{font:600 1.625rem/1 'Playfair Display',serif;font-variant-numeric:tabular-nums}
+.essai-layer .essai-score-adverse strong{color:#c94d29}
+.essai-layer .essai-score-moi{border-color:#9fceb5;background:#f1faf4}
+.essai-layer .essai-score-moi strong{color:var(--essai-encre)}
+
+.essai-layer .essai-grille{
+  display:grid;grid-template-columns:repeat(var(--essai-colonnes),minmax(0,1fr));gap:5px;
+  padding:6px;border:1.5px solid var(--essai-encre);border-radius:12px;background:#f1eadf;
+}
+.essai-layer .essai-case{aspect-ratio:1;min-width:0;border-radius:8px}
+.essai-layer .essai-definition{
+  position:relative;display:flex;align-items:center;justify-content:center;padding:4px 10px 4px 4px;
+  font:600 clamp(10px,2.9vw,12px)/1.15 'Atkinson Hyperlegible','DM Sans',sans-serif;text-align:center;color:#18332c;
+}
+.essai-layer .essai-definition b{position:absolute;right:4px;bottom:2px;color:var(--essai-laiton);font:700 0.8125rem 'DM Sans',sans-serif}
+.essai-layer .essai-ton-0{background:#f5e9c4}
+.essai-layer .essai-ton-1{background:#f4ded5}
+.essai-layer .essai-pleine{background:#8fa596}
+.essai-layer .essai-lettre{
+  display:grid;place-items:center;padding:0;border:1px solid #e4d9c4;background:#fffdf8;
+  font:600 clamp(24px,7.5vw,32px)/1 'Playfair Display',serif;color:var(--essai-encre);cursor:pointer;
+}
+/* Posée : une pièce de jeu, comme au chevalet (choix B du propriétaire). */
+.essai-layer .essai-lettre.is-pending{
+  background:#fffaf0;border-color:transparent;
+  box-shadow:inset 0 0 0 1.5px #b9a37c,inset 0 -4px 0 #d9c6a0,inset 0 2px 0 #fff;
+  filter:drop-shadow(0 2px 1.5px #49341e40);
+}
+/* Validée : de l'encre dans le carnet, à toi en vert d'eau, à lui en corail. */
+.essai-layer .essai-lettre.is-mine{background:#f1faf4;border-color:transparent;color:var(--essai-encre)}
+.essai-layer .essai-lettre.is-theirs{background:#fff1eb;border-color:transparent;color:var(--essai-terre);cursor:default}
+.essai-layer .essai-lettre.is-arriving span{animation:essaiLettreArrive .32s cubic-bezier(.34,1.3,.55,1) both}
+@keyframes essaiLettreArrive{from{opacity:0;transform:translateY(-10px) scale(.9)}to{opacity:1;transform:none}}
+
+/* La bulle : toujours entre la grille et le chevalet, au-dessus du voile. */
+.essai-layer .essai-bulle{
+  position:relative;z-index:3;display:grid;gap:8px;align-content:start;min-height:124px;padding:14px 16px;
+  border:1px solid #d9c8a9;border-radius:18px;background:#fffaf0;box-shadow:0 10px 28px #081e1930;
+}
+.essai-layer .essai-bulle.is-empty{visibility:hidden}
+.essai-layer .essai-bulle strong{font:600 1.1875rem/1.2 'Playfair Display',serif}
+.essai-layer .essai-bulle p{margin:0;font:400 1rem/1.4 'Atkinson Hyperlegible','DM Sans',sans-serif;color:#28463e}
+.essai-layer .essai-bulle button{
+  justify-self:end;min-height:44px;padding:0 20px;border:0;border-radius:999px;
+  background:var(--essai-encre);color:#fffaf0;font:600 1rem 'Playfair Display',serif;cursor:pointer;
+}
+.essai-layer .essai-bulle button:disabled{opacity:.45;cursor:default}
+
+/* Le chevalet et Valider en bas de l'écran, comme en vraie partie. */
+.essai-layer .essai-chevalet{
+  margin-top:auto;
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;padding:7px;
+  border-radius:12px;background:#f1eadf;box-shadow:inset 0 1px 4px #66482214;
+}
+.essai-layer .essai-tuile,.essai-layer .essai-tuile-vide{aspect-ratio:1;max-height:62px;border-radius:9px}
+.essai-layer .essai-tuile{
+  display:grid;place-items:center;padding:0;border:0;background:#fffaf0;color:var(--essai-encre);
+  font:600 clamp(24px,7.5vw,30px)/1 'Playfair Display',serif;cursor:pointer;
+  box-shadow:0 3px 0 #cdbb9e,0 5px 8px #49341e1f,inset 0 0 0 1.5px #e3d5bb;
+  transition:transform .14s ease,box-shadow .14s ease;
+}
+/* Choisie : elle se soulève, cerclée de laiton (la terre cuite est à l'adversaire). */
+.essai-layer .essai-tuile.is-chosen{transform:translateY(-5px);box-shadow:0 6px 0 #cdbb9e,0 9px 14px #49341e2b,inset 0 0 0 2.5px #b48a3a}
+.essai-layer .essai-tuile-vide{background:#e9dfcf}
+.essai-layer .essai-valider{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border:0;border-radius:999px;
+  background:linear-gradient(180deg,#db5b35,#c94d29);color:#fffaf0;font:600 1.0625rem 'Playfair Display',serif;cursor:pointer;
+  box-shadow:inset 0 1px 0 #ffffff35,0 3px 0 #9e3b22;
+}
+.essai-layer .essai-valider svg{width:18px;height:18px}
+.essai-layer .essai-valider:disabled{opacity:1;filter:none;background:transparent;border:1px solid #d8ccb4;color:#5d6b63;box-shadow:none;cursor:default}
+
+/* Le voile : il ne capte aucun toucher (la logique ignore ce qui n'est pas demandé). */
+.essai-layer .essai-voile{position:fixed;inset:0;z-index:2;pointer-events:none}
+.essai-layer .essai-voile>rect:first-of-type{fill:#09201bb8}
+.essai-layer .essai-voile .essai-contour{fill:none;stroke:#e6c77d;stroke-width:2.5}
+html:not([data-motion="off"]) .essai-layer .essai-voile .essai-contour{animation:essaiContour 1.6s ease-in-out 2}
+@keyframes essaiContour{50%{stroke-width:5}}
+
+/* La fin : trois conseils, puis la vraie partie. */
+.essai-layer .essai-fin{
+  position:fixed;left:50%;bottom:0;z-index:4;width:min(100%,440px);translate:-50% 0;
+  padding:22px 20px calc(20px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;
+  background:#fffaf0;box-shadow:0 -12px 40px #081e1940;
+}
+.essai-layer .essai-fin small{color:var(--essai-laiton);font:700 0.75rem 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.essai-layer .essai-fin h2{margin:4px 0 12px;font:600 1.75rem/1.1 'Playfair Display',serif;color:var(--essai-encre)}
+.essai-layer .essai-fin ul{display:grid;gap:10px;margin:0 0 18px;padding:0;list-style:none}
+.essai-layer .essai-fin li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font:400 1rem/1.4 'Atkinson Hyperlegible','DM Sans',sans-serif;color:#28463e}
+.essai-layer .essai-fin li svg{width:20px;height:20px;margin-top:1px;color:var(--essai-laiton)}
+.essai-layer .essai-fin button{width:100%;min-height:50px;border-radius:999px;font:600 1.0625rem 'Playfair Display',serif;cursor:pointer}
+.essai-layer .essai-fin-jouer{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;background:var(--essai-encre);color:#fffaf0}
+.essai-layer .essai-fin-jouer svg{width:20px;height:20px}
+.essai-layer .essai-fin-plus-tard{margin-top:8px;border:0;background:transparent;color:#5d6b63}
+
+html[data-motion="off"] .essai-layer .essai-tuile{transition:none}
+html[data-motion="off"] .essai-layer .essai-lettre.is-arriving span{animation:none}
+
+/* Nuit : l'ardoise, les mêmes repères que la vraie partie (variante B). */
+[data-theme="dark"] .essai-layer{background:#111b18;color:#edf5ef;--essai-encre:#8fdcb8;--essai-terre:#ff9b7a;--essai-laiton:#d9b563}
+[data-theme="dark"] .essai-layer .essai-passer{background:#18241f;border-color:#40524b;color:#cddbd4}
+[data-theme="dark"] .essai-layer .essai-score{background:#18241f;border-color:#40524b}
+[data-theme="dark"] .essai-layer .essai-score-adverse strong{color:#ff8f6b}
+[data-theme="dark"] .essai-layer .essai-score-moi{background:#193c33;border-color:#2d6b57}
+[data-theme="dark"] .essai-layer .essai-grille{background:#18241f;border-color:#5f8f7d}
+[data-theme="dark"] .essai-layer .essai-definition{color:#f0ebe0}
+[data-theme="dark"] .essai-layer .essai-ton-0{background:#48402a}
+[data-theme="dark"] .essai-layer .essai-ton-1{background:#49332e}
+[data-theme="dark"] .essai-layer .essai-pleine{background:#2f4a40}
+[data-theme="dark"] .essai-layer .essai-lettre{background:#162420;border-color:#2c3d36;color:#e8f3ec}
+[data-theme="dark"] .essai-layer .essai-lettre.is-pending{background:linear-gradient(145deg,#263730,#1c2925);box-shadow:inset 0 0 0 1.5px #50635a,inset 0 -4px 0 #0b1512,inset 0 1px 0 #ffffff1a;filter:drop-shadow(0 2px 2px #0008)}
+[data-theme="dark"] .essai-layer .essai-lettre.is-mine{background:#193c33;color:#8fdcb8}
+[data-theme="dark"] .essai-layer .essai-lettre.is-theirs{background:#482a20;color:#ff9b7a}
+[data-theme="dark"] .essai-layer .essai-bulle{background:#17352f;border-color:#556b61;box-shadow:0 12px 32px #0009}
+[data-theme="dark"] .essai-layer .essai-bulle p{color:#d5e3dc}
+[data-theme="dark"] .essai-layer .essai-bulle button,[data-theme="dark"] .essai-layer .essai-fin-jouer{background:#8fdcb8;color:#0d2a23}
+[data-theme="dark"] .essai-layer .essai-chevalet{background:#1d2c27}
+[data-theme="dark"] .essai-layer .essai-tuile{background:linear-gradient(145deg,#263730,#1c2925);color:#e8f3ec;box-shadow:0 3px 0 #0b1512,0 5px 8px #0006,inset 0 0 0 1.5px #50635a}
+[data-theme="dark"] .essai-layer .essai-tuile-vide{background:#16221e}
+[data-theme="dark"] .essai-layer .essai-valider:disabled{border-color:#40524b;color:#a9bab3}
+[data-theme="dark"] .essai-layer .essai-voile>rect:first-of-type{fill:#000000b8}
+[data-theme="dark"] .essai-layer .essai-fin{background:#17352f}
+[data-theme="dark"] .essai-layer .essai-fin li{color:#d5e3dc}
+[data-theme="dark"] .essai-layer .essai-fin-plus-tard{color:#a9bab3}

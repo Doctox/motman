@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { AlertTriangle, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflake } from 'lucide-react'
+import { CalendarDays, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflake } from 'lucide-react'
 import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
 import { StreakCalendar } from './StreakCalendar'
@@ -177,7 +177,13 @@ function decorDuTheme(theme: string | null): CSSProperties {
   } as CSSProperties
 }
 
-export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => void; onOpenRanking?: () => void }) {
+/**
+ * `discret` : pour un joueur qui n'a encore fini aucune partie (N2, 22/10/2026).
+ * Le défi reste jouable, mais en bouton secondaire, sous « Jouer ma première
+ * partie » : une seule tentative, à thème, au classement public, ce n'est pas
+ * la partie par laquelle on découvre le jeu.
+ */
+export function DailyChallengeHero({ onPlay, onOpenRanking, discret = false }: { onPlay: () => void; onOpenRanking?: () => void; discret?: boolean }) {
   // La carte qui deviendra l'écran de partie (G10, 15/10/2026).
   const carteDuDefi = useRef<HTMLElement>(null)
   const { day, status, streak, freezes, theme, state } = useDailyChallenge()
@@ -260,7 +266,7 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
   }
 
   return (
-    <section ref={carteDuDefi} data-partie-origine="defi" className="mm-daily-hero a-un-motif" style={decor}>
+    <section ref={carteDuDefi} data-partie-origine="defi" className={`mm-daily-hero a-un-motif${discret ? ' is-discret' : ''}`} style={decor}>
       <div className="mm-daily-hero-corner"><DailyStreakChip /></div>
       <small className="mm-daily-eyebrow">{libelle}</small>
       <h2 className={`mm-daily-title${theme ? ' is-theme' : ''}`}>{theme ?? 'Grille du jour'}</h2>
@@ -269,7 +275,8 @@ export function DailyChallengeHero({ onPlay, onOpenRanking }: { onPlay: () => vo
           du jour est là — hors ligne, on ne promet pas « le premier ». */}
       {classement.day === day ? <p className="mm-daily-note mm-daily-invite">{phraseDesJoueursDuJour(classement.total)}</p> : null}
       {freezes > 0 ? <p className="mm-daily-note"><Snowflake aria-hidden="true" />{freezes} gel{freezes > 1 ? 's' : ''} de série en réserve</p> : null}
-      <button type="button" className="mm-daily-cta" onClick={() => setAvertir(true)} aria-label={`Relever le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
+      {discret ? <p className="mm-daily-note mm-daily-apres">Après ta première partie : une grille à thème par jour, une seule tentative.</p> : null}
+      <button type="button" className={`mm-daily-cta${discret ? ' is-secondary' : ''}`} onClick={() => setAvertir(true)} aria-label={`Relever le défi du jour${pourLecteur}. ${streakLabel(streak)}.`}>
         <Grid2x2Check aria-hidden="true" />Relever le défi <ChevronRight aria-hidden="true" />
       </button>
       {avertir ? <DailyOneShotDialog theme={theme} close={() => setAvertir(false)} play={() => { setAvertir(false); noterOrigineDeLaPartie(carteDuDefi.current, 'defi'); onPlay() }} /> : null}
@@ -288,7 +295,7 @@ function DailyOneShotDialog({ theme, close, play }: { theme: string | null; clos
   return (
     <div className="mm-modal-layer mm-daily-warning-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
       <div ref={dialogRef} className="mm-daily-warning" role="dialog" aria-modal="true" aria-labelledby="daily-warning-title" tabIndex={-1}>
-        <h2 id="daily-warning-title"><AlertTriangle aria-hidden="true" />Une seule fois par jour</h2>
+        <h2 id="daily-warning-title"><CalendarDays aria-hidden="true" />Une seule fois par jour</h2>
         <p>
           {theme ? `La grille « ${theme} » ne se joue qu’une fois. ` : 'La grille du jour ne se joue qu’une fois. '}
           Gagnée, perdue ou abandonnée, ta partie compte pour le classement du jour et pour ta série.

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Check, Gamepad2, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
+import { BellRing, Check, Gamepad2, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
@@ -18,6 +18,7 @@ import type { ExperienceAward } from '../playerProgress'
 import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
 import { raisonSansPoints } from '../menu/classementEnClair'
 import { useQuestBoard, type QuestBoard } from '../questBoardState'
+import { carteDeNotificationsAMontrer, lireReponseCarte, noterReponseCarte } from '../demandeNotifications'
 import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { useCountUp } from './countUp'
@@ -252,6 +253,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
     {dailyShare ? <DailyShareButton text={dailyShare} /> : null}
     {experienceAward && quetes ? <QuetesDeLaFin quetes={quetes} /> : null}
     {premierePartie ? <p className="result-premier-panier">Ton premier panier est offert : il t’attend à l’Épicerie.</p> : null}
+    {experienceAward ? <CarteNotifications /> : null}
     <div className="end-game-actions">
       {revanche
         // Contre un ami, « Rejouer » prend la place de « Nouvelle partie » : deux
@@ -302,6 +304,37 @@ function CarteClassee({ classement }: { classement: NonNullable<MatchState['rank
     {!enPlacement && suivant ? <i className="ranked-result-bar" aria-hidden="true"><b style={{ '--part': part } as CSSProperties} /></i> : null}
     {raison ? <p className="ranked-result-why">{raison}</p> : null}
   </section>
+}
+
+/**
+ * « On te prévient quand c'est ton tour ? » (N8, 22/10/2026). Dans l'appli
+ * Android seulement, tant que le système n'a jamais posé la question : la
+ * fenêtre d'Android ne s'ouvre qu'après « Oui » (voir demandeNotifications.ts).
+ */
+function CarteNotifications() {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    let vivant = true
+    void import('../nativePushNotifications')
+      .then(module => module.etatDesNotifications())
+      .then(etat => { if (vivant && etat && carteDeNotificationsAMontrer(etat, lireReponseCarte())) setVisible(true) })
+      .catch(() => undefined)
+    return () => { vivant = false }
+  }, [])
+  if (!visible) return null
+  const repondre = (oui: boolean) => {
+    noterReponseCarte(oui ? 'oui' : 'plus-tard')
+    setVisible(false)
+    if (oui) void import('../nativePushNotifications').then(module => module.demanderNotifications()).catch(() => undefined)
+  }
+  return <div className="result-notifications" role="group" aria-labelledby="result-notifications-titre">
+    <BellRing aria-hidden="true" />
+    <p><strong id="result-notifications-titre">On te prévient quand c’est ton tour ?</strong><span>Seulement pour tes parties et tes invitations.</span></p>
+    <div>
+      <button type="button" onClick={() => repondre(true)}>Oui, préviens-moi</button>
+      <button type="button" className="secondaire" onClick={() => repondre(false)}>Pas maintenant</button>
+    </div>
+  </div>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

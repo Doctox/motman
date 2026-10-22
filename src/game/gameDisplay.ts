@@ -56,3 +56,13 @@ export function compactClue(text: string): string {
   }
   return `${compact || firstIdea.slice(0, LONGUEUR_COUPE)}…`
 }
+
+/**
+ * La phrase du chevalet pendant la toute première partie (N6, 22/10/2026) : une
+ * par tour du joueur, les trois premiers, puis plus rien. Les tours alternent
+ * et le premier porte le numéro 1 : le k-ième tour de chacun est ⌈n / 2⌉.
+ */
+export function phraseDuPremierTour(turnNumber: number): string {
+  const PHRASES = ['Touche une lettre, puis sa case.', 'Une lettre fausse ne coûte rien.', 'Bloqué ? L’indice en pose une.']
+  return PHRASES[Math.ceil(turnNumber / 2) - 1] ?? ''
+}
