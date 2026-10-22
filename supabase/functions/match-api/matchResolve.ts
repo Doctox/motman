@@ -45,6 +45,19 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
     if (row.paused_at) return row
     const previousPlayerId = row.current_player_id
     let turnAdvanced = false
+    // RIEN À FAIRE, RIEN À LIRE (22/10/2026, code K2). Le menu résout chaque
+    // partie en cours à chaque sondage : il relisait la grille entière (6,5 Ko,
+    // images comprises) pour conclure, presque toujours, qu'il n'y avait rien à
+    // faire. On décide d'abord, avec les mêmes règles que plus bas ; la grille
+    // n'est lue que si quelque chose est dû, ou pour une vieille partie sans sac
+    // de lettres partagé.
+    const tourDuBot = row.state.bot?.playerId === row.current_player_id
+    const quelqueChoseEstDu = absentSansTemoin(row) !== null
+      || (tourDuBot
+        ? Date.now() >= new Date(row.turn_started_at).getTime() + botTurnDelayMs(row)
+        : presenceExpired(row, recuA) || turnExpired(row, recuA))
+      || !Array.isArray(row.state.letterBag)
+    if (!quelqueChoseEstDu) return row
     // L'appelant qui aura besoin de la grille juste après nous passe SON
     // chargeur : la grille n'est alors lue qu'une fois pour toute la requête.
     const grid = await (chargerGrille ?? gridLoader(admin, row.grid_id))()

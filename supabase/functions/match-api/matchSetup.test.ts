@@ -138,7 +138,7 @@ function baseCatalogue(grilles: CatalogGrid[]): AdminClient {
   const resultat = (donnees: (filtres: Record<string, unknown>) => unknown) => {
     const filtres: Record<string, unknown> = {}
     const chainable: Record<string, unknown> = {}
-    for (const methode of ['select', 'in', 'neq', 'is', 'not', 'or', 'order', 'limit', 'gte', 'lte']) {
+    for (const methode of ['select', 'in', 'neq', 'is', 'not', 'or', 'order', 'limit', 'gte', 'lte', 'range']) {
       chainable[methode] = () => chainable
     }
     chainable.eq = (colonne: string, valeur: unknown) => {

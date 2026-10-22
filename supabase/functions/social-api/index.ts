@@ -258,9 +258,11 @@ Deno.serve(async request => {
       const { data: target } = targetId
         ? await targetQuery.eq('id', targetId).maybeSingle()
         : await targetQuery.eq('friend_code', friendCode).maybeSingle()
-      // Un joueur de l'ombre (13/10/2026) répond comme un code inconnu : rien ne le distingue d'une faute de frappe.
-      const { data: estOmbre } = target ? await admin.from('shadow_players').select('user_id').eq('user_id', target.id).maybeSingle() : { data: null }
-      if (!target || estOmbre) return json(404, { error: targetId ? 'Joueur introuvable.' : 'Code ami inconnu.' })
+      // UN JOUEUR DE L'OMBRE se comporte comme un joueur absent (22/10/2026, code
+      // S6) : la demande part, et reste sans réponse. Le 13/10, il répondait
+      // « Code ami inconnu » — pour un code qu'on venait de voir en partie, ce
+      // refus le désignait mieux qu'aucune réponse.
+      if (!target) return json(404, { error: targetId ? 'Joueur introuvable.' : 'Code ami inconnu.' })
       if (target.id === user.id) return json(400, { error: 'Tu ne peux pas t’ajouter toi-même.' })
       const { data: blocked } = await admin.from('blocks').select('owner_id').or(`and(owner_id.eq.${user.id},blocked_id.eq.${target.id}),and(owner_id.eq.${target.id},blocked_id.eq.${user.id})`).limit(1)
       if (blocked?.length) return json(409, { error: 'Cette demande ne peut pas être envoyée.' })
@@ -269,19 +271,29 @@ Deno.serve(async request => {
         .eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
       if (existingFriendship) return json(409, { error: 'Ce joueur est déjà dans tes amis.' })
       const { data: reverse } = await admin.from('friend_requests').select('id').eq('from_user_id', target.id).eq('to_user_id', user.id).maybeSingle()
+      // L'AMITIÉ D'ABORD, LA DEMANDE ENSUITE (22/10/2026, code K4) : effacer la
+      // demande avant d'écrire l'amitié, sans regarder les erreurs, pouvait
+      // perdre les deux et répondre « ok ».
       if (reverse) {
-        await admin.from('friend_requests').delete().eq('id', reverse.id)
-        await admin.from('friendships').upsert({ left_user_id: left, right_user_id: right })
-      } else await admin.from('friend_requests').upsert({ from_user_id: user.id, to_user_id: target.id }, { onConflict: 'from_user_id,to_user_id' })
+        const { error: amitieError } = await admin.from('friendships').upsert({ left_user_id: left, right_user_id: right })
+        if (amitieError) throw amitieError
+        const { error: demandeError } = await admin.from('friend_requests').delete().eq('id', reverse.id)
+        if (demandeError) throw demandeError
+      } else {
+        const { error: demandeError } = await admin.from('friend_requests').upsert({ from_user_id: user.id, to_user_id: target.id }, { onConflict: 'from_user_id,to_user_id' })
+        if (demandeError) throw demandeError
+      }
     } else if (route === 'respond') {
       const requestId = typeof body.requestId === 'string' ? body.requestId : ''
       const { data: pending } = await admin.from('friend_requests').select('*').eq('id', requestId).eq('to_user_id', user.id).single()
       if (!pending) return json(404, { error: 'Cette demande n’existe plus.' })
-      await admin.from('friend_requests').delete().eq('id', requestId)
       if (body.decision === 'accept') {
         const [left, right] = [user.id, pending.from_user_id].sort()
-        await admin.from('friendships').upsert({ left_user_id: left, right_user_id: right })
+        const { error: amitieError } = await admin.from('friendships').upsert({ left_user_id: left, right_user_id: right })
+        if (amitieError) throw amitieError
       }
+      const { error: demandeError } = await admin.from('friend_requests').delete().eq('id', requestId)
+      if (demandeError) throw demandeError
     } else if (route === 'warnings') {
       // Côté JOUEUR, pas côté modération : chacun ne lit que les siens, et
       // l'identifiant vient de la session, jamais du corps de la requête.

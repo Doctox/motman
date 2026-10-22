@@ -53,8 +53,13 @@ export function validatePlayerName(value: string): PlayerNameValidation {
   const length = Array.from(normalized).length
   if (length < PLAYER_NAME_MIN_LENGTH) return { valid: false, normalized, error: `Au moins ${PLAYER_NAME_MIN_LENGTH} caractères.` }
   if (length > PLAYER_NAME_MAX_LENGTH) return { valid: false, normalized, error: `${PLAYER_NAME_MAX_LENGTH} caractères maximum.` }
-  if (!/^[\p{L}\p{N}](?:[\p{L}\p{N} _'’\-]*[\p{L}\p{N}])?$/u.test(normalized)) {
-    return { valid: false, normalized, error: 'Lettres, chiffres, espace, tiret ou apostrophe uniquement.' }
+  // L'ALPHABET LATIN SEULEMENT, accents compris (22/10/2026, code S7). `\p{L}`
+  // acceptait toutes les écritures : un « М » et un « о » cyrilliques passaient
+  // le contrôle des noms réservés (qui ne garde que a-z) et l'unicité, et
+  // affichaient exactement « MotMan », le pseudo d'un joueur connu, ou celui du
+  // propriétaire. Aucun pseudo existant n'était en cyrillique ni en grec.
+  if (!/^[\p{Script=Latin}\p{N}](?:[\p{Script=Latin}\p{N} _'’\-]*[\p{Script=Latin}\p{N}])?$/u.test(normalized)) {
+    return { valid: false, normalized, error: 'Lettres (accents compris), chiffres, espace, tiret ou apostrophe uniquement.' }
   }
   if (/([ _'’\-])\1/u.test(normalized)) return { valid: false, normalized, error: 'Évite les séparateurs répétés.' }
   if (/\d{6,}/.test(normalized) || /(?:https?|www|discord|telegram|snapchat|instagram|tiktok|gmail|hotmail|outlook)/i.test(normalized)) {

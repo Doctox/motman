@@ -80,10 +80,12 @@ export type MatchState = {
   playerIds: [string, string]
   bot: MatchBot | null
   /**
-   * Quand l'adversaire automatique jouera, s'il n'est pas annoncé comme bot (le
-   * fantôme du propriétaire, 11/10/2026) : le client revient voir à cette heure.
+   * Quand revenir voir, au plus tard, pendant le tour de l'adversaire : l'heure
+   * où jouera le fantôme du propriétaire (11/10/2026), la fin du tour pour un
+   * humain. Envoyée pour TOUT adversaire depuis le 22/10/2026 : réservée au
+   * fantôme, elle le trahissait à qui lisait le réseau.
    */
-  automatedTurnAt?: string
+  nextCheckAt?: string
   players: SocialUser[]
   currentPlayerId: string
   turnNumber: number
@@ -117,6 +119,12 @@ export type MatchState = {
     pointsAfter: number
     delta: number
     placementNumber: number
+    /**
+     * Pourquoi cette classée n'a rien rapporté (22/10/2026) : abandon avant le
+     * 3e tour du perdant, ou plus de 3 classées entre les deux mêmes joueurs ce
+     * jour-là. Null quand elle a compté normalement.
+     */
+    sansPoints?: 'abandon-rapide' | 'plafond-paire' | null
   } | null
   createdAt: string
   updatedAt: string

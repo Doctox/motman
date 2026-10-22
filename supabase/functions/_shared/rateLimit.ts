@@ -35,8 +35,11 @@ export async function enforceRateLimits(
   action: string,
   targetId?: string,
 ): Promise<void> {
-  await consume(admin, userId, globalRateLimit(api, isAnonymous))
-  for (const policy of actionRateLimits(api, action, isAnonymous, targetId)) {
-    await consume(admin, userId, policy)
-  }
+  // Ensemble, et non l'un après l'autre (22/10/2026, code K2) : chaque compteur
+  // coûtait un aller-retour de plus avant le vrai travail, à chaque coup et à
+  // chaque brouillon. Le premier refus l'emporte, comme avant.
+  await Promise.all([
+    consume(admin, userId, globalRateLimit(api, isAnonymous)),
+    ...actionRateLimits(api, action, isAnonymous, targetId).map(policy => consume(admin, userId, policy)),
+  ])
 }

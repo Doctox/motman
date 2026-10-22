@@ -28,15 +28,27 @@ describe('matchPollDelay', () => {
     expect(matchPollDelay({ match: botMatch, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(1_250)
   })
 
-  it('revient voir à l’heure où le fantôme du propriétaire jouera, jamais en rafale', () => {
-    const fantome = match({ mode: 'ranked', automatedTurnAt: new Date(20_000).toISOString() })
-    // Son coup est prévu à 20 s : on revient à 20,25 s, et non au sondage de 8 s
-    // qui pouvait laisser passer jusqu'à seize secondes.
-    expect(matchPollDelay({ match: fantome, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 4, failureCount: 0, now: 2_000 })).toBe(18_250)
+  it('revient voir au plus tard à l’heure où le fantôme du propriétaire jouera, jamais en rafale', () => {
+    const fantome = match({ mode: 'ranked', nextCheckAt: new Date(20_000).toISOString() })
+    // Son coup est prévu à 20 s : on revient au plus tard à 20,25 s, et non
+    // après un sondage qui pouvait laisser passer jusqu'à seize secondes.
+    expect(matchPollDelay({ match: fantome, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 16, failureCount: 0, now: 6_000 })).toBe(14_250)
+    // Le sondage ordinaire, s'il tombe avant, passe en premier : jamais plus lent qu'avant.
+    expect(matchPollDelay({ match: fantome, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(8_000)
     // Un coup qui tarde ne fait pas sonder toutes les 350 ms.
     expect(matchPollDelay({ match: fantome, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 30_000 })).toBe(1_250)
     // À mon tour, l'heure du fantôme ne compte plus.
     expect(matchPollDelay({ match: { ...fantome, currentPlayerId: 'player' }, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(12_000)
+  })
+
+  it('face à un humain, l’heure de rappel (la fin de son tour) ne change rien au sondage', () => {
+    for (const now of [2_000, 40_000, 46_100, 50_000]) {
+      for (const realtimeConnected of [true, false]) {
+        const sans = matchPollDelay({ match: match(), playerId: 'player', visibility: 'visible', realtimeConnected, unchangedPolls: 3, failureCount: 0, now })
+        const avec = matchPollDelay({ match: match({ nextCheckAt: new Date(46_000).toISOString() }), playerId: 'player', visibility: 'visible', realtimeConnected, unchangedPolls: 3, failureCount: 0, now })
+        expect(avec).toBe(sans)
+      }
+    }
   })
 
   it('se réveille près de la fin du tour et ralentit après des erreurs', () => {

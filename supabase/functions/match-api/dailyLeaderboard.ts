@@ -1,3 +1,4 @@
+import { parTranches, toutesLesLignes } from '../_shared/lectures.ts'
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { compareDailyRuns, type DailyRankingEntry } from '../../../src/dailyScore.ts'
@@ -84,31 +85,33 @@ export async function loadDailyLeaderboard(
   userId: string,
   day: string,
 ): Promise<DailyLeaderboard> {
-  const { data: lignes, error } = await admin
+  // Toutes les lignes du jour, par pages : passé 1 000 parties le même jour,
+  // Supabase coupait la réponse sans rien dire (lectures.ts).
+  const lignes = await toutesLesLignes((de, a) => admin
     .from('grid_player_history')
     .select('user_id,score,turns,daily_note,outcome,completed_at')
     .eq('daily_date', day)
     .not('daily_note', 'is', null)
-  if (error) throw error
+    .order('id')
+    .range(de, a))
 
-  const courses = premiereCourseParJoueur((lignes ?? []) as LigneClassement[])
+  const courses = premiereCourseParJoueur(lignes as LigneClassement[])
   if (!courses.length) return { day, general: [], friends: [], me: null, total: 0 }
 
   const identifiants = [...new Set(courses.map(item => String(item.user_id)))]
   const [
-    { data: comptesActifs, error: erreurComptes },
+    comptesActifs,
     profils,
     { data: amities, error: erreurAmities },
   ] = await Promise.all([
-    admin.from('profiles').select('id').in('id', identifiants).eq('status', 'active'),
+    parTranches(identifiants, tranche => admin.from('profiles').select('id').in('id', tranche).eq('status', 'active')),
     loadPublicProfiles(admin, identifiants, { normalizeOfflineActivity: true }),
     admin.from('friendships').select('left_user_id,right_user_id')
       .or(`left_user_id.eq.${userId},right_user_id.eq.${userId}`),
   ])
-  if (erreurComptes) throw erreurComptes
   if (erreurAmities) throw erreurAmities
 
-  const actifs = new Set((comptesActifs ?? []).map(item => String(item.id)))
+  const actifs = new Set(comptesActifs.map(item => String(item.id)))
   const amis = new Set((amities ?? []).map(item => (
     item.left_user_id === userId ? String(item.right_user_id) : String(item.left_user_id)
   )))

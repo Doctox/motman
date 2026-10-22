@@ -18,6 +18,7 @@
 // le plus de choses. Ce qu'il reste de couplage est visible en tête de fichier,
 // dans les imports, plutôt que dissous dans mille lignes.
 
+import { parTranches, toutesLesLignes } from '../_shared/lectures.ts'
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { enPleinDefi } from './enPleinDefi.ts'
@@ -130,52 +131,80 @@ export async function rankedSnapshot(
   return { status: 'idle', queuedAt: null, matchId: null, ready: null, progress: progressView }
 }
 
+/** Lignes rendues dans le classement général ; la place de chacun se calcule sur TOUS les classés. */
+export const RANKED_LEADERBOARD_LIMIT = 50
+
 export async function rankedLeaderboard(
   admin: AdminClient,
   userId: string,
 ) {
-  const { data: progressRows, error: progressError } = await admin.from('player_progress')
+  // TOUS LES CLASSÉS, PAR PAGES (22/10/2026, code C8 du grand tour). La liste
+  // s'arrêtait aux 50 premiers : un joueur 51e ne voyait ni sa ligne, ni ses amis
+  // moins bien classés. Elle est maintenant lue en entier (lectures.ts) ; on en
+  // rend les 50 premiers, la ligne du lecteur à part, et le nombre de classés —
+  // comme le classement du défi du jour.
+  const progressRows = await toutesLesLignes((de, a) => admin.from('player_progress')
     .select('user_id,ranked_points,ranked_matches,ranked_wins')
     .gte('ranked_matches', 5)
     .order('ranked_points', { ascending: false })
     .order('ranked_wins', { ascending: false })
     .order('user_id', { ascending: true })
-    .limit(50)
-  if (progressError) throw progressError
+    .range(de, a))
 
-  const userIds = (progressRows ?? []).map(item => String(item.user_id))
+  const userIds = progressRows.map(item => String(item.user_id))
+  const depuisUneSemaine = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const [
-    { data: allowedProfiles, error: allowedError },
-    profiles,
+    allowedProfiles,
     { data: friendships, error: friendshipError },
+    semaine,
   ] = await Promise.all([
-    userIds.length
-      ? admin.from('profiles').select('id').in('id', userIds).eq('status', 'active')
-      : Promise.resolve({ data: [] as Array<{ id: string }>, error: null }),
-    loadPublicProfiles(admin, userIds, { normalizeOfflineActivity: true }),
+    parTranches(userIds, tranche => admin.from('profiles').select('id').in('id', tranche).eq('status', 'active')),
     admin.from('friendships').select('left_user_id,right_user_id')
       .or(`left_user_id.eq.${userId},right_user_id.eq.${userId}`),
+    // Ce que le lecteur a gagné ou perdu en 7 jours : « Cette semaine : +36 pt ».
+    toutesLesLignes((de, a) => admin.from('ranked_rating_events').select('points_delta')
+      .eq('user_id', userId).gte('created_at', depuisUneSemaine)
+      .order('created_at').order('match_id').range(de, a)),
   ])
-  if (allowedError) throw allowedError
   if (friendshipError) throw friendshipError
-  const allowedIds = new Set((allowedProfiles ?? []).map(item => String(item.id)))
+  const allowedIds = new Set(allowedProfiles.map(item => String(item.id)))
   const friendIds = new Set((friendships ?? []).map(item => (
     item.left_user_id === userId ? String(item.right_user_id) : String(item.left_user_id)
   )))
 
-  const general = (progressRows ?? [])
-    .filter(item => allowedIds.has(String(item.user_id)) && profiles.has(String(item.user_id)))
-    .map((item, index) => ({
-      position: index + 1,
-      user: profiles.get(String(item.user_id))!,
-      points: Number(item.ranked_points ?? 0),
-      matches: Number(item.ranked_matches ?? 0),
-      wins: Number(item.ranked_wins ?? 0),
-    }))
-  const friends = general
-    .filter(entry => entry.user?.playerId === userId || friendIds.has(entry.user?.playerId ?? ''))
-    .map((entry, index) => ({ ...entry, position: index + 1 }))
-  return { general, friends }
+  // Deux joueurs à égalité de points partagent la même place (1, 2, 2, 4) : les
+  // départager par un identifiant arbitraire leur donnait deux places pour rien.
+  const classes = progressRows.filter(item => allowedIds.has(String(item.user_id)))
+  let place = 0
+  const placees = classes.map((item, index) => {
+    const points = Number(item.ranked_points ?? 0)
+    if (index === 0 || points !== Number(classes[index - 1].ranked_points ?? 0)) place = index + 1
+    return { id: String(item.user_id), position: place, points, matches: Number(item.ranked_matches ?? 0), wins: Number(item.ranked_wins ?? 0) }
+  })
+
+  // Les profils des seules lignes rendues : les 50 premiers, le lecteur, ses amis.
+  const rendues = placees.filter((entree, index) => index < RANKED_LEADERBOARD_LIMIT || entree.id === userId || friendIds.has(entree.id))
+  const profiles = await loadPublicProfiles(admin, rendues.map(entree => entree.id), { normalizeOfflineActivity: true })
+  const enEntree = (entree: typeof placees[number]) => ({
+    position: entree.position,
+    user: profiles.get(entree.id)!,
+    points: entree.points,
+    matches: entree.matches,
+    wins: entree.wins,
+  })
+
+  const general = placees.slice(0, RANKED_LEADERBOARD_LIMIT).filter(entree => profiles.has(entree.id)).map(enEntree)
+  const moi = placees.find(entree => entree.id === userId)
+  const friends = rendues
+    .filter(entree => (entree.id === userId || friendIds.has(entree.id)) && profiles.has(entree.id))
+    .map((entree, index) => ({ ...enEntree(entree), position: index + 1 }))
+  return {
+    general,
+    friends,
+    me: moi && profiles.has(moi.id) ? enEntree(moi) : null,
+    total: placees.length,
+    weekDelta: semaine.reduce((somme, ligne) => somme + (Number(ligne.points_delta) || 0), 0),
+  }
 }
 
 export async function advanceRankedSearch(

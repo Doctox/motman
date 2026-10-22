@@ -1,4 +1,5 @@
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
+import { toutesLesLignes } from '../_shared/lectures.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
 import { createAdminClient, createAuthClient } from '../_shared/supabaseClients.ts'
@@ -82,13 +83,15 @@ Deno.serve(async request => {
       if (accessProfile?.role !== 'admin') {
         return json(403, { error: 'Accès réservé.', code: 'ADMIN_ONLY' })
       }
-      const { data: catalogRows, error: catalogError } = await admin
+      // Par pages : à la 1 001e grille active, Supabase aurait coupé la réponse
+      // sans le dire, et l'atelier aurait certifié contre un catalogue amputé.
+      const catalogRows = await toutesLesLignes((de, a) => admin
         .from('server_grid_catalog')
         .select('id,version,columns,rows,active,payload')
         .eq('active', true)
         .order('id')
-      if (catalogError) throw catalogError
-      const document = buildRuntimeCatalogSnapshot(catalogRows ?? [])
+        .range(de, a))
+      const document = buildRuntimeCatalogSnapshot(catalogRows)
       const corps = JSON.stringify(document)
       if (corps.length > TAILLE_MAXIMALE_OCTETS) {
         return json(507, {
@@ -101,13 +104,14 @@ Deno.serve(async request => {
     }
 
     const [
-      { data: popularityRows, error: popularityError },
+      popularityRows,
       { data: recentRows, error: recentError },
     ] = await Promise.all([
-      admin
+      toutesLesLignes((de, a) => admin
         .from('grid_popularity')
         .select('grid_id,plays,completions,positive_reviews,negative_reviews,average_duration_seconds,popularity_score')
-        .order('grid_id'),
+        .order('grid_id')
+        .range(de, a)),
       admin
         .from('grid_player_history')
         .select('grid_id,completed_at')
@@ -115,11 +119,10 @@ Deno.serve(async request => {
         .order('completed_at', { ascending: false })
         .limit(12),
     ])
-    if (popularityError) throw popularityError
     if (recentError) throw recentError
 
     return json(200, buildGridUsageSnapshot(
-      (popularityRows ?? []) as PopularityRow[],
+      popularityRows as PopularityRow[],
       (recentRows ?? []) as RecentHistoryRow[],
     ))
   } catch (error) {

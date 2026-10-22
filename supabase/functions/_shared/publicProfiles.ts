@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isPresenceOnline } from '../../../src/presencePolicy.ts'
+import { parTranches } from './lectures.ts'
 
 type PublicProfileRow = {
   id: string
@@ -45,13 +46,14 @@ export async function loadPublicProfiles(
   const uniqueIds = uniqueProfileIds(ids)
   if (!uniqueIds.length) return new Map()
 
-  const { data, error } = await admin.from('profiles')
+  // Par tranches : un classement de plusieurs centaines de joueurs mettait sinon
+  // tous leurs identifiants dans l'adresse d'une seule requête (lectures.ts).
+  const data = await parTranches(uniqueIds, tranche => admin.from('profiles')
     .select(PROFILE_COLUMNS)
-    .in('id', uniqueIds)
-  if (error) throw error
+    .in('id', tranche))
 
   const now = options.now ?? Date.now()
-  return new Map(((data ?? []) as PublicProfileRow[]).map(row => {
+  return new Map((data as PublicProfileRow[]).map(row => {
     const online = isPresenceOnline(row.last_seen, now)
     return [row.id, {
       playerId: row.id,

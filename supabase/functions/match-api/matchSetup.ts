@@ -17,6 +17,7 @@
 // refuse plutôt que d'écraser le tour joué entre-temps par l'adversaire.
 
 import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
+import { toutesLesLignes } from '../_shared/lectures.ts'
 import { normalRotationGrids } from '../../../src/dailyThemes.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
@@ -105,9 +106,13 @@ type HistoriqueJoueur = { recent: string[]; counts: Record<string, number> }
  */
 async function historiquesJoueurs(admin: AdminClient, playerIds: string[]): Promise<HistoriqueJoueur[]> {
   if (!playerIds.length) return []
-  const { data, error } = await Promise.resolve()
-    .then(() => admin.rpc('server_player_grid_plays', { p_user_ids: playerIds }))
-    .catch((raison: unknown) => ({ data: null, error: raison }))
+  // Par pages (22/10/2026) : une ligne par joueur et par grille jouée. Deux
+  // habitués qui ont fait le tour des ~620 grilles normales dépassent déjà les
+  // 1 000 lignes que Supabase rend au plus.
+  const { data, error } = await toutesLesLignes((de, a) => admin
+    .rpc('server_player_grid_plays', { p_user_ids: playerIds })
+    .order('user_id').order('grid_id').range(de, a))
+    .then(lignes => ({ data: lignes as unknown, error: null as unknown }), (raison: unknown) => ({ data: null, error: raison }))
   if (!error && Array.isArray(data)) {
     const lignes = data as Array<{ user_id: string; grid_id: string; plays: number | string; last_played_at: string | null }>
     return playerIds.map(playerId => {
@@ -155,12 +160,17 @@ export async function chooseGrid(
   // les jetait après les avoir lues (262 Ko par partie, dont 52 Ko pour rien).
   // La base les écarte désormais ; `normalRotationGrids`, plus bas, reste la
   // règle qui fait foi.
-  const [{ data: selectionRows }, histories, activeMatches] = await Promise.all([
-    admin.from('server_grid_selection').select('id,daily_only,words').eq('active', true).eq('daily_only', false).order('id'),
+  //
+  // 22/10/2026 : lue PAR PAGES. Supabase coupe toute réponse à 1 000 lignes sans
+  // le dire : passé ce nombre, les grilles rangées après la 1 000e ne seraient
+  // jamais sorties, et « la moins jouée d'abord » ne les aurait pas vues.
+  const [selectionRows, histories, activeMatches] = await Promise.all([
+    toutesLesLignes((de, a) => admin.from('server_grid_selection').select('id,daily_only,words')
+      .eq('active', true).eq('daily_only', false).order('id').range(de, a)),
     historiquesJoueurs(admin, playerIds),
     activeMatchesForPlayers(admin, playerIds, excludedMatchId),
   ])
-  if (!selectionRows?.length) throw new Error('Le catalogue serveur est vide.')
+  if (!selectionRows.length) throw new Error('Le catalogue serveur est vide.')
   // Les grilles à thème sont RÉSERVÉES au défi du jour, qui les charge par son
   // identifiant (`activeGridById`). Elles restent `active` — sans quoi le défi
   // ne pourrait pas les servir — et c'est donc ICI qu'elles sortent du tirage :

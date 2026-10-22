@@ -55,9 +55,9 @@ export function actionRateLimits(
   if (api === 'match' && action === 'ranked-leaderboard') {
     return [{ bucket: 'match:ranked-leaderboard', maxRequests: 30, windowSeconds: 60 }]
   }
-  // Le défi du jour se retente jusqu'à minuit après une défaite : le plafond ne
-  // sert qu'à empêcher la création en boucle de parties, pas à limiter les
-  // tentatives d'un joueur normal.
+  // Le défi du jour ne se joue qu'UNE fois par jour depuis le 20/09/2026 (le
+  // serveur refuse la suite par `DAILY_CLOSED`) : ce plafond ne sert qu'à
+  // empêcher de marteler l'action, le défi en cours se reprenant par elle.
   if (api === 'match' && action === 'daily') {
     return [{ bucket: 'match:daily', maxRequests: isAnonymous ? 20 : 40, windowSeconds: 600 }]
   }

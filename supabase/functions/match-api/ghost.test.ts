@@ -12,7 +12,7 @@ import { view } from './matchView.ts'
 // « DocTox, sans mention » : le joueur doit voir le vrai profil du
 // propriétaire — nom, avatar, cadre, animation, code ami — et jamais le mot
 // « bot » dans la réponse. Le client a quand même besoin de savoir QUAND revenir
-// voir le coup : `automatedTurnAt` le lui dit, sans rien afficher.
+// voir le coup : `nextCheckAt` le lui dit, sans rien afficher (et, depuis le 22/10, pour tout adversaire).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const JOUEUR = 'aaaaaaaa-0000-4000-8000-000000000001'
@@ -82,16 +82,26 @@ Deno.test('le joueur voit le vrai profil du propriétaire, en partie, et jamais 
 Deno.test('le client sait quand revenir voir le coup du fantôme, et seulement à son tour', async () => {
   const sonTour = await view(base(), partie(fantome, true), JOUEUR) as Record<string, unknown>
   const attendu = new Date(Date.parse('2026-10-11T12:00:00.000Z') + botTurnDelayMs(partie(fantome))).toISOString()
-  assertEquals(sonTour.automatedTurnAt, attendu)
+  assertEquals(sonTour.nextCheckAt, attendu)
   const monTour = await view(base(), partie(fantome, false), JOUEUR) as Record<string, unknown>
-  assertEquals('automatedTurnAt' in monTour, false)
+  assertEquals('nextCheckAt' in monTour, false)
+})
+
+// 22/10/2026 (code S6) : le champ n'était envoyé que face au fantôme, ce qui le
+// trahissait à qui lisait le réseau. Tout adversaire en a un, sous le même nom.
+Deno.test('l’heure de rappel part pour tout adversaire : elle ne trahit plus le fantôme', async () => {
+  const ordinaire: Bot = { playerId: 'cccccccc-0000-4000-8000-000000000003', displayName: 'Léa', level: 12, skill: 'beginner', avatarId: 'mei', frameId: 'cadre-sauge' }
+  const vue = await view(base(), partie(ordinaire), JOUEUR) as Record<string, unknown>
+  assertEquals(vue.nextCheckAt, '2026-10-11T12:00:45.000Z')
+  assertEquals('automatedTurnAt' in vue, false)
+  const fantomeVue = await view(base(), partie(fantome, true), JOUEUR) as Record<string, unknown>
+  assertEquals(Object.keys(fantomeVue).filter(cle => !(cle in vue)).sort(), [])
 })
 
 Deno.test('un bot ordinaire reste annoncé comme tel, et réfléchit 4 à 8 s', async () => {
   const ordinaire: Bot = { playerId: 'cccccccc-0000-4000-8000-000000000003', displayName: 'Léa', level: 12, skill: 'beginner', avatarId: 'mei', frameId: 'cadre-sauge' }
   const vue = await view(base(), partie(ordinaire), JOUEUR) as Record<string, unknown>
   assertEquals((vue.bot as { displayName: string }).displayName, 'Léa')
-  assertEquals('automatedTurnAt' in vue, false)
   const delai = botTurnDelayMs(partie(ordinaire))
   assertEquals(delai >= 4_000 && delai <= 8_000, true)
 })

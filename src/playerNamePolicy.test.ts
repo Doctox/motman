@@ -18,6 +18,16 @@ describe('player name moderation', () => {
     expect(validatePlayerName(name)).toMatchObject({ valid: true, normalized: name })
   })
 
+  // 22/10/2026 : un « М » et un « о » cyrilliques imitaient « MotMan » ou le
+  // pseudo d'un joueur connu. Seul l'alphabet latin passe, accents compris.
+  it.each(['МотМан', 'Mоtman', 'Αlex', 'Λéa'])(`rejects look-alike letters from another alphabet in %s`, name => {
+    expect(validatePlayerName(name).valid).toBe(false)
+  })
+
+  it.each(['Zoé', 'Ñandú', 'Øyvind', 'Ægir', 'Maëlle-Çaglar'])(`keeps accented Latin letters in %s`, name => {
+    expect(validatePlayerName(name).valid).toBe(true)
+  })
+
   it('normalizes surrounding and repeated spaces', () => {
     expect(validatePlayerName('  Marie   Lou  ')).toMatchObject({ valid: true, normalized: 'Marie Lou' })
   })

@@ -54,7 +54,7 @@ function baseSimulee(options: {
 
   const resultat = (data: unknown) => {
     const chainable: Record<string, unknown> = {}
-    for (const methode of ['select', 'eq', 'in', 'not', 'or', 'order', 'limit']) {
+    for (const methode of ['select', 'eq', 'in', 'not', 'or', 'order', 'limit', 'range']) {
       chainable[methode] = () => chainable
     }
     chainable.then = (resoudre: (v: unknown) => unknown) => resoudre({ data, error: null })

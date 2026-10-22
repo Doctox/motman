@@ -64,7 +64,7 @@ export async function view(
     : { data: null }
   const { data: rankedRating } = row.mode === 'ranked' && row.status === 'finished'
     ? await admin.from('ranked_rating_events')
-      .select('points_before,points_after,points_delta,placement_number')
+      .select('points_before,points_after,points_delta,placement_number,sans_points')
       .eq('match_id', row.id)
       .eq('user_id', viewerId)
       .maybeSingle()
@@ -77,10 +77,15 @@ export async function view(
     // que du nom, du niveau affiché et de l'identifiant (pour masquer « Signaler »).
     difficulty: state.difficulty, playerIds: state.playerIds,
     bot: state.bot && !fantome ? { playerId: state.bot.playerId, displayName: state.bot.displayName, level: state.bot.level, avatarId: state.bot.avatarId, frameId: state.bot.frameId } : null,
-    // Le fantôme n'est pas annoncé comme bot : le client ne saurait donc pas
-    // qu'il doit revenir voir quand il aura joué. Cette heure-là le lui dit.
-    ...(fantome && row.status === 'active' && row.current_player_id === fantome.playerId
-      ? { automatedTurnAt: new Date(Date.parse(row.turn_started_at) + botTurnDelayMs(row)).toISOString() }
+    // QUAND REVENIR VOIR. Le fantôme n'est pas annoncé comme bot : le client ne
+    // saurait pas qu'il doit revenir voir quand il aura joué. Cette heure-là le
+    // lui dit. Elle part pour TOUT adversaire, humain compris (22/10/2026, code
+    // S6) : un champ réservé au fantôme le trahissait à qui lisait le réseau.
+    // Pour un humain, c'est la fin de son tour, que le client connaît déjà.
+    ...(row.status === 'active' && row.current_player_id && row.current_player_id !== viewerId
+      ? { nextCheckAt: fantome && row.current_player_id === fantome.playerId
+        ? new Date(Date.parse(row.turn_started_at) + botTurnDelayMs(row)).toISOString()
+        : row.turn_ends_at }
       : {}),
     players: players.filter(Boolean),
     currentPlayerId: row.current_player_id, turnNumber: row.turn_number, turnStartedAt: row.turn_started_at, turnEndsAt: row.turn_ends_at,
@@ -96,6 +101,8 @@ export async function view(
       pointsAfter: rankedRating.points_after,
       delta: rankedRating.points_delta,
       placementNumber: rankedRating.placement_number,
+      // Pourquoi le compteur n'a pas bougé (migration 20261022120000).
+      sansPoints: rankedRating.sans_points ?? null,
     } : null,
     pause: row.paused_at ? {
       reason: row.pause_reason,
@@ -108,7 +115,11 @@ export async function view(
     // Remontés au client pour que l'écran de fin sache qu'il s'agit du défi du
     // jour et enregistre la série locale (game/DuelPresentation.tsx).
     ...(state.isDaily ? { isDaily: true, dailyDate: state.dailyDate } : {}),
-    ...(grid ? { grid: publicGrid(grid) } : {}),
+    // PAS DE GRILLE PENDANT LA CONFIRMATION (22/10/2026, code S3). Pendant les
+    // 30 s où les deux joueurs acceptent, la grille partait déjà : un joueur
+    // averti la lisait avant l'autre, et refusait sans frais si elle ne lui
+    // plaisait pas. Elle arrive avec la partie, une fois acceptée.
+    ...(grid && row.status !== 'pending' ? { grid: publicGrid(grid) } : {}),
   }
 }
 

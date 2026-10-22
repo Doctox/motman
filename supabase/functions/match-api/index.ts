@@ -60,14 +60,21 @@ Deno.serve(async request => {
   const { data: { user } } = await authClient.auth.getUser(authorization.replace(/^Bearer\s+/i, ''))
   if (!user) return json(401, { error: 'Session invalide.' })
   const admin = createAdminClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  // ENSEMBLE, ET NON L'UN APRÈS L'AUTRE (22/10/2026, code K2). Le profil, le
+  // corps de la requête et la version de l'appli ne dépendent pas les uns des
+  // autres : les attendre en file ajoutait deux allers-retours à chaque coup,
+  // et c'est dans ce délai de préparation que des lettres se sont perdues le 16/10.
   // `role` : le carnet de tours ne note que les comptes admin (ownerTurnLog.ts).
-  const { data: accessProfile } = await admin.from('profiles').select('status, role').eq('id', user.id).single()
+  const [{ data: accessProfile }, corps, appUpdate] = await Promise.all([
+    admin.from('profiles').select('status, role').eq('id', user.id).single(),
+    request.json().then(valeur => valeur as Record<string, unknown>, () => null),
+    requiredAndroidUpdate(request, admin),
+  ])
   if (accessProfile?.status === 'banned') return json(403, { error: 'Ce compte a été banni.' })
   if (accessProfile?.status === 'suspended') return json(403, { error: 'Ce compte est temporairement suspendu.' })
-  let body: Record<string, unknown>
-  try { body = await request.json() } catch { return json(400, { error: 'Requête invalide.' }) }
+  if (!corps || typeof corps !== 'object') return json(400, { error: 'Requête invalide.' })
+  const body: Record<string, unknown> = corps
   const action = typeof body.action === 'string' ? body.action : 'state'
-  const appUpdate = await requiredAndroidUpdate(request, admin)
   if (appUpdate) {
     return json(426, {
       error: 'Une mise à jour de MotMan est nécessaire pour jouer en ligne.',
@@ -180,7 +187,7 @@ Deno.serve(async request => {
         admin.from('server_match_invitations').select('*').eq('host_id', user.id).eq('status', 'pending').gt('expires_at', nowIso()),
         admin.from('server_match_searches').select('*').eq('user_id', user.id),
         admin.from('grid_player_history')
-          .select('id,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board,daily_date')
+          .select('id,play_key,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board,daily_date')
           .eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5),
         admin.from('grid_player_history')
           .select('id,play_key,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,finish_reason,feedback')
@@ -216,8 +223,22 @@ Deno.serve(async request => {
       // moment où le joueur ouvre la relecture. La STRUCTURE de la grille, elle,
       // se demande à l'ouverture (action `history-grid`) : elle est lourde, et
       // la plupart des parties ne seront jamais relues.
+      // LES POINTS DES CLASSÉES RÉCENTES (22/10/2026, code C6). L'historique les
+      // appelait « Multijoueur », sans un mot de ce qu'elles avaient rapporté.
+      // Leur ligne de résultat survit 90 jours à la partie (20261016100000).
+      const partiesRecentes = (recentRows ?? []).map(item => String(item.play_key ?? '').replace(/^match:/, '')).filter(id => UUID_PATTERN.test(id))
+      const { data: pointsRecents, error: pointsRecentsError } = partiesRecentes.length
+        ? await admin.from('ranked_rating_events').select('match_id,points_delta,sans_points')
+          .eq('user_id', user.id).in('match_id', partiesRecentes)
+        : { data: [] as Array<{ match_id: string; points_delta: number; sans_points: string | null }>, error: null }
+      if (pointsRecentsError) throw pointsRecentsError
+      const pointsParPartie = new Map((pointsRecents ?? []).map(ligne => [String(ligne.match_id), ligne]))
       const recent = (recentRows ?? []).map(item => ({
         id: item.id, mode: item.mode, pace: item.pace, outcome: item.outcome,
+        ...(() => {
+          const classee = pointsParPartie.get(String(item.play_key ?? '').replace(/^match:/, ''))
+          return classee ? { ranked: true, rankedDelta: Number(classee.points_delta) || 0, rankedSansPoints: classee.sans_points ?? null } : {}
+        })(),
         score: item.score, opponentScore: item.opponent_score,
         opponentName: item.opponent_name, completedAt: item.completed_at,
         board: item.final_board ?? null,
@@ -477,11 +498,25 @@ Deno.serve(async request => {
       }
       const skill = botSkillForLevel(await playerLevel(admin, user.id))
       const bot = createBot(`${user.id}:daily:${dateKey}:${Date.now()}`, skill)
-      const created = await createMatch(admin, user.id, bot.playerId, 'solo', pace, null, bot, {
-        isDaily: true,
-        dailyDate: dateKey,
-        forcedGridId: dailyGridIdFor(dateKey),
-      })
+      // DEUX DEMANDES À LA MÊME SECONDE (22/10/2026, code U7). Le contrôle
+      // ci-dessus et la création se font en deux temps : deux demandes passaient
+      // toutes les deux. La base refuse maintenant le second défi actif du jour
+      // (index unique, migration 20261022120000) : on rend celui qui vient de
+      // s'ouvrir, comme si on le reprenait.
+      let created: Awaited<ReturnType<typeof createMatch>>
+      try {
+        created = await createMatch(admin, user.id, bot.playerId, 'solo', pace, null, bot, {
+          isDaily: true,
+          dailyDate: dateKey,
+          forcedGridId: dailyGridIdFor(dateKey),
+        })
+      } catch (erreur) {
+        if ((erreur as { code?: string } | null)?.code !== '23505') throw erreur
+        const ouvert = (await activeRows()).find(row => row.state.isDaily === true && row.state.dailyDate === dateKey)
+        if (!ouvert) throw erreur
+        const chargerGrille = gridLoader(admin, ouvert.grid_id)
+        return json(200, { match: await view(admin, ouvert, user.id, await chargerGrille()) })
+      }
       // Le défi OUVERT compte pour la série, quelle qu'en soit l'issue (voir
       // awards.ts). Une nouvelle tentative du même jour ne recompte rien.
       await recordDailyPlay(admin, user.id, dateKey, created.row.id)
@@ -711,6 +746,9 @@ Deno.serve(async request => {
     if (action === 'ranked-transfer') {
       const rankedMatchId = typeof body.rankedMatchId === 'string' ? body.rankedMatchId : ''
       if (!UUID_PATTERN.test(rankedMatchId)) return json(400, { error: 'Match classé invalide.' })
+      // Une classée ne se quitte jamais par ce chemin (22/10/2026, code U1) : on
+      // l'abandonne, et l'abandon compte. La base le refuse aussi.
+      if (row.mode === 'ranked') return json(409, { error: 'Une partie classée ne se quitte pas ainsi.', match: await view(admin, row, user.id, grid) })
       const { data: ferme, error: transferError } = await admin.rpc('server_finish_match_for_ranked_transfer', {
         p_user_id: user.id,
         p_match_id: row.id,
@@ -721,8 +759,9 @@ Deno.serve(async request => {
         const { data: refreshed, error: refreshError } = await admin.from('server_matches').select('*').eq('id', row.id).single()
         if (refreshError) throw refreshError
         row = refreshed as MatchRow
-        // `ranked_transfer` fait partie des fins récompensées : l'expérience et
-        // les plumes de ce qui a été joué restent acquises (awards.ts).
+        // `ranked_transfer` ne rapporte RIEN (awards.ts, son test, et l'écran
+        // « Aucun gain ni perte ») : sinon la confirmation classée deviendrait
+        // une machine à plumes. `awardFinished` n'écrit ici que l'historique.
         await awardFinished(admin, row)
       }
       return json(200, { match: await view(admin, row, user.id, grid) })
@@ -759,8 +798,17 @@ Deno.serve(async request => {
       if (accessProfile?.role === 'admin') carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
       // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu
       // pendant le tour, s'il y en a, plutôt qu'un tour manqué (matchDrafts.ts).
-      if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) {
-        closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic })
+      //
+      // L'ENVOI « AUTOMATIQUE » TARDIF (22/10/2026, code S2). Le drapeau vient du
+      // client : en le posant à la main, un client modifié gagnait 8 s de
+      // réflexion par tour (le délai réservé aux envois automatiques). Passé le
+      // délai d'un envoi à la main, il ne joue plus SES lettres, mais celles du
+      // brouillon reçu avant la fin du tour. Le joueur honnête n'y perd rien :
+      // dans les 3 dernières secondes, chaque lettre posée part tout de suite au
+      // brouillon (brouillonDuTour.ts). Et il n'est pas compté absent : il est là.
+      const automatiqueTardif = automatic && valid.length > 0 && recuA >= turnEndsAt + MANUAL_SUBMIT_GRACE_MS
+      if (recuA >= turnEndsAt + submissionGrace || automatiqueTardif || automatic && valid.length === 0 && !hasPlacedHint) {
+        closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic && !automatiqueTardif })
       } else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
       if (!canUseHint(row.state.hintUsed[user.id])) return json(409, { error: 'Ton indice a déjà été utilisé.' })

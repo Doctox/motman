@@ -389,13 +389,17 @@ Deno.serve(async request => {
       if (equipError) throw equipError
     } else if (action === 'buy-streak-freeze') {
       // Gel de série : 500 plumes, 3 en poche au plus (server_buy_streak_freeze).
-      const idempotencyKey = typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()
+      // Préfixée comme l'achat (22/10/2026, code K4) : une clé choisie par le
+      // client ne doit pas pouvoir occuper celle d'une transaction du serveur
+      // (`daily:…` — un joueur se privait ainsi de son propre bonus).
+      const idempotencyKey = `client:${typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()}`
       const { error } = await admin.rpc('server_buy_streak_freeze', { p_user_id: user.id, p_idempotency_key: idempotencyKey })
       if (error) throw error
     } else if (action === 'open-basket') {
       const basketId = typeof body.basketId === 'string' && /^[a-z0-9-]{1,64}$/i.test(body.basketId) ? body.basketId : ''
       if (!basketId) return json(400, { error: 'Panier invalide.' })
-      const idempotencyKey = typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()
+      // Préfixée, comme l'achat et le gel (22/10/2026, code K4).
+      const idempotencyKey = `client:${typeof body.idempotencyKey === 'string' && /^[a-zA-Z0-9:_-]{8,100}$/.test(body.idempotencyKey) ? body.idempotencyKey : crypto.randomUUID()}`
       const { data: reward, error } = await admin.rpc('server_open_basket', {
         p_user_id: user.id, p_basket_id: basketId, p_idempotency_key: idempotencyKey,
       })

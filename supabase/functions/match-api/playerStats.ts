@@ -1,4 +1,5 @@
 import type { AdminClient } from '../_shared/supabaseClients.ts'
+import { toutesLesLignes } from '../_shared/lectures.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LES STATISTIQUES DE JEU D'UN JOUEUR.
@@ -76,18 +77,19 @@ export function buildPlayerStats(detail: LigneDetail[], replis: LigneRepli[]): P
 }
 
 export async function loadPlayerStats(admin: AdminClient, userId: string): Promise<PlayerStats> {
-  const [
-    { data: detail, error: erreurDetail },
-    { data: replis, error: erreurReplis },
-  ] = await Promise.all([
-    admin.from('grid_player_history')
+  // Par pages (22/10/2026) : passé 1 000 parties en 90 jours, Supabase coupait
+  // le détail sans le dire, et les totaux plafonnaient (lectures.ts).
+  const [detail, replis] = await Promise.all([
+    toutesLesLignes((de, a) => admin.from('grid_player_history')
       .select('outcome,completed')
-      .eq('user_id', userId),
-    admin.from('grid_player_history_rollups')
+      .eq('user_id', userId)
+      .order('id')
+      .range(de, a)),
+    toutesLesLignes((de, a) => admin.from('grid_player_history_rollups')
       .select('plays,completions,wins,draws,losses,abandons')
-      .eq('user_id', userId),
+      .eq('user_id', userId)
+      .order('grid_id').order('mode').order('pace')
+      .range(de, a)),
   ])
-  if (erreurDetail) throw erreurDetail
-  if (erreurReplis) throw erreurReplis
-  return buildPlayerStats((detail ?? []) as LigneDetail[], (replis ?? []) as LigneRepli[])
+  return buildPlayerStats(detail as LigneDetail[], replis as LigneRepli[])
 }
