@@ -23,6 +23,7 @@
 // `node scripts/calibrer_fantome.mjs`.
 
 import type { BotTuning } from './botOpponents.ts'
+import { fnv1a } from './hachage.ts'
 
 /** Attente avant le fantôme. Même valeur en SQL (`interval '1 minute'`). */
 export const FANTOME_ATTENTE_MS = 60_000
@@ -65,15 +66,9 @@ export const FANTOME_REGLAGES: BotTuning = {
 export const FANTOME_REFLEXION_MIN_MS = 14_000
 export const FANTOME_REFLEXION_MAX_MS = 32_000
 
-function hash(text: string): number {
-  let value = 2166136261
-  for (const character of text) value = Math.imul(value ^ character.charCodeAt(0), 16777619)
-  return value >>> 0
-}
-
 /** Déterministe par partie et par tour : le serveur et l'annonce au client tombent d'accord. */
 export function fantomeReflexionMs(seed: string): number {
-  return FANTOME_REFLEXION_MIN_MS + hash(`${seed}:fantome`) % (FANTOME_REFLEXION_MAX_MS - FANTOME_REFLEXION_MIN_MS + 1)
+  return FANTOME_REFLEXION_MIN_MS + fnv1a(`${seed}:fantome`) % (FANTOME_REFLEXION_MAX_MS - FANTOME_REFLEXION_MIN_MS + 1)
 }
 
 /** La règle d'entrée, telle que le serveur la revérifie en base. */

@@ -21,18 +21,19 @@
 
 import { botTurnDelayMs } from '../../supabase/functions/match-api/botDelay.ts'
 import { brouillonRecevable, lettresDuBrouillon } from '../../supabase/functions/match-api/matchDrafts.ts'
-import { ensureFinalSprintRacks, ensureSharedLetterBag, hash, neededLetters, publicGrid, refill, ruleGrid } from '../../supabase/functions/match-api/matchGrid.ts'
+import { ensureFinalSprintRacks, ensureSharedLetterBag, neededLetters, publicGrid, refill, ruleGrid } from '../../supabase/functions/match-api/matchGrid.ts'
 import type { MatchRow } from '../../supabase/functions/match-api/matchModel.ts'
 import { initialMatchState } from '../../supabase/functions/match-api/matchSetup.ts'
 import {
   absentSansTemoin, acknowledgePresence, applyTurn, botPlacements, closeExpiredTurn, currentPresenceDeadline,
-  dureeDuTour, finish, forfeitAbsentPlayer, presenceExpired, sanitizePlacements, type Cadence,
+  dureeDuTour, finish, forfeitAbsentPlayer, presenceExpired, sanitizePlacements, vainqueurAuxPoints, type Cadence,
 } from '../../supabase/functions/match-api/matchTurns.ts'
 import { CADENCE_LOCALE, FIRST_TURN_READING_MS, TURN_READY_DURATION_MS, TURN_SUBMIT_GRACE_MS } from './config'
 import { gridById } from './gridCatalog'
 import type { BotProfile, CatalogGrid, MatchMode, MatchPace, StoredDraft, StoredMatch, StoredTurn } from './types'
 
-export { hash }
+/** Grille finie : le meilleur score, ou personne à égalité (`vainqueurAuxPoints`). */
+export { vainqueurAuxPoints }
 
 type Placement = { cellIndex: number; letter: string }
 

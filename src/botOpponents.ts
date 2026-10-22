@@ -5,6 +5,7 @@ import {
   type GamePlacement,
   type GameRuleGrid,
 } from './gameRules.ts'
+import { fnv1a } from './hachage.ts'
 
 export type BotSkill = 'beginner' | 'regular' | 'expert'
 
@@ -40,14 +41,8 @@ export const BOT_NAMES = ['Léa', 'Hugo', 'Inès', 'Nathan', 'Zoé', 'Lucas', 'M
 export const BOT_AVATAR_IDS = ['amina', 'malik', 'mei', 'kenji', 'ines', 'nael', 'camille', 'alex'] as const
 export const BOT_FRAME_IDS = ['cadre-ivoire', 'cadre-sauge', 'cadre-terracotta', 'cadre-encre', 'cadre-laiton'] as const
 
-function hash(text: string): number {
-  let value = 2166136261
-  for (const character of text) value = Math.imul(value ^ character.charCodeAt(0), 16777619)
-  return value >>> 0
-}
-
 export function botThinkingDelayMs(seed: string): number {
-  return BOT_THINKING_MIN_MS + hash(`${seed}:thinking`) % (BOT_THINKING_MAX_MS - BOT_THINKING_MIN_MS + 1)
+  return BOT_THINKING_MIN_MS + fnv1a(`${seed}:thinking`) % (BOT_THINKING_MAX_MS - BOT_THINKING_MIN_MS + 1)
 }
 
 /**
@@ -69,13 +64,13 @@ export function botSkillForLevel(level: number): BotSkill {
 }
 
 export function createBotPersona(seed: string, preferredSkill?: BotSkill): BotPersona {
-  const skillRoll = hash(`${seed}:skill`) % 100
+  const skillRoll = fnv1a(`${seed}:skill`) % 100
   const skill: BotSkill = preferredSkill ?? (skillRoll < 35 ? 'beginner' : skillRoll < 85 ? 'regular' : 'expert')
   const range = skill === 'beginner' ? [6, 17] : skill === 'regular' ? [18, 34] : [35, 48]
-  const level = range[0] + hash(`${seed}:level`) % (range[1] - range[0] + 1)
-  const displayName = BOT_NAMES[hash(`${seed}:name`) % BOT_NAMES.length]
-  const avatarId = BOT_AVATAR_IDS[hash(`${seed}:avatar`) % BOT_AVATAR_IDS.length]
-  const frameId = BOT_FRAME_IDS[hash(`${seed}:frame`) % BOT_FRAME_IDS.length]
+  const level = range[0] + fnv1a(`${seed}:level`) % (range[1] - range[0] + 1)
+  const displayName = BOT_NAMES[fnv1a(`${seed}:name`) % BOT_NAMES.length]
+  const avatarId = BOT_AVATAR_IDS[fnv1a(`${seed}:avatar`) % BOT_AVATAR_IDS.length]
+  const frameId = BOT_FRAME_IDS[fnv1a(`${seed}:frame`) % BOT_FRAME_IDS.length]
   return { displayName, level, skill, avatarId, frameId }
 }
 
@@ -112,7 +107,7 @@ export function refillBotRack({
     neededLetters: neededLetters(grid, occupiedCells),
     currentLetters,
     avoidLetters,
-    chooseIndex: (pool, position) => hash(`${seed}:rack:${position}:${pool.join('')}`) % pool.length,
+    chooseIndex: (pool, position) => fnv1a(`${seed}:rack:${position}:${pool.join('')}`) % pool.length,
   })
 }
 
@@ -124,7 +119,7 @@ function removeFirst(letters: string[], letter: string): void {
 function wrongLetterFor(rack: readonly string[], expected: string, seed: string): string | null {
   const candidates = rack.filter(letter => letter !== expected)
   if (!candidates.length) return null
-  return candidates[hash(seed) % candidates.length]
+  return candidates[fnv1a(seed) % candidates.length]
 }
 
 export function planBotMove({
@@ -149,7 +144,7 @@ export function planBotMove({
   const minLetters = Math.min(tuning.maxLetters, tuning.minLetters + pressureBoost)
   const maxLetters = Math.min(5, tuning.maxLetters + pressureBoost)
   const span = Math.max(1, maxLetters - minLetters + 1)
-  const target = Math.min(rack.length, minLetters + (hash(`${seed}:target`) % span))
+  const target = Math.min(rack.length, minLetters + (fnv1a(`${seed}:target`) % span))
   const attempts: BotMoveAttempt[] = []
   const correctPlacements: GamePlacement[] = []
   const blockedThisTurn = new Set<number>()
@@ -174,15 +169,15 @@ export function planBotMove({
         + wordPoints * tuning.wordBonusWeight * 3
         + crossingPressure * 1.5
         + progressPressure * tuning.wordBonusWeight
-        + (hash(`${seed}:jitter:${step}:${cellIndex}`) % 5) / 10
+        + (fnv1a(`${seed}:jitter:${step}:${cellIndex}`) % 5) / 10
       return [{ cellIndex, letter, score }]
     }))
 
     if (!candidates.length) break
     candidates.sort((left, right) => right.score - left.score)
     const choiceWindow = persona.skill === 'beginner' ? Math.min(2, candidates.length) : 1
-    const chosen = candidates[hash(`${seed}:choice:${step}`) % choiceWindow]
-    const correctRoll = hash(`${seed}:accuracy:${step}:${chosen.cellIndex}`) % 100
+    const chosen = candidates[fnv1a(`${seed}:choice:${step}`) % choiceWindow]
+    const correctRoll = fnv1a(`${seed}:accuracy:${step}:${chosen.cellIndex}`) % 100
     const isCorrect = correctRoll < Math.min(99, tuning.accuracy + pressureBoost * 3)
     if (isCorrect) {
       attempts.push({ cellIndex: chosen.cellIndex, letter: chosen.letter, correct: true })

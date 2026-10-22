@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
 import { botSkillForLevel, createBotPersona, type BotSkill } from '../src/botOpponents'
 import { isTurnSubmissionExpired } from '../src/gameRules'
+import { fnv1a } from '../src/hachage'
 import { isPresenceOnline } from '../src/presencePolicy'
 import { database as accountDatabase, type DatabaseUser } from './motmanDatabase'
 import {
@@ -18,7 +19,7 @@ import {
 import { gridIds, grids } from './match/gridCatalog'
 import { sendJson } from './match/http'
 import {
-  absentDeLaPartie, cloreTourEchu, coupDuBot, echeancePresence, forfaitDeLAbsent, grillePublique, hash,
+  absentDeLaPartie, cloreTourEchu, coupDuBot, echeancePresence, forfaitDeLAbsent, grillePublique,
   heureDuCoupDuBot, jouerCoup, nouvellePartie, preparerChevalets, presenceEchue,
 } from './match/regles'
 import { handleMatchRequest } from './match/requestHandler'
@@ -258,7 +259,7 @@ function selectGridForPlayers(hostId: string, guestId: string, sourceId: string,
 
   const available = grids.filter(grid => !recentIds.has(grid.id))
   const pool = available.length ? available : grids
-  return pool[hash(`${sourceId}:${now.toISOString()}:grid`) % pool.length]
+  return pool[fnv1a(`${sourceId}:${now.toISOString()}:grid`) % pool.length]
 }
 
 /**

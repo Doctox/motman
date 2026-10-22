@@ -6,9 +6,10 @@
 //
 // LE POINT DÉLICAT, ET LA RAISON D'ÊTRE DE CE MODULE : deux parties créées à
 // la même seconde peuvent tirer la même grille, chacune ayant choisi avant que
-// l'autre n'existe. `createMatch` et `resolveAtomicGridCollision` portent la
-// même parade — la plus jeune cède et retire — et elles avaient DIVERGÉ tant
-// qu'elles étaient noyées à mille lignes d'écart. Côte à côte, l'écart se voit.
+// l'autre n'existe. La parade — la plus jeune cède et retire — vit dans
+// `resolveAtomicGridCollision`. `createMatch` en tenait une copie, qui avait
+// DIVERGÉ tant qu'elles étaient noyées à mille lignes d'écart ; il l'appelle
+// désormais (22/10/2026), avec les marqueurs du défi du jour.
 //
 // La grille du défi du jour est exclue de cette rotation : elle est partagée
 // par tous les joueurs du jour, la faire tourner viderait le défi de son sens.
@@ -276,16 +277,16 @@ export async function createMatch(
   const markDaily = (state: State): State => options.isDaily && options.dailyDate
     ? { ...state, isDaily: true, dailyDate: options.dailyDate }
     : state
-  let grid = forcedGrid ?? await chooseGrid(admin, selectionSeed, humanPlayerIds)
+  const grid = forcedGrid ?? await chooseGrid(admin, selectionSeed, humanPlayerIds)
   const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
   const endsAt = new Date(startedAt.getTime() + (pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
-  let state = markDaily(initialMatchState(grid, hostId, guestId, invitationId, bot))
+  const state = markDaily(initialMatchState(grid, hostId, guestId, invitationId, bot))
   const { data: insertedRow, error } = await admin.from('server_matches').insert({
     mode, pace, grid_id: grid.id, state, status: 'active', current_player_id: hostId,
     turn_number: 1, turn_started_at: startedAt.toISOString(), turn_ends_at: endsAt.toISOString(),
   }).select('*').single()
   if (error || !insertedRow) throw error ?? new Error('Création impossible.')
-  let row = insertedRow as MatchRow
+  const row = insertedRow as MatchRow
   const participants = humanPlayerIds.map(user_id => ({ match_id: row.id, user_id, opponent_id: bot ? null : (user_id === hostId ? guestId : hostId) }))
   if (participants.length) {
     const { error: participantError } = await admin.from('match_participants').insert(participants)
@@ -295,37 +296,12 @@ export async function createMatch(
     }
   }
 
-  // Two invitations can be accepted nearly simultaneously, after both
-  // requests selected a grid. The oldest match keeps it; the newer match
-  // rerolls against every active grid of either participant.
-  //
-  // La grille du défi du jour est EXCLUE de cette rotation : elle est partagée
-  // par tous les joueurs du jour, la faire tourner viderait le défi de son sens.
-  for (let collisionAttempt = 0; !forcedGrid && collisionAttempt < 3; collisionAttempt += 1) {
-    const otherActiveMatches = await activeMatchesForPlayers(admin, humanPlayerIds, row.id)
-    const sameGridMatches = otherActiveMatches.filter(item => item.gridId === grid.id)
-    if (!sameGridMatches.length) break
-    const newerThanConflict = shouldYieldActiveGridClaim(
-      { id: row.id, createdAt: row.created_at },
-      sameGridMatches.map(item => ({ id: item.id, createdAt: item.createdAt })),
-    )
-    if (!newerThanConflict) break
-    const replacement = await chooseGrid(admin, `${selectionSeed}:collision:${collisionAttempt}`, humanPlayerIds, row.id)
-    if (replacement.id === grid.id) break
-    state = markDaily(initialMatchState(replacement, hostId, guestId, invitationId, bot))
-    const { data: updatedRow, error: updateError } = await admin.from('server_matches')
-      // `updated_at` bouge avec la grille : un client qui avait lu la partie
-      // avant le changement recevait sinon « rien de nouveau » et gardait
-      // l'ancienne grille à l'écran (relevé le 19/09/2026).
-      .update({ grid_id: replacement.id, state, updated_at: nowIso() })
-      .eq('id', row.id)
-      .select('*')
-      .single()
-    if (updateError || !updatedRow) throw updateError ?? new Error('Rotation de grille impossible.')
-    row = updatedRow as MatchRow
-    grid = replacement
-  }
-  return { row, grid }
+  // La grille du défi du jour est EXCLUE de la parade à la collision : elle est
+  // partagée par tous les joueurs du jour, la faire tourner viderait le défi de
+  // son sens. Une grille de repli, elle, cède comme les autres — et la partie
+  // reste un défi du jour (`markDaily`).
+  if (forcedGrid) return { row, grid }
+  return resolveAtomicGridCollision(admin, row, grid, hostId, guestId, invitationId, bot, selectionSeed, markDaily)
 }
 
 export async function prepareAtomicMatch(
@@ -345,6 +321,14 @@ export async function prepareAtomicMatch(
   return { grid, state, startedAt, endsAt, selectionSeed, humanPlayerIds }
 }
 
+/**
+ * Deux parties créées à la même seconde ont pu tirer la même grille, chacune
+ * avant que l'autre n'existe. La plus ancienne la garde ; la plus jeune en
+ * retire une, contre toutes les grilles actives de ses joueurs.
+ *
+ * `marquer` ajoute à l'état neuf ce que la partie portait déjà : les marqueurs
+ * du défi du jour quand c'est `createMatch` qui appelle.
+ */
 export async function resolveAtomicGridCollision(
   admin: AdminClient,
   initialRow: MatchRow,
@@ -354,6 +338,7 @@ export async function resolveAtomicGridCollision(
   invitationId: string | null,
   bot: Bot | null,
   selectionSeed: string,
+  marquer: (state: State) => State = state => state,
 ) {
   const humanPlayerIds = [hostId, guestId].filter(id => id !== bot?.playerId)
   let row = initialRow
@@ -372,7 +357,7 @@ export async function resolveAtomicGridCollision(
     if (!newerThanConflict) break
     const replacement = await chooseGrid(admin, `${selectionSeed}:collision:${collisionAttempt}`, humanPlayerIds, row.id)
     if (replacement.id === grid.id) break
-    const state = initialMatchState(replacement, hostId, guestId, invitationId, bot)
+    const state = marquer(initialMatchState(replacement, hostId, guestId, invitationId, bot))
     const { data: updatedRow, error: updateError } = await admin.from('server_matches')
       // `updated_at` bouge avec la grille : un client qui avait lu la partie
       // avant le changement recevait sinon « rien de nouveau » et gardait

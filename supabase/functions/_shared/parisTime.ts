@@ -1,11 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // L'HEURE DE PARIS, POUR LES DÉCISIONS QUI DÉPENDENT DU MOMENT DE LA JOURNÉE.
 //
-// Deux règles distinctes s'en servent et doivent lire la MÊME horloge : le
-// silence nocturne des rappels de tour (22 h → 8 h, `matchReminders.ts`) et le
+// Trois règles distinctes s'en servent et doivent lire la MÊME horloge : le
+// silence nocturne des rappels de tour (22 h → 8 h, `matchReminders.ts`), le
 // silence des alertes d'arrivée du propriétaire (0 h → 10 h,
-// `ownerAlertPolicy.ts`). Les workers Edge tournent en UTC : un `getHours()`
-// déciderait avec deux heures d'écart l'été, et une heure l'hiver.
+// `ownerAlertPolicy.ts`) et les heures des joueurs de l'ombre en classée
+// (`match-api/ghost.ts`, qui en tenait sa propre copie jusqu'au 22/10/2026).
+// Les workers Edge tournent en UTC : un `getHours()` déciderait avec deux
+// heures d'écart l'été, et une heure l'hiver.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const heureParis = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: 'numeric', hourCycle: 'h23' })

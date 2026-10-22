@@ -1,6 +1,7 @@
 import { normalRotationGrids } from './dailyThemes'
 import { isCatalogGridPlayable } from './gridCatalogPolicy'
 import { gridCellIndex, resolveGridDimensions, type GridDimensionsSource } from './gridDimensions'
+import { fnv1a } from './hachage'
 
 export type Direction = 'across' | 'down'
 export type ArrowDirection = 'right' | 'down' | 'downright' | 'rightdown'
@@ -35,10 +36,6 @@ export function preloadGridCatalog(): Promise<LoadedCatalog> {
     }
   })
   return catalogPromise
-}
-
-function catalogSeed(id: string): number {
-  return [...id].reduce((hash, character) => Math.imul(hash ^ character.charCodeAt(0), 16777619), 2166136261) >>> 0
 }
 
 function materialize(source: CatalogGrid, difficulty: GridDifficulty, version: string): GeneratedGrid {
@@ -78,7 +75,7 @@ function materialize(source: CatalogGrid, difficulty: GridDifficulty, version: s
   })
   const validation = validateGrid({ ...dimensions, size: source.size, cells, words })
   if (!validation.valid) throw new Error(`${source.id}: ${validation.errors.join('; ')}`)
-  return { id: source.id, size: source.size, ...dimensions, difficulty, cells, words, seed: catalogSeed(source.id), version, validation }
+  return { id: source.id, size: source.size, ...dimensions, difficulty, cells, words, seed: fnv1a(source.id), version, validation }
 }
 
 export function validateGrid(grid: Pick<GeneratedGrid, 'size' | 'columns' | 'rows' | 'cells' | 'words'>): GridValidation {

@@ -15,10 +15,12 @@
 // inscrit dans la partie : il ne la voit pas, n'y joue pas, n'en reçoit rien,
 // et son classement ne bouge pas.
 
+import { parisHour } from '../_shared/parisTime.ts'
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import type { BotTuning } from '../../../src/botOpponents.ts'
 import { FANTOME_ATTENTE_MS, FANTOME_REGLAGES, fantomeDoitEntrer } from '../../../src/ghostOpponent.ts'
+import { fnv1a } from '../../../src/hachage.ts'
 import { PRESENCE_ONLINE_TTL_MS } from '../../../src/presencePolicy.ts'
 import { notifyRankedReady } from './matchNotifications.ts'
 import type { Bot } from './matchModel.ts'
@@ -135,12 +137,6 @@ export async function adversairesAutomatiques(admin: AdminClient, maintenant = D
   return liste
 }
 
-function hash(texte: string): number {
-  let valeur = 2166136261
-  for (const caractere of texte) valeur = Math.imul(valeur ^ caractere.charCodeAt(0), 16777619)
-  return valeur >>> 0
-}
-
 /** Écart de note jusqu'auquel deux adversaires comptent comme « aussi proches » : de quoi varier. */
 export const ECART_DE_VARIETE = 60
 
@@ -152,15 +148,6 @@ export const ECART_DE_VARIETE = 60
  */
 export const MEMOIRE_ADVERSAIRES = 3
 export const MEMOIRE_JOURS = 7
-
-const HEURE_DE_PARIS = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' })
-
-/** L'heure qu'il est à Paris, de 0 à 23. */
-export function heureDeParis(ms: number): number {
-  // `format` écrirait « 10 h » en français : on prend la seule partie « heure ».
-  const heure = HEURE_DE_PARIS.formatToParts(new Date(ms)).find(partie => partie.type === 'hour')?.value
-  return Number(heure) % 24
-}
 
 /**
  * Le plus proche en note du joueur qui cherche — jamais lui-même. Dans l'ordre :
@@ -196,7 +183,7 @@ export function choisirAdversaire(candidats: readonly AdversaireAutomatique[], {
   const ecart = (candidat: AdversaireAutomatique) => Math.abs(candidat.points - pointsChercheur)
   const plusPetit = Math.min(...liste.map(ecart))
   const proches = liste.filter(candidat => ecart(candidat) - plusPetit <= ECART_DE_VARIETE)
-  return proches[hash(graine) % proches.length]
+  return proches[fnv1a(graine) % proches.length]
 }
 
 /**
@@ -240,7 +227,7 @@ export async function tenterLeFantome(admin: AdminClient, userId: string): Promi
     chercheurId: userId,
     pointsChercheur: pointsEffectifs(Number(moi?.ranked_points ?? 0), Number(moi?.ranked_matches ?? 0)),
     adversairesRecents,
-    heureParis: heureDeParis(Date.now()),
+    heureParis: parisHour(Date.now()),
     graine: `${userId}:${recherche.created_at}`,
   })
   if (!adversaire) return null

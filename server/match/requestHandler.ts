@@ -1,14 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { canUseHint, canUseReroll, hasTurnStarted, hintCandidates, indicesUtilises } from '../../src/gameRules'
+import { fnv1a } from '../../src/hachage'
 import {
   ASYNC_INVITATION_DURATION_MS, AUTOMATIC_TURN_SUBMIT_GRACE_MS, INVITATION_DURATION_MS,
   REALTIME_SEARCH_STALE_MS, TURN_SUBMIT_GRACE_MS,
 } from './config'
 import { readBody, sendJson, sendNoContent } from './http'
 import {
-  brouillonAccepte, cloreTourEchu, confirmerPresence, filtrerCoup, grilleDeRegles, hash, jouerCoup,
-  lettresRestantes, preparerChevalets, remplirChevalet, terminer,
+  brouillonAccepte, cloreTourEchu, confirmerPresence, filtrerCoup, grilleDeRegles, jouerCoup,
+  lettresRestantes, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
 } from './regles'
 import type { BotProfile, MatchDatabase, MatchMode, MatchPace, StoredMatch } from './types'
 
@@ -267,26 +268,24 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
 
   // L'indice et le mélange vivent EN LIGNE dans `index.ts` de match-api, qui ne
   // s'importe pas (il démarre `Deno.serve`). Ils sont donc suivis pas à pas, avec
-  // les fonctions de la production : même tirage (`hash` de l'identifiant et du
-  // tour), même fin de grille (`neededLetters`), même chevalet (`refill`).
+  // les fonctions de la production : même tirage (`fnv1a` de l'identifiant et du
+  // tour), même fin de grille (`neededLetters`), même vainqueur
+  // (`vainqueurAuxPoints`), même chevalet (`refill`).
   if (route === 'hint') {
     if (!canUseHint(match.hintUsed[playerId])) return sendJson(response, 409, { error: 'Ton indice a déjà été utilisé.' })
     const pendingPlacements = filtrerCoup(match, playerId, Array.isArray(body.placements) ? body.placements : [])
     const rack = match.racks[playerId] ?? []
     const candidates = hintCandidates(grilleDeRegles(match), rack, Object.keys(match.board).map(Number), pendingPlacements)
     if (!candidates.length) return sendJson(response, 409, { error: 'Aucun indice disponible.' })
-    const selected = candidates[hash(`${match.id}:${match.turnNumber}:hint`) % candidates.length]
+    const selected = candidates[fnv1a(`${match.id}:${match.turnNumber}:hint`) % candidates.length]
     match.hint = { playerId, cellIndex: selected.cellIndex, letter: selected.letter, turnNumber: match.turnNumber }
     match.hintUsed[playerId] = indicesUtilises(match.hintUsed[playerId]) + 1
     match.board[selected.cellIndex] = { letter: selected.letter, playerId }
     const hintedLetterIndex = rack.indexOf(selected.letter)
     match.racks[playerId] = hintedLetterIndex < 0 ? rack : rack.filter((_, index) => index !== hintedLetterIndex)
     match.updatedAt = new Date().toISOString()
-    if (lettresRestantes(match).length === 0) {
-      const [left, right] = match.playerIds
-      const winner = match.scores[left] === match.scores[right] ? null : match.scores[left] > match.scores[right] ? left : right
-      terminer(match, winner, 'completed')
-    } else preparerChevalets(match)
+    if (lettresRestantes(match).length === 0) terminer(match, vainqueurAuxPoints(match), 'completed')
+    else preparerChevalets(match)
     saveDatabase()
     return sendJson(response, 200, publicMatch(match))
   }

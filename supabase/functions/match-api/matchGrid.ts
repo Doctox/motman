@@ -9,14 +9,9 @@
 // Rien n'a été réécrit : le corps est celui d'`index.ts`, déplacé tel quel.
 
 import { drawRackFromBag, prepareFinalSprintRacks, type GameRuleGrid, type GameRuleWord } from '../../../src/gameRules.ts'
+import { fnv1a } from '../../../src/hachage.ts'
 import { publicClueImage, publicClueText } from '../../../src/publicClue.ts'
 import type { CatalogGrid, CatalogWord, State } from './matchModel.ts'
-
-export function hash(text: string): number {
-  let value = 2166136261
-  for (const character of text) value = Math.imul(value ^ character.charCodeAt(0), 16777619)
-  return value >>> 0
-}
 
 export function dimensions(grid: CatalogGrid) {
   const columns = grid.columns
@@ -125,7 +120,7 @@ export function publicGrid(grid: CatalogGrid) {
     const [row, col] = cases[0]
     return { id, answer: '•'.repeat(word.answer.length), clue: text, image, difficulty: 1, theme: 'catalogue', row, col, direction: word.direction, length: word.answer.length }
   })
-  return { id: grid.id, columns, rows, difficulty: 'normal', cells, words, seed: hash(grid.id), version: 'supabase-v1', validation: { valid: true, errors: [], score: 100 } }
+  return { id: grid.id, columns, rows, difficulty: 'normal', cells, words, seed: fnv1a(grid.id), version: 'supabase-v1', validation: { valid: true, errors: [], score: 100 } }
 }
 
 export function neededLetters(grid: GameRuleGrid, board: State['board']): string[] {
@@ -156,7 +151,7 @@ export function refill(grid: GameRuleGrid, state: State, playerId: string, curre
   ensureSharedLetterBag(grid, state)
   const drawn = drawRackFromBag({
     letterBag: state.letterBag ?? [], currentLetters: current, avoidLetters: avoid,
-    chooseIndex: (pool, position) => hash(`${playerId}:${Object.keys(state.board).length}:${position}:${pool.join('')}`) % pool.length,
+    chooseIndex: (pool, position) => fnv1a(`${playerId}:${Object.keys(state.board).length}:${position}:${pool.join('')}`) % pool.length,
   })
   state.letterBag = drawn.letterBag
   return drawn.rack

@@ -47,4 +47,3 @@ export function createAuthClient(url: string, anonKey: string, authorization: st
 }
 
 export type AdminClient = ReturnType<typeof createAdminClient>
-export type AuthClient = ReturnType<typeof createAuthClient>

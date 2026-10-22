@@ -2,7 +2,8 @@ import { assertEquals } from 'jsr:@std/assert@1'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { FANTOME_REFLEXION_MAX_MS, FANTOME_REFLEXION_MIN_MS, FANTOME_REGLAGES } from '../../../src/ghostOpponent.ts'
 import { botTurnDelayMs } from './botDelay.ts'
-import { botFantome, choisirAdversaire, heureDeParis, type AdversaireAutomatique } from './ghost.ts'
+import { parisHour } from '../_shared/parisTime.ts'
+import { botFantome, choisirAdversaire, type AdversaireAutomatique } from './ghost.ts'
 import { nowIso, type Bot, type MatchRow } from './matchModel.ts'
 import { heureDeRappel, view } from './matchView.ts'
 
@@ -167,13 +168,21 @@ Deno.test('une ombre à son heure passe devant, sans jamais priver le joueur', (
   assertEquals(choix([soir, adversaire(PROPRIO, 1000, false)], { heureParis: 4, adversairesRecents: [] }) !== undefined, true)
 })
 
-Deno.test('l’heure de Paris, été comme hiver', () => {
-  assertEquals(heureDeParis(Date.UTC(2026, 9, 13, 8, 5)), 10)
-  assertEquals(heureDeParis(Date.UTC(2026, 11, 1, 22, 30)), 23)
+Deno.test('l’heure de Paris des ombres, été comme hiver', () => {
+  // ghost.ts lit l'horloge commune (_shared/parisTime.ts) depuis le 22/10/2026.
+  assertEquals(parisHour(Date.UTC(2026, 9, 13, 8, 5)), 10)
+  assertEquals(parisHour(Date.UTC(2026, 11, 1, 22, 30)), 23)
 })
 
 Deno.test('entre adversaires presque aussi proches, la graine fait varier', () => {
   // Fantôme 1004 et une ombre à 1000 : tous deux à quelques points de 1002.
   const choisis = new Set(Array.from({ length: 40 }, (_, i) => choix(LISTE, { pointsChercheur: 1002, graine: `g${i}` })))
   assertEquals([...choisis].sort(), [PROPRIO, 'ombre-a'].sort())
+})
+
+Deno.test('le hasard de la graine tire les mêmes adversaires qu’avant la fusion du hachage', () => {
+  // Relevé le 22/10/2026, avant que ghost.ts n'importe src/hachage.ts au lieu de sa copie.
+  const cinq = [1, 2, 3, 4, 5].map(k => adversaire(`ombre-${k}`, 1000))
+  const tires = Array.from({ length: 10 }, (_, i) => choix(cinq, { graine: `${JOUEUR}:2026-10-22T10:00:0${i}.000Z` }))
+  assertEquals(tires, ['ombre-3', 'ombre-5', 'ombre-3', 'ombre-2', 'ombre-5', 'ombre-2', 'ombre-3', 'ombre-3', 'ombre-1', 'ombre-1'])
 })

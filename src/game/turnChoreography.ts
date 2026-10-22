@@ -31,9 +31,6 @@ import type { MatchTurn } from '../matches'
 // garde le rendu là où il se voit et la règle là où elle se teste.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** À qui appartient le coup, du point de vue de l'écran du lecteur. */
-export type TurnStepOwner = 'player' | 'bot'
-
 /**
  * Une étape de la séquence. `points` est ce qui s'ajoute au compteur AU MOMENT
  * où l'étape se joue — zéro pour une erreur, et zéro aussi pour une lettre
