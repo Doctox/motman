@@ -1,3 +1,5 @@
+import { fnv1a } from './hachage.ts'
+
 export type SelectionGrid = {
   id: string
   words: Array<{ answer: string }>
@@ -31,15 +33,6 @@ export function shouldYieldActiveGridClaim(current: ActiveGridClaim, competing: 
 
 function normalizeAnswer(answer: string): string {
   return answer.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
-}
-
-function stableHash(value: string): number {
-  let hash = 2166136261
-  for (const character of value) {
-    hash ^= character.charCodeAt(0)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
 }
 
 function answerSet(grid: SelectionGrid): Set<string> {
@@ -110,7 +103,7 @@ export function selectGridForPlayers<T extends SelectionGrid>({
   const jouees = (gridId: string) => playCountsByPlayer.reduce((total, counts) => total + Math.max(0, counts[gridId] ?? 0), 0)
   const minimum = Math.min(...pool.map(candidate => jouees(candidate.id)))
   const moinsJouees = pool.filter(candidate => jouees(candidate.id) === minimum)
-  const grid = moinsJouees[stableHash(seed) % moinsJouees.length]
+  const grid = moinsJouees[fnv1a(seed) % moinsJouees.length]
   let overlapCount = 0
   for (const answer of answerSet(grid)) {
     if ((recentAnswerFrequency.get(answer) ?? 0) > 0) overlapCount += 1

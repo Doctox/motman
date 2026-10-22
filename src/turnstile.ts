@@ -21,10 +21,6 @@ function configuredSiteKey(): string | null {
   return value || null
 }
 
-export function isTurnstileConfigured(): boolean {
-  return configuredSiteKey() !== null
-}
-
 function loadTurnstile(): Promise<TurnstileWidget> {
   if (window.turnstile) return Promise.resolve(window.turnstile)
   if (scriptPromise) return scriptPromise

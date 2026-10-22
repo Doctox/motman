@@ -81,14 +81,6 @@ export function savePlayerIdentity(identity: GuestIdentity): void {
   window.dispatchEvent(new CustomEvent<GuestIdentity>('motman:identity', { detail: identity }))
 }
 
-export function updateGuestName(identity: GuestIdentity, displayName: string): GuestIdentity {
-  const validation = validatePlayerName(displayName)
-  if (!validation.valid) return identity
-  const updated = { ...identity, displayName: validation.normalized }
-  savePlayerIdentity(updated)
-  return updated
-}
-
 export function playerInitials(displayName: string): string {
   const words = displayName.trim().split(/\s+/).filter(Boolean)
   if (!words.length) return 'IN'

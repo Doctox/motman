@@ -1,5 +1,6 @@
 import calendarData from './data/runtime.daily.calendar.json'
 import type { GridDifficulty } from './generator'
+import { fnv1a } from './hachage'
 
 // Lecture LÉGÈRE du calendrier du défi du jour (contrat 3, format GRAVÉ).
 // Volontairement SANS dépendance à generator.ts : l'UI (héro, puce) n'a besoin
@@ -31,15 +32,10 @@ export function calendarEntryFor(
 }
 
 /**
- * Graine déterministe dérivée d'une clé de jour (FNV-1a, cohérent avec le hachage
- * déjà utilisé dans generator.ts / gridSelection.ts). Sert au fallback : la même
- * date donne toujours la même grille générique.
+ * Graine déterministe dérivée d'une clé de jour : le hachage FNV-1a du jeu
+ * (src/hachage.ts), celui que scripts/build_daily_calendar.mjs passe à
+ * `planDailyCalendar`. La même date donne toujours la même grille.
  */
 export function seedFromDate(dateKey: string): number {
-  let hash = 2166136261
-  for (const character of dateKey) {
-    hash ^= character.charCodeAt(0)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
+  return fnv1a(dateKey)
 }

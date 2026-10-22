@@ -49,6 +49,9 @@ const POLICY = path.join(DATA_DIR, 'runtime.catalog-policy.json')
 
 // La règle des thèmes : UNE seule écriture, chargée depuis src/ (voir importTs).
 const themes = await importTs(path.resolve(process.cwd(), 'src', 'dailyThemes.ts'))
+// La graine d'un jour : le hachage FNV-1a du jeu, le même que `seedFromDate`
+// (src/dailyCalendar.ts). Ce script en tenait sa propre copie jusqu'au 22/10/2026.
+const { fnv1a: seedFromDate } = await importTs(path.resolve(process.cwd(), 'src', 'hachage.ts'))
 
 /** Fenêtre de tirage parmi les grilles les moins récemment utilisées. */
 const PICK_WINDOW = 8
@@ -77,16 +80,6 @@ function dayNumber(key) {
 
 function parisTomorrow() {
   return new Date((dayNumber(parisToday()) + 1) * 86_400_000).toISOString().slice(0, 10)
-}
-
-/** FNV-1a, identique à seedFromDate (src/dailyCalendar.ts). */
-function seedFromDate(dateKey) {
-  let hash = 2166136261
-  for (const character of dateKey) {
-    hash ^= character.charCodeAt(0)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
 }
 
 // Un calendrier tiré de la fixture pointerait huit grilles au lieu du catalogue

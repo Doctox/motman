@@ -1,4 +1,5 @@
 import { canUseHint, canUseReroll, hintCandidates, indicesUtilises } from '../../../src/gameRules.ts'
+import { fnv1a } from '../../../src/hachage.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { dailyGridIdFor, parisDateKey } from '../_shared/dailyCalendar.ts'
 import { createHttpResponder, logServerError } from '../_shared/http.ts'
@@ -27,8 +28,8 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 // Les dérivations de grille et la mécanique de tour vivent à côté :
 // `matchGrid.ts` et `matchTurns.ts`. Sorties d'ici pour devenir testables —
 // ce fichier démarre un serveur à l'import.
-import { ensureFinalSprintRacks, hash, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
-import { acknowledgePresence, applyTurn, closeExpiredTurn, finish, sanitizePlacements } from './matchTurns.ts'
+import { ensureFinalSprintRacks, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
+import { acknowledgePresence, applyTurn, closeExpiredTurn, finish, sanitizePlacements, vainqueurAuxPoints } from './matchTurns.ts'
 import { brouillonRecevable, lettresDuBrouillon, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
@@ -832,18 +833,15 @@ Deno.serve(async request => {
         pendingPlacements,
       )
       if (!candidates.length) return json(409, { error: 'Aucun indice disponible.' })
-      const chosen = candidates[hash(`${row.id}:${row.turn_number}:hint`) % candidates.length]
+      const chosen = candidates[fnv1a(`${row.id}:${row.turn_number}:hint`) % candidates.length]
       row.state.hint = { playerId: user.id, cellIndex: chosen.cellIndex, letter: chosen.letter, turnNumber: row.turn_number }
       row.state.hintUsed[user.id] = indicesUtilises(row.state.hintUsed[user.id]) + 1
       row.state.board[String(chosen.cellIndex)] = { letter: chosen.letter, playerId: user.id }
       const rack = row.state.racks[user.id] ?? []
       const hintedLetterIndex = rack.indexOf(chosen.letter)
       row.state.racks[user.id] = hintedLetterIndex < 0 ? rack : rack.filter((_, index) => index !== hintedLetterIndex)
-      if (neededLetters(ruleGrid(grid), row.state.board).length === 0) {
-        const [left, right] = row.state.playerIds
-        const winner = row.state.scores[left] === row.state.scores[right] ? null : row.state.scores[left] > row.state.scores[right] ? left : right
-        finish(row.state, row, winner, 'completed')
-      } else ensureFinalSprintRacks(ruleGrid(grid), row.state)
+      if (neededLetters(ruleGrid(grid), row.state.board).length === 0) finish(row.state, row, vainqueurAuxPoints(row.state), 'completed')
+      else ensureFinalSprintRacks(ruleGrid(grid), row.state)
     } else if (action === 'reroll') {
       if (!canUseReroll({ alreadyUsed: Boolean(row.state.rerollUsed[user.id]), pendingPlacements: 0, hintActive: Boolean(row.state.hint) })) return json(409, { error: 'Le mélange n’est plus disponible.' })
       const currentRack = row.state.racks[user.id] ?? []

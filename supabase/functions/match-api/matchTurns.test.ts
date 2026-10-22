@@ -1,6 +1,6 @@
 import { ruleGrid } from './matchGrid.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
-import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, CADENCE_PRODUCTION, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn, type Cadence } from './matchTurns.ts'
+import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, CADENCE_PRODUCTION, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn, vainqueurAuxPoints, type Cadence } from './matchTurns.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MÉCANIQUE D'UN TOUR — et surtout, la frontière anti-triche.
@@ -162,6 +162,14 @@ Deno.test('compléter la grille termine la partie et désigne le meilleur score'
   egal(ligne.status, 'finished', 'la partie est terminée')
   egal(ligne.finish_reason, 'completed', 'pour cause de grille complétée')
   egal(ligne.winner_id, JOUEUR, 'le meilleur score gagne')
+})
+
+Deno.test('aux points : le meilleur score, l’un ou l’autre, et personne à égalité', () => {
+  // La même règle sert au coup, à l'indice qui pose la dernière lettre (index.ts) et au serveur de test.
+  const joueurs: [string, string] = [JOUEUR, ADVERSAIRE]
+  egal(vainqueurAuxPoints({ playerIds: joueurs, scores: { [JOUEUR]: 30, [ADVERSAIRE]: 10 } }), JOUEUR, 'le premier mène')
+  egal(vainqueurAuxPoints({ playerIds: joueurs, scores: { [JOUEUR]: 10, [ADVERSAIRE]: 30 } }), ADVERSAIRE, 'le second mène')
+  egal(vainqueurAuxPoints({ playerIds: joueurs, scores: { [JOUEUR]: 20, [ADVERSAIRE]: 20 } }), null, 'égalité')
 })
 
 Deno.test('une expiration incrémente l’inactivité et passe la main', () => {

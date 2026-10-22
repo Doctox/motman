@@ -29,6 +29,7 @@
     "src/ghostOpponent.ts",
     "src/dailyThemes.ts",
     "src/gridSelection.ts",
+    "src/hachage.ts",
     "supabase/functions/match-api/matchModel.ts",
     "supabase/functions/match-api/matchGrid.ts",
     "supabase/functions/match-api/matchTurns.ts",

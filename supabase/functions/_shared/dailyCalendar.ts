@@ -51,6 +51,3 @@ export function dailyGridIdFor(dateKey: string): string | null {
 export function dailyThemeFor(dateKey: string): string | null {
   return byDate.get(dateKey)?.theme ?? null
 }
-
-/** Nombre de jours programmés — utile aux journaux de démarrage. */
-export const dailyCalendarSize = days.length

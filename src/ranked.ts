@@ -1,7 +1,6 @@
 import { assetUrl } from './assetUrl'
 
 export const RANKED_PLACEMENT_MATCHES = 5
-export const RANKED_READY_SECONDS = 30
 
 export type RankedDivisionId =
   | 'unranked'

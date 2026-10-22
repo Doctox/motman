@@ -72,6 +72,16 @@ export function finish(state: State, row: MatchRow, winnerId: string | null, rea
   row.turn_started_at = nowIso(); row.turn_ends_at = row.turn_started_at; state.hint = null
 }
 
+/**
+ * Grille finie : qui gagne aux points ? Le meilleur score, et personne (`null`)
+ * à égalité. Une seule écriture pour le coup qui pose la dernière lettre, pour
+ * l'indice qui la pose (`index.ts`) et pour le serveur de test (`server/`).
+ */
+export function vainqueurAuxPoints({ playerIds, scores }: Pick<State, 'playerIds' | 'scores'>): string | null {
+  const [left, right] = playerIds
+  return scores[left] === scores[right] ? null : scores[left] > scores[right] ? left : right
+}
+
 export function sanitizePlacements(row: MatchRow, grid: CatalogGrid, playerId: string, placements: Array<{ cellIndex: number; letter: string }>) {
   const state = row.state
   const rules = ruleGrid(grid)
@@ -129,11 +139,8 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
     rackBonus: evaluated.rackBonus, scoreGained: evaluated.scoreGained, inactivityCount: 0, createdAt: nowIso(),
   }
   state.lastTurn = turn; state.hint = null
-  if (evaluated.completesGrid) {
-    const [left, right] = state.playerIds
-    const winner = state.scores[left] === state.scores[right] ? null : state.scores[left] > state.scores[right] ? left : right
-    finish(state, row, winner, 'completed')
-  } else {
+  if (evaluated.completesGrid) finish(state, row, vainqueurAuxPoints(state), 'completed')
+  else {
     const opponent = state.playerIds.find(id => id !== playerId)!
     const nextStart = new Date(Date.now() + revealDuration(turn, cadence))
     row.current_player_id = opponent; row.turn_number += 1; row.turn_started_at = nextStart.toISOString()
