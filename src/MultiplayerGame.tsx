@@ -40,7 +40,7 @@ import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel, type Etat
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
 import { attenteAvantEnvoi, brouillonAEnvoyer, cleDuBrouillon, lettresGardeesApresConflit, placementsDuBrouillon, versionSuivante, type BrouillonEnvoye } from './game/brouillonDuTour'
 import { useClueAutoFit } from './game/clueAutoFit'
-import { aimPoint, cellAtPoint, measureCells, type CellBox } from './game/dropTargeting'
+import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
@@ -128,7 +128,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const fitBoardRef = useClueAutoFit()
   const [provisional, setProvisional] = useState<Record<number, Tile>>({})
   const [selected, setSelected] = useState<Tile | null>(null)
-  const [drag, setDrag] = useState<{ tile: Tile; origin: 'rack' | number; pointerId: number; x: number; y: number } | null>(null)
+  // `x0`/`y0` : le point de contact brut ; `glisse` : le doigt a dépassé
+  // SEUIL_GLISSER_PX. Avant, c'est un toucher, et le clic fait le reste.
+  const [drag, setDrag] = useState<{ tile: Tile; origin: 'rack' | number; pointerId: number; x: number; y: number; x0: number; y0: number; glisse: boolean } | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   const [status, setStatus] = useState('Connexion à la partie…')
   // Jusqu'à quand l'annonce d'un tour vide (« Temps écoulé », « X passe »)
@@ -719,14 +721,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     if (!canAct || resolving || drag) return
     event.currentTarget.setPointerCapture(event.pointerId)
     refreshCellBoxes()
-    // Le fantôme naît DÉJÀ au point visé : React et `moveGhost` écrivent la même
-    // position, sinon la lettre apparaît sous le doigt puis saute au-dessus.
+    // Le fantôme ne naît qu'au premier VRAI mouvement (22/10/2026) : un simple
+    // toucher le faisait apparaître un instant et masquait la tuile.
     const depart = aimPoint(event.clientX, event.clientY, event.pointerType)
-    setDrag({ tile, origin, pointerId: event.pointerId, x: depart.x, y: depart.y })
+    setDrag({ tile, origin, pointerId: event.pointerId, x: depart.x, y: depart.y, x0: event.clientX, y0: event.clientY, glisse: false })
     // Un retour dès la PRISE, pas seulement à la pose : le doigt sait que la
     // lettre est attrapée avant même d'avoir bougé.
     haptic(8); playEffect('pick'); noterActivite()
-    moveGhost(depart.x, depart.y)
   }
   const pointerMove = (event: React.PointerEvent) => {
     // Les autres contacts passent aussi par ici : sans ce filtre, le fantôme
@@ -735,13 +736,20 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     // Le fantôme suit LE POINT VISÉ, pas le doigt : ce qu'on voit est ce qui
     // sera posé. Le dessiner sous la main reviendrait à poser à l'aveugle.
     const point = aimPoint(event.clientX, event.clientY, event.pointerType)
+    if (!drag.glisse) {
+      // Encore un toucher : le doigt n'a pas assez bougé (dropTargeting.ts).
+      if (Math.hypot(event.clientX - drag.x0, event.clientY - drag.y0) < SEUIL_GLISSER_PX) return
+      setDrag(current => current && current.pointerId === event.pointerId ? { ...current, glisse: true, x: point.x, y: point.y } : current)
+    }
     moveGhost(point.x, point.y)
     const nextTarget = targetAt(event)
     setDropTarget(current => current === nextTarget ? current : nextTarget)
   }
   const pointerUp = (event: React.PointerEvent) => {
     if (drag && event.pointerId !== drag.pointerId) return
-    if (drag) {
+    // Un TOUCHER ne pose ni ne retire rien ici : le clic qui suit reprend la
+    // lettre posée, ou choisit celle du chevalet (22/10/2026, code U3).
+    if (drag?.glisse) {
       const cible = targetAt(event)
       if (cible !== null && cible >= 0) placeTile(drag.tile, cible, drag.origin)
       else if (cible === -1 && typeof drag.origin === 'number') returnTile(drag.origin)
@@ -1202,23 +1210,23 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         const wordRewardClass = wordHighlight?.cells.has(index) ? `word-reward-cell word-reward-cell--${wordHighlight.owner}` : ''
         const ownershipClass = confirmed ? confirmed.playerId === playerId ? 'confirmed-player' : 'confirmed-opponent' : ''
         return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : ''}`} className={`cell slot ${ownershipClass} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? reprendreAuToucher(index, localTile) : selected && poserAuToucher(selected, index)}>
-          {letter ? <span className={`letter-only ${confirmed ? 'locked confirmed-letter' : localTile && !failedLetter ? 'stable-provisional-letter' : ''} ${confirmed?.playerId === playerId ? 'owned-by-player' : confirmed ? 'owned-by-opponent' : ''} ${failedLetter ? 'failed-reveal-letter' : ''} ${drag?.tile.id === localTile?.id ? 'drag-source' : ''}`} onPointerDown={event => localTile && !confirmed && !failedLetter && pointerDown(event, localTile, index)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{letter}</span> : null}
+          {letter ? <span className={`letter-only ${confirmed ? 'locked confirmed-letter' : localTile && !failedLetter ? 'stable-provisional-letter' : ''} ${confirmed?.playerId === playerId ? 'owned-by-player' : confirmed ? 'owned-by-opponent' : ''} ${failedLetter ? 'failed-reveal-letter' : ''} ${drag?.glisse && drag.tile.id === localTile?.id ? 'drag-source' : ''}`} onPointerDown={event => localTile && !confirmed && !failedLetter && pointerDown(event, localTile, index)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{letter}</span> : null}
         </button>
       })}
-      <StableBoardLetters cellCount={grid.cells.length} board={match.board} provisional={provisional} failed={revealedWrong} playerId={playerId} hiddenCell={hiddenStableLetterCell} draggedTileId={drag?.tile.id ?? null} />
+      <StableBoardLetters cellCount={grid.cells.length} board={match.board} provisional={provisional} failed={revealedWrong} playerId={playerId} hiddenCell={hiddenStableLetterCell} draggedTileId={drag?.glisse ? drag.tile.id : null} />
       <BoardWordHighlight highlight={wordHighlight} columns={grid.columns} rows={grid.rows} />
       <BoardScoreEffects effects={scoreEffects} columns={grid.columns} rows={grid.rows} />
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn && lectureRestante === null ? 'duel-rack-waiting' : ''}`}>
         {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>Touche une définition pour l’agrandir.</span></div> : <div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
-        {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
+        {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.glisse && drag.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
       <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button><button className={`validate ${isMyTurn && !resolving && Object.keys(provisional).length === 0 ? 'is-pass' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}><Check />{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer mon tour' : 'Valider' : `Tour de ${opponentName}`}</button></div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
-    {drag ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
+    {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
     {expandedClue ? <ClueZoom entry={expandedClue} origine={origineDefinition} onClose={() => setExpandedClue(null)} /> : null}

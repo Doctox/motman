@@ -53,6 +53,17 @@ export type CellBox = {
  */
 export const TOUCH_LIFT_PX = 34
 
+/**
+ * En deçà, un geste est un TOUCHER, pas un glisser (22/10/2026, code U3).
+ *
+ * La visée remonte de `TOUCH_LIFT_PX` dès le contact. Sans ce seuil, toucher le
+ * centre d'une lettre posée pour la reprendre la faisait monter d'une case, et
+ * toucher le haut d'une lettre du chevalet pouvait la poser dans la dernière
+ * rangée de la grille. Un toucher laisse maintenant le clic faire son travail :
+ * reprendre la lettre, ou la choisir.
+ */
+export const SEUIL_GLISSER_PX = 8
+
 /** Part de la largeur d'une case au-delà de laquelle on ne rattrape plus. */
 const TOLERANCE_RELATIVE = 0.45
 
