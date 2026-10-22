@@ -3,7 +3,7 @@
    thème sombre suit donc tout seul. */
 .mm-premier-passage{
   display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px 10px;align-items:start;
-  margin:0 0 12px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--mm-sage) 70%,var(--mm-line));
+  margin:12px 0;padding:12px 14px;border:1px solid color-mix(in srgb,var(--mm-sage) 70%,var(--mm-line));
   border-radius:16px;background:color-mix(in srgb,var(--mm-sage) 35%,var(--mm-surface));color:var(--mm-ink);
 }
 .mm-premier-passage>svg{width:20px;height:20px;margin-top:2px;color:var(--mm-gold)}

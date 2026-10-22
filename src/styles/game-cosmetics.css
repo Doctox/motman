@@ -45,6 +45,9 @@
 .game-result-art{
   width:calc(100% + 36px);height:136px;max-width:none;margin:-8px -18px 2px;display:block;object-fit:cover;object-position:center 50%;
   mix-blend-mode:multiply;pointer-events:none;animation:resultArtReveal .82s .04s var(--motion) both;
+  /* Fondue sur les bords : on voyait son rectangle (passe visuelle du 22/10/2026). */
+  -webkit-mask-image:radial-gradient(ellipse 62% 75% at 50% 50%,#000 45%,transparent 100%);
+          mask-image:radial-gradient(ellipse 62% 75% at 50% 50%,#000 45%,transparent 100%);
 }
 .game-result-emblem{
   position:relative;width:82px;height:82px;margin:3px auto 13px;border:1px solid #c49a3f;border-radius:50%;
@@ -80,7 +83,7 @@
   content:'';position:absolute;left:50%;bottom:0;width:150px;height:8px;translate:-50% 0;
   background:radial-gradient(circle at 50% 50%,#c6a04f 0 2px,transparent 2.5px),linear-gradient(90deg,transparent,#cdb271 28%,#cdb271 72%,transparent) center/100% 1px no-repeat;
 }
-.game-result-score>i{width:19px;height:1px;justify-self:center;background:#9ea49d}
+.game-result-score>i{width:19px;height:1px;justify-self:center;align-self:start;margin-top:calc(5px + 1.29rem);background:#9ea49d}
 .game-result-score-side{min-width:0;display:flex;flex-direction:column;align-items:center}
 .game-result-score-side strong{font:600 2.6875rem/.96 'Playfair Display',serif;font-variant-numeric:tabular-nums;color:var(--result-accent)}
 .game-result-score-side small{max-width:105px;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#556b63;font:600 0.75rem 'Playfair Display',serif}
@@ -197,12 +200,15 @@ html[data-motion="off"] .game-result-screen,html[data-motion="off"] .game-result
    au-dessus des boutons. */
 .game-result-screen.sans-recompense .end-game-actions{margin-top:20px}
 
-/* F2 — « Ajouter en ami » : une pastille sous le nom de l'adversaire. */
-.game-result-score-side .duel-friend{margin:7px 0 0;animation:resultContentRise .48s .34s var(--motion) both}
-.game-result-score-side .duel-friend-add{width:auto;min-height:36px;padding:4px 11px;gap:5px;font:600 0.75rem 'DM Sans',sans-serif;box-shadow:none}
-.game-result-score-side .duel-friend-add svg{width:14px;height:14px}
-.game-result-score-side .duel-friend-done{margin:7px 0 0;font-size:0.75rem}
-html[data-motion="off"] .game-result-score-side .duel-friend{animation:none!important}
+/* F2 — « Ajouter Jules en ami » : une pastille centrée sous les scores, sur
+   une seule ligne ; un pseudo trop long se coupe en « … », jamais la pastille. */
+.game-result-sous-score{display:flex;justify-content:center;margin:-2px 0 6px;min-width:0}
+.game-result-sous-score .duel-friend{margin:0;max-width:100%;animation:resultContentRise .48s .34s var(--motion) both}
+.game-result-sous-score .duel-friend-add{width:auto;max-width:100%;min-height:36px;padding:4px 14px;gap:6px;font:600 0.8125rem 'DM Sans',sans-serif;box-shadow:none;white-space:nowrap}
+.game-result-sous-score .duel-friend-add span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.game-result-sous-score .duel-friend-add svg{flex:none;width:15px;height:15px}
+.game-result-sous-score .duel-friend-done{margin:0;font-size:0.8125rem}
+html[data-motion="off"] .game-result-sous-score .duel-friend{animation:none!important}
 
 /* N3 — Les quêtes, au moment où l'on décide de continuer. N7 — le premier panier. */
 .result-quetes,.result-premier-panier{margin:0;padding:10px 12px;border:1px solid #d8c79d;border-radius:14px;background:#fffaf0;color:#24594f;text-align:left;font-size:0.8125rem;line-height:1.4;animation:resultContentRise .48s .5s var(--motion) both}
@@ -214,3 +220,8 @@ html[data-motion="off"] .game-result-score-side .duel-friend{animation:none!impo
 [data-theme="dark"] .result-quetes p+p{color:#a5b4ae}
 [data-theme="dark"] .result-premier-panier{color:#edd48a}
 html[data-motion="off"] .result-quetes,html[data-motion="off"] .result-premier-panier{animation:none!important}
+
+/* Un résultat illimité relu depuis le menu (Menu.tsx, `pending-result-shell`) n'a
+   pas l'en-tête de la partie : les 100 px qu'on lui réservait laissaient le
+   bouton flotter au milieu du vide (passe visuelle du 22/10/2026). */
+.pending-result-shell .game-result-screen{min-height:calc(100dvh - 32px - env(safe-area-inset-bottom,0px))}

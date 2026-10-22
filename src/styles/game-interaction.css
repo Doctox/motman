@@ -256,8 +256,8 @@ html[data-motion="off"] .experience-progress b{transition:none!important}
    en vert pin et non plus en terracotta (la couleur de l'adversaire) ; la
    barre où seul le GAIN grandit, en laiton clair ; le détail plié ; rien sous
    11 px. */
-.experience-reward-heading{flex-wrap:wrap}
-.experience-gains{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.experience-reward-heading{flex-direction:column;align-items:flex-start;gap:8px}
+.experience-gains{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
 .experience-gains strong{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font:700 0.9375rem 'Playfair Display',serif;font-variant-numeric:tabular-nums}
 .experience-gain-xp{background:#e6f2ea;color:#073f36;border:1px solid #b9d9c6}
 .experience-gain-plumes{background:#f8edca;color:#6b4f17;border:1px solid #dcc88f}
@@ -439,3 +439,9 @@ html:not(.native-runtime) .board .clue.double-clue .clue-entry:not(.image-entry)
    bas la marge de la flèche, où les lignes d'après le « … » restaient visibles
    quand c'était elle qu'on coupait. Le nombre de lignes vient du script. */
 .board .clue .clue-entry.clue-clamped>.clue-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--clue-lignes,3);overflow:hidden;max-height:100%}
+
+/* Passe visuelle du 22/10/2026 : la flèche d'une définition en image ne mord plus
+   sur la vignette, et a la taille des autres. */
+.board .clue .clue-entry.image-entry{padding:2px 2px 9px}
+.board .clue .clue-entry.image-entry b{bottom:1px;font-size:calc(9px / var(--zoom-texte,1));line-height:1}
+.rack-heading{align-items:baseline}

@@ -25,7 +25,7 @@
 
 .essai-layer .essai-scores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .essai-layer .essai-score{
-  display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;
   border:1px solid #e1d6c1;border-radius:14px;background:#fffaf0;
 }
 .essai-layer .essai-score small{font:600 0.9375rem 'Playfair Display',serif}
@@ -40,8 +40,10 @@
 }
 .essai-layer .essai-case{aspect-ratio:1;min-width:0;border-radius:8px}
 .essai-layer .essai-definition{
-  position:relative;display:flex;align-items:center;justify-content:center;padding:4px 10px 4px 4px;
-  font:600 clamp(10px,2.9vw,12px)/1.15 'Atkinson Hyperlegible','DM Sans',sans-serif;text-align:center;color:#18332c;
+  /* La flèche a sa place en bas : le texte ne la touche plus (« Il aime le fromage » en 320 px). */
+  position:relative;display:flex;align-items:center;justify-content:center;padding:3px 6px 13px 4px;
+  /* Atkinson Hyperlegible SANS gras, comme sur la grille : le gras « fait tache noire » (propriétaire, 15/10/2026). */
+  font:400 clamp(9.5px,2.9vw,12px)/1.12 'Atkinson Hyperlegible','DM Sans',sans-serif;hyphens:auto;text-align:center;color:#18332c;
 }
 .essai-layer .essai-definition b{position:absolute;right:4px;bottom:2px;color:var(--essai-laiton);font:700 0.8125rem 'DM Sans',sans-serif}
 .essai-layer .essai-ton-0{background:#f5e9c4}
@@ -65,12 +67,12 @@
 
 /* La bulle : toujours entre la grille et le chevalet, au-dessus du voile. */
 .essai-layer .essai-bulle{
-  position:relative;z-index:3;display:grid;gap:8px;align-content:start;min-height:124px;padding:14px 16px;
+  position:relative;z-index:3;display:grid;gap:8px;align-content:start;padding:14px 16px;
   border:1px solid #d9c8a9;border-radius:18px;background:#fffaf0;box-shadow:0 10px 28px #081e1930;
 }
 .essai-layer .essai-bulle.is-empty{visibility:hidden}
 .essai-layer .essai-bulle strong{font:600 1.1875rem/1.2 'Playfair Display',serif}
-.essai-layer .essai-bulle p{margin:0;font:400 1rem/1.4 'Atkinson Hyperlegible','DM Sans',sans-serif;color:#28463e}
+.essai-layer .essai-bulle p{margin:0;font:400 1rem/1.4 'DM Sans',system-ui,sans-serif;color:#28463e}
 .essai-layer .essai-bulle button{
   justify-self:end;min-height:44px;padding:0 20px;border:0;border-radius:999px;
   background:var(--essai-encre);color:#fffaf0;font:600 1rem 'Playfair Display',serif;cursor:pointer;
@@ -104,20 +106,20 @@
 /* Le voile : il ne capte aucun toucher (la logique ignore ce qui n'est pas demandé). */
 .essai-layer .essai-voile{position:fixed;inset:0;z-index:2;pointer-events:none}
 .essai-layer .essai-voile>rect:first-of-type{fill:#09201bb8}
-.essai-layer .essai-voile .essai-contour{fill:none;stroke:#e6c77d;stroke-width:2.5}
+.essai-layer .essai-voile .essai-contour{fill:none;stroke:#e6c77d;stroke-width:2}
 html:not([data-motion="off"]) .essai-layer .essai-voile .essai-contour{animation:essaiContour 1.6s ease-in-out 2}
-@keyframes essaiContour{50%{stroke-width:5}}
+@keyframes essaiContour{50%{stroke-width:3.5}}
 
 /* La fin : trois conseils, puis la vraie partie. */
 .essai-layer .essai-fin{
   position:fixed;left:50%;bottom:0;z-index:4;width:min(100%,440px);translate:-50% 0;
   padding:22px 20px calc(20px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;
-  background:#fffaf0;box-shadow:0 -12px 40px #081e1940;
+  background:#fffaf0;box-shadow:0 -4px 18px #081e191f;
 }
 .essai-layer .essai-fin small{color:var(--essai-laiton);font:700 0.75rem 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase}
 .essai-layer .essai-fin h2{margin:4px 0 12px;font:600 1.75rem/1.1 'Playfair Display',serif;color:var(--essai-encre)}
 .essai-layer .essai-fin ul{display:grid;gap:10px;margin:0 0 18px;padding:0;list-style:none}
-.essai-layer .essai-fin li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font:400 1rem/1.4 'Atkinson Hyperlegible','DM Sans',sans-serif;color:#28463e}
+.essai-layer .essai-fin li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font:400 1rem/1.4 'DM Sans',system-ui,sans-serif;color:#28463e}
 .essai-layer .essai-fin li svg{width:20px;height:20px;margin-top:1px;color:var(--essai-laiton)}
 .essai-layer .essai-fin button{width:100%;min-height:50px;border-radius:999px;font:600 1.0625rem 'Playfair Display',serif;cursor:pointer}
 .essai-layer .essai-fin-jouer{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;background:var(--essai-encre);color:#fffaf0}

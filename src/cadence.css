@@ -18,7 +18,9 @@
 .mm-settings,.mm-friends-panel,.mm-guest-editor,.mm-quests,.clue-popover,.ranked-ready-dialog,.mm-streak-calendar,.mm-legal-panel{animation-duration:var(--mm-t-scene)!important}
 
 .mm-quest-bar,.mm-shop-collection>i,.mm-home-account-xp{overflow:hidden}
-.mm-quest-bar i,.mm-shop-collection>i>b,.mm-home-account-xp b{
+/* Pas les cases de la barre découpée (quête de la semaine) : sans --part, elles
+   étaient écrasées à zéro et la barre disparaissait (relevé du 22/10/2026). */
+.mm-quest-bar:not(.is-decoupee) i,.mm-shop-collection>i>b,.mm-home-account-xp b{
   width:100%!important;min-width:0!important;border-radius:0!important;
   transform:scaleX(var(--part,0));transform-origin:left center;transition-property:transform!important;
 }

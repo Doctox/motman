@@ -143,7 +143,7 @@ export function PurchaseConfirm({ purchase, balance, preview, confirm, cancel }:
   return createPortal(<div className="mm-modal-layer mm-pause-layer" role="presentation" onClick={event => { if (event.target === event.currentTarget) cancel() }}>
     <section ref={dialogRef} className="mm-pause mm-purchase-confirm" role="dialog" aria-modal="true" aria-label={`${verbe} ${purchase.name}`} tabIndex={-1}>
       {preview ? <div className="mm-purchase-preview" aria-hidden="true">{preview}</div> : null}
-      <h2>{verbe} « {purchase.name} » ?</h2>
+      <h2>{verbe} « {purchase.name} » ?</h2>
       <p className="mm-purchase-cost">{purchase.price === 0 ? <><Gift aria-hidden="true" /><b>Offert</b></> : <><Feather aria-hidden="true" /><b>{plumes(purchase.price)}</b></>}</p>
       <p className="mm-purchase-balance">{manque > 0 ? `Il te manque ${plumes(manque)}.` : `Il te restera ${plumes(balance - purchase.price)}.`}</p>
       <button type="button" disabled={manque > 0} onClick={confirm}>{purchase.price === 0 ? `${verbe} gratuitement` : verbe}</button>
@@ -389,7 +389,7 @@ export function ShopPage({ cosmetics, setCosmetics, back, notify }: {
         const manque = Math.max(0, prix - cosmetics.plumes)
         const inabordable = basketState === 'idle' && manque > 0
         return <article className={`mm-basket-card cloth-${basket.cloth} is-${basketState} ${offert ? 'is-free' : ''} ${basketState === 'revealed' && reward ? `reveals-${reward.rarity}` : ''}`} key={basket.id}>
-        <header><small>Toute la collection · doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</small><strong>{basket.name}</strong>
+        <header><small><span className="mm-sans-coupure">Toute la collection</span> <span className="mm-sans-coupure">· doubles remboursés à {BASKET_DUPLICATE_REFUND_PERCENT} %</span></small><strong>{basket.name}</strong>
           {offert && basketState === 'idle' ? <span className="mm-basket-gift"><Gift aria-hidden="true" />{reserve > 0 ? `${reserve} panier${reserve > 1 ? 's' : ''} offert${reserve > 1 ? 's' : ''} par ta série` : 'Ton premier panier est offert'}</span> : null}</header>
         {offert && basketState === 'idle' ? <span className="mm-basket-ribbon" aria-hidden="true">Offert</span> : null}
         <button className="mm-basket-stage" type="button" disabled={basketState === 'opening' || inabordable} onPointerDown={event => tenirLePanier(event, basket.id)} onPointerUp={() => lacherLePanier(true)} onPointerLeave={() => lacherLePanier(true)} onPointerCancel={() => lacherLePanier(true)}

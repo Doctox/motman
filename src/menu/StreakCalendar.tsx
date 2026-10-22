@@ -138,7 +138,7 @@ export function StreakCalendar({ state, today, streak, freezes, countedToday, cl
         })}
       </ol>
 
-      <p className="mm-streak-freeze-note"><Snowflake aria-hidden="true" /><span><b>Gel de série</b> : il protège une journée manquée. La série continue, sans compter de jour manqué. À l’Épicerie · {STREAK_FREEZE_PRICE} plumes · {MAX_STREAK_FREEZES} au plus.</span></p>
+      <p className="mm-streak-freeze-note"><Snowflake aria-hidden="true" /><span><b>Gel de série</b> : il protège une journée manquée. La série continue, sans compter de jour manqué. À l’Épicerie · {STREAK_FREEZE_PRICE} plumes · {MAX_STREAK_FREEZES} au plus.</span></p>
 
       <ul className="mm-streak-legend" aria-hidden="true">
         <li><Check />réussi</li>

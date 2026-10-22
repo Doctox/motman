@@ -86,7 +86,7 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .end-game-home:active{transform:translateY(1px)}
 [data-theme="dark"] .end-game-home{background:#22322d;border-color:#50635a;color:#e8f3ec}
 @media(max-width:360px){.end-game-actions{grid-template-columns:1fr}.end-game-actions .new-game,.end-game-home{height:42px}}
-.ranked-result-summary{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:11px;width:100%;padding:9px 13px;border:1px solid #cfb873;border-radius:13px;background:#fff8e6;color:#073f37}.ranked-result-summary img{width:62px;height:62px;object-fit:contain}.ranked-result-summary span{display:flex;flex-direction:column}.ranked-result-summary small{font-size:0.625rem;color:#6d756d;text-transform:uppercase;letter-spacing:.06em}.ranked-result-summary strong{font:700 1.25rem "Playfair Display",serif}.ranked-result-summary b{font-size:1.125rem}.ranked-result-summary b.positive{color:#08745f}.ranked-result-summary b.negative{color:#c4472d}
+.ranked-result-summary{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:11px;width:100%;padding:14px 17px;border:1px solid #cfb873;border-radius:13px;background:#fff8e6;color:#073f37}.ranked-result-summary img{width:62px;height:62px;object-fit:contain}.ranked-result-summary span{display:flex;flex-direction:column}.ranked-result-summary small{font-size:0.625rem;color:#6d756d;text-transform:uppercase;letter-spacing:.06em}.ranked-result-summary strong{font:700 1.25rem "Playfair Display",serif}.ranked-result-summary b{font-size:1.125rem}.ranked-result-summary b.positive{color:#08745f}.ranked-result-summary b.negative{color:#c4472d}
 /* C4 (22/10/2026) — La carte classée passe avant les gains et dit où l'on va :
    le total, la distance au palier suivant (et sa barre), le passage d'un
    palier. Une perte s'écrit en gris, jamais en rouge. */
@@ -121,3 +121,8 @@ html[data-motion="off"] .ranked-result-summary{animation:none!important}
 [data-theme="dark"] .result-notifications strong{color:#edf5ef}
 [data-theme="dark"] .result-notifications button{background:#8fdcb8;color:#0d2a23}
 [data-theme="dark"] .result-notifications button.secondaire{background:transparent;border-color:#40524b;color:#cddbd4}
+
+/* Passe visuelle du 22/10/2026 : en haut, la fiche s'arrêtait au milieu des
+   cartes des joueurs. Elle devient un volet qui descend du haut de l'écran. */
+.clue-zoom-backdrop.en-haut{padding:0}
+.clue-zoom-backdrop.en-haut .clue-popover{width:min(100%,430px)!important;border-radius:0 0 21px 21px;padding-top:calc(24px + env(safe-area-inset-top,0px))}

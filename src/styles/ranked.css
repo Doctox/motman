@@ -38,7 +38,7 @@ html[data-motion="off"] .ranked-ready-countdown.urgent{animation:none}
 /* C7 (22/10/2026) : l'urgence se dit par l'anneau qui se vide, pas par une
    couleur d'alarme. L'anneau prend toute la taille du décompte : la règle
    `.ranked-ready-countdown svg{width:25px}` le réduisait à un petit rond. */
-.ranked-ready-countdown .ranked-ready-anneau{width:100%;height:100%}
+.ranked-ready-countdown .ranked-ready-anneau{width:100%;height:100%;grid-area:auto}
 .ranked-ready-free{margin:8px 0 0!important;color:var(--mm-muted,#626c68);font-size:0.75rem}
 [data-theme="dark"] .ranked-ready-anneau circle{stroke:#33433c}
 [data-theme="dark"] .ranked-ready-anneau circle.reste{stroke:#8ad6b4}
@@ -56,3 +56,7 @@ html[data-motion="off"] .ranked-ready-layer,html[data-motion="off"] .ranked-read
 [data-theme="dark"] .ranked-result-summary{background:#22322d;border-color:#74694c;color:#edf5ef}
 [data-theme="dark"] .ranked-result-summary small{color:#a5b4ae}
 [data-theme="dark"] .ranked-result-summary b.positive{color:#8ad6b4}
+
+/* Passe visuelle du 22/10/2026 : « Pas cette fois » tient sur une ligne. */
+.ranked-ready-actions{grid-template-columns:1fr 1fr}
+.ranked-ready-actions button{white-space:nowrap;padding-inline:12px}

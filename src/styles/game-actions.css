@@ -320,3 +320,13 @@ html[data-motion="off"] .ranked-seeker-dialog{animation:none}
    ressemblent dans la même barre, c'est une de moins à comprendre. */
 .hint-button .hint-left{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;margin-left:7px;padding:0;border-radius:50%;background:#f2ead7;border:1px solid #e0d3ad;color:#8a6a1e;font:800 0.6875rem/1 'DM Sans',sans-serif;font-style:normal}
 [data-theme="dark"] .hint-button .hint-left{background:#2c3a33;border-color:#4a5c53;color:#d9b563}
+
+/* Passe visuelle du 22/10/2026 : l'art des cadres ne déborde plus de la carte. */
+/* 7 px : à 9, le pseudo perdait sa place (« Cami… ») ; l'art tient avec la marge de 4 px côté bord. */
+.multiplayer-shell .scoreboard .player{padding-inline:7px}
+.multiplayer-shell .scoreboard .game-portrait.has-frame-art{width:46px;height:46px;flex-basis:46px}
+/* À 46 px, l'art d'un cadre (×1,40 à ×1,50) déborde de 9 à 12 px : 3 px de marge
+   plus le rembourrage côté bord, 4 px plus l'écart de 6 px côté pseudo. */
+.multiplayer-shell .scoreboard .player:first-child .game-portrait.has-frame-art{margin-left:3px;margin-right:4px}
+.multiplayer-shell .scoreboard .player:last-child .game-portrait.has-frame-art{margin-right:3px;margin-left:4px}
+@media(max-width:370px){.multiplayer-shell .scoreboard .player{padding-inline:6px}}

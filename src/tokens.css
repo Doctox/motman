@@ -199,3 +199,7 @@
   --mm-button-danger:           #3e3128;
   --mm-button-danger-border:    #7a5a46;
 }
+
+/* Passe visuelle du 22/10/2026 : plus de mot seul sur la dernière ligne d'un
+   paragraphe (« sans / point. », « pendant ta / pause. »). */
+.mm-shell p,.mm-shell small,.mm-modal-layer p,.game-result-screen p,.essai-layer p,.essai-layer li{text-wrap:pretty}

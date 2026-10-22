@@ -31,7 +31,7 @@ export function seekerBannerState({ seekers, estUnCompte, dejaEnClasse }: {
   if (seekers < 1 || dejaEnClasse) return null
   return {
     titre: seekers > 1 ? `${seekers} joueurs cherchent une partie classée` : 'Un joueur cherche une partie classée',
-    sous: estUnCompte ? 'C’est le moment : il attend un adversaire.' : 'Le classé demande un compte — il ne prend qu’une minute.',
+    sous: estUnCompte ? (seekers > 1 ? 'C’est le moment : ils attendent un adversaire.' : 'C’est le moment : il attend un adversaire.') : 'Le classé demande un compte — il ne prend qu’une minute.',
     libelle: estUnCompte ? 'Rejoindre' : 'Créer un compte',
     action: estUnCompte ? 'rejoindre' : 'compte',
   }

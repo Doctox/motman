@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { RANKED_DIVISIONS, rankImage, rankedDivision, RANKED_PLACEMENT_MATCHES } from '../ranked'
 import { useDialogFocus } from '../useDialogFocus'
+import { portailDuMenu } from './portailDuMenu'
 import './menu-paliers.css'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,7 +22,9 @@ const nombre = new Intl.NumberFormat('fr-FR')
 export function FichePaliers({ points, matches, close }: { points: number; matches: number; close: () => void }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(close)
   const actuel = rankedDivision(points, matches)
-  return <div className="mm-modal-layer mm-paliers-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
+  // Hors de la page qui l'ouvre, dans la coquille du menu (portailDuMenu.ts) :
+  // en 320 × 616, la page cachait son titre et sa croix.
+  return portailDuMenu(<div className="mm-modal-layer mm-paliers-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
     <div ref={dialogRef} className="mm-paliers" role="dialog" aria-modal="true" aria-labelledby="mm-paliers-titre" tabIndex={-1}>
       <header>
         <h2 id="mm-paliers-titre">Les paliers</h2>
@@ -37,5 +40,5 @@ export function FichePaliers({ points, matches, close }: { points: number; match
       <p>Une victoire contre un joueur de ton niveau rapporte une vingtaine de points ; une défaite en coûte autant. Battre plus fort que toi rapporte davantage.</p>
       {matches < RANKED_PLACEMENT_MATCHES ? <p className="mm-paliers-note">Ton palier apparaît après tes {RANKED_PLACEMENT_MATCHES} parties de placement.</p> : null}
     </div>
-  </div>
+  </div>)
 }

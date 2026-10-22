@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { portailDuMenu } from './portailDuMenu'
 import { LoaderCircle, X } from 'lucide-react'
 
 import type { GeneratedGrid } from '../generator'
@@ -6,6 +7,7 @@ import { decodeBoardSnapshot } from '../matchBoardSnapshot'
 import { loadHistoryGrid, type MatchHistoryEntry } from '../matches'
 import { matchHistoryResultLabel } from '../matchHistory'
 import { useDialogFocus } from '../useDialogFocus'
+import { assetUrl } from '../assetUrl'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RELECTURE D'UNE PARTIE TERMINÉE.
@@ -49,7 +51,8 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
 
   // Toucher le fond ferme la relecture (H18), comme les autres fenêtres.
   const toucheSurLeFond = useRef(false)
-  return <div ref={dialogRef} className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`} tabIndex={-1}
+  // Hors de la page qui l'ouvre, dans la coquille du menu (portailDuMenu.ts).
+  return portailDuMenu(<div ref={dialogRef} className="mm-replay-layer" role="dialog" aria-modal="true" aria-label={`Relecture de la partie contre ${adversaire}`} tabIndex={-1}
     onPointerDown={event => { toucheSurLeFond.current = event.target === event.currentTarget }}
     onClick={event => { if (toucheSurLeFond.current && event.target === event.currentTarget) onClose(); toucheSurLeFond.current = false }}>
     <section className="mm-replay-panel">
@@ -72,7 +75,11 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
                 // une case noire, sauf le coin haut gauche qui porte le logo.
                 const noire = cell.kind === 'blocked' || (!definitions.length && index !== 0)
                 return <div className={`mm-replay-cell ${noire ? 'blocked' : 'clue'}`} key={index}>
-                  {definitions.map((entry, rang) => <span key={rang}>{String((entry as { text?: string }).text ?? '')}</span>)}
+                  {/* Un indice-image s'affichait en case vide (passe du 22/10/2026). */}
+                  {definitions.map((entry, rang) => {
+                    const { text, image } = entry as { text?: string; image?: { asset?: string; alt?: string } }
+                    return image?.asset ? <img key={rang} src={assetUrl(image.asset)} alt={image.alt ?? ''} /> : <span key={rang}>{String(text ?? '')}</span>
+                  })}
                 </div>
               }
               const posee = lettres.get(index)
@@ -84,9 +91,9 @@ export function MatchReplay({ match, onClose }: { match: MatchHistoryEntry; onCl
           <p className="mm-replay-legende">
             {cases.length === 0
               ? 'Le plateau de cette partie n’a pas été conservé.'
-              : <><b>{posees}</b> lettre{posees > 1 ? 's' : ''} de toi · <b>{cases.length - posees}</b> de {adversaire}. Les cases vides n’ont jamais été remplies.</>}
+              : <><b>{posees}</b> lettre{posees > 1 ? 's' : ''} de toi · <b>{cases.length - posees}</b> de {adversaire}.{cases.length < grid.cells.filter(cell => cell.kind === 'letter').length ? ' Les cases vides n’ont jamais été remplies.' : ''}</>}
           </p>
         </>}
     </section>
-  </div>
+  </div>)
 }

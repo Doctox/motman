@@ -51,7 +51,7 @@ function bulleDe(etat: EtatEssai, coupAdverseJoue: boolean): Bulle | null {
 type Fenetre = { x: number; y: number; l: number; h: number }
 
 /** Le rectangle qui englobe tout ce que désigne `selecteur`, en coordonnées d'écran. */
-function rectangleDe(racine: HTMLElement, selecteur: string, marge = 6): Fenetre | null {
+function rectangleDe(racine: HTMLElement, selecteur: string, marge = 2): Fenetre | null {
   const elements = [...racine.querySelectorAll<HTMLElement>(selecteur)]
   if (!elements.length) return null
   const boites = elements.map(element => element.getBoundingClientRect())

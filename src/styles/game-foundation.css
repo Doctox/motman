@@ -64,10 +64,12 @@ body{background:#deddd6}
 [data-theme="dark"] .cell{border-color:#4b5e57}
 [data-theme="dark"] .slot{background:#17231f}
 @media (hover:hover) and (pointer:fine){[data-theme="dark"] .slot:hover{background:#1d2d28}}
-[data-theme="dark"] .clue{background:#2a3932!important;color:#e5eee8}
-[data-theme="dark"] .clue:nth-child(4n+1){background:#46322d!important}
-[data-theme="dark"] .clue:nth-child(4n+2){background:#443d28!important}
-[data-theme="dark"] .clue:nth-child(4n+3){background:#303c32!important}
+/* `background-color` et non `background` : le raccourci remettait background-clip
+   à border-box, et la nuit les définitions se collaient (passe du 22/10/2026). */
+[data-theme="dark"] .clue{background-color:#2a3932!important;color:#e5eee8}
+[data-theme="dark"] .clue:nth-child(4n+1){background-color:#46322d!important}
+[data-theme="dark"] .clue:nth-child(4n+2){background-color:#443d28!important}
+[data-theme="dark"] .clue:nth-child(4n+3){background-color:#303c32!important}
 [data-theme="dark"] .clue .clue-entry b{color:#dcebe3}
 [data-theme="dark"] .letter-only{color:#e2f1e9;text-shadow:none}
 [data-theme="dark"] .letter-only.locked{color:#73d1a4}
@@ -352,3 +354,12 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 /* P6 : le décompte garde sa place avant que l'échéance ne coure, en gris. */
 .still-there .still-there-countdown.is-waiting{opacity:.5}
 .still-there #still-there-detail{margin-bottom:16px}
+
+/* Passe visuelle du 22/10/2026 : la croix de la fiche, alignée sur la pastille. */
+.clue-popover-close{top:17px}
+.clue-zoom-backdrop.en-haut .clue-popover-close{top:calc(19px + env(safe-area-inset-top,0px))}
+
+/* Passe visuelle du 22/10/2026 : un rebord de 3 px qui ne touche plus le cadre,
+   et la nuit, un rebord de nuit. */
+.rack-letter{box-shadow:0 3px 0 #cdbb9e,0 6px 12px #49341e22,inset 0 1px 0 #fff,inset 0 -3px 5px #e0d1b040!important}
+[data-theme="dark"] .rack-letter{box-shadow:0 3px 0 #0b1512,0 6px 12px #0006,inset 0 1px 0 #ffffff1a!important}

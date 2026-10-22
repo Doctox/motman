@@ -30,7 +30,7 @@
 .rarity-legendaire{--mm-rarity:var(--mm-rarity-legendaire)}
 
 /* Barre : retour · collection · plumes */
-.mm-shop-page .mm-shop-toolbar{display:grid;grid-template-columns:39px minmax(0,1fr) auto;gap:12px}
+.mm-shop-page .mm-shop-toolbar{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px}
 .mm-shop-collection{min-width:0;display:flex;flex-direction:column;gap:5px}
 .mm-shop-collection>span{display:flex;justify-content:space-between;gap:8px;color:var(--mm-ink-soft);font-size:0.75rem;font-weight:700}
 .mm-shop-collection>span em{font-style:normal;font-weight:600;color:var(--mm-muted);font-variant-numeric:tabular-nums}
@@ -147,3 +147,12 @@
 .mm-basket-stage{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .mm-basket-tenir{margin:6px 0 0;text-align:center;color:var(--mm-muted);font-size:.75rem}
 html[data-motion="off"] .mm-basket-stage.est-tenu .mm-basket-picture{animation:none}
+
+/* Passe visuelle du 22/10/2026. */
+/* G2-9 · Les boutons de prix de deux cartes voisines, à la même hauteur. */
+.mm-shop-page .mm-shop-item>button{margin-top:auto}
+.mm-shop-page .mm-shop-item>p:last-of-type{margin-bottom:9px}
+/* G2-10 · Les familles d'avatars : la dernière pastille se fond au lieu d'être tranchée. */
+.mm-avatar-family-chips{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+/* G2-14 · L'ombre du bouton « Ouvrir » n'est plus coupée net par la scène. */
+.mm-shop-page .mm-basket-action{bottom:14px;box-shadow:0 4px 10px #00000022}

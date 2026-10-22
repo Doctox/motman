@@ -442,7 +442,7 @@ function AddOpponentAsFriend({ playerId, opponentId, opponentName, isBot }: {
         c'était la première chose à apparaître, et un toucher pressé envoyait une
         demande d'ami à un inconnu. */}
     <button type="button" className="duel-friend-add" aria-label={`Ajouter ${opponentName} en ami`} disabled={etat === 'envoi'} onClick={() => void demander()}>
-      <UserPlus aria-hidden="true" />Ajouter en ami
+      <UserPlus aria-hidden="true" /><span>Ajouter {opponentName} en ami</span>
     </button>
     {erreur ? <p className="result-feedback-error" role="alert">{erreur}</p> : null}
   </div>

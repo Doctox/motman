@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { portailDuMenu } from './portailDuMenu'
 import { Activity, ChevronRight, Ghost, RefreshCw, ShieldAlert } from 'lucide-react'
 import { loadGamePulse, setGhostSwitch, type GamePulse } from '../matches'
 import { useDialogFocus } from '../useDialogFocus'
@@ -133,19 +134,20 @@ export function GamePulseCard({ pouls, rafraichir }: { pouls: GamePulse; rafraic
         </span>
         <ChevronRight aria-hidden="true" />
       </button>
-      {ouvert && (
+      {/* Les trois fenêtres sortent de la page d'accueil (portailDuMenu.ts). */}
+      {ouvert && portailDuMenu(
         <GamePulseDialog
           pouls={pouls}
           fermer={() => setOuvert(false)}
           rafraichir={rafraichir}
           ouvrirModeration={() => { setOuvert(false); setModeration(true) }}
           ouvrirEnLigne={() => { setOuvert(false); setEnLigne(true) }}
-        />
+        />,
       )}
       {/* Une seule fenêtre à la fois : la modération remplace le pouls. */}
-      {moderation && <ModerationPanel fermer={() => { setModeration(false); rafraichir() }} />}
+      {moderation && portailDuMenu(<ModerationPanel fermer={() => { setModeration(false); rafraichir() }} />)}
       {/* Qui est en ligne (11/10/2026) : au retour, le pouls se rouvre. */}
-      {enLigne && <OnlinePlayersPanel fermer={() => { setEnLigne(false); setOuvert(true) }} />}
+      {enLigne && portailDuMenu(<OnlinePlayersPanel fermer={() => { setEnLigne(false); setOuvert(true) }} />)}
     </>
   )
 }

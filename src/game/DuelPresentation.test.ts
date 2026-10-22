@@ -17,7 +17,7 @@ const classement = vi.hoisted(() => ({ lire: vi.fn() }))
 vi.mock('../dailyLeaderboard', () => ({ loadDailyLeaderboard: classement.lire }))
 vi.mock('../CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
 vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn(), motionReduced: () => false }))
-// La pastille « Ajouter en ami » vit sous le nom de l'adversaire depuis le 22/10/2026 (`sousAdversaire`).
+// La pastille « Ajouter … en ami » vit sous les scores depuis le 22/10/2026 (`sousAdversaire`).
 vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children, sousAdversaire, avantRecompense }: { children: ReactNode; sousAdversaire?: ReactNode; avantRecompense?: ReactNode }) => createElement('div', null, sousAdversaire, avantRecompense, children) }))
 
 import { dailyDateKey } from '../dailyDate'

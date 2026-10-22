@@ -131,7 +131,8 @@ html[data-motion="off"] .mm-nav-pastille{transition:none}
    et s'efface. `clip-path` découpe la pastille dans la boîte entière : la
    largeur suit le texte sans qu'on ait à l'animer. */
 .mm-toast{
-  top:calc(env(safe-area-inset-top,0px) + 12px);bottom:auto;display:grid;place-items:center;
+  /* En bas, au-dessus de la barre : en haut, il cachait le logo (passe du 22/10/2026). */
+  top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);display:grid;place-items:center;
   width:max-content;min-width:120px;min-height:44px;max-width:min(340px,calc(100vw - 32px));padding:10px 20px;
   border:1px solid color-mix(in srgb,var(--mm-gold) 40%,transparent);border-radius:999px;
   background:var(--mm-fill-strong);color:var(--mm-on-fill);box-shadow:0 12px 30px #0004;text-align:center;line-height:1.3;

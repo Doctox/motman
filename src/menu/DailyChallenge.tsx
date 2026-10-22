@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { portailDuMenu } from './portailDuMenu'
 import { CalendarDays, ChevronRight, Flame, Gift, Grid2x2Check, Medal, Snowflake } from 'lucide-react'
 import { useDialogFocus } from '../useDialogFocus'
 import { freeBasketsLabel, STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../dailyMilestones'
@@ -292,7 +293,8 @@ export function DailyChallengeHero({ onPlay, onOpenRanking, discret = false }: {
  */
 function DailyOneShotDialog({ theme, close, play }: { theme: string | null; close: () => void; play: () => void }) {
   const dialogRef = useDialogFocus<HTMLDivElement>(close)
-  return (
+  // Hors de la page qui l'ouvre, dans la coquille du menu (portailDuMenu.ts).
+  return portailDuMenu(
     <div className="mm-modal-layer mm-daily-warning-layer" role="presentation" onMouseDown={event => event.target === event.currentTarget && close()}>
       <div ref={dialogRef} className="mm-daily-warning" role="dialog" aria-modal="true" aria-labelledby="daily-warning-title" tabIndex={-1}>
         <h2 id="daily-warning-title"><CalendarDays aria-hidden="true" />Une seule fois par jour</h2>
@@ -308,7 +310,7 @@ function DailyOneShotDialog({ theme, close, play }: { theme: string | null; clos
           </button>
         </div>
       </div>
-    </div>
+    </div>,
   )
 }
 

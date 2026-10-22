@@ -10,7 +10,7 @@
 .mm-attente-definition{margin:0;color:var(--mm-ink);font:600 1.0625rem/1.25 'Playfair Display',serif;text-align:center}
 /* Les cases : celles de la grille, en petit. */
 .mm-attente-cases,.mm-attente-lettres{display:flex;justify-content:center;gap:6px}
-.mm-shell .mm-attente .mm-attente-case{width:38px;height:42px;padding:0;display:grid;place-items:center;border:1px solid var(--mm-line);border-radius:10px;background:var(--mm-paper);box-shadow:inset 0 2px 4px #b7a67d33;color:var(--mm-ink);font:700 1.25rem 'Playfair Display',serif;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease}
+.mm-shell .mm-attente .mm-attente-case{width:40px;height:42px;padding:0;display:grid;place-items:center;border:1px solid var(--mm-line);border-radius:10px;background:var(--mm-paper);box-shadow:inset 0 2px 4px #b7a67d33;color:var(--mm-ink);font:700 1.25rem 'Playfair Display',serif;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease}
 .mm-shell .mm-attente .mm-attente-case[aria-disabled="true"]{cursor:default}
 /* Les lettres : celles du chevalet, en petit. Posée, une tuile laisse sa place vide. */
 .mm-shell .mm-attente .mm-attente-lettre{width:40px;height:44px;padding:0;display:grid;place-items:center;border:1px solid #cdbd9f;border-radius:10px;background:linear-gradient(180deg,#fffaf0,#f3e9d4);box-shadow:0 2px 0 #d9c9a8,0 4px 8px #49341e14;color:var(--mm-ink);font:700 1.25rem 'Playfair Display',serif;cursor:pointer;transition:transform .12s ease}

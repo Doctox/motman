@@ -164,7 +164,8 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-streak-week-nav span { font-weight: 700; font-size: .9rem; }
 
 .mm-streak-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
-.mm-streak-week li { position: relative; display: grid; justify-items: center; gap: 3px; padding: 4px 0 2px; }
+/* 7 px entre la lettre et le rond : l'anneau d'aujourd'hui (4 px) touchait presque la lettre (passe du 22/10/2026). */
+.mm-streak-week li { position: relative; display: grid; justify-items: center; gap: 7px; padding: 4px 0 4px; }
 .mm-streak-week li > small { color: var(--mm-muted); font-size: .6875rem; font-weight: 700; }
 .mm-streak-day {
   display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
@@ -277,7 +278,7 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 
 /* La flamme dans le coin haut droit : même place sur les trois états, et le
    texte lui réserve sa bande pour ne jamais passer dessous. */
-.mm-daily-hero-corner{position:absolute;top:10px;right:10px}
+.mm-daily-hero-corner{position:absolute;top:12px;right:15px}
 .mm-daily-hero .mm-daily-eyebrow,.mm-daily-hero .mm-daily-title{padding-right:62px}
 
 /* « Une seule fois par jour » : l'avertissement qui précède la première
