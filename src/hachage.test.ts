@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { botThinkingDelayMs, createBotPersona } from './botOpponents'
 import { seedFromDate } from './dailyCalendar'
@@ -76,19 +76,17 @@ describe('FNV-1a : une seule écriture, les mêmes tirages', () => {
 })
 
 describe('une seule écriture', () => {
-  function fichiers(dossier: string): string[] {
-    return readdirSync(dossier).flatMap(nom => {
-      const chemin = join(dossier, nom)
-      if (statSync(chemin).isDirectory()) return nom === 'node_modules' || nom === 'data' ? [] : fichiers(chemin)
-      return /\.(ts|tsx|mjs)$/.test(nom) ? [chemin] : []
-    })
+  // Les fichiers SUIVIS par git, et eux seuls : les outils locaux gardés hors du
+  // dépôt (scripts/filmer_*.mjs, ignorés) ont le droit d'avoir leur copie.
+  function fichiersSuivis(dossiers: string[]): string[] {
+    return execFileSync('git', ['ls-files', '--', ...dossiers], { encoding: 'utf8' })
+      .split('\n')
+      .filter(chemin => /\.(ts|tsx|mjs)$/.test(chemin) && !chemin.split('/').includes('data'))
   }
 
   it('la constante de FNV-1a n’apparaît que dans src/hachage.ts', () => {
-    const copies = ['src', 'server', 'scripts', 'supabase/functions']
-      .flatMap(fichiers)
+    const copies = fichiersSuivis(['src', 'server', 'scripts', 'supabase/functions'])
       .filter(fichier => !fichier.endsWith('.test.ts') && /\b2166136261\b/.test(readFileSync(fichier, 'utf8')))
-      .map(fichier => fichier.replace(/\\/g, '/'))
     expect(copies).toEqual(['src/hachage.ts'])
   })
 
