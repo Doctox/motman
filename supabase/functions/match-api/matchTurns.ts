@@ -9,13 +9,62 @@
 // Voir `matchTurns.test.ts` pour ce qui est désormais couvert.
 
 import { planBotMove } from '../../../src/botOpponents.ts'
-import { evaluateTurn, keepRackLettersAfterTurn, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
+import { evaluateTurn, keepRackLettersAfterTurn, PRESENCE_WINDOW_MS, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
 import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
 import { ASYNC_TURN_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type MatchRow, type State, type Turn } from './matchModel.ts'
 
+/** Marge sur l'échéance « Je suis là », pour laisser arriver une réponse partie à temps. */
+export const PRESENCE_GRACE_MS = 2_000
+
+/**
+ * LA CADENCE D'UNE PARTIE (22/10/2026, code K1) : les DURÉES que la mécanique
+ * de tour applique, et rien d'autre.
+ *
+ * La production n'en a qu'une, `CADENCE_PRODUCTION`, valeur par défaut de
+ * chaque fonction ci-dessous : `index.ts` et `matchResolve.ts` ne la passent
+ * jamais. Le serveur de test qui porte les e2e (`server/match/regles.ts`) passe
+ * la sienne, raccourcie par des réglages nommés (les variables MOTMAN_* de
+ * playwright.config.ts) : douze secondes de tour au lieu de quarante-cinq.
+ *
+ * Jusqu'ici ce serveur RÉÉCRIVAIT ces règles au lieu de les importer, et il en
+ * différait sur quatre points : 350 ms de plus à chaque révélation, 1,8 s de
+ * plus à chaque tour, les lettres accentuées refusées, un plafond de trois
+ * parties illimitées. Un e2e vert prouvait que le serveur de test marchait, pas
+ * le jeu. Il importe maintenant ces fonctions ; seules les durées diffèrent, et
+ * elles passent toutes par ici.
+ */
+export type Cadence = {
+  /** La durée d'un tour, en temps limité puis en illimité. */
+  tourLimiteMs: number
+  tourIllimiteMs: number
+  /** La révélation d'un coup : un pas par case, mot ou chevalet, et un minimum. */
+  pasDeRevelationMs: number
+  revelationMinimaleMs: number
+  /** Le souffle entre deux tours (src/gameRules.ts). */
+  souffleMs: number
+  /** « Tu es toujours là ? » : la fenêtre, puis la marge sur son échéance. */
+  fenetrePresenceMs: number
+  margePresenceMs: number
+}
+
+export const CADENCE_PRODUCTION: Cadence = {
+  tourLimiteMs: REALTIME_TURN_MS,
+  tourIllimiteMs: ASYNC_TURN_MS,
+  pasDeRevelationMs: REWARD_STEP_MS,
+  revelationMinimaleMs: 700,
+  souffleMs: SOUFFLE_ENTRE_TOURS_MS,
+  fenetrePresenceMs: PRESENCE_WINDOW_MS,
+  margePresenceMs: PRESENCE_GRACE_MS,
+}
+
+/** La durée d'un tour au rythme de la partie. */
+export function dureeDuTour(pace: MatchRow['pace'], cadence: Cadence = CADENCE_PRODUCTION): number {
+  return pace === 'realtime' ? cadence.tourLimiteMs : cadence.tourIllimiteMs
+}
+
 /** La révélation du coup, puis le souffle avant le tour suivant (src/gameRules.ts). */
-export function revealDuration(turn: Turn): number {
-  return Math.max(700, (turn.wrongPlacements.length + turn.correct.length + turn.wordBonuses.length + (turn.rackBonus ? 1 : 0)) * REWARD_STEP_MS) + SOUFFLE_ENTRE_TOURS_MS
+export function revealDuration(turn: Turn, cadence: Cadence = CADENCE_PRODUCTION): number {
+  return Math.max(cadence.revelationMinimaleMs, (turn.wrongPlacements.length + turn.correct.length + turn.wordBonuses.length + (turn.rackBonus ? 1 : 0)) * cadence.pasDeRevelationMs) + cadence.souffleMs
 }
 
 export function finish(state: State, row: MatchRow, winnerId: string | null, reason: MatchRow['finish_reason']) {
@@ -39,7 +88,7 @@ export function sanitizePlacements(row: MatchRow, grid: CatalogGrid, playerId: s
   return { rack, sanitized }
 }
 
-export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, placements: Array<{ cellIndex: number; letter: string }>): Turn {
+export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, placements: Array<{ cellIndex: number; letter: string }>, cadence: Cadence = CADENCE_PRODUCTION): Turn {
   const state = row.state
   const rules = ruleGrid(grid)
   const { sanitized } = sanitizePlacements(row, grid, playerId, placements)
@@ -86,9 +135,9 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
     finish(state, row, winner, 'completed')
   } else {
     const opponent = state.playerIds.find(id => id !== playerId)!
-    const nextStart = new Date(Date.now() + revealDuration(turn))
+    const nextStart = new Date(Date.now() + revealDuration(turn, cadence))
     row.current_player_id = opponent; row.turn_number += 1; row.turn_started_at = nextStart.toISOString()
-    row.turn_ends_at = new Date(nextStart.getTime() + (row.pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS)).toISOString()
+    row.turn_ends_at = new Date(nextStart.getTime() + dureeDuTour(row.pace, cadence)).toISOString()
   }
   return turn
 }
@@ -113,14 +162,14 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
  * comme un coup ordinaire — c'était sa main, posée pendant son tour. Sinon,
  * c'est un tour manqué, exactement comme avant.
  */
-export function closeExpiredTurn(row: MatchRow, grid: CatalogGrid, brouillon: Array<{ cellIndex: number; letter: string }>, { absence = true }: { absence?: boolean } = {}): void {
+export function closeExpiredTurn(row: MatchRow, grid: CatalogGrid, brouillon: Array<{ cellIndex: number; letter: string }>, { absence = true, cadence = CADENCE_PRODUCTION }: { absence?: boolean; cadence?: Cadence } = {}): void {
   const valides = sanitizePlacements(row, grid, row.current_player_id, brouillon).sanitized
-  if (!valides.length) { timeoutTurn(row, { absence }); return }
-  const tour = applyTurn(row, grid, row.current_player_id, valides)
+  if (!valides.length) { timeoutTurn(row, { absence, cadence }); return }
+  const tour = applyTurn(row, grid, row.current_player_id, valides, cadence)
   tour.fromDraft = true
 }
 
-export function timeoutTurn(row: MatchRow, { absence = true }: { absence?: boolean } = {}) {
+export function timeoutTurn(row: MatchRow, { absence = true, cadence = CADENCE_PRODUCTION }: { absence?: boolean; cadence?: Cadence } = {}) {
   const state = row.state
   const playerId = row.current_player_id
   const inactivity = (state.inactivity[playerId] ?? 0) + (absence ? 1 : 0)
@@ -131,28 +180,26 @@ export function timeoutTurn(row: MatchRow, { absence = true }: { absence?: boole
   if (absence && shouldForfeitAfterInactivity(inactivity, row.pace)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
   else {
     const next = state.playerIds.find(id => id !== playerId)!
-    const start = new Date(Date.now() + revealDuration(turn)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()
-    row.turn_ends_at = new Date(start.getTime() + (row.pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS)).toISOString()
+    const start = new Date(Date.now() + revealDuration(turn, cadence)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()
+    row.turn_ends_at = new Date(start.getTime() + dureeDuTour(row.pace, cadence)).toISOString()
   }
 }
 
-/** Marge sur l'échéance « Je suis là », pour laisser arriver une réponse partie à temps. */
-export const PRESENCE_GRACE_MS = 2_000
-
 /** L'échéance « Je suis là » du joueur dont c'est le tour (voir presenceDeadline), ou null. */
-export function currentPresenceDeadline(row: Pick<MatchRow, 'pace' | 'status' | 'current_player_id' | 'turn_started_at' | 'state'>): number | null {
+export function currentPresenceDeadline(row: Pick<MatchRow, 'pace' | 'status' | 'current_player_id' | 'turn_started_at' | 'state'>, cadence: Cadence = CADENCE_PRODUCTION): number | null {
   const joueur = row.current_player_id
   if (!joueur || row.state.bot?.playerId === joueur) return null
   return presenceDeadline({
     pace: row.pace, status: row.status, turnStartedAt: row.turn_started_at,
     inactivity: row.state.inactivity[joueur] ?? 0, acknowledged: row.state.presenceAck?.[joueur] ?? 0,
+    windowMs: cadence.fenetrePresenceMs,
   })
 }
 
 /** Le joueur dont c'est le tour a laissé passer ses 30 s sans répondre ni jouer. */
-export function presenceExpired(row: Pick<MatchRow, 'pace' | 'status' | 'current_player_id' | 'turn_started_at' | 'state'>, now = Date.now()): boolean {
-  const echeance = currentPresenceDeadline(row)
-  return echeance !== null && now >= echeance + PRESENCE_GRACE_MS
+export function presenceExpired(row: Pick<MatchRow, 'pace' | 'status' | 'current_player_id' | 'turn_started_at' | 'state'>, now = Date.now(), cadence: Cadence = CADENCE_PRODUCTION): boolean {
+  const echeance = currentPresenceDeadline(row, cadence)
+  return echeance !== null && now >= echeance + cadence.margePresenceMs
 }
 
 /** « Je suis là » : le joueur a répondu, l'échéance tombe jusqu'au prochain tour manqué. */

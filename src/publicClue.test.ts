@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { grids, publicGrid } from '../server/match/gridCatalog'
+import { grids } from '../server/match/gridCatalog'
+// La grille publique de match-api : le serveur de test l'envoie aussi depuis le 22/10/2026 (K1).
+import { publicGrid } from '../supabase/functions/match-api/matchGrid'
 import { ALT_NEUTRE, contientReponse, dessinPublic, nettoyerSvg, publicClueImage, publicClueText } from './publicClue'
 
 // ─────────────────────────────────────────────────────────────────────────────
