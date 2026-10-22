@@ -34,3 +34,14 @@ html[data-motion="off"] .ranked-ready-countdown.urgent{animation:none}
 .ranked-ready-countdown b{position:relative;grid-row:auto!important}
 .ranked-ready-countdown span{position:relative;font-size:.6875rem}
 html[data-motion="off"] .ranked-ready-layer,html[data-motion="off"] .ranked-ready-dialog,html[data-motion="off"] .ranked-ready-emblems>*{animation:none!important}
+/* U2 (22/10/2026) — Le classé la nuit. Le décompte vert foncé (1,9:1),
+   l'initiale de l'adversaire et « Accepté · En attente » (1,0:1) disparaissaient
+   sur le fond de nuit, et la carte de résultat restait un bloc crème. */
+[data-theme="dark"] .ranked-ready-countdown{color:var(--mm-ink)}
+[data-theme="dark"] .ranked-ready-emblems>span{background:var(--mm-sage);color:var(--mm-ink)}
+[data-theme="dark"] .ranked-ready-waiting{background:var(--mm-sage);color:var(--mm-ink)}
+[data-theme="dark"] .ranked-ready-waiting svg{color:#8ad6b4}
+[data-theme="dark"] .ranked-ready-loss-note{background:#3b2620;border-color:#5a3a2e;color:#f2a587}
+[data-theme="dark"] .ranked-result-summary{background:#22322d;border-color:#74694c;color:#edf5ef}
+[data-theme="dark"] .ranked-result-summary small{color:#a5b4ae}
+[data-theme="dark"] .ranked-result-summary b.positive{color:#8ad6b4}

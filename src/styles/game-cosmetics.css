@@ -133,6 +133,23 @@
 [data-theme="dark"] .game-result-emblem{box-shadow:0 0 0 5px #121c19,0 0 0 6px #7d6c43,0 12px 29px #0006}
 [data-theme="dark"] .game-result-screen .experience-reward,[data-theme="dark"] .game-result-screen .experience-pending{background:linear-gradient(145deg,#25342f,#2e352d);border-color:#74694c;box-shadow:0 9px 24px #0004}
 [data-theme="dark"] .game-result-screen .end-game-actions .end-game-home{background:#22322d;border-color:#50635a;color:#e8f3ec}
+/* U2 (22/10/2026) — LA FIN DE PARTIE LA NUIT. Les couleurs du jeu (`--green`…)
+   n'ont pas de variante sombre (tokens.css) : « Victoire ! », ton score et
+   « Ajouter … en ami » s'écrivaient en vert pin sur la nuit, à 1,5:1 —
+   invisibles au moment le plus heureux de la partie. L'illustration du haut,
+   elle, restait un rectangle ivoire collé sur le noir. */
+[data-theme="dark"] .game-result-screen{--result-accent:#8ad6b4;--result-contrast:#ef805d}
+[data-theme="dark"] .game-result-screen.result-loss{--result-accent:#ef9a7c;--result-contrast:#ef9a7c}
+[data-theme="dark"] .game-result-screen.result-draw{--result-accent:#b8d2c8;--result-contrast:#d9b563}
+[data-theme="dark"] .game-result-emblem span{background:radial-gradient(circle at 35% 26%,#176d58,#0d5545 68%)}
+[data-theme="dark"] .result-loss .game-result-emblem span{background:radial-gradient(circle at 35% 26%,#a85d46,#754037 72%)}
+[data-theme="dark"] .game-result-art{mix-blend-mode:normal;opacity:.82;
+  -webkit-mask-image:radial-gradient(ellipse 62% 75% at 50% 50%,#000 45%,transparent 100%);
+          mask-image:radial-gradient(ellipse 62% 75% at 50% 50%,#000 45%,transparent 100%)}
+[data-theme="dark"] .duel-friend-add,[data-theme="dark"] .duel-friend-done{color:#e8f3ec}
+[data-theme="dark"] .game-result-screen .experience-progress{background:#33433c}
+[data-theme="dark"] .game-result-screen .experience-breakdown span{color:#a5b4ae}
+[data-theme="dark"] .game-result-screen .experience-feather-breakdown span{color:#c9b98f}
 
 @media(max-width:360px){
   .game-result-screen{gap:14px}.game-result-hero{min-height:191px}.game-result-emblem{width:72px;height:72px;margin-bottom:12px}

@@ -63,3 +63,7 @@
    d'application de messagerie (20/09/2026). */
 .mm-contact-copier{width:100%;min-height:44px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.8125rem/1 'DM Sans',sans-serif}
 .mm-contact-copier svg{width:16px;height:16px}
+/* U2 (22/10/2026) — Le podium la nuit : les pastilles 1, 2, 3 gardent leur fond
+   clair (or, argent, bronze), mais le chiffre passait à l'encre de nuit, pâle :
+   1,1:1, illisible. Il reste vert pin, comme en clair. */
+[data-theme="dark"] .mm-position.p1,[data-theme="dark"] .mm-position.p2,[data-theme="dark"] .mm-position.p3{color:#073f36}
