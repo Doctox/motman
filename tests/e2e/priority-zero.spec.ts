@@ -431,16 +431,18 @@ test('seul le cadre de résultat natif défile pour rendre toutes les actions ac
     data: { playerId: second.playerId, matchId },
   })
   expect(finished.ok()).toBe(true)
-  // 540 px de haut : assez court pour que l'écran de fin déborde. À 620, il
-  // tient pile depuis que « Calcul de l'expérience… » ne reste plus affiché pour
-  // une partie sans récompense (19/09/2026) — et le test n'éprouvait plus rien.
-  const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 540 }, false)
+  // 440 px de haut : assez court pour que l'écran de fin déborde. À 620, il
+  // tenait pile depuis que « Calcul de l'expérience… » ne reste plus affiché pour
+  // une partie sans récompense (19/09/2026) ; à 540, depuis que l'écran de fin
+  // a été resserré (22/10/2026). Sans débordement, le test n'éprouve plus rien.
+  const { context, page } = await openGame(browser, first, matchId, { width: 390, height: 440 }, false)
 
   try {
     await page.evaluate(() => document.documentElement.classList.add('native-runtime'))
     const result = page.locator('.game-result-screen')
     await expect(result).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Nouvelle partie' })).toBeVisible()
+    // Partie normale : « Rejouer » relance la même recherche (N3, 22/10/2026).
+    await expect(page.getByRole('button', { name: 'Rejouer', exact: true })).toBeVisible()
 
     const before = await result.evaluate(element => {
       const node = element as HTMLElement
@@ -879,7 +881,7 @@ test('une grille complète atteint l’écran final', async ({ browser, request 
     await expect(result.page.locator('.board-wrap')).toBeVisible()
     await expect(result.page.locator('.game-result-screen')).toBeHidden()
     await expect(result.page.locator('.game-result-screen')).toBeVisible()
-    await expect(result.page.getByRole('button', { name: 'Nouvelle partie' })).toBeVisible()
+    await expect(result.page.getByRole('button', { name: 'Rejouer', exact: true })).toBeVisible()
     await expect(result.page.getByRole('button', { name: /Retour à l’accueil/ })).toBeVisible()
   } finally {
     await result.context.close()
@@ -917,8 +919,11 @@ test('au doigt, la lettre portée reste au-dessus du même doigt, même quand un
       }).toBe(true)
     }
 
+    // Poser le doigt ne prend rien encore : la lettre ne se soulève qu'au-delà de
+    // 8 px de glisser (U3, 22/10/2026). Un simple toucher reste un toucher.
     await toucher('touchStart', [doigt])
-    await auDessusDuDoigt(doigt.x, doigt.y)
+    await page.waitForTimeout(100)
+    expect(await fantome()).toBeNull()
 
     // Le doigt glisse vers le plateau.
     const plateau = (await page.locator('.board').boundingBox())!
@@ -986,7 +991,9 @@ test('page défilée (iPhone, site), la lettre portée reste sous le pointeur', 
     await page.mouse.move(prise.x + prise.width / 2, prise.y + prise.height / 2)
     await page.mouse.down()
     // La lettre est bien PRISE : sans ce repère, un échec ne dirait pas si la
-    // prise a manqué ou si la lettre portée s'est décalée.
+    // prise a manqué ou si la lettre portée s'est décalée. Elle ne se soulève
+    // qu'au-delà de 8 px de glisser (U3, 22/10/2026).
+    await page.mouse.move(prise.x + prise.width / 2, prise.y + prise.height / 2 - 14, { steps: 2 })
     await expect(page.locator('.drag-ghost')).toBeVisible()
     const plateau = (await page.locator('.board').boundingBox())!
     const cible = { x: Math.round(plateau.x + plateau.width * 0.6), y: Math.round(Math.max(plateau.y, 0) + 60) }
@@ -1077,6 +1084,8 @@ test('ordinateur portable : la partie tient dans l’écran, grille à gauche, l
     // Deux repères avant le lâcher : la lettre est bien PRISE, puis la case est
     // bien VISÉE. Sans eux, un échec ne dit pas laquelle des trois étapes —
     // prise, visée, pose — a manqué, et c'est ce qui a coûté les deux relances.
+    // La lettre ne se soulève qu'au-delà de 8 px de glisser (U3, 22/10/2026).
+    await page.mouse.move(prise.x + prise.width / 2, prise.y + prise.height / 2 - 14, { steps: 2 })
     await expect(page.locator('.drag-ghost')).toBeVisible()
     await page.mouse.move(cellule.x + cellule.width / 2, cellule.y + cellule.height / 2, { steps: 10 })
     await expect(cible).toHaveClass(/drop-target/)
@@ -1111,8 +1120,9 @@ test('après un tour manqué, « Tu es toujours là ? » laisse un décompte pou
     const fenetre = page.getByRole('alertdialog', { name: 'Petite pause ?' })
     await expect(fenetre).toBeVisible()
     // Plus de « Tour manqué 1/3 » : un décompte en secondes.
-    await expect(fenetre.locator('.still-there-countdown')).toBeVisible()
-    await expect(fenetre).toContainText('Sans nouvelles de toi, la partie s’arrêtera.')
+    // Son tour a commencé : le vrai décompte, plus le « 30 s » gris d'attente.
+    await expect(fenetre.locator('.still-there-countdown:not(.is-waiting)')).toBeVisible()
+    await expect(fenetre).toContainText('Touche « Je suis là » pour garder ta partie.')
     await expect(fenetre).not.toContainText('/3')
     await page.screenshot({ path: 'output/quality/toujours-la-390.png' })
 
@@ -1138,7 +1148,8 @@ test('sans réponse à « Tu es toujours là ? », la partie est perdue pour l�
     const fenetre = page.getByRole('alertdialog', { name: 'Petite pause ?' })
     await expect(fenetre).toBeVisible()
     // Il ne répond pas : à 0 s, le serveur clôt la partie, l'écran de fin le dit.
-    await expect(page.getByText('La partie s’est arrêtée pendant ta pause.')).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
+    // F4 (22/10/2026) : le gagnant est nommé, et l'enjeu dit.
+    await expect(page.getByText(/remporte la partie : elle s’est arrêtée pendant ta pause\. Elle compte comme une défaite\./)).toBeVisible({ timeout: E2E_PRESENCE_WINDOW_MS + 15_000 })
     const fin = await loadMatch(request, absent.playerId, matchId)
     expect(fin.status).toBe('finished')
     expect(fin.finishReason).toBe('timeout')

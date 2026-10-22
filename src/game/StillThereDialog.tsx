@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Hand } from 'lucide-react'
+import { PRESENCE_WINDOW_MS } from '../gameRules'
 import { serverNow } from '../serverClock'
 import { useDialogFocus } from '../useDialogFocus'
 import { secondesRestantes, type StillTherePrompt } from './stillThere'
@@ -32,16 +33,17 @@ export function StillThereDialog({ prompt, confirm, expire, isDaily = false, env
       <Hand aria-hidden="true" />
       {/* Des mots qui n'accusent pas (15/10/2026, E1) : la règle ne change pas. */}
       <h2 id="still-there-title">Petite pause ?</h2>
+      {/* P6 (22/10/2026) : la fenêtre ne change plus en cours de route. Elle
+          grandissait d'environ 75 px quand le décompte arrivait, et sa phrase
+          changeait. Le décompte a sa place dès l'ouverture, en gris tant que
+          l'échéance n'a pas commencé ; la consigne dit l'enjeu sans menacer. */}
       <div id="still-there-detail">
-        {reste === null
-          ? <p>Tu as laissé passer ton tour.</p>
-          : <>
-            {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde et
-                couvrait la consigne (même règle que la pause classée). */}
-            <p className={`still-there-countdown ${reste <= 10 ? 'is-urgent' : ''}`}><b>{reste}</b> s</p>
-            {/* Au défi du jour, l'absence vaut abandon : fermé jusqu'à minuit (19/09/2026). */}
-            <p>{isDaily ? 'Sans nouvelles de toi, le défi s’arrêtera pour aujourd’hui.' : 'Sans nouvelles de toi, la partie s’arrêtera.'}</p>
-          </>}
+        <p>Tu as laissé passer un tour.</p>
+        {/* Pas d'aria-live : le lecteur d'écran annonçait chaque seconde et
+            couvrait la consigne (même règle que la pause classée). */}
+        <p className={`still-there-countdown ${reste === null ? 'is-waiting' : reste <= 10 ? 'is-urgent' : ''}`}><b>{reste ?? Math.round(PRESENCE_WINDOW_MS / 1000)}</b> s</p>
+        {/* Au défi du jour, l'absence vaut abandon : fermé jusqu'à minuit (19/09/2026). */}
+        <p>{isDaily ? 'Touche « Je suis là » pour garder ton défi du jour.' : 'Touche « Je suis là » pour garder ta partie.'}</p>
       </div>
       <button type="button" data-dialog-autofocus disabled={envoi} onClick={confirm}>{envoi ? 'Un instant…' : 'Je suis là'}</button>
     </section>

@@ -136,7 +136,10 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
 .player.active{transform:translateY(-1px);box-shadow:0 8px 21px #315e4d1c}
 .player.active .score-value{color:var(--green)}
-.player:not(.player-you).active .score-value{color:#b9670d}
+/* L'adversaire garde UNE couleur, la terre cuite de sa carte, même pendant son
+   tour : elle passait à l'ambre (P3, 22/10/2026). */
+.player:not(.player-you).active .score-value{color:var(--terra)}
+[data-theme="dark"] .player:not(.player-you).active .score-value{color:#ff8f6b}
 .turn.urgent .turn-timer{animation:timerBreathe 1.1s ease-in-out infinite}
 @keyframes timerBreathe{50%{transform:scale(1.045)}}
 
@@ -170,7 +173,8 @@ html[data-motion="off"] .validate:after,html[data-motion="off"] .new-game:after{
 .confirmed-board-letter.opponent-effect{
   color:#b9670d!important;-webkit-text-fill-color:#b9670d!important;
 }
-.slot.bot-play{background:#ffedce!important;box-shadow:inset 0 0 0 3px #d88924,0 0 15px #e3a33e70!important}
+/* Le coup adverse en révélation : la même terre, sans halo orange (P3, 22/10/2026). */
+.slot.bot-play{background:#fff1eb!important;box-shadow:inset 0 0 0 3px #c94d29!important}
 .slot.wrong{position:relative;z-index:8;background:#ffdde2!important;box-shadow:inset 0 0 0 2px #c72b43,0 0 13px #c72b4350!important}
 .slot.wrong .letter-only{color:#b51f38!important;text-shadow:0 1px 0 #fff,0 0 10px #c72b4340!important}
 .confirmed-board-letter.failed-board-letter{

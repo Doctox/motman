@@ -179,7 +179,7 @@ html[data-motion="off"] .game-result-screen,html[data-motion="off"] .game-result
 .turn small{width:max-content;max-width:142px}
 .turn .turn-timer+strong{
   width:max-content;min-width:76px;max-width:min(210px,calc(100vw - 32px));padding-inline:10px;
-  overflow:visible;text-overflow:clip;white-space:nowrap;font-size:clamp(7px,2.15vw,8.5px);
+  overflow:visible;text-overflow:clip;white-space:nowrap;font-size:0.6875rem;
 }
 
 /* La suppression des cadres animes sous `prefers-reduced-motion` vivait ici en

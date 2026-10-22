@@ -300,5 +300,10 @@
     "ajoute": "2026-10-22T15:53",
     "titre": "Une fin de partie plus claire",
     "texte": "Ce que tu gagnes en une ligne, la barre qui montre ton gain, « Rejouer » qui relance aussitôt, et en classée ton rang et le palier suivant. Les quêtes s’affichent aussi."
+  },
+  {
+    "ajoute": "2026-10-22T16:26",
+    "titre": "La grille dit mieux qui a posé quoi",
+    "texte": "Tes lettres posées ont l’allure de pièces de jeu ; tes cases validées sont vert d’eau, celles de l’adversaire corail. La fiche d’une définition s’ouvre en bas, sans cacher le mot."
   }
 ]

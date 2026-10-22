@@ -253,6 +253,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     if (!word) return new Set<number>()
     return new Set(gameWordCellIndexes(grid, word))
   }, [expandedClue, grid])
+  // La fiche se pose en bas, sauf si le mot touche les deux dernières rangées (P1).
+  const ficheEnHaut = Boolean(grid && [...focusedWordCells].some(index => Math.floor(index / grid.columns) >= grid.rows - 2))
   const applyMatchState = (next: MatchState) => {
     noteServerTime(next.serverTime)
     const current = matchRef.current
@@ -1213,7 +1215,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         const letter = confirmed && !confirmedHintHidden ? confirmed.letter : !failedLetter && !confirmed ? localTile?.letter : undefined
         const wordRewardClass = wordHighlight?.cells.has(index) ? `word-reward-cell word-reward-cell--${wordHighlight.owner}` : ''
         const ownershipClass = confirmed ? confirmed.playerId === playerId ? 'confirmed-player' : 'confirmed-opponent' : ''
-        return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : ''}`} className={`cell slot ${ownershipClass} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? reprendreAuToucher(index, localTile) : selected && poserAuToucher(selected, index)}>
+        return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : ''}`} className={`cell slot ${ownershipClass} ${localTile && !confirmed && !failedLetter && !(drag?.glisse && drag.tile.id === localTile.id) ? 'pending' : ''} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? reprendreAuToucher(index, localTile) : selected && poserAuToucher(selected, index)}>
           {letter ? <span className={`letter-only ${confirmed ? 'locked confirmed-letter' : localTile && !failedLetter ? 'stable-provisional-letter' : ''} ${confirmed?.playerId === playerId ? 'owned-by-player' : confirmed ? 'owned-by-opponent' : ''} ${failedLetter ? 'failed-reveal-letter' : ''} ${drag?.glisse && drag.tile.id === localTile?.id ? 'drag-source' : ''}`} onPointerDown={event => localTile && !confirmed && !failedLetter && pointerDown(event, localTile, index)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{letter}</span> : null}
         </button>
       })}
@@ -1233,7 +1235,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
-    {expandedClue ? <ClueZoom entry={expandedClue} origine={origineDefinition} onClose={() => setExpandedClue(null)} /> : null}
+    {expandedClue ? <ClueZoom entry={expandedClue} origine={origineDefinition} longueur={focusedWordCells.size} enHaut={ficheEnHaut} onClose={() => setExpandedClue(null)} /> : null}
     {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
     {optionsOpen ? <GameOptionsOverlay close={() => setOptionsOpen(false)} report={match.bot ? undefined : () => setReportOpen(true)} leaveMatch={match.status === 'active' ? () => setLeaveOpen(true) : undefined} /> : null}
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}

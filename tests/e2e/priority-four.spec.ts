@@ -454,7 +454,7 @@ test('le mode classé affiche son emblème et explique la recherche en arrière-
   await expect(ranked.locator('.mm-ranked-status img')).toHaveAttribute('src', /assets\/ranks\/rank-unranked\.png/)
   await expect(ranked.getByRole('button', { name: /Jouer une partie classée/ })).toBeVisible()
   await expect(ranked).toContainText('45 s par tour')
-  await expect(ranked).toContainText('La recherche continue en arrière-plan')
+  await expect(ranked).toContainText('Tu peux jouer ailleurs pendant la recherche')
 
   await page.waitForTimeout(500)
   await page.screenshot({ path: `output/quality/ranked-mode-${testInfo.project.name}.png`, fullPage: false })

@@ -167,7 +167,7 @@ body{overscroll-behavior-y:none}
 }.player small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .avatar{width:30px;height:30px;background:#f0eadf;border-color:#d3b477}
 .active .avatar{background:#e2ece3}
-.player small{font-size:0.625rem}.player strong{font-size:1.375rem}
+.player small{font-size:0.625rem}.player strong{font-size:1.625rem}
 .turn small{letter-spacing:.1em}
 .turn-timer{min-width:2ch}
 .turn strong{font-size:0.5rem;line-height:1.1}
@@ -186,7 +186,7 @@ body{overscroll-behavior-y:none}
 
 .rack-area{border-color:#ded4c3}
 .rack-heading{margin-bottom:7px}
-.rack-heading strong{font-size:1.0625rem}.rack-heading span{font-size:0.5625rem}
+.rack-heading strong{font-size:1.0625rem}.rack-heading span{font-size:0.6875rem}
 .rack{
   height:64px;padding:4px;border:1px solid #d8c7aa;
 }
@@ -231,7 +231,7 @@ body{overscroll-behavior-y:none}
   font-size:1.25rem;animation-duration:1.8s;
 }
 .failed-reveal-letter{animation-duration:1.05s}
-.duel-rack-waiting{opacity:.7;filter:saturate(.8)}
+.duel-rack-waiting{opacity:1;filter:none}.duel-rack-waiting .rack{opacity:.7;filter:saturate(.8)}
 .confirmed-board-letter{font-weight:600;text-shadow:none}
 
 [data-theme="dark"] .app-shell{background-image:radial-gradient(#d6b7790d .65px,transparent .75px),linear-gradient(180deg,#1a292480,transparent 25%)}
@@ -285,12 +285,14 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 
 /* == Refonte in-game Lot 2 — grille papier vivant (surcharges sures) == */
 .board{border-radius:13px!important;box-shadow:0 12px 28px #173b3016,0 2px 6px #49391f0d!important}
-.clue .clue-entry b{color:#c59b45!important}
+/* P4 (22/10/2026) : le laiton pâle #c59b45 n'offrait que 2,0 à 2,2:1 sur les tons
+   pastel ; la flèche dit le sens du mot. Le laiton sombre du « i » : 3,9 à 4,3:1. */
+.clue .clue-entry b{color:#8a6a1e!important}
 [data-theme="dark"] .clue .clue-entry b{color:#d9b563!important}
 .rack-letter{box-shadow:0 4px 0 #cdbb9e,0 8px 15px #49341e26,inset 0 1px 0 #fff,inset 0 -3px 5px #e0d1b040!important}
 
 /* == Lot 2 minuteur — chiffres sans-serif tabulaires (au lieu du serif) == */
-.turn-timer{font-family:'DM Sans',sans-serif!important;font-weight:800!important;font-variant-numeric:tabular-nums!important;letter-spacing:-.02em!important}
+.turn-timer{font-family:'DM Sans',sans-serif!important;font-weight:600!important;font-variant-numeric:tabular-nums!important;letter-spacing:-.02em!important}
 
 
 /* == Corrections precision (coin, minuteur, tuile de drag) == */
@@ -347,4 +349,6 @@ html[data-motion="off"] .multiplayer-shell{animation:none!important}
 .still-there .still-there-countdown{margin:4px 0 8px;color:var(--mm-ink,#073f36);font:600 1rem 'DM Sans',sans-serif}
 .still-there .still-there-countdown b{font:600 2.75rem/1 'Playfair Display',serif;font-variant-numeric:tabular-nums}
 .still-there .still-there-countdown.is-urgent{color:var(--mm-coral,#c94d29)}
+/* P6 : le décompte garde sa place avant que l'échéance ne coure, en gris. */
+.still-there .still-there-countdown.is-waiting{opacity:.5}
 .still-there #still-there-detail{margin-bottom:16px}

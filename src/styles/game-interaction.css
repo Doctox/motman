@@ -23,7 +23,7 @@
 .game-portrait img{display:block;width:100%;height:100%;object-fit:cover}
 .player .avatar{width:36px;height:36px;flex:0 0 36px;border:1px solid #d8bd84;background:#f3eadc}
 .player small{max-width:62px;font:600 0.625rem/1.05 'Playfair Display',serif}
-.player strong{margin-top:2px;font:600 1.375rem/1 'Playfair Display',serif;color:var(--terra)}
+.player strong{margin-top:2px;font:600 1.625rem/1 'Playfair Display',serif;color:var(--terra)}
 .player:last-child strong{color:var(--green)}
 .turn{
   position:relative;width:76px;height:76px;min-height:76px;justify-self:center;padding:5px;
@@ -64,11 +64,11 @@
   .turn{width:64px;height:64px;min-height:64px}.turn-timer{font-size:1.8125rem}
   .board-wrap{margin-bottom:6px}
   .rack-area{padding-top:5px}.rack{height:54px}.rack-slot{height:44px}.rack-letter{font-size:1.625rem}
-  .turn-actions{margin-top:7px}.hint-button,.validate{height:41px}
+  .turn-actions{margin-top:7px}.hint-button,.validate{height:44px}
 }
 @media(max-width:370px){
   .app-shell{padding-inline:11px}.scoreboard{grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);gap:4px}
-  .player{padding-inline:4px;gap:4px}.game-portrait{width:41px;height:41px;flex-basis:41px}.player small{max-width:47px}.player strong{font-size:1.1875rem}
+  .player{padding-inline:4px;gap:4px}.game-portrait{width:41px;height:41px;flex-basis:41px}.player small{max-width:47px}.player strong{font-size:1.375rem}
   .turn{width:64px;height:64px;min-height:64px}.turn-timer{font-size:1.75rem}.turn strong{top:58px;max-width:112px}.turn small{bottom:66px}
   .turn-actions{grid-template-columns:100px 1fr}
 }
@@ -122,7 +122,7 @@
 @keyframes rackRenew{0%{opacity:.35;transform:translateY(8px) rotate(-2deg)}58%{opacity:1;transform:translateY(-4px) rotate(1deg)}100%{transform:translateY(0) rotate(0)}}
 [data-theme="dark"] .reroll-button{background:linear-gradient(145deg,#26715f,#0c4c40);border-color:#4f8b79;color:#fff4dc;box-shadow:0 4px 9px #0006}
 @media(max-width:360px){.rack{grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}.turn-actions{grid-template-columns:minmax(94px,.82fr) minmax(0,1.35fr);gap:7px}}
-@media(max-width:360px){.rack-heading>span{font-size:0.5rem}}
+@media(max-width:360px){.rack-heading>span{font-size:0.625rem}}
 html[data-motion="off"] .rack.is-rerolling .rack-slot{animation:none!important}
 html[data-motion="off"] .reroll-button svg{transition:none}
 html[data-motion="off"] .rack-completion-reward{animation:none!important}

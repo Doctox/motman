@@ -9,7 +9,7 @@
   transform-origin:50% 80%;transition:rotate .08s linear!important;
 }
 .board.has-clue-focus .slot{
-  opacity:.66;filter:saturate(.72);
+  opacity:.85;filter:saturate(.85);
   transition:opacity .22s ease,filter .22s ease,background-color .22s ease,box-shadow .22s ease;
 }
 .board.has-clue-focus .slot.clue-focus{
@@ -17,9 +17,16 @@
   box-shadow:inset 0 0 0 2px #cfa84f,0 0 12px #cfa84f3d;
 }
 .board.has-clue-focus .slot.clue-focus .letter-only{color:#075044}
+/* P1 (22/10/2026) : la fiche se pose en bas, sur le chevalet et les boutons, ou
+   en haut quand le mot touche le bas de la grille (ClueZoom.tsx). Plus de flou,
+   un voile léger : les lettres qui croisent le mot restent lisibles. */
 .clue-zoom-backdrop{
-  background:#071e1a3d;backdrop-filter:blur(1.2px);-webkit-backdrop-filter:blur(1.2px);
+  background:#071e1a1f;backdrop-filter:none;-webkit-backdrop-filter:none;
 }
+.clue-zoom-backdrop.en-bas{place-items:end center;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.clue-zoom-backdrop.en-haut{place-items:start center;padding:calc(12px + env(safe-area-inset-top)) 16px 16px}
+.clue-popover-direction{white-space:nowrap}.clue-popover-direction .clue-popover-length{letter-spacing:.08em}
+[data-theme="dark"] .clue-zoom-backdrop{background:#0006}
 .app-shell.is-resolving .board{
   box-shadow:0 5px 17px #3c352322,0 0 0 2px #c8a65f24;
 }

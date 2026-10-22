@@ -127,3 +127,41 @@ html[data-motion="off"] .failed-reveal-letter{animation:none!important}
 .validate.is-pass::before{opacity:0}
 .validate:disabled::before{background:#b96c55}
 html[data-motion="off"] .validate,html[data-motion="off"] .validate::before,html[data-motion="off"] .app-shell .is-released{transition:none!important;animation:none!important}
+
+/* P2 et P3 (22/10/2026) — QUI A POSÉ QUOI, choix B du propriétaire (« cases
+   teintées », en clair comme en sombre, sur planche). Avant, une lettre posée
+   ressemblait à une lettre validée (1,05:1), et les cases ambre de l'adversaire
+   se confondaient avec les définitions jaunes ; il avait quatre couleurs.
+   Désormais : mes cases en vert d'eau, les siennes en corail pâle avec sa
+   lettre en terre cuite ; une lettre POSÉE garde l'allure d'une pièce de jeu
+   (fond papier, bord, tranche), comme au chevalet. `background-clip` empêche la
+   teinte de déborder dans les joints de la grille. */
+.multiplayer-shell .board .cell.slot.confirmed-player:not(.correct):not(.wrong):not(.bot-play):not(.word-reward-cell){
+  background-color:#f1faf4!important;background-image:none!important;background-clip:padding-box!important;
+}
+.multiplayer-shell .board .cell.slot.confirmed-opponent:not(.correct):not(.wrong):not(.bot-play):not(.word-reward-cell){
+  background-color:#fff1eb!important;background-image:none!important;background-clip:padding-box!important;
+}
+.multiplayer-shell .confirmed-board-layer .confirmed-board-letter.player-effect{color:#073f36!important;-webkit-text-fill-color:#073f36!important}
+.multiplayer-shell .confirmed-board-layer .confirmed-board-letter.opponent-effect{color:#a13c1d!important;-webkit-text-fill-color:#a13c1d!important}
+.multiplayer-shell .board .cell.slot.pending:not(.correct):not(.wrong):not(.bot-play):not(.drop-target):not(.word-reward-cell):not(.clue-focus){
+  background-color:#fffaf0!important;background-image:none!important;
+  box-shadow:inset 0 0 0 1.5px #b9a37c,inset 0 -4px 0 #d9c6a0,inset 0 2px 0 #fff!important;
+  filter:drop-shadow(0 2px 1.5px #49341e40);
+}
+.multiplayer-shell .confirmed-board-layer .confirmed-board-letter.provisional-effect{color:#073f36!important;-webkit-text-fill-color:#073f36!important}
+[data-theme="dark"] .multiplayer-shell .board .cell.slot.confirmed-player:not(.correct):not(.wrong):not(.bot-play):not(.word-reward-cell){
+  background-color:#193c33!important;background-clip:padding-box!important;
+}
+[data-theme="dark"] .multiplayer-shell .board .cell.slot.confirmed-opponent:not(.correct):not(.wrong):not(.bot-play):not(.word-reward-cell){
+  background-color:#482a20!important;background-clip:padding-box!important;
+}
+[data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.player-effect{color:#8fdcb8!important;-webkit-text-fill-color:#8fdcb8!important}
+[data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.opponent-effect{color:#ff9b7a!important;-webkit-text-fill-color:#ff9b7a!important}
+[data-theme="dark"] .multiplayer-shell .board .cell.slot.pending:not(.correct):not(.wrong):not(.bot-play):not(.drop-target):not(.word-reward-cell):not(.clue-focus){
+  background-color:#24342e!important;background-image:linear-gradient(145deg,#263730,#1c2925)!important;
+  box-shadow:inset 0 0 0 1.5px #50635a,inset 0 -4px 0 #0b1512,inset 0 1px 0 #ffffff1a!important;
+  filter:drop-shadow(0 2px 2px #0008);
+}
+[data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.provisional-effect{color:#e8f3ec!important;-webkit-text-fill-color:#e8f3ec!important}
+[data-theme="dark"] .slot.bot-play{background:#482a20!important;box-shadow:inset 0 0 0 3px #ef805d!important}

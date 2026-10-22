@@ -19,7 +19,14 @@ function surLaCase(carte: DOMRect, origine: DOMRect): string {
  * relâchement tombait sinon sur la case ou la lettre dessous, et y posait ou
  * reprenait une lettre.
  */
-export function ClueZoom({ entry, origine = null, onClose }: { entry: ClueEntry; origine?: DOMRect | null; onClose: () => void }) {
+/**
+ * P1 (22/10/2026) : la fiche se pose en BAS, sur le chevalet et les boutons
+ * (inutiles pendant qu'on lit), sans flouter la grille : elle s'ouvrait au milieu
+ * et cachait le mot qu'elle désigne, et les lettres qui le croisent. Quand le
+ * mot touche les deux dernières rangées, elle se pose en haut (`enHaut`).
+ * `longueur` : le nombre de lettres du mot, dit dans la pastille.
+ */
+export function ClueZoom({ entry, origine = null, onClose, longueur = 0, enHaut = false }: { entry: ClueEntry; origine?: DOMRect | null; onClose: () => void; longueur?: number; enHaut?: boolean }) {
   const carte = useRef<HTMLElement | null>(null)
   const fermeture = useRef(false)
   const toucheSurLeFond = useRef(false)
@@ -42,15 +49,18 @@ export function ClueZoom({ entry, origine = null, onClose }: { entry: ClueEntry;
   }, [dialogRef, origine])
 
   const direction = entry.direction === 'across' ? 'Horizontal' : 'Vertical'
+  const sens = entry.direction === 'across' ? 'horizontale' : 'verticale'
   const arrow = entry.direction === 'across' ? '→' : '↓'
-  const preferredWidth = entry.image ? 224 : Math.min(248, Math.max(176, 112 + entry.text.length * 4.3))
+  // 248 px au moins quand la pastille dit la longueur : « VERTICAL ↓ · 7 LETTRES »
+  // tient alors sur une ligne, à l'écart de la croix.
+  const preferredWidth = longueur ? 248 : entry.image ? 224 : Math.min(248, Math.max(176, 112 + entry.text.length * 4.3))
 
-  return <div className="clue-zoom-backdrop" role="presentation"
+  return <div className={`clue-zoom-backdrop ${enHaut ? 'en-haut' : 'en-bas'}`} role="presentation"
     onPointerDown={event => { toucheSurLeFond.current = event.target === event.currentTarget }}
     onClick={event => { if (toucheSurLeFond.current && event.target === event.currentTarget) fermer(); toucheSurLeFond.current = false }}>
-    <section ref={dialogRef} tabIndex={-1} className={`clue-popover ${entry.image ? 'clue-popover--image' : ''} ${origine ? 'depuis-sa-case' : ''}`} style={{ '--clue-card-width': `${Math.round(preferredWidth)}px` } as CSSProperties} role="dialog" aria-modal="true" aria-label={`Définition ${direction.toLowerCase()}`}>
+    <section ref={dialogRef} tabIndex={-1} className={`clue-popover ${entry.image ? 'clue-popover--image' : ''} ${origine ? 'depuis-sa-case' : ''}`} style={{ '--clue-card-width': `${Math.round(preferredWidth)}px` } as CSSProperties} role="dialog" aria-modal="true" aria-label={`Définition ${sens}${longueur ? `, ${longueur} lettres` : ''}`}>
       <button data-dialog-autofocus className="clue-popover-close" type="button" aria-label="Fermer la définition" onClick={fermer}><X /></button>
-      <span className="clue-popover-direction">{direction}<b aria-hidden="true">{arrow}</b></span>
+      <span className="clue-popover-direction">{direction}<b aria-hidden="true">{arrow}</b>{longueur ? <span className="clue-popover-length">· {longueur} lettres</span> : null}</span>
       {entry.image
         ? <div className="clue-popover-image"><img src={assetUrl(entry.image.asset)} alt={entry.image.alt} /></div>
         : <strong>{entry.text}</strong>}
