@@ -65,6 +65,16 @@ html[data-motion="off"] .turn-alerting .rack{animation:none!important}
 [data-theme="dark"] .validate.is-pass{border-color:#4a5a52!important;color:#b9c6bf!important}
 @media (hover:hover) and (pointer:fine){[data-theme="dark"] .validate.is-pass:hover:not(:disabled){background:#22302b!important}}
 
+/* U4 et P5 (22/10/2026) — Pendant le tour de l'autre, ce n'est plus un faux
+   « Valider » terracotta grisé, avec sa coche, qui sert d'annonce (1,7:1 de
+   contraste) : un bouton discret, comme « Passer mon tour », avec un sablier.
+   Pendant la lecture, il dit qui commence : « Tour de Jules » s'affichait alors
+   que c'était au joueur de commencer. */
+.validate.is-waiting::before{opacity:0}
+.validate.is-waiting:disabled{opacity:1!important;filter:none!important;background:transparent!important;border-color:#d8ccb4!important;color:#5d6b63!important;box-shadow:none!important}
+.validate.is-waiting svg{opacity:.6}
+[data-theme="dark"] .validate.is-waiting:disabled{border-color:#4a5a52!important;color:#b9c6bf!important}
+
 /* A6 — Une erreur pâlit au lieu de trembler.
    Plus de rouge vif, de halo ni de secousse : la case prend une terre douce,
    la lettre apparaît puis s'efface à moitié. (Plus de vibration non plus :
