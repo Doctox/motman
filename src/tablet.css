@@ -25,7 +25,8 @@ html.is-tablet:not(.is-tablet-landscape) .multiplayer-shell:not(.is-finished) > 
    comme sur téléphone (styles.css). */
 html.is-tablet-landscape .multiplayer-shell > * { display: none !important; }
 html.is-tablet-landscape .multiplayer-shell::after {
-  content: "Tournez votre tablette à la verticale pour jouer.";
+  /* Au « tu », comme toute l'interface (lot D). */
+  content: "Tourne ta tablette à la verticale pour jouer.";
   position: fixed;
   inset: 0;
   display: grid;

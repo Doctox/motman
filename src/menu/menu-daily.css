@@ -132,12 +132,8 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
   box-shadow: 0 18px 44px #0b2a2238;
   text-align: center;
 }
-.mm-streak-calendar-close {
-  position: absolute; top: 10px; right: 10px;
-  display: grid; place-items: center; width: 34px; height: 34px;
-  border: 0; border-radius: 50%; background: transparent; color: var(--mm-muted); cursor: pointer;
-}
-.mm-streak-calendar-close svg { width: 18px; height: 18px; }
+/* La croix commune (menu-controls.css) ; ici, seulement sa place. */
+.mm-streak-calendar-close { position: absolute; top: 10px; right: 10px; }
 .mm-streak-calendar-head { display: grid; justify-items: center; gap: 2px; }
 .mm-streak-calendar-flame {
   display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
@@ -148,7 +144,7 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-streak-calendar-gels { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
 .mm-streak-calendar-gels svg { width: 15px; height: 15px; color: var(--mm-ink-soft, var(--mm-ink)); }
 .mm-streak-calendar-head small { display: inline-flex; align-items: center; gap: 4px; color: var(--mm-muted); font-size: .8125rem; }
-.mm-streak-calendar-head small svg { width: 13px; height: 13px; color: #5b8fb0; }
+.mm-streak-calendar-head small svg { width: 13px; height: 13px; color: var(--mm-frost); }
 
 .mm-streak-goal { margin: 16px 0 14px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--mm-gold) 12%, transparent); }
 .mm-streak-goal-bar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -176,7 +172,7 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 }
 .mm-streak-day-mark { display: grid; place-items: center; height: 14px; }
 .mm-streak-day-mark svg { width: 13px; height: 13px; stroke-width: 3; }
-.mm-streak-week li.is-won .mm-streak-day { border-color: transparent; background: var(--mm-ink); color: var(--mm-paper); }
+.mm-streak-week li.is-won .mm-streak-day { border-color: transparent; background: var(--mm-fill-strong); color: var(--mm-on-fill); }
 .mm-streak-week li.is-won .mm-streak-day-mark { color: #2f8a5c; }
 /* Joué sans être gagné (perdu ou abandonné) : il compte pour la série depuis le
    19/09/2026, mais la victoire garde son disque plein. */
@@ -184,8 +180,9 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-streak-week li.is-played .mm-streak-day-mark { color: var(--mm-coral); }
 .mm-streak-week li.is-missed .mm-streak-day { border-style: dashed; color: var(--mm-muted); }
 .mm-streak-week li.is-missed .mm-streak-day-mark { color: var(--mm-coral); }
-.mm-streak-week li.is-frozen .mm-streak-day { border-color: #8fb8d0; background: color-mix(in srgb, #8fb8d0 22%, transparent); }
-.mm-streak-week li.is-frozen .mm-streak-day-mark { color: #4f89ad; }
+/* Le gel : la seule teinte froide de la palette, éteinte (--mm-frost, lot D). */
+.mm-streak-week li.is-frozen .mm-streak-day { border-color: var(--mm-frost); background: color-mix(in srgb, var(--mm-frost) 16%, transparent); }
+.mm-streak-week li.is-frozen .mm-streak-day-mark { color: var(--mm-frost); }
 .mm-streak-week li.is-future .mm-streak-day, .mm-streak-week li.is-none .mm-streak-day { color: var(--mm-muted); opacity: .6; }
 .mm-streak-week li.is-current .mm-streak-day { box-shadow: 0 0 0 2px var(--mm-paper), 0 0 0 4px var(--mm-coral); }
 .mm-streak-day-reward {
@@ -229,15 +226,17 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-share.is-compact button svg { width: 17px; height: 17px; }
 /* Lu par les lecteurs d’écran seulement : le bouton compact montre « Copié ! ». */
 .mm-daily-share p.mm-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.mm-streak-freeze-note { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, #8fb8d0 16%, var(--mm-surface)); color: var(--mm-ink); font-size: 0.75rem; line-height: 1.4; text-align: left; }
-.mm-streak-freeze-note svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; color: #4f89ad; }
+.mm-streak-freeze-note { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--mm-frost) 12%, var(--mm-surface)); color: var(--mm-ink); font-size: 0.75rem; line-height: 1.4; text-align: left; }
+.mm-streak-freeze-note svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; color: var(--mm-frost); }
 
 /* ── La carte « Grille du jour » (maquette du 16/09/2026) ────────────────────
    Sur-titre du thème, titre, la série en puce cliquable, puis UN bouton plein.
    Le chevron sur toute la carte ne disait pas assez fort ce qu'il y avait à
    faire, et la série se lisait deux fois. */
 .mm-daily-hero{display:grid;justify-items:start;gap:9px;padding:14px 15px 15px}
-.mm-daily-eyebrow{color:var(--mm-coral);font-size:0.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+/* Le surtitre en laiton foncé, comme tous les surtitres du menu (lot D) : le
+   défi garde sa terre cuite dans son seul bouton. */
+.mm-daily-eyebrow{color:var(--mm-overline);font-size:0.75rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .mm-daily-title{margin:0;font:600 1.5rem/1.05 'Playfair Display',serif;text-wrap:balance}
 /* LE THÈME EN GRAS (propriétaire, 25/09/2026 : « qu'il ressorte un peu plus »).
    Seulement quand le titre EST le thème : « Défi réussi ! » ou « Pas cette fois »
@@ -253,12 +252,14 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 [data-theme="dark"] .mm-daily-title.is-theme{text-shadow:0 2px 6px #0000005c}
 /* Le nom du thème en tête des lignes de résultat : même teinte que le chapeau,
    pour qu'on reconnaisse la même information d'une carte à l'autre. */
-.mm-daily-note .mm-daily-theme{color:var(--mm-coral);font-weight:800}
+.mm-daily-note .mm-daily-theme{color:var(--mm-overline);font-weight:800}
 .mm-daily-note span[aria-hidden]{color:var(--mm-muted)}
 .mm-daily-hero .mm-streak-chip{height:34px;padding:0 12px;font-size:0.8125rem}
 .mm-daily-note{display:flex;align-items:center;gap:6px;margin:0;color:var(--mm-muted);font-size:0.8125rem}
-.mm-daily-note svg{width:15px;height:15px;color:#4f89ad}
-.mm-shell .mm-daily-cta{width:100%;min-height:50px;margin-top:2px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:16px;background:linear-gradient(color-mix(in srgb,var(--mm-coral) 92%,#fff),var(--mm-coral));color:#fffaf0;display:flex;align-items:center;justify-content:center;gap:9px;font:800 1.0625rem 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 #ffffff38,0 6px 16px color-mix(in srgb,var(--mm-coral) 26%,transparent);cursor:pointer}
+.mm-daily-note svg{width:15px;height:15px;color:var(--mm-frost)}
+/* Le bouton plein du défi GARDE sa terre cuite (choix du propriétaire, lot D),
+   mais prend la forme du bouton principal : pilule, Playfair, 52 px. */
+.mm-shell .mm-daily-cta{width:100%;min-height:52px;margin-top:2px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:999px;background:linear-gradient(color-mix(in srgb,var(--mm-coral) 92%,#fff),var(--mm-coral));color:#fffaf0;display:flex;align-items:center;justify-content:center;gap:9px;font:600 1.125rem 'Playfair Display',serif;box-shadow:inset 0 1px 0 #ffffff38,0 6px 16px color-mix(in srgb,var(--mm-coral) 26%,transparent);cursor:pointer}
 .mm-shell .mm-daily-cta svg{width:19px;height:19px}
 /* Le défi d'un joueur neuf (N2) : jouable, mais en bouton secondaire, ivoire et
    laiton ; la terre cuite reste au bouton plein, une fois la première partie faite. */
@@ -288,12 +289,13 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
    la règle `h2{gap:0}` (menu-play.css) a la même force et gagnait à l'ordre —
    l'icône se collait au titre sur le téléphone (mesuré le 20/09/2026). */
 .mm-daily-warning-layer .mm-daily-warning h2{display:flex;align-items:center;gap:9px;margin:0 0 12px;font:600 1.25rem 'Playfair Display',serif}
-.mm-daily-warning-layer .mm-daily-warning h2 svg{flex:none;width:21px;height:21px;color:var(--mm-coral)}
+.mm-daily-warning-layer .mm-daily-warning h2 svg{flex:none;width:21px;height:21px;color:var(--mm-gold)}
 .mm-daily-warning-layer .mm-daily-warning p{margin:0 0 12px;font-size:0.8125rem;line-height:1.45}
 .mm-daily-warning-layer .mm-daily-warning-note{margin-bottom:16px;color:var(--mm-muted)}
 .mm-daily-warning-actions{display:grid;grid-template-columns:1fr 1.3fr;gap:9px;align-items:center}
 .mm-shell .mm-daily-warning-actions .mm-daily-cta{margin-top:0}
-.mm-daily-warning-cancel{min-height:50px;border:1px solid var(--mm-line);border-radius:12px;background:transparent;color:var(--mm-ink);font:600 0.875rem/1 'DM Sans',sans-serif}
+/* « Plus tard » : le bouton secondaire commun (menu-controls.css). */
+.mm-daily-warning-cancel{min-height:52px;font-size:1rem;line-height:1}
 
 /* ── LE DESSIN DU THÈME ET TA SEMAINE (15/10/2026, choix « E ») ─────────────
    Le dessin est une IMAGE DE FOND (DailyChallenge.tsx, decorDuTheme) : un
@@ -324,7 +326,7 @@ button.mm-streak-chip:focus-visible { outline: 2px solid var(--mm-gold); outline
 .mm-daily-semaine small{font:700 0.5625rem/1 'DM Sans',sans-serif;color:var(--mm-muted);letter-spacing:.04em}
 .mm-daily-semaine .is-won i{border-color:#2f6b5a;background:#2f6b5a;color:#fffaf0}
 .mm-daily-semaine .is-played i{border-color:color-mix(in srgb, var(--mm-coral) 50%, var(--mm-line));background:color-mix(in srgb, var(--mm-coral) 12%, var(--mm-surface));color:var(--mm-coral)}
-.mm-daily-semaine .is-frozen i{border-color:#9cc3da;background:color-mix(in srgb, #4f89ad 14%, var(--mm-surface));color:#4f89ad}
+.mm-daily-semaine .is-frozen i{border-color:color-mix(in srgb, var(--mm-frost) 70%, var(--mm-line));background:color-mix(in srgb, var(--mm-frost) 14%, var(--mm-surface));color:var(--mm-frost)}
 .mm-daily-semaine .is-missed i{opacity:.5}
 .mm-daily-semaine .is-today i{border:2px solid var(--mm-coral);background:color-mix(in srgb, var(--mm-coral) 8%, var(--mm-surface))}
 .mm-daily-semaine .is-current small{color:var(--mm-coral)}

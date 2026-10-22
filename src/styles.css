@@ -34,7 +34,8 @@
 @media (orientation: landscape) and (max-height: 520px) {
   .multiplayer-shell > * { display: none !important; }
   .multiplayer-shell::after {
-    content: "Tournez votre appareil à la verticale pour jouer.";
+    /* L'interface tutoie (lot D) : seuls les textes légaux vouvoient. */
+    content: "Tourne ton téléphone à la verticale pour jouer.";
     position: fixed;
     inset: 0;
     display: grid;

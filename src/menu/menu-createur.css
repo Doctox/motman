@@ -3,23 +3,25 @@
 .mm-createur{width:min(100%,360px);padding:20px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 18px 55px #0005}
 .mm-createur:focus{outline:none}
 .mm-createur h2{display:flex;align-items:center;gap:9px;margin:0 0 12px;font:600 1.25rem 'Playfair Display',serif}
-.mm-createur h2 svg{flex:none;width:22px;height:22px;color:var(--mm-coral)}
+.mm-createur h2 svg{flex:none;width:22px;height:22px;color:var(--mm-gold)}
 .mm-createur p{margin:0 0 10px;font-size:0.875rem;line-height:1.45}
 .mm-createur-liens{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0 12px}
-.mm-createur-liens a{min-height:54px;padding:8px 10px;border-radius:14px;display:flex;align-items:center;gap:9px;color:#fff;text-decoration:none;font:800 0.9375rem/1.1 'DM Sans',sans-serif;box-shadow:0 6px 14px #0000002e}
-.mm-createur-liens a svg{flex:none;width:24px;height:24px}
+/* INSTAGRAM ET TIKTOK EN PILULES IVOIRE (lot D, 22/10/2026). Le dégradé
+   orange-rose-violet d'Instagram et le noir à liseré néon de TikTok étaient
+   la chose la plus criarde de l'appli. Le logo de la marque reste, en vert
+   pin, sur une pilule ivoire cerclée de laiton : on la reconnaît à sa forme. */
+.mm-createur-liens a{min-height:54px;padding:8px 14px;border:1px solid var(--mm-button-secondary-border);border-radius:999px;background:var(--mm-button-secondary);color:var(--mm-ink);display:flex;align-items:center;gap:9px;text-decoration:none;font:600 1rem/1.1 'Playfair Display',serif;box-shadow:var(--mm-button-shadow-soft)}
+.mm-createur-liens a svg{flex:none;width:24px;height:24px;color:var(--mm-ink)}
 .mm-createur-liens a span{display:flex;flex-direction:column;min-width:0}
-.mm-createur-liens small{font:600 0.6875rem/1.2 'DM Sans',sans-serif;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mm-createur-liens .is-instagram{background:linear-gradient(45deg,#f58529,#dd2a7b 55%,#8134af)}
-.mm-createur-liens .is-tiktok{background:#111;border:1px solid #2b2b2b}
-.mm-createur-liens .is-tiktok svg{filter:drop-shadow(-1.5px -1px 0 #25f4ee) drop-shadow(1.5px 1px 0 #fe2c55)}
+.mm-createur-liens small{font:600 0.6875rem/1.2 'DM Sans',sans-serif;color:var(--mm-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mm-createur-signature{color:var(--mm-muted);font-style:italic}
-.mm-createur-fermer{width:100%;min-height:50px;margin-top:4px;border:1px solid var(--mm-line);border-radius:14px;background:transparent;color:var(--mm-ink);font:700 0.9375rem/1 'DM Sans',sans-serif;cursor:pointer}
-/* Les onglets (12/10/2026) : « Nouveautés » n'existe que s'il est paru quelque chose en 24 h. */
-.mm-createur-onglets{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0 0 14px;padding:3px;border-radius:12px;background:color-mix(in srgb,var(--mm-ink) 7%,transparent)}
-.mm-createur-onglets button{min-height:36px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 6px;border:0;border-radius:9px;background:transparent;color:var(--mm-muted);font:700 0.75rem/1.1 'DM Sans',sans-serif;cursor:pointer}
+/* « Fermer » : le bouton secondaire commun (menu-controls.css). */
+.mm-createur-fermer{width:100%;min-height:50px;margin-top:4px;font-size:1rem;line-height:1;cursor:pointer}
+/* Les onglets (12/10/2026) : « Nouveautés » n'existe que s'il est paru quelque
+   chose en 24 h. Leur dessin est celui de tous les onglets (menu-controls.css). */
+.mm-createur-onglets{display:grid;grid-template-columns:1fr 1fr;margin:0 0 14px}
+.mm-createur-onglets>button{min-height:40px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 6px;font-size:0.8125rem}
 .mm-createur-onglets button svg{flex:none;width:15px;height:15px}
-.mm-createur-onglets button.is-active{background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 1px 4px #0000001f}
 .mm-createur-onglets b{min-width:18px;height:18px;padding:0 5px;display:inline-grid;place-items:center;border-radius:9px;background:var(--mm-coral);color:#fff;font-size:0.6875rem}
 .mm-createur-nouveautes{max-height:52vh;overflow-y:auto;margin-bottom:8px}
 .mm-nouveautes-recentes{list-style:none;margin:0;padding:0;display:grid;gap:12px}

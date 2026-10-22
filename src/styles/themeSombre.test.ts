@@ -48,7 +48,9 @@ const cas = [
   { ecran: 'fin de partie : score de l’adversaire', fichier: 'styles/game-cosmetics.css', selecteur: '[data-theme="dark"] .game-result-screen', propriete: '--result-contrast', fond: NUIT, minimum: 4.5 },
   { ecran: 'fin de partie perdue : titre', fichier: 'styles/game-cosmetics.css', selecteur: '[data-theme="dark"] .game-result-screen.result-loss', propriete: '--result-accent', fond: NUIT, minimum: 4.5 },
   { ecran: 'fin de partie : « Ajouter en ami »', fichier: 'styles/game-cosmetics.css', selecteur: '[data-theme="dark"] .duel-friend-add,[data-theme="dark"] .duel-friend-done', propriete: 'color', fond: SURFACE_NUIT, minimum: 4.5 },
-  { ecran: 'podium du classement', fichier: 'menu/menu-foundation.css', selecteur: '[data-theme="dark"] .mm-position.p1,[data-theme="dark"] .mm-position.p2,[data-theme="dark"] .mm-position.p3', propriete: 'color', fond: '#e7e8e4', minimum: 4.5 },
+  // Lot D : les pastilles du podium sont des métaux de nuit ; l'or (#4a3f22) est le plus clair des trois.
+  { ecran: 'podium du classement', fichier: 'menu/menu-foundation.css', selecteur: '[data-theme="dark"] .mm-position.p1,[data-theme="dark"] .mm-position.p2,[data-theme="dark"] .mm-position.p3', propriete: 'color', fond: '#4a3f22', minimum: 4.5 },
+  { ecran: 'podium du classement : fond de la 1re place', fichier: 'menu/menu-foundation.css', selecteur: '[data-theme="dark"] .mm-position.p1', propriete: 'background', fond: '#edf5ef', minimum: 4.5 },
   { ecran: 'bouton du défi du jour', fichier: 'menu/menu-daily.css', selecteur: '[data-theme="dark"] .mm-shell .mm-daily-cta', propriete: 'color', fond: '#ef805d', minimum: 4.5 },
 ]
 
