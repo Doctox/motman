@@ -17,6 +17,7 @@ import { publicGrid } from './matchGrid.ts'
 import type { Bot, CatalogGrid, MatchRow } from './matchModel.ts'
 import { currentPresenceDeadline } from './matchTurns.ts'
 import { botTurnDelayMs } from './botDelay.ts'
+import { fantomeReflexionMs } from '../../../src/ghostOpponent.ts'
 
 export async function profile(admin: AdminClient, id: string) {
   return loadPublicProfile(admin, id)
@@ -70,7 +71,10 @@ export async function view(
       .maybeSingle()
     : { data: null }
   return {
-    id: row.id, invitationId: state.invitationId, mode: row.mode, pace: row.pace, gridId: row.grid_id,
+    // Pendant la confirmation (`pending`), ni grille, ni identifiant de grille,
+    // ni chevalet : avec l'identifiant, un joueur averti savait s'il connaissait
+    // déjà la grille avant d'accepter (S3, 22/10/2026).
+    id: row.id, invitationId: state.invitationId, mode: row.mode, pace: row.pace, gridId: row.status === 'pending' ? '' : row.grid_id,
     // Le bot est annoncé, sa FORCE ne l'est pas : `skill` sortait dans la réponse
     // réseau et disait à qui la lisait le niveau exact de l'adversaire — y compris
     // du bot qui remplace un humain après 15 s (20/09/2026). Le client n'a besoin
@@ -81,15 +85,17 @@ export async function view(
     // saurait pas qu'il doit revenir voir quand il aura joué. Cette heure-là le
     // lui dit. Elle part pour TOUT adversaire, humain compris (22/10/2026, code
     // S6) : un champ réservé au fantôme le trahissait à qui lisait le réseau.
-    // Pour un humain, c'est la fin de son tour, que le client connaît déjà.
+    // Et elle se calcule de la MÊME façon pour tous — la réflexion d'un humain
+    // selon le fantôme (`fantomeReflexionMs`), bornée à la fin du tour : une
+    // fin de tour d'un côté, un délai de réflexion de l'autre, se seraient
+    // distingués à la lecture. Face à un humain, le client vient voir une fois
+    // de plus, pour rien ; c'est le prix de l'indiscernable.
     ...(row.status === 'active' && row.current_player_id && row.current_player_id !== viewerId
-      ? { nextCheckAt: fantome && row.current_player_id === fantome.playerId
-        ? new Date(Date.parse(row.turn_started_at) + botTurnDelayMs(row)).toISOString()
-        : row.turn_ends_at }
+      ? { nextCheckAt: heureDeRappel(row, Boolean(fantome && row.current_player_id === fantome.playerId)) }
       : {}),
     players: players.filter(Boolean),
     currentPlayerId: row.current_player_id, turnNumber: row.turn_number, turnStartedAt: row.turn_started_at, turnEndsAt: row.turn_ends_at,
-    board: state.board, racks: { [viewerId]: state.racks[viewerId] ?? [] }, scores: state.scores,
+    board: state.board, racks: row.status === 'pending' ? {} : { [viewerId]: state.racks[viewerId] ?? [] }, scores: state.scores,
     productiveTurns: state.productiveTurns, inactivity: state.inactivity, presenceAck: state.presenceAck ?? {},
     // L'échéance « Je suis là » calculée ICI, par le serveur qui la fera respecter :
     // le client n'affiche que ce décompte-là.
@@ -121,6 +127,13 @@ export async function view(
     // plaisait pas. Elle arrive avec la partie, une fois acceptée.
     ...(grid && row.status !== 'pending' ? { grid: publicGrid(grid) } : {}),
   }
+}
+
+/** L'heure de rappel : le coup du fantôme, ou la même loi bornée à la fin du tour pour tout autre adversaire. */
+export function heureDeRappel(row: Pick<MatchRow, 'id' | 'turn_number' | 'turn_started_at' | 'turn_ends_at' | 'state'>, fantomeAuTrait: boolean): string {
+  const debut = Date.parse(row.turn_started_at)
+  const reflexion = fantomeAuTrait ? botTurnDelayMs(row) : fantomeReflexionMs(`${row.id}:${row.turn_number}`)
+  return new Date(Math.min(debut + reflexion, Date.parse(row.turn_ends_at))).toISOString()
 }
 
 /**

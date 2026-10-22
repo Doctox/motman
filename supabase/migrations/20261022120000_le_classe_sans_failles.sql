@@ -151,7 +151,8 @@ declare
   next_h integer;
   delta_g integer;
   next_g integer;
-  v_sans_points text;
+  v_sans_a text;
+  v_sans_b text;
 begin
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(
@@ -335,16 +336,20 @@ begin
   --     dans la journée (heure de Paris), les suivantes se jouent sans points.
   --     Les joueurs de l'ombre en sont exemptés : on ne triche pas avec eux, et
   --     un joueur seul la nuit les retrouve souvent.
-  -- Le motif est noté dans `ranked_rating_events.sans_points` : l'écran de fin
-  -- dit pourquoi le compteur n'a pas bougé.
+  -- Le motif est noté dans `ranked_rating_events.sans_points`, sur la seule
+  -- ligne mise à zéro (celle du perdant d'un abandon rapide garde sa perte, et
+  -- son motif reste vide) : l'écran de fin dit pourquoi le compteur n'a pas
+  -- bougé. Le plafond compte les classées JOUÉES entre les deux ce jour-là, pas
+  -- celles qu'il a lui-même mises sans points.
   if ranked_match.finish_reason in ('forfeit', 'timeout')
     and coalesce(ranked_match.turn_number, 0) < 6
   then
-    v_sans_points := 'abandon-rapide';
     if actual_a = 1 then
       delta_a := 0;
+      v_sans_a := 'abandon-rapide';
     elsif actual_b = 1 then
       delta_b := 0;
+      v_sans_b := 'abandon-rapide';
     end if;
   elsif not exists (
       select 1
@@ -356,11 +361,13 @@ begin
       from public.ranked_rating_events as event
       where event.user_id = player_a
         and event.opponent_id = player_b
+        and event.sans_points is distinct from 'plafond-paire'
         and (event.created_at at time zone 'Europe/Paris')::date
           = (pg_catalog.clock_timestamp() at time zone 'Europe/Paris')::date
     ) >= 3
   then
-    v_sans_points := 'plafond-paire';
+    v_sans_a := 'plafond-paire';
+    v_sans_b := 'plafond-paire';
     delta_a := 0;
     delta_b := 0;
   end if;
@@ -411,7 +418,7 @@ begin
       expected_a,
       actual_a,
       least(5, progress_a.ranked_matches + 1),
-      v_sans_points
+      v_sans_a
     ),
     (
       p_match_id,
@@ -423,12 +430,12 @@ begin
       expected_b,
       actual_b,
       least(5, progress_b.ranked_matches + 1),
-      v_sans_points
+      v_sans_b
     );
 
   return jsonb_build_object(
     'status', 'applied',
-    'sansPoints', v_sans_points,
+    'sansPoints', coalesce(v_sans_a, v_sans_b),
     'playerA', jsonb_build_object(
       'userId', player_a,
       'pointsBefore', points_a,

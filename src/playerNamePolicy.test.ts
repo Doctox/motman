@@ -20,7 +20,7 @@ describe('player name moderation', () => {
 
   // 22/10/2026 : un « М » et un « о » cyrilliques imitaient « MotMan » ou le
   // pseudo d'un joueur connu. Seul l'alphabet latin passe, accents compris.
-  it.each(['МотМан', 'Mоtman', 'Αlex', 'Λéa'])(`rejects look-alike letters from another alphabet in %s`, name => {
+  it.each(['МотМан', 'Mоtman', 'Αlex', 'Λéa', 'MotMɑn', 'MᴏtMan', 'M०tMan', 'ɑdmin'])(`rejects look-alike letters from another alphabet in %s`, name => {
     expect(validatePlayerName(name).valid).toBe(false)
   })
 

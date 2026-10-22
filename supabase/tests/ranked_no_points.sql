@@ -70,9 +70,13 @@ begin
     raise exception 'Celui qui abandonne doit perdre ses points quand même (% → %)', avant_b, apres_b;
   end if;
   -- ── 4. Le motif est noté ──
-  if not exists (select 1 from public.ranked_rating_events where match_id = partie and sans_points = 'abandon-rapide')
+  if not exists (select 1 from public.ranked_rating_events where match_id = partie and user_id = a and sans_points = 'abandon-rapide')
     or resultat ->> 'sansPoints' is distinct from 'abandon-rapide' then
-    raise exception 'Le motif « abandon-rapide » doit être noté : %', resultat;
+    raise exception 'Le motif « abandon-rapide » doit être noté sur la ligne du vainqueur : %', resultat;
+  end if;
+  -- … et seulement sur elle : le perdant a bien perdu ses points.
+  if exists (select 1 from public.ranked_rating_events where match_id = partie and user_id = b and sans_points is not null) then
+    raise exception 'La ligne du perdant d''un abandon rapide ne doit porter aucun motif';
   end if;
 
   -- Un abandon TARDIF, lui, rapporte : la partie a vraiment été jouée.

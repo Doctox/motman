@@ -58,7 +58,12 @@ export function validatePlayerName(value: string): PlayerNameValidation {
   // le contrôle des noms réservés (qui ne garde que a-z) et l'unicité, et
   // affichaient exactement « MotMan », le pseudo d'un joueur connu, ou celui du
   // propriétaire. Aucun pseudo existant n'était en cyrillique ni en grec.
-  if (!/^[\p{Script=Latin}\p{N}](?:[\p{Script=Latin}\p{N} _'’\-]*[\p{Script=Latin}\p{N}])?$/u.test(normalized)) {
+  // `\p{Script=Latin}` ne suffisait pas (relecture du 22/10) : « ɑ » (alpha
+  // latin) et « ᴏ » (petite capitale) imitent encore, et `\p{N}` laissait passer
+  // des chiffres d'autres écritures. D'où une liste blanche explicite : latin de
+  // base, Latin-1 et Latin étendu A (tous les accents du français et de
+  // l'Europe), chiffres 0 à 9.
+  if (!/^[A-Za-z0-9À-ÖØ-öø-ſ](?:[A-Za-z0-9À-ÖØ-öø-ſ _'’-]*[A-Za-z0-9À-ÖØ-öø-ſ])?$/u.test(normalized)) {
     return { valid: false, normalized, error: 'Lettres (accents compris), chiffres, espace, tiret ou apostrophe uniquement.' }
   }
   if (/([ _'’\-])\1/u.test(normalized)) return { valid: false, normalized, error: 'Évite les séparateurs répétés.' }

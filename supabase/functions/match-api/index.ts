@@ -512,7 +512,13 @@ Deno.serve(async request => {
         })
       } catch (erreur) {
         if ((erreur as { code?: string } | null)?.code !== '23505') throw erreur
-        const ouvert = (await activeRows()).find(row => row.state.isDaily === true && row.state.dailyDate === dateKey)
+        // Lu par les clés de l'index, pas par `match_participants` : l'autre
+        // demande a pu créer la partie sans avoir encore écrit ses participants.
+        const { data: ouverte, error: ouverteError } = await admin.from('server_matches').select('*')
+          .eq('status', 'active').eq('state->>isDaily', 'true').eq('state->>dailyDate', dateKey)
+          .eq('state->playerIds->>0', user.id).maybeSingle()
+        if (ouverteError) throw ouverteError
+        const ouvert = ouverte as MatchRow | null
         if (!ouvert) throw erreur
         const chargerGrille = gridLoader(admin, ouvert.grid_id)
         return json(200, { match: await view(admin, ouvert, user.id, await chargerGrille()) })
@@ -799,16 +805,17 @@ Deno.serve(async request => {
       // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu
       // pendant le tour, s'il y en a, plutôt qu'un tour manqué (matchDrafts.ts).
       //
-      // L'ENVOI « AUTOMATIQUE » TARDIF (22/10/2026, code S2). Le drapeau vient du
-      // client : en le posant à la main, un client modifié gagnait 8 s de
-      // réflexion par tour (le délai réservé aux envois automatiques). Passé le
-      // délai d'un envoi à la main, il ne joue plus SES lettres, mais celles du
-      // brouillon reçu avant la fin du tour. Le joueur honnête n'y perd rien :
-      // dans les 3 dernières secondes, chaque lettre posée part tout de suite au
-      // brouillon (brouillonDuTour.ts). Et il n'est pas compté absent : il est là.
-      const automatiqueTardif = automatic && valid.length > 0 && recuA >= turnEndsAt + MANUAL_SUBMIT_GRACE_MS
-      if (recuA >= turnEndsAt + submissionGrace || automatiqueTardif || automatic && valid.length === 0 && !hasPlacedHint) {
-        closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic && !automatiqueTardif })
+      // L'ENVOI « AUTOMATIQUE » TARDIF (22/10/2026, code S2) : LAISSÉ OUVERT,
+      // en connaissance de cause. Le drapeau vient du client : un client modifié
+      // peut s'en servir pour gagner 8 s de réflexion. Le refermer (ne jouer que
+      // le brouillon passé 2 s) faisait revenir le défaut du 16/10 : sur un
+      // réseau lent, le brouillon de la DERNIÈRE lettre peut rester en route
+      // pendant que l'envoi de 00:00, relancé à 2,5 s, arrive — et cette lettre
+      // aurait été perdue. En temps illimité, il n'y a même pas de brouillon.
+      // Entre une triche qui demande de réécrire l'appli et des lettres perdues
+      // pour des joueurs honnêtes, on garde les lettres.
+      if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) {
+        closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic })
       } else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {
       if (!canUseHint(row.state.hintUsed[user.id])) return json(409, { error: 'Ton indice a déjà été utilisé.' })

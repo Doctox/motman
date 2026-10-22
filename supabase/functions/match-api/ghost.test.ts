@@ -4,7 +4,7 @@ import { FANTOME_REFLEXION_MAX_MS, FANTOME_REFLEXION_MIN_MS, FANTOME_REGLAGES } 
 import { botTurnDelayMs } from './botDelay.ts'
 import { botFantome, choisirAdversaire, heureDeParis, type AdversaireAutomatique } from './ghost.ts'
 import { nowIso, type Bot, type MatchRow } from './matchModel.ts'
-import { view } from './matchView.ts'
+import { heureDeRappel, view } from './matchView.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LE FANTÔME DU PROPRIÉTAIRE, VU PAR LE JOUEUR (11/10/2026).
@@ -89,13 +89,22 @@ Deno.test('le client sait quand revenir voir le coup du fantôme, et seulement �
 
 // 22/10/2026 (code S6) : le champ n'était envoyé que face au fantôme, ce qui le
 // trahissait à qui lisait le réseau. Tout adversaire en a un, sous le même nom.
-Deno.test('l’heure de rappel part pour tout adversaire : elle ne trahit plus le fantôme', async () => {
-  const ordinaire: Bot = { playerId: 'cccccccc-0000-4000-8000-000000000003', displayName: 'Léa', level: 12, skill: 'beginner', avatarId: 'mei', frameId: 'cadre-sauge' }
-  const vue = await view(base(), partie(ordinaire), JOUEUR) as Record<string, unknown>
-  assertEquals(vue.nextCheckAt, '2026-10-11T12:00:45.000Z')
-  assertEquals('automatedTurnAt' in vue, false)
-  const fantomeVue = await view(base(), partie(fantome, true), JOUEUR) as Record<string, unknown>
-  assertEquals(Object.keys(fantomeVue).filter(cle => !(cle in vue)).sort(), [])
+Deno.test('l’heure de rappel part pour tout adversaire, selon la même loi : elle ne trahit plus le fantôme', async () => {
+  // Un humain en face (pas de bot dans l'état) : la même loi que le fantôme.
+  const humain = partie(fantome, true)
+  humain.state = { ...humain.state, bot: null }
+  const vueHumain = await view(base(), humain, JOUEUR) as Record<string, unknown>
+  const vueFantome = await view(base(), partie(fantome, true), JOUEUR) as Record<string, unknown>
+  assertEquals('automatedTurnAt' in vueHumain, false)
+  // Mêmes champs…
+  assertEquals(Object.keys(vueFantome).filter(cle => !(cle in vueHumain)).sort(), [])
+  // … et des heures de la même forme : dans le tour, jamais la fin du tour
+  // d'un côté et un délai de réflexion de l'autre.
+  for (const vue of [vueHumain, vueFantome]) {
+    const rappel = Date.parse(String(vue.nextCheckAt))
+    assertEquals(rappel > Date.parse('2026-10-11T12:00:00.000Z') && rappel <= Date.parse('2026-10-11T12:00:45.000Z'), true, String(vue.nextCheckAt))
+  }
+  assertEquals(heureDeRappel(humain, false), heureDeRappel(partie(fantome, true), true))
 })
 
 Deno.test('un bot ordinaire reste annoncé comme tel, et réfléchit 4 à 8 s', async () => {

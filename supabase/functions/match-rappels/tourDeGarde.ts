@@ -43,7 +43,11 @@ async function closAbsencesSansTemoin(admin: AdminClient, now: number): Promise<
 }
 
 export async function tourDeGarde(admin: AdminClient, now: number): Promise<Bilan> {
-  const absencesCloses = await closAbsencesSansTemoin(admin, now)
+  // Une panne ici ne doit pas priver les joueurs de leurs rappels.
+  const absencesCloses = await closAbsencesSansTemoin(admin, now).catch(erreur => {
+    logServerError('match-rappels:absences', erreur)
+    return 0
+  })
   // Par pages : passé 1 000 parties lentes en cours, Supabase aurait coupé la
   // liste sans le dire (lectures.ts).
   const toutes = await toutesLesLignes<MatchRow>((de, a) => admin.from('server_matches').select('*')
