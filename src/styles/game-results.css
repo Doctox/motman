@@ -80,3 +80,22 @@ body{overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
 [data-theme="dark"] .end-game-home{background:#22322d;border-color:#50635a;color:#e8f3ec}
 @media(max-width:360px){.end-game-actions{grid-template-columns:1fr}.end-game-actions .new-game,.end-game-home{height:42px}}
 .ranked-result-summary{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:11px;width:100%;padding:9px 13px;border:1px solid #cfb873;border-radius:13px;background:#fff8e6;color:#073f37}.ranked-result-summary img{width:62px;height:62px;object-fit:contain}.ranked-result-summary span{display:flex;flex-direction:column}.ranked-result-summary small{font-size:0.625rem;color:#6d756d;text-transform:uppercase;letter-spacing:.06em}.ranked-result-summary strong{font:700 1.25rem "Playfair Display",serif}.ranked-result-summary b{font-size:1.125rem}.ranked-result-summary b.positive{color:#08745f}.ranked-result-summary b.negative{color:#c4472d}
+/* C4 (22/10/2026) — La carte classée passe avant les gains et dit où l'on va :
+   le total, la distance au palier suivant (et sa barre), le passage d'un
+   palier. Une perte s'écrit en gris, jamais en rouge. */
+.ranked-result-summary{grid-template-columns:56px minmax(0,1fr) auto;row-gap:4px;animation:resultContentRise .48s .4s var(--motion) both}
+.ranked-result-summary img{width:54px;height:54px}
+.ranked-result-summary strong{font-size:1.0625rem;font-variant-numeric:tabular-nums}
+.ranked-result-summary small{font-size:0.6875rem}
+.ranked-result-summary b.negative,.ranked-result-summary b.neutral{color:#626c68}
+.ranked-result-summary b.positive{color:#0d654c}
+.ranked-result-summary.is-up{border-color:#c59b45;box-shadow:0 0 0 3px #c59b4522}
+.ranked-result-next{grid-column:1/-1;margin:2px 0 0;font:600 0.8125rem 'Playfair Display',serif;text-align:left}
+.ranked-result-bar{grid-column:1/-1;display:block;height:6px;border-radius:6px;background:#e5dcc6;overflow:hidden}
+.ranked-result-bar b{display:block;height:100%;width:100%;border-radius:inherit;background:linear-gradient(90deg,#0d6755,#075044);transform-origin:left center;transform:scaleX(var(--part,0))}
+.ranked-result-why{grid-column:1/-1;margin:2px 0 0;font-size:0.75rem;color:#5f6c66;text-align:left}
+[data-theme="dark"] .ranked-result-summary b.negative,[data-theme="dark"] .ranked-result-summary b.neutral{color:#a5b4ae}
+[data-theme="dark"] .ranked-result-bar{background:#33433c}
+[data-theme="dark"] .ranked-result-bar b{background:#8ad6b4}
+[data-theme="dark"] .ranked-result-why{color:#a5b4ae}
+html[data-motion="off"] .ranked-result-summary{animation:none!important}

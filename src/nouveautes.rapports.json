@@ -295,5 +295,10 @@
     "ajoute": "2026-10-22T15:21",
     "titre": "Ta place au Classement, en clair",
     "texte": "Ta place et les points qu’il te faut pour passer devant, ton record et ta semaine. Les paliers sont resserrés : touche ton insigne pour les voir. Et une classée se lance depuis le Classement."
+  },
+  {
+    "ajoute": "2026-10-22T15:53",
+    "titre": "Une fin de partie plus claire",
+    "texte": "Ce que tu gagnes en une ligne, la barre qui montre ton gain, « Rejouer » qui relance aussitôt, et en classée ton rang et le palier suivant. Les quêtes s’affichent aussi."
   }
 ]

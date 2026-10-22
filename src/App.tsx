@@ -19,6 +19,7 @@ import {
 import { useRankedSearchExpiry } from './rankedSearchExpiry'
 import { useSacrificedMatch } from './sacrificedMatch'
 import { entrerDansLaPartie, sortirDeLaPartie } from './transitionPartie'
+import { demanderRechercheAuRetour } from './rechercheAuRetour'
 
 const MenuApp = lazy(() => import('./Menu').then(module => ({ default: module.MenuApp })))
 const MultiplayerGameScreen = lazy(() => import('./MultiplayerGame').then(module => ({ default: module.MultiplayerGameScreen })))
@@ -250,6 +251,10 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
         // met en file. La partie quittée n'est close qu'au moment où l'arène
         // s'ouvre vraiment — si l'appariement n'aboutit pas, elle est intacte.
         onRejoindreClasse={() => { returnHome(); void beginRankedSearch() }}
+        // L'écran de fin (22/10/2026) : « Rejouer » relance la même recherche,
+        // « Rejouer en classée » reprend la file classée, depuis l'écran Jouer.
+        onRejouer={pace => { demanderRechercheAuRetour(pace); exitMatch() }}
+        onRejouerClassee={() => { exitMatch(); void beginRankedSearch() }}
       />
     </Suspense> : <Suspense fallback={<AppLoading />}>
       <MenuApp

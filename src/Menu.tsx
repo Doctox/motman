@@ -41,6 +41,7 @@ import { motDuCreateurAMontrer, motDuCreateurMontre } from './creatorNote'
 import { dailyDateKey } from './dailyDate'
 import { CreatorNote } from './menu/CreatorNote'
 import { fondreLeTheme } from './transitionPartie'
+import { prendreRechercheAuRetour } from './rechercheAuRetour'
 
 export type { MenuPage } from './menu/types'
 
@@ -458,6 +459,18 @@ export function MenuApp({
     }
   }
 
+  // « Rejouer » depuis l'écran de fin (N3, 22/10/2026) : la recherche notée par
+  // la partie se lance en arrivant, une seule fois.
+  const rechercheAuRetourLancee = useRef(false)
+  useEffect(() => {
+    if (rechercheAuRetourLancee.current) return
+    rechercheAuRetourLancee.current = true
+    const pace = prendreRechercheAuRetour()
+    if (pace) void beginNormalSearch(pace)
+    // Une seule fois, à l'arrivée du menu : `beginNormalSearch` change à chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const stopNormalSearch = async (pace: MatchPace) => {
     setMatchBusy(true)
     try {
@@ -529,7 +542,11 @@ export function MenuApp({
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} ranked={ranked} rankedBusy={rankedBusy} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page" role="status" aria-label="Ouverture de l’Épicerie"><SilhouetteEpicerie /></div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
-    <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
+    {/* Pas de pastille sur l'Épicerie avant la première partie finie (N7,
+        22/10/2026) : c'était le seul signal de l'écran, et il éloignait le
+        nouveau du jeu. Le panier offert devient la récompense de sa première
+        partie, annoncée sur l'écran de fin. */}
+    <BottomNav page={page} setPage={navigate} basketAffordable={progress.lifetimeXp > 0 && BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
     {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setTutorialSeenVersion(0); setTutorialOpen(true) }} theme={theme} setTheme={suivant => fondreLeTheme(suivant, () => setTheme(suivant))} /> : null}
     {legalOpen ? <Suspense fallback={<div className="mm-page mm-route-loading" role="status">Ouverture des informations…</div>}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}

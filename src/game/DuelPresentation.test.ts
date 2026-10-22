@@ -17,7 +17,8 @@ const classement = vi.hoisted(() => ({ lire: vi.fn() }))
 vi.mock('../dailyLeaderboard', () => ({ loadDailyLeaderboard: classement.lire }))
 vi.mock('../CosmeticPortrait', () => ({ CosmeticPortrait: () => null }))
 vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn(), motionReduced: () => false }))
-vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { children: ReactNode }) => createElement('div', null, children) }))
+// La pastille « Ajouter en ami » vit sous le nom de l'adversaire depuis le 22/10/2026 (`sousAdversaire`).
+vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children, sousAdversaire, avantRecompense }: { children: ReactNode; sousAdversaire?: ReactNode; avantRecompense?: ReactNode }) => createElement('div', null, sousAdversaire, avantRecompense, children) }))
 
 import { dailyDateKey } from '../dailyDate'
 import { dailyNote } from '../dailyScore'
@@ -106,7 +107,7 @@ describe('ajouter l’adversaire en ami', () => {
   it('dit « demande envoyée » si elle est déjà partie', async () => {
     await ouvrir({ outgoing: [{ id: 'd', createdAt: '', user: moi }] })
     expect(bouton()).toBeUndefined()
-    expect(hote.textContent).toContain('Demande envoyée à Low')
+    expect(hote.textContent).toContain('Demande envoyée')
   })
 
   it('le propose à un inconnu', async () => {

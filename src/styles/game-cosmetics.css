@@ -19,7 +19,7 @@
   display:flex;flex-direction:column;gap:17px;text-align:center;isolation:isolate;
   animation:gameResultEnter .58s var(--motion) both;
 }
-.game-result-screen.result-loss{--result-accent:#9c4b34;--result-soft:#f6e4dd;--result-contrast:#9c4b34}
+.game-result-screen.result-loss{--result-accent:var(--green);--result-title:#24594f;--result-soft:#f6e4dd;--result-contrast:#a13c1d}
 .game-result-screen.result-draw{--result-accent:#496c62;--result-soft:#e8ece6;--result-contrast:#8a6b2b}
 .game-result-hero{
   /* NE SE LAISSE PAS COMPRIMER. Ce cadre est un enfant de flex dans une colonne
@@ -60,7 +60,7 @@
 .result-loss .game-result-emblem span{background:radial-gradient(circle at 35% 26%,#a85d46,#754037 72%)}
 .result-draw .game-result-emblem span{background:radial-gradient(circle at 35% 26%,#6f8f83,#405d54 72%)}
 .game-result-hero h2{
-  margin:0;color:var(--result-accent);font:600 clamp(38px,11vw,48px)/1 'Playfair Display',serif;letter-spacing:-.035em;
+  margin:0;color:var(--result-title,var(--result-accent));font:600 clamp(38px,11vw,48px)/1 'Playfair Display',serif;letter-spacing:-.035em;
   animation:resultContentRise .48s .2s var(--motion) both;
 }
 .game-result-hero p{
@@ -97,7 +97,7 @@
 .game-result-screen .experience-breakdown span{font-size:0.6875rem}.game-result-screen .experience-breakdown b{font-size:0.75rem}
 .game-result-screen .experience-level span{font-size:0.8125rem}.game-result-screen .experience-level small{font-size:0.625rem}
 .game-result-screen .experience-progress{height:8px;margin-top:8px}
-.game-result-screen .experience-progress b{transform-origin:left center;animation:resultProgressGrow .9s .75s var(--motion) both}
+.game-result-screen .experience-progress .experience-progress-gain{transform-origin:left center;animation:resultProgressGrow .6s .5s var(--motion) both}
 .game-result-screen .experience-pending{
   min-height:145px;margin:0;border:1px solid #d8c79d;border-radius:18px;background:#fff9ed;
   animation:resultContentRise .52s .44s var(--motion) both;
@@ -139,7 +139,7 @@
    invisibles au moment le plus heureux de la partie. L'illustration du haut,
    elle, restait un rectangle ivoire collé sur le noir. */
 [data-theme="dark"] .game-result-screen{--result-accent:#8ad6b4;--result-contrast:#ef805d}
-[data-theme="dark"] .game-result-screen.result-loss{--result-accent:#ef9a7c;--result-contrast:#ef9a7c}
+[data-theme="dark"] .game-result-screen.result-loss{--result-accent:#8ad6b4;--result-title:#b8d2c8;--result-contrast:#ef9a7c}
 [data-theme="dark"] .game-result-screen.result-draw{--result-accent:#b8d2c8;--result-contrast:#d9b563}
 [data-theme="dark"] .game-result-emblem span{background:radial-gradient(circle at 35% 26%,#176d58,#0d5545 68%)}
 [data-theme="dark"] .result-loss .game-result-emblem span{background:radial-gradient(circle at 35% 26%,#a85d46,#754037 72%)}
@@ -185,3 +185,32 @@ html[data-motion="off"] .game-result-screen,html[data-motion="off"] .game-result
 /* La suppression des cadres animes sous `prefers-reduced-motion` vivait ici en
    double. Elle est levee : voir la fin de `src/cosmetic-portrait.css`, ou les
    cadres achetes gardent leur duree propre. */
+
+/* F3 (22/10/2026) — LA DÉFAITE N'EST PLUS TOUTE EN TERRACOTTA. Le titre de
+   48 px et les DEUX scores prenaient la couleur de l'adversaire : le perdant
+   voyait son propre score en terre cuite. Comme en partie : toi en vert,
+   l'autre en terre cuite ; le titre en vert doux. La médaille bordeaux porte
+   déjà l'humeur. */
+#game-result-title:focus{outline:none}
+
+/* F4 — Sans cadre de gains (absence, partie mise de côté), plus de grand vide
+   au-dessus des boutons. */
+.game-result-screen.sans-recompense .end-game-actions{margin-top:20px}
+
+/* F2 — « Ajouter en ami » : une pastille sous le nom de l'adversaire. */
+.game-result-score-side .duel-friend{margin:7px 0 0;animation:resultContentRise .48s .34s var(--motion) both}
+.game-result-score-side .duel-friend-add{width:auto;min-height:36px;padding:4px 11px;gap:5px;font:600 0.75rem 'DM Sans',sans-serif;box-shadow:none}
+.game-result-score-side .duel-friend-add svg{width:14px;height:14px}
+.game-result-score-side .duel-friend-done{margin:7px 0 0;font-size:0.75rem}
+html[data-motion="off"] .game-result-score-side .duel-friend{animation:none!important}
+
+/* N3 — Les quêtes, au moment où l'on décide de continuer. N7 — le premier panier. */
+.result-quetes,.result-premier-panier{margin:0;padding:10px 12px;border:1px solid #d8c79d;border-radius:14px;background:#fffaf0;color:#24594f;text-align:left;font-size:0.8125rem;line-height:1.4;animation:resultContentRise .48s .5s var(--motion) both}
+.result-quetes p{margin:0}.result-quetes p+p{margin-top:4px;color:#5f6c66}
+.result-quetes strong{font-weight:700;color:#073f36}.result-quetes span{font-variant-numeric:tabular-nums}
+.result-premier-panier{border-color:#d7b86b;background:#fbf3dc;color:#6b4f17;font-weight:600}
+[data-theme="dark"] .result-quetes,[data-theme="dark"] .result-premier-panier{background:#22322d;border-color:#74694c;color:#c9d6d0}
+[data-theme="dark"] .result-quetes strong{color:#edf5ef}
+[data-theme="dark"] .result-quetes p+p{color:#a5b4ae}
+[data-theme="dark"] .result-premier-panier{color:#edd48a}
+html[data-motion="off"] .result-quetes,html[data-motion="off"] .result-premier-panier{animation:none!important}

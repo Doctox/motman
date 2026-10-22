@@ -252,6 +252,45 @@ html[data-motion="off"] .board-effects-layer>.reward-bubble{animation:none!impor
 html[data-motion="off"] .experience-reward{animation:none!important}
 html[data-motion="off"] .experience-progress b{transition:none!important}
 
+/* « Tu repars avec » (22/10/2026, codes F1 et F5). Deux pastilles égales, l'XP
+   en vert pin et non plus en terracotta (la couleur de l'adversaire) ; la
+   barre où seul le GAIN grandit, en laiton clair ; le détail plié ; rien sous
+   11 px. */
+.experience-reward-heading{flex-wrap:wrap}
+.experience-gains{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.experience-gains strong{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font:700 0.9375rem 'Playfair Display',serif;font-variant-numeric:tabular-nums}
+.experience-gain-xp{background:#e6f2ea;color:#073f36;border:1px solid #b9d9c6}
+.experience-gain-plumes{background:#f8edca;color:#6b4f17;border:1px solid #dcc88f}
+.experience-gain-plumes svg{width:14px;height:14px;color:#b88a2d}
+.experience-level-up{margin:10px 0 2px;padding:7px 10px;border:1px solid #d7b86b;border-radius:12px;background:#fffaf0;color:#073f36;text-align:center;font:600 1.125rem 'Playfair Display',serif;animation:resultEmblemSettle .82s .5s var(--motion) both}
+.experience-level{margin-top:10px}
+.experience-level small{font-size:0.6875rem!important;color:#5f6c66}
+.experience-progress{position:relative}
+.experience-progress b{position:absolute;top:0;bottom:0;left:0;height:auto}
+.experience-progress .experience-progress-avant{width:calc(var(--avant,0) * 100%);border-radius:7px 0 0 7px}
+.experience-progress .experience-progress-gain{left:calc(var(--avant,0) * 100%);width:calc((var(--apres,0) - var(--avant,0)) * 100%);background:linear-gradient(90deg,#d7b86b,#c59b45);border-radius:0 7px 7px 0;transform-origin:left center}
+.experience-details{margin-top:10px}
+.experience-details summary{cursor:pointer;font-size:0.75rem;font-weight:700;color:#5f6c66;list-style:none;display:inline-flex;align-items:center;gap:5px;min-height:32px}
+.experience-details summary::-webkit-details-marker{display:none}
+.experience-details summary::after{content:'';width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .18s ease}
+.experience-details[open] summary::after{transform:rotate(-135deg) translateY(-1px)}
+.experience-details summary:focus-visible{outline:2px solid #c59b45;outline-offset:2px;border-radius:6px}
+.experience-details .experience-breakdown,.experience-details .experience-feather-breakdown{display:grid;grid-template-columns:1fr;gap:4px;margin:6px 0 4px;padding:8px 10px;border:0;border-radius:9px;background:#fbf5e7}
+.experience-details h3{margin:0 0 2px;font:700 0.6875rem 'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6b4f17}
+.experience-details .experience-breakdown span,.experience-details .experience-feather-breakdown span{font-size:0.75rem;color:#4f5d57}
+.experience-details .experience-breakdown b,.experience-details .experience-feather-breakdown b{font-size:0.75rem;color:#073f36}
+.experience-title-unlocked small{font-size:0.6875rem!important}
+[data-theme="dark"] .experience-gain-xp{background:#22342d;color:#8ad6b4;border-color:#3d5a4d}
+[data-theme="dark"] .experience-gain-plumes{background:#3e3725;color:#edd48a;border-color:#75653a}
+[data-theme="dark"] .experience-level-up{background:#22322d;color:#edf5ef;border-color:#74694c}
+[data-theme="dark"] .experience-level small{color:#a5b4ae}
+[data-theme="dark"] .experience-details summary{color:#a5b4ae}
+[data-theme="dark"] .experience-details .experience-breakdown,[data-theme="dark"] .experience-details .experience-feather-breakdown{background:#2b3a34}
+[data-theme="dark"] .experience-details h3{color:#d9b563}
+[data-theme="dark"] .experience-details .experience-breakdown span,[data-theme="dark"] .experience-details .experience-feather-breakdown span{color:#c9d6d0}
+[data-theme="dark"] .experience-details .experience-breakdown b,[data-theme="dark"] .experience-details .experience-feather-breakdown b{color:#8ad6b4}
+html[data-motion="off"] .experience-level-up{animation:none!important}
+
 /* Asynchronous duel uses the same board with a calmer, readable clock. */
 .turn.async-turn .turn-timer{font-size:1.3125rem;letter-spacing:0;translate:0 0;text-indent:.06em}
 

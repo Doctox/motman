@@ -76,8 +76,12 @@ export function isRoutineTurnStatus(status: string): boolean {
   return !/Tour terminé|n’a pas joué|Tour passé| passe$|pause|terminée/.test(status)
 }
 
-export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, onRejoindreClasse, onOuvrirPartie }: {
+export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, onRejoindreClasse, onOuvrirPartie, onRejouer, onRejouerClassee }: {
   matchId: string
+  /** L'écran de fin : « Rejouer » relance la même recherche (N3, 22/10/2026). */
+  onRejouer?: (pace: MatchPace) => void
+  /** L'écran de fin d'une classée : « Rejouer en classée » (C2, 22/10/2026). */
+  onRejouerClassee?: () => void
   /**
    * Accepter une invitation reçue sur l'écran de fin de partie : l'application
    * ouvre directement la nouvelle partie (App.tsx). C'est la revanche — et
@@ -1225,7 +1229,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
       <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button><button className={`validate ${isMyTurn && !resolving && Object.keys(provisional).length === 0 ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button></div>
-    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
+    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} rejouer={onRejouer} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}

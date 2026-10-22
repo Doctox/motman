@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Check, Feather, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { Check, Gamepad2, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
@@ -10,11 +10,14 @@ import { DailyStreakReward } from '../menu/DailyChallenge'
 import { DailyShareButton } from '../menu/DailyShareButton'
 import {
   acknowledgeMatchResult,
+  type MatchPace,
   type MatchState,
   type PendingMatchResult,
 } from '../matches'
 import type { ExperienceAward } from '../playerProgress'
-import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
+import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
+import { raisonSansPoints } from '../menu/classementEnClair'
+import { useQuestBoard, type QuestBoard } from '../questBoardState'
 import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { useCountUp } from './countUp'
@@ -70,12 +73,14 @@ export function DuelPlayer({ name, score, active, initials, avatarId, frameId, a
 function absenceDetail(pace: string, won: boolean, opponentName: string): string {
   // Le joueur absent n'est pas grondé (15/10/2026, E1) : il apprend ce qui
   // s'est passé, pas qu'il a fauté.
-  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : 'La partie s’est arrêtée après 24 h sans coup de ta part.'
-  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : 'La partie s’est arrêtée pendant ta pause.'
+  // F4 (22/10/2026) : côté absent, on nomme le gagnant et on dit que la partie
+  // compte, gentiment. Le 0–0 seul ne disait ni qui gagnait ni l'enjeu.
+  if (pace === 'async') return won ? `${opponentName} n’a pas joué en 24 h : victoire par abandon.` : `${opponentName} remporte la partie : elle s’est arrêtée après 24 h sans coup de ta part. Elle compte comme une défaite.`
+  return won ? `${opponentName} ne répondait plus : victoire par abandon.` : `${opponentName} remporte la partie : elle s’est arrêtée pendant ta pause. Elle compte comme une défaite.`
 }
 
 /** La partie normale close d'office quand un joueur rejoint un match classé confirmé. */
-const DETAIL_BASCULE_CLASSEE = 'La partie normale est déclarée égale car un joueur rejoint le match classé confirmé. Aucun gain ni perte n’est appliqué.'
+const DETAIL_BASCULE_CLASSEE = 'Une partie classée a commencé : celle-ci s’arrête là, sans gagnant. Rien n’est gagné ni perdu.'
 
 /**
  * REJOUER CONTRE UN AMI (26/09/2026).
@@ -100,7 +105,18 @@ export type Revanche = {
   annuler: () => void
 }
 
-export function ResultPanel({ match, playerId, opponentName, onExit, onHome, revanche }: { match: MatchState; playerId: string; opponentName: string; onExit: () => void; onHome: () => void; revanche?: Revanche }) {
+export function ResultPanel({ match, playerId, opponentName, onExit, onHome, revanche, rejouer, rejouerClassee }: {
+  match: MatchState
+  playerId: string
+  opponentName: string
+  onExit: () => void
+  onHome: () => void
+  revanche?: Revanche
+  /** « Rejouer » : la même recherche, au même rythme (N3, 22/10/2026). */
+  rejouer?: (pace: MatchPace) => void
+  /** « Rejouer en classée » : la file classée, sans détour (C2, 22/10/2026). */
+  rejouerClassee?: () => void
+}) {
   const [leaving, setLeaving] = useState(false)
   const [leavingError, setLeavingError] = useState<string | null>(null)
   const [experienceAward, setExperienceAward] = useState<ExperienceAward | null | undefined>(undefined)
@@ -109,7 +125,9 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
   const won = match.winnerId === playerId
   const administrativeDraw = match.finishReason === 'ranked_transfer'
   const draw = match.winnerId === null && (match.finishReason === 'completed' || administrativeDraw)
-  const title = draw ? 'Égalité !' : won ? 'Victoire !' : 'Partie terminée'
+  // Espace fine insécable avant « ! » : avec une grande police système, le « ! »
+  // passait seul à la ligne (22/10/2026).
+  const title = administrativeDraw ? 'Partie mise de côté' : draw ? 'Égalité\u202f!' : won ? 'Victoire\u202f!' : 'Partie terminée'
   const detail = administrativeDraw
     ? DETAIL_BASCULE_CLASSEE
     : match.finishReason === 'timeout'
@@ -208,9 +226,17 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match.dailyDate, match.finishReason, match.gridId, match.id, match.isDaily, match.winnerId, playerId])
   const opponentId = match.playerIds.find(id => id !== playerId) ?? ''
-  const rankedResultDivision = match.rankedRating
-    ? rankedDivision(match.rankedRating.pointsAfter, match.rankedRating.placementNumber)
-    : null
+  const quetes = useQuestBoard()
+  // Le premier panier, offert, devient la récompense de la PREMIÈRE partie (N7) :
+  // avant d'avoir joué, un avatar ne voulait encore rien dire.
+  const premierePartie = Boolean(experienceAward && experienceAward.levelBefore === 1 && experienceAward.xpAfter - experienceAward.breakdown.total <= 0)
+  const actionPrincipale = match.mode === 'ranked' && rejouerClassee
+    ? <button type="button" className="new-game is-ranked" disabled={leaving} onClick={() => void leaveResult(rejouerClassee)}><RotateCcw aria-hidden="true" />Rejouer en classée</button>
+    : match.isDaily
+      ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Jouer une partie</button>
+      : rejouer && (match.mode === 'normal' || match.mode === 'solo')
+        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(match.pace))}><RotateCcw aria-hidden="true" />Rejouer</button>
+        : <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Nouvelle partie</button>
   return <GameResultScreen
     outcome={draw ? 'draw' : won ? 'win' : 'loss'}
     title={title}
@@ -219,22 +245,20 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
     opponentScore={match.scores[opponentId] ?? 0}
     opponentName={opponentName}
     award={experienceAward}
+    sousAdversaire={<AddOpponentAsFriend playerId={playerId} opponentId={opponentId} opponentName={opponentName} isBot={Boolean(match.bot)} />}
+    avantRecompense={match.mode === 'ranked' && match.rankedRating ? <CarteClassee classement={match.rankedRating} /> : null}
   >
     {dailyEffects ? <DailyStreakReward effects={dailyEffects} /> : null}
     {dailyShare ? <DailyShareButton text={dailyShare} /> : null}
-    {match.mode === 'ranked' && match.rankedRating && rankedResultDivision ? <div className="ranked-result-summary">
-      <img src={rankImage(rankedResultDivision)} alt="" />
-      <span><small>{rankedPlacementLabel(match.rankedRating.placementNumber)}</small><strong>{rankedResultDivision.label}</strong></span>
-      <b className={match.rankedRating.delta >= 0 ? 'positive' : 'negative'}>{match.rankedRating.delta >= 0 ? '+' : ''}{match.rankedRating.delta} pt</b>
-    </div> : null}
-    <AddOpponentAsFriend playerId={playerId} opponentId={opponentId} opponentName={opponentName} isBot={Boolean(match.bot)} />
+    {experienceAward && quetes ? <QuetesDeLaFin quetes={quetes} /> : null}
+    {premierePartie ? <p className="result-premier-panier">Ton premier panier est offert : il t’attend à l’Épicerie.</p> : null}
     <div className="end-game-actions">
       {revanche
         // Contre un ami, « Rejouer » prend la place de « Nouvelle partie » : deux
         // boutons, pas trois — l'écran de fin déborde déjà à 540 px de haut.
         ? <BoutonsRevanche revanche={revanche} opponentName={opponentName} leaving={leaving} rentrer={() => void leaveResult(onHome)} />
         : <>
-          <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Feather />Nouvelle partie</button>
+          {actionPrincipale}
           <button type="button" className="end-game-home" disabled={leaving} onClick={() => void leaveResult(onHome)}><House />Retour à l’accueil</button>
         </>}
     </div>
@@ -242,6 +266,58 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
     {revanche?.erreur ? <p className="result-feedback-error" role="alert">{revanche.erreur}</p> : null}
     {leavingError ? <p className="result-feedback-error" role="alert">{leavingError}</p> : null}
   </GameResultScreen>
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LA CARTE CLASSÉE (22/10/2026, code C4 du grand tour).
+//
+// Elle arrivait en 4e position, sous le bas de l'écran, avec « Classement
+// établi · Argent · +22 pt » : ni le total, ni la distance au palier suivant, ni
+// le passage d'un palier. Elle passe avant les gains, et dit où l'on en est et
+// où l'on va. Une perte s'écrit en gris : sans alarme rouge.
+// ─────────────────────────────────────────────────────────────────────────────
+function CarteClassee({ classement }: { classement: NonNullable<MatchState['rankedRating']> }) {
+  const placements = classement.placementNumber
+  const avant = rankedDivision(classement.pointsBefore, Math.max(0, placements - 1))
+  const apres = rankedDivision(classement.pointsAfter, placements)
+  const suivant = nextRankedDivision(classement.pointsAfter, placements)
+  const enPlacement = placements < RANKED_PLACEMENT_MATCHES
+  const monte = !enPlacement && avant.id !== 'unranked' && apres.minimum > avant.minimum
+  const descend = !enPlacement && avant.id !== 'unranked' && apres.minimum < avant.minimum
+  const raison = raisonSansPoints(classement.sansPoints)
+  const part = suivant && !enPlacement ? Math.min(1, Math.max(0, (classement.pointsAfter - apres.minimum) / (suivant.minimum - apres.minimum))) : 1
+  const delta = classement.delta
+  return <section className={`ranked-result-summary ${monte ? 'is-up' : ''}`} aria-label="Ton classement">
+    <img src={rankImage(apres)} alt="" />
+    <span>
+      <small>{enPlacement ? `Placement ${placements} sur ${RANKED_PLACEMENT_MATCHES}` : monte ? 'Nouveau rang' : 'Ton rang'}</small>
+      <strong>{enPlacement ? 'Non classé' : `${apres.label} · ${new Intl.NumberFormat('fr-FR').format(classement.pointsAfter)} pt`}</strong>
+    </span>
+    <b className={delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral'}>{delta > 0 ? '+' : delta < 0 ? '−' : ''}{Math.abs(delta)} pt</b>
+    <p className="ranked-result-next">
+      {enPlacement
+        ? `Encore ${RANKED_PLACEMENT_MATCHES - placements} partie${RANKED_PLACEMENT_MATCHES - placements > 1 ? 's' : ''} pour recevoir ton rang.`
+        : monte ? `Tu passes ${apres.label}\u202f!` : descend ? `Tu repasses ${apres.label}.` : suivant ? `Encore ${suivant.minimum - classement.pointsAfter} pt avant ${suivant.label}` : 'Rang maximum'}
+    </p>
+    {!enPlacement && suivant ? <i className="ranked-result-bar" aria-hidden="true"><b style={{ '--part': part } as CSSProperties} /></i> : null}
+    {raison ? <p className="ranked-result-why">{raison}</p> : null}
+  </section>
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LES QUÊTES, À L'INSTANT OÙ L'ON DÉCIDE DE CONTINUER (22/10/2026, code N3).
+//
+// Elles se font en une ou deux parties, et restaient cachées derrière une icône
+// sans texte au moment précis où le joueur pose son téléphone ou relance.
+// ─────────────────────────────────────────────────────────────────────────────
+function QuetesDeLaFin({ quetes }: { quetes: QuestBoard }) {
+  const reussies = [...quetes.day, quetes.week].filter(quete => quete.done && !quete.claimed)
+  const prochaine = quetes.day.find(quete => !quete.done)
+  if (!reussies.length && !prochaine) return null
+  return <div className="result-quetes" role="status">
+    {reussies.length ? <p><strong>Quête réussie : {reussies[0].title}</strong>{reussies.length > 1 ? ` (et ${reussies.length - 1} de plus)` : ''} · ta récompense t’attend à l’accueil.</p> : null}
+    {prochaine ? <p>Prochaine : {prochaine.title} <span>({prochaine.progress}/{prochaine.target})</span></p> : null}
+  </div>
 }
 
 
@@ -325,12 +401,15 @@ function AddOpponentAsFriend({ playerId, opponentId, opponentName, isBot }: {
   }
 
   if (etat === 'envoye') {
-    return <p className="duel-friend-done" role="status"><Check aria-hidden="true" />Demande envoyée à {opponentName}</p>
+    return <p className="duel-friend-done" role="status"><Check aria-hidden="true" />Demande envoyée</p>
   }
   if (etat === 'deja') return null
   return <div className="duel-friend">
-    <button type="button" className="duel-friend-add" disabled={etat === 'envoi'} onClick={() => void demander()}>
-      <UserPlus aria-hidden="true" />Ajouter {opponentName} en ami
+    {/* Une pastille sous le nom de la personne (F2, 22/10/2026) : en grand bouton,
+        c'était la première chose à apparaître, et un toucher pressé envoyait une
+        demande d'ami à un inconnu. */}
+    <button type="button" className="duel-friend-add" aria-label={`Ajouter ${opponentName} en ami`} disabled={etat === 'envoi'} onClick={() => void demander()}>
+      <UserPlus aria-hidden="true" />Ajouter en ami
     </button>
     {erreur ? <p className="result-feedback-error" role="alert">{erreur}</p> : null}
   </div>
