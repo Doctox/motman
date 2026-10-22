@@ -1,0 +1,26 @@
+/* « Les paliers » (22/10/2026, FichePaliers.tsx) : l'échelle du classé, son
+   propre palier surligné en sauge, comme sa ligne dans le classement. */
+.mm-paliers-layer{align-items:center;padding:18px}
+.mm-paliers{width:min(100%,360px);max-height:calc(100dvh - 36px);overflow:auto;padding:18px 18px 16px;border-radius:21px;background:var(--mm-paper);color:var(--mm-ink);box-shadow:0 20px 52px #081e1952}
+.mm-paliers>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mm-paliers h2{margin:0;font:600 1.3125rem 'Playfair Display',serif}
+.mm-paliers-fermer{width:44px;height:44px;margin:-8px -8px -8px 0;border:0;border-radius:50%;background:transparent;color:var(--mm-ink);display:grid;place-items:center;cursor:pointer}
+.mm-paliers-fermer svg{width:20px;height:20px}
+.mm-paliers-fermer:focus-visible{outline:2px solid color-mix(in srgb,var(--mm-gold) 80%,var(--mm-ink));outline-offset:2px}
+.mm-paliers-liste{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:4px}
+.mm-paliers-liste li{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:46px;padding:3px 10px 3px 6px;border-radius:12px}
+.mm-paliers-liste li.is-mine{background:var(--mm-sage);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mm-gold) 60%,transparent)}
+.mm-paliers-liste img{width:40px;height:40px;object-fit:contain}
+.mm-paliers-liste strong{font:600 1rem 'Playfair Display',serif}
+.mm-paliers-liste span{font-size:0.8125rem;color:var(--mm-muted);font-variant-numeric:tabular-nums}
+.mm-paliers>p{margin:0 0 8px;font-size:0.8125rem;line-height:1.45}
+.mm-paliers .mm-paliers-note{color:var(--mm-muted)}
+
+/* L'insigne du rang devient un bouton qui ouvre la fiche (MenuChrome.tsx). */
+.mm-rank-image-bouton{padding:0;border:0;background:transparent;cursor:pointer;display:grid;place-items:center;border-radius:50%}
+.mm-rank-image-bouton:focus-visible{outline:2px solid color-mix(in srgb,var(--mm-gold) 80%,var(--mm-ink));outline-offset:2px}
+
+/* La place, l'écart, le record et la semaine, sous la barre de progression (C1, C6). */
+.mm-rank-standing{grid-column:1/-1;margin:2px 0 0;font:600 0.875rem 'Playfair Display',serif;color:var(--mm-ink);font-variant-numeric:tabular-nums}
+.mm-rank-extras{grid-column:1/-1;margin:0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:0.75rem;color:var(--mm-muted);font-variant-numeric:tabular-nums}
+.mm-rank-extras .is-up{color:var(--mm-ink-soft)}

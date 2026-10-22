@@ -5,7 +5,8 @@ import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState } from '
 import { ChronoRecherche } from './ChronoRecherche'
 import { MatchReplay } from './MatchReplay'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
-import { rankImage, rankedDivision, rankedPlacementLabel } from '../ranked'
+import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
+import { etiquetteClassee } from './classementEnClair'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
@@ -71,7 +72,9 @@ function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
           const opponentName = match.opponentName ?? 'Adversaire'
           // « Solo » a quitté l'interface : une partie de ce mode est un défi du
           // jour (il en porte la date) ou une partie d'entraînement d'avant.
-          const modeLabel = match.dailyDate ? 'Défi du jour' : match.mode === 'solo' ? 'Entraînement' : 'Multijoueur'
+          // Une classée dit ses points (22/10/2026, code C6) : elle s'appelait
+          // « Multijoueur », sans un mot de ce qu'elle avait rapporté.
+          const modeLabel = match.dailyDate ? 'Défi du jour' : match.ranked ? etiquetteClassee(match.rankedDelta, match.rankedSansPoints) : match.mode === 'solo' ? 'Entraînement' : 'Multijoueur'
           const relisible = Boolean(match.board)
           const contenu = <>
             <span className={`mm-recent-outcome ${tone}`}>{tone === 'won' ? 'V' : tone === 'drawn' ? 'N' : 'D'}</span>
@@ -154,6 +157,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   const panneauMode = useRef<HTMLDivElement>(null)
   useHauteurAnimee(panneauMode, `${onglet}|${normalSearching}|${rankedSearching}`)
   const currentRank = rankedDivision(ranked.progress.points, ranked.progress.matches)
+  const prochainPalier = nextRankedDivision(ranked.progress.points, ranked.progress.matches)
   const reprise = partieAReprendre(lobby.active, identity.playerId)
   const amisEnLigne = social.friends.filter(friend => friend.online).length
   const invitationEnAttente = lobby.incoming.length > 0
@@ -235,7 +239,9 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </header>
         <div className="mm-ranked-status">
           <img src={rankImage(currentRank)} alt="" />
-          <span><small>Ton rang</small><strong>{currentRank.label}</strong><b>{rankedPlacementLabel(ranked.progress.matches)}</b></span>
+          {/* « Classement établi » n'apprenait rien une fois les placements
+              faits : la distance au palier suivant, comme au Classement. */}
+          <span><small>Ton rang</small><strong>{currentRank.label}</strong><b>{ranked.progress.matches < RANKED_PLACEMENT_MATCHES ? rankedPlacementLabel(ranked.progress.matches) : prochainPalier ? `${prochainPalier.minimum - ranked.progress.points} pt avant ${prochainPalier.label}` : 'Rang maximum'}</b></span>
           {ranked.progress.matches >= 5 ? <em>{ranked.progress.points} pt</em> : null}
         </div>
         {rankedSearching
@@ -250,7 +256,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         {rankedTimedOut && !rankedSearching ? <p className="mm-ranked-timeout" role="status">
           Personne n’a été trouvé en dix minutes — la recherche s’est arrêtée. Tu peux la relancer.
         </p> : null}
-        <p className="mm-ranked-explainer">La recherche continue en arrière-plan. Si une partie en temps limité est en cours quand un adversaire est trouvé, l’écran de confirmation te dit ce qu’elle devient avant que tu rejoignes.</p>
+        <p className="mm-ranked-explainer">Tu peux jouer ailleurs pendant la recherche : on te prévient dès qu’un adversaire est trouvé.</p>
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </section> : null}
 

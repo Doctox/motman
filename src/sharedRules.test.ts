@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import fixtures from './data/sharedRuleScenarios.json'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL } from './experienceCurve'
-import { RANKED_DIVISIONS } from './ranked'
+import { rankedMatchBand } from './ranked'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RÈGLES ÉCRITES DANS DEUX LANGAGES — côté TypeScript.
@@ -14,8 +14,9 @@ import { RANKED_DIVISIONS } from './ranked'
 //   • la COURBE D'XP — `experienceCurve.ts` ici, `server_award_progress`
 //     (`goal := 100 + (next_level - 1) * 15`) là-bas. Celle d'ici annonce le
 //     palier au joueur ; celle de là-bas accorde réellement les niveaux ;
-//   • les PALIERS DE CLASSE — `RANKED_DIVISIONS` ici,
-//     `private.ranked_tier_index` là-bas.
+//   • les TRANCHES D'APPARIEMENT DU CLASSÉ — `RANKED_MATCH_BANDS` ici,
+//     `private.ranked_tier_index` là-bas. Jusqu'au 22/10/2026 c'étaient aussi
+//     les paliers affichés ; ceux-ci ont été resserrés, pas les tranches.
 //
 // Les deux jeux concordaient quand on les a comparés pour la première fois, le
 // 08/09/2026. Rien ne les y obligeait : c'est exactement l'état dans lequel se
@@ -39,17 +40,12 @@ describe('courbe d’XP, côté TypeScript', () => {
   }
 })
 
-describe('paliers de classe, côté TypeScript', () => {
-  // On compare l'INDICE, pas le libellé : c'est ce que rend `ranked_tier_index`,
-  // et les libellés (« Or », « Platine ») n'existent que côté client.
+describe('tranches d’appariement du classé, côté TypeScript', () => {
+  // On compare l'INDICE : c'est ce que rend `ranked_tier_index`. Les libellés
+  // de la fixture sont ceux des anciens paliers, qui avaient les mêmes bornes.
   for (const cas of fixtures.rangs.cas) {
-    it(`${cas.points} points → rang ${cas.rang} (${cas.id})`, () => {
-      const indice = [...RANKED_DIVISIONS]
-        .map((division, index) => ({ division, index }))
-        .reverse()
-        .find(({ division }) => cas.points >= division.minimum)?.index
-      expect(indice).toBe(cas.rang)
-      expect(RANKED_DIVISIONS[cas.rang].id).toBe(cas.id)
+    it(`${cas.points} points → tranche ${cas.rang}`, () => {
+      expect(rankedMatchBand(cas.points)).toBe(cas.rang)
     })
   }
 })

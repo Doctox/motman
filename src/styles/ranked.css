@@ -26,11 +26,17 @@ html[data-motion="off"] .ranked-ready-countdown.urgent{animation:none}
 @keyframes rankedDeDroite{from{opacity:0;transform:translateX(70px)}}
 @keyframes rankedEpees{from{opacity:0;transform:scale(.3) rotate(-25deg)}}
 .ranked-ready-countdown{position:relative;width:96px;height:96px;margin-inline:auto;display:grid;grid-template-columns:1fr;place-content:center;justify-items:center;row-gap:0}
-.ranked-ready-countdown.urgent{animation:none!important;color:#c9502e}
+.ranked-ready-countdown.urgent{animation:none!important;color:#0b574c}
 .ranked-ready-anneau{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
 .ranked-ready-anneau circle{fill:none;stroke-width:6;stroke-linecap:round;stroke:#e5dcc6}
 .ranked-ready-anneau circle.reste{stroke:#0b574c;transition:stroke-dasharray .25s linear,stroke .3s ease}
-.ranked-ready-countdown.urgent .ranked-ready-anneau circle.reste{stroke:#c9502e}
+/* C7 (22/10/2026) : l'urgence se dit par l'anneau qui se vide, pas par une
+   couleur d'alarme. L'anneau prend toute la taille du décompte : la règle
+   `.ranked-ready-countdown svg{width:25px}` le réduisait à un petit rond. */
+.ranked-ready-countdown .ranked-ready-anneau{width:100%;height:100%}
+.ranked-ready-free{margin:8px 0 0!important;color:var(--mm-muted,#626c68);font-size:0.75rem}
+[data-theme="dark"] .ranked-ready-anneau circle{stroke:#33433c}
+[data-theme="dark"] .ranked-ready-anneau circle.reste{stroke:#8ad6b4}
 .ranked-ready-countdown b{position:relative;grid-row:auto!important}
 .ranked-ready-countdown span{position:relative;font-size:.6875rem}
 html[data-motion="off"] .ranked-ready-layer,html[data-motion="off"] .ranked-ready-dialog,html[data-motion="off"] .ranked-ready-emblems>*{animation:none!important}

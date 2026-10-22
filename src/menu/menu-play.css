@@ -189,6 +189,11 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 .mm-play-card.is-searching .mm-search-cancel{margin:0}
 .mm-play-searching-inline{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--mm-line);border-radius:14px;background:var(--mm-paper);font-size:0.8125rem;font-weight:700}
 .mm-play-searching-inline>span{flex:1;min-width:0}
+/* Le chrono est lui aussi un <span> : sans ceci il prenait la moitié de la carte
+   et cassait « Recherche classée en cours » sur trois lignes (22/10/2026). */
+.mm-play-searching-inline>.mm-search-timer{flex:none}
+/* Jouer une classée depuis le Classement (C3, 22/10/2026). */
+.mm-ranking-page .mm-ranking-jouer,.mm-ranking-page .mm-ranking-recherche{width:100%;margin:2px 0 14px}
 .mm-play-searching-inline .mm-search-cancel{margin:0}
 
 /* Les rythmes, en colonnes, sous l'en-tête de la carte. */
@@ -286,3 +291,10 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 .mm-ranked-seeker small{display:block;margin-top:2px;color:var(--mm-muted);font-size:0.6875rem;line-height:1.3}
 .mm-shell .mm-ranked-seeker button{grid-column:1 / -1;width:100%;min-height:44px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:3px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:11px;background:var(--mm-coral);color:#fff;font:700 0.8125rem/1 'DM Sans',sans-serif}
 .mm-shell .mm-ranked-seeker button svg{width:15px;height:15px}
+/* « Ta recherche classée continue » à l'accueil (C3, 22/10/2026) : une ligne
+   calme, en neutre, qui mène à l'onglet Jouer. */
+.mm-ranked-search-reminder{width:100%;min-height:48px;margin:0 0 12px;padding:8px 12px;display:flex;align-items:center;gap:10px;border:1px solid var(--mm-line);border-radius:14px;background:var(--mm-surface);color:var(--mm-ink);font:700 0.8125rem 'DM Sans',sans-serif;text-align:left;cursor:pointer}
+.mm-ranked-search-reminder>span:not(.mm-search-timer):not(.mm-ranked-search-reminder-voir){flex:1;min-width:0}
+.mm-ranked-search-reminder-voir{display:inline-flex;align-items:center;gap:2px;color:var(--mm-ink-soft);font-weight:600}
+.mm-ranked-search-reminder-voir svg{width:16px;height:16px}
+.mm-ranked-search-reminder:focus-visible{outline:2px solid color-mix(in srgb,var(--mm-gold) 80%,var(--mm-ink));outline-offset:2px}

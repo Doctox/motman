@@ -25,6 +25,10 @@ export type MatchHistoryEntry = {
    * n'existe plus nulle part. L'écran d'historique doit donc supporter les deux.
    */
   board?: BoardSnapshot | null
+  /** Une classée (22/10/2026) : ses points, et pourquoi elle n'en a pas rapporté. */
+  ranked?: boolean
+  rankedDelta?: number
+  rankedSansPoints?: 'abandon-rapide' | 'plafond-paire' | null
 }
 export type PendingMatchResult = MatchHistoryEntry & {
   matchId: string

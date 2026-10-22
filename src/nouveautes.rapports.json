@@ -290,5 +290,10 @@
     "ajoute": "2026-10-19T11:21",
     "titre": "Défi du jour sans interruption",
     "texte": "Tu peux lancer une recherche puis jouer ton défi du jour : aucune partie ne viendra l'interrompre, et ta recherche reprend dès la fin du défi."
+  },
+  {
+    "ajoute": "2026-10-22T15:21",
+    "titre": "Ta place au Classement, en clair",
+    "texte": "Ta place et les points qu’il te faut pour passer devant, ton record et ta semaine. Les paliers sont resserrés : touche ton insigne pour les voir. Et une classée se lance depuis le Classement."
   }
 ]

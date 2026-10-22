@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Clock3, ShieldX, Swords } from 'lucide-react'
+import { Check, Clock3, Feather, ShieldX } from 'lucide-react'
 import { rankImage, rankedDivision } from './ranked'
 import type { RankedMatchmakingState } from './rankedMatchmaking'
 import { useDialogFocus } from './useDialogFocus'
@@ -75,12 +75,16 @@ function RankedReadyDialog({
     <section ref={dialogRef} className="ranked-ready-dialog" role="dialog" aria-modal="true" aria-labelledby="ranked-ready-title" tabIndex={-1}>
       <div className="ranked-ready-emblems" aria-hidden="true">
         <img src={rankImage(division)} alt="" />
-        <Swords />
+        <Feather />
         <span>{ready.opponent?.displayName.slice(0, 1) ?? '?'}</span>
       </div>
       <small>Partie classée · 45 s par tour</small>
       <h2 id="ranked-ready-title">Adversaire trouvé !</h2>
-      <p><strong>{ready.opponent?.displayName ?? 'Ton adversaire'}</strong> est prêt à rejoindre l’arène.</p>
+      {/* « Rose est prêt à rejoindre l'arène » : au masculin pour tout le monde,
+          et affirmé avant même son accord (22/10/2026, code C7). Une phrase
+          vraie dans tous les cas, sans dire s'il a déjà accepté : le fantôme
+          accepte toujours aussitôt, ce serait un indice. */}
+      <p>Ta partie classée contre <strong>{ready.opponent?.displayName ?? 'ton adversaire'}</strong> est prête.</p>
       {ready.pausedMatchId ? <p className="ranked-ready-pause-note">Ta partie normale est mise en pause. Elle reprendra intacte si le match classé ne démarre pas.</p> : null}
       {/* Le serveur ne met en pause que les parties normales en temps limité
           entre humains. Le défi du jour et les parties entre amis en temps
@@ -109,10 +113,13 @@ function RankedReadyDialog({
         {seconds === 0 ? <div className="ranked-ready-actions">
           <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Fermer</button>
         </div> : null}
-      </> : <div className="ranked-ready-actions">
-        <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Quitter</button>
-        <button type="button" className="ranked-ready-accept" disabled={busy || seconds === 0} onClick={accept}><Check />Rejoindre</button>
-      </div>}
+      </> : <>
+        <div className="ranked-ready-actions">
+          <button type="button" className="ranked-ready-decline" disabled={busy} onClick={decline}><ShieldX />Pas cette fois</button>
+          <button type="button" className="ranked-ready-accept" disabled={busy || seconds === 0} onClick={accept}><Check />Rejoindre</button>
+        </div>
+        <p className="ranked-ready-free">Refuser ne te coûte aucun point.</p>
+      </>}
       {error ? <p className="ranked-ready-error" role="alert">{error}</p> : null}
     </section>
   </div>

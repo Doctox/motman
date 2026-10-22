@@ -41,6 +41,16 @@ export type RankedLeaderboardEntry = {
 export type RankedLeaderboard = {
   general: RankedLeaderboardEntry[]
   friends: RankedLeaderboardEntry[]
+  /** La ligne du lecteur, même au-delà des 50 premiers (22/10/2026). */
+  me?: RankedLeaderboardEntry | null
+  /** Le nombre de classés, au-delà de ce qui est rendu. */
+  total?: number
+  /** Ce que le lecteur a gagné ou perdu en 7 jours. */
+  weekDelta?: number
+  /** La place juste au-dessus et les points qu'il faut pour la prendre. */
+  toPass?: { position: number; points: number } | null
+  /** Premier : son avance sur le suivant. */
+  lead?: number | null
 }
 
 export const EMPTY_RANKED_MATCHMAKING: RankedMatchmakingState = {

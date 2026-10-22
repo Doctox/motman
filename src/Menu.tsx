@@ -301,6 +301,19 @@ export function MenuApp({
     }, 2350)
   }, [])
 
+  // « Rose n'a pas confirmé » (22/10/2026, code C7). Quand l'adversaire laissait
+  // passer les 30 s, celui qui avait accepté retournait en file sans un mot, et
+  // ne savait pas s'il avait perdu quelque chose.
+  const etatClasse = useRef<{ status: string; nom: string | null }>({ status: ranked.status, nom: null })
+  useEffect(() => {
+    const avant = etatClasse.current
+    const nom = ranked.ready?.opponent?.displayName ?? avant.nom
+    if (avant.status === 'accepted' && ranked.status === 'searching') {
+      notify(`${nom ?? 'Ton adversaire'} n’a pas confirmé. Ta recherche continue, sans rien perdre.`)
+    }
+    etatClasse.current = { status: ranked.status, nom }
+  }, [notify, ranked.ready?.opponent?.displayName, ranked.status])
+
   useEffect(() => {
     if (!googleAuthIssue) return
     setAccountOpen(true)
@@ -511,9 +524,9 @@ export function MenuApp({
 
   return <main ref={setCoquille} className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} ranked={ranked} voirRechercheClassee={() => navigate('play', 'ranked')} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
-    {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} /> : null}
+    {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement} ranked={ranked} rankedBusy={rankedBusy} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} /> : null}
     {page === 'shop' ? <Suspense fallback={<div className="mm-page mm-shop-page" role="status" aria-label="Ouverture de l’Épicerie"><SilhouetteEpicerie /></div>}><LazyShopPage cosmetics={cosmetics} setCosmetics={setCosmetics} back={() => navigate('profile')} notify={notify} /></Suspense> : null}
     <BottomNav page={page} setPage={navigate} basketAffordable={BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />

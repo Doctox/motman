@@ -1,5 +1,5 @@
 import { useNouveauteEnAttente } from '../nouveautes'
-import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { envolerVersLEnTete } from '../logoEnVol'
 import { BarChart3, Gamepad2, Home, Settings, ShoppingBasket, User } from 'lucide-react'
 import { assetUrl } from '../assetUrl'
@@ -11,6 +11,8 @@ import type { SocialUser } from '../social'
 import type { MenuPage } from './types'
 import { haptic, motionReduced } from '../sensoryPreferences'
 import { QuestsChip } from './QuestsPanel'
+import { FichePaliers } from './FichePaliers'
+import { phraseDeLaPlace, phraseDeLaSemaine, phraseDuRecord, type PlaceDuLecteur } from './classementEnClair'
 import './menu-nouveautes.css'
 
 function Brand() {
@@ -75,17 +77,29 @@ export function BottomNav({ page, setPage, basketAffordable = false }: { page: M
   </nav>
 }
 
-export function RankProgress({ progress, compact = false }: { progress: PlayerProgress; compact?: boolean }) {
+/**
+ * La progression classée. Avec `classement` (onglet Classement, 22/10/2026) :
+ * la place et l'écart avec la place au-dessus, le record et la semaine (codes
+ * C1 et C6 du grand tour). L'insigne ouvre la fiche « Les paliers » (C5).
+ */
+export function RankProgress({ progress, compact = false, classement }: { progress: PlayerProgress; compact?: boolean; classement?: (PlaceDuLecteur & { weekDelta?: number }) | null }) {
+  const [fiche, setFiche] = useState(false)
   const division = rankedDivision(progress.rankedPoints, progress.rankedMatches)
   const next = nextRankedDivision(progress.rankedPoints, progress.rankedMatches)
   const placementProgress = Math.min(100, progress.rankedMatches / RANKED_PLACEMENT_MATCHES * 100)
   const rankProgress = next && progress.rankedMatches >= RANKED_PLACEMENT_MATCHES
     ? Math.min(100, Math.max(0, (progress.rankedPoints - division.minimum) / (next.minimum - division.minimum) * 100))
     : next ? placementProgress : 100
+  const place = classement && progress.rankedMatches >= RANKED_PLACEMENT_MATCHES ? phraseDeLaPlace(classement) : null
+  const record = progress.rankedMatches >= RANKED_PLACEMENT_MATCHES ? phraseDuRecord(progress.rankedPeakPoints, progress.rankedPoints) : null
+  const semaine = classement ? phraseDeLaSemaine(classement.weekDelta) : null
   return <section className={`mm-rank-progress ${progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? 'mm-rank-progress-empty' : ''} ${compact ? 'compact' : ''}`} aria-label="Progression classée">
-    <img className="mm-rank-image" src={rankImage(division)} alt={`Rang ${division.label}`} />
+    <button type="button" className="mm-rank-image-bouton" aria-label={`Rang ${division.label} · voir les paliers`} onClick={() => setFiche(true)}><img className="mm-rank-image" src={rankImage(division)} alt="" /></button>
     <div className="mm-rank-copy"><strong>{division.label}</strong><span>{progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? rankedPlacementLabel(progress.rankedMatches) : `${progress.rankedPoints} pt`}</span></div>
     <div className="mm-progress"><small>{next ? progress.rankedMatches < RANKED_PLACEMENT_MATCHES ? 'Termine tes placements' : `${next.minimum - progress.rankedPoints} pt avant ${next.label}` : 'Rang maximum'}</small><i><b style={{ width: `${rankProgress}%` }} /></i></div>
+    {place ? <p className="mm-rank-standing">{place}</p> : null}
+    {record || semaine ? <p className="mm-rank-extras">{semaine ? <span className={classement?.weekDelta && classement.weekDelta > 0 ? 'is-up' : undefined}>{semaine}</span> : null}{record ? <span>{record}</span> : null}</p> : null}
+    {fiche ? <FichePaliers points={progress.rankedPoints} matches={progress.rankedMatches} close={() => setFiche(false)} /> : null}
   </section>
 }
 

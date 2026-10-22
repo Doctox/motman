@@ -6,7 +6,7 @@
 //   • la SÉRIE du défi du jour — `src/dailyStreakRule.ts` / `private.daily_streak_from_history`
 //     et `private.daily_freeze_days` ;
 //   • la COURBE D'XP — `experienceCurve.ts` / `public.server_award_progress` ;
-//   • les PALIERS DE CLASSE — `RANKED_DIVISIONS` / `private.ranked_tier_index`.
+//   • les TRANCHES D'APPARIEMENT — `RANKED_MATCH_BANDS` / `private.ranked_tier_index`.
 //
 // Les tenir d'accord « en relisant bien » a déjà échoué une fois : la première
 // version SQL de la série prétendait recopier `advanceStreak` et avait omis la
@@ -103,7 +103,7 @@ function sqlRangs(cas) {
 function verifieRangs(cas, lignes) {
   return cas.map((c, index) => ({
     nom: `rang · ${c.points} points → ${c.id}`,
-    pourquoi: 'Les bornes de RANKED_DIVISIONS et de ranked_tier_index doivent coïncider.',
+    pourquoi: 'Les bornes de RANKED_MATCH_BANDS (tranches d’appariement) et de ranked_tier_index doivent coïncider.',
     attendu: { indice: c.rang },
     obtenu: { indice: lignes[index]?.indice ?? null },
   }))

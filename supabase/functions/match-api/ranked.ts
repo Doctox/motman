@@ -198,12 +198,20 @@ export async function rankedLeaderboard(
   const friends = rendues
     .filter(entree => (entree.id === userId || friendIds.has(entree.id)) && profiles.has(entree.id))
     .map((entree, index) => ({ ...enEntree(entree), position: index + 1 }))
+  // CE QUI SÉPARE LE LECTEUR DE LA PLACE AU-DESSUS (C1) : « 53 pt pour passer
+  // 6e ». Calculé ici, sur la liste entière : la place au-dessus d'un 51e n'est
+  // pas dans les 50 lignes rendues. Seul le lecteur reçoit son écart, jamais
+  // les points d'un adversaire qu'il n'aurait pas sous les yeux.
+  const devant = moi ? placees.filter(entree => entree.points > moi.points).at(-1) ?? null : null
+  const derriere = moi ? placees.find(entree => entree.points < moi.points) ?? null : null
   return {
     general,
     friends,
     me: moi && profiles.has(moi.id) ? enEntree(moi) : null,
     total: placees.length,
     weekDelta: semaine.reduce((somme, ligne) => somme + (Number(ligne.points_delta) || 0), 0),
+    toPass: moi && devant ? { position: devant.position, points: devant.points - moi.points + 1 } : null,
+    lead: moi && !devant && derriere ? moi.points - derriere.points : null,
   }
 }
 

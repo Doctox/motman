@@ -14,6 +14,8 @@ import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero } from './DailyChallenge'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
+import { ChronoRecherche } from './ChronoRecherche'
+import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import { GamePulse } from './GamePulse'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
@@ -38,7 +40,12 @@ function activeMatchLabel(match: MatchState): string {
   return 'Match normal'
 }
 
-export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, resumeMatch }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void }) {
+export function HomePage({ identity, progress, cosmetics, social, lobby, play, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, resumeMatch, ranked, voirRechercheClassee }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void; ranked?: RankedMatchmakingState; voirRechercheClassee?: () => void }) {
+  // MA RECHERCHE CLASSÉE SE VOIT AUSSI ICI (22/10/2026, code C3). Lancée, puis
+  // l'accueil : plus rien ne disait qu'elle tournait, et une attente qu'on ne
+  // voit plus ressemble à une panne. Le bandeau « des joueurs cherchent » me
+  // proposait même de rejoindre une file où j'étais déjà.
+  const rechercheClassee = ranked?.status === 'searching' || ranked?.status === 'ready' || ranked?.status === 'accepted'
   const firstRequest = social.incoming[0]
   const codeAmi = friendCodeOf(identity)
   // Partage natif quand l'appareil le propose, presse-papiers sinon. Les deux
@@ -113,10 +120,15 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, p
       {/* Réservé au propriétaire : le serveur revérifie le rôle et refuse tout
           autre compte. Placé en haut, c'est la première chose qu'il regarde. */}
       {identity.admin ? <GamePulse /> : null}
+      {rechercheClassee && ranked ? <button type="button" className="mm-ranked-search-reminder" onClick={voirRechercheClassee}>
+        <ChronoRecherche depuis={ranked.queuedAt} />
+        <span>Ta recherche classée continue</span>
+        <span className="mm-ranked-search-reminder-voir">Voir<ChevronRight aria-hidden="true" /></span>
+      </button> : null}
       <RankedSeekerBanner
         seekers={lobby.rankedSeekers ?? 0}
         estUnCompte={identity.accountType === 'account'}
-        dejaEnClasse={lobby.active.some(partie => partie.mode === 'ranked')}
+        dejaEnClasse={rechercheClassee || lobby.active.some(partie => partie.mode === 'ranked')}
         // « Rejoindre » lance la recherche classée tout de suite (11/10/2026) :
         // il ouvrait seulement l'onglet Classé, où il fallait encore appuyer
         // sur « Jouer ».

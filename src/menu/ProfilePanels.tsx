@@ -7,7 +7,8 @@ import { friendCodeOf, type GuestIdentity } from '../playerIdentity'
 import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
 import { rankImage, rankedDivision } from '../ranked'
 import { EMPTY_PLAYER_STATS, loadPlayerStats, type PlayerStats } from '../playerStats'
-import { loadRankedLeaderboard, type RankedLeaderboard } from '../rankedMatchmaking'
+import { loadRankedLeaderboard, type RankedLeaderboard, type RankedMatchmakingState } from '../rankedMatchmaking'
+import { ChronoRecherche } from './ChronoRecherche'
 import { useDialogFocus } from '../useDialogFocus'
 import { DailyLeaderboardPanel } from './DailyChallenge'
 import { RankProgress, SocialPortrait } from './MenuChrome'
@@ -16,7 +17,17 @@ import { useActualisation } from './actualiser'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
-export function RankingPage({ identity, progress, cosmetics, epreuveInitiale }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; epreuveInitiale?: 'ranked' | 'daily' }) {
+export function RankingPage({ identity, progress, cosmetics, epreuveInitiale, ranked, rankedBusy, startRanked, cancelRanked }: {
+  identity: GuestIdentity
+  progress: PlayerProgress
+  cosmetics: PlayerCosmetics
+  epreuveInitiale?: 'ranked' | 'daily'
+  /** La recherche classée, pour la lancer d'ici et la voir en cours (22/10/2026, code C3). */
+  ranked?: RankedMatchmakingState
+  rankedBusy?: boolean
+  startRanked?: () => void | Promise<void>
+  cancelRanked?: () => void | Promise<void>
+}) {
   // DEUX ÉPREUVES, deux classements, et il faut choisir laquelle on regarde.
   //
   // Le classé demande une rencontre : deux humains au même instant. Le défi du
@@ -46,28 +57,48 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale }: 
     return () => { active = false }
   }, [progress.rankedMatches, progress.rankedPoints, actualisation])
   const entries = leaderboard[tab]
+  // Ma ligne quand je suis au-delà des 50 premiers (C8) : détachée, comme au
+  // classement du défi, pour que l'écart de rang se voie.
+  const moiHorsListe = tab === 'general' && leaderboard.me && !entries.some(entry => entry.user.playerId === identity.playerId) ? leaderboard.me : null
+  const placeDuLecteur = leaderboard.me && leaderboard.total
+    ? { place: leaderboard.me.position, total: leaderboard.total, toPass: leaderboard.toPass ?? null, lead: leaderboard.lead ?? null, weekDelta: leaderboard.weekDelta }
+    : null
+  const enRecherche = ranked ? ranked.status === 'searching' || ranked.status === 'ready' || ranked.status === 'accepted' : false
+  const ligneDeClassement = (entry: RankedLeaderboard['general'][number]) => {
+    const division = rankedDivision(entry.points, entry.matches)
+    const mine = entry.user.playerId === identity.playerId
+    return <div className={`mm-ranking-row ${mine ? 'you' : ''}`} key={entry.user.playerId}>
+      <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
+      <SocialPortrait user={entry.user} small />
+      <strong>{entry.user.displayName}<small>{mine ? `Toi · ${entry.wins} victoire${entry.wins > 1 ? 's' : ''}` : `${entry.wins} victoire${entry.wins > 1 ? 's' : ''}`}</small></strong>
+      <span className="mm-ranking-rank"><img src={rankImage(division)} alt="" /><b>{frenchNumber.format(entry.points)} <small>pt</small></b></span>
+    </div>
+  }
   return <div className="mm-page mm-ranking-page">
     <div className="mm-segmented mm-ranking-epreuve" role="group" aria-label="Épreuve">
       <button type="button" className={epreuve === 'ranked' ? 'active' : ''} aria-pressed={epreuve === 'ranked'} onClick={() => setEpreuve('ranked')}>Classé</button>
       <button type="button" className={epreuve === 'daily' ? 'active' : ''} aria-pressed={epreuve === 'daily'} onClick={() => setEpreuve('daily')}>Défi du jour</button>
     </div>
     {epreuve === 'daily' ? <DailyLeaderboardPanel /> : <>
-    <RankProgress progress={progress} compact />
+    <RankProgress progress={progress} compact classement={placeDuLecteur} />
+    {/* JOUER D'ICI (C3) : on regarde le classement, on a envie de jouer — le
+        bouton est là, et la recherche en cours se voit au lieu de disparaître. */}
+    {ranked && startRanked && identity.accountType === 'account' ? enRecherche
+      ? <div className="mm-play-searching-inline mm-ranking-recherche" aria-live="polite">
+        <ChronoRecherche depuis={ranked.queuedAt} />
+        <span>Recherche classée en cours</span>
+        {cancelRanked ? <button type="button" className="mm-search-cancel" disabled={rankedBusy || ranked.status === 'accepted'} onClick={() => void cancelRanked()}>Annuler</button> : null}
+      </div>
+      : <button type="button" className="mm-play-cta is-gold mm-ranking-jouer" disabled={rankedBusy || ranked.status === 'started'} onClick={() => void startRanked()}>
+        {ranked.status === 'started' ? 'Partie classée en cours' : 'Jouer une classée'} <ChevronRight aria-hidden="true" />
+      </button> : null}
     <div className="mm-segmented" role="group" aria-label="Type de classement"><button type="button" className={tab === 'general' ? 'active' : ''} aria-pressed={tab === 'general'} onClick={() => setTab('general')}>Général</button><button type="button" className={tab === 'friends' ? 'active' : ''} aria-pressed={tab === 'friends'} onClick={() => setTab('friends')}>Amis</button></div>
     <section className="mm-leaderboard">
       {!entries.length && tab === 'general' && progress.rankedMatches >= 5 ? <div className="mm-ranking-row you">
         <span className="mm-position">—</span><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="" small /><strong>{identity.displayName}<small>Toi</small></strong><b>{progress.rankedPoints} <small>pt</small></b>
       </div> : null}
-      {entries.map(entry => {
-        const division = rankedDivision(entry.points, entry.matches)
-        const mine = entry.user.playerId === identity.playerId
-        return <div className={`mm-ranking-row ${mine ? 'you' : ''}`} key={entry.user.playerId}>
-          <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
-          <SocialPortrait user={entry.user} small />
-          <strong>{entry.user.displayName}<small>{mine ? 'Toi' : `${entry.wins} victoire${entry.wins > 1 ? 's' : ''}`}</small></strong>
-          <span className="mm-ranking-rank"><img src={rankImage(division)} alt="" /><b>{entry.points} <small>pt</small></b></span>
-        </div>
-      })}
+      {entries.map(ligneDeClassement)}
+      {moiHorsListe ? <div className="mm-daily-rank-detache">{ligneDeClassement(moiHorsListe)}</div> : null}
       {!entries.length && loading ? <SilhouettesDeRangs libelle="Chargement du classement" /> : !entries.length ? <div className="mm-empty-ranking"><Trophy /><strong>{loading ? 'Chargement du classement…' : tab === 'general' ? progress.rankedMatches < 5 ? 'Placements en cours' : 'Aucun joueur classé' : 'Aucun ami classé'}</strong><span>{loading ? 'Les meilleurs joueurs arrivent.' : tab === 'general' ? progress.rankedMatches < 5 ? `Encore ${5 - progress.rankedMatches} partie${5 - progress.rankedMatches > 1 ? 's' : ''} de placement.` : 'Tu es le premier classé — les autres arrivent.' : 'Tes amis apparaîtront ici après leurs placements.'}</span></div> : null}
     </section>
     </>}
