@@ -9,14 +9,18 @@
       rayons et violet dans les chances ; exceptionnel, l'inverse.
    2. Des textes lisibles : plus rien sous 10 px dans l'Épicerie.
    3. Quatre états de bouton : achetable, trop cher, possédé, porté.
+   4. (Lot D, 22/10/2026) Des MATIÈRES, plus des couleurs de jeu vidéo : le
+      bleu du rare et le violet du précieux sortaient de la palette (« rien de
+      saturé, même pour un objet rare »). L'échelle monte comme celle des
+      médailles de rang : étain, sauge, cuivre, argent, laiton, or.
    ────────────────────────────────────────────────────────────────────────── */
 :root{
-  --mm-rarity-commun:#7f8f86;
-  --mm-rarity-singulier:#4f9573;
-  --mm-rarity-rare:#3f7fb0;
-  --mm-rarity-precieux:#8561b3;
-  --mm-rarity-exceptionnel:#c4702f;
-  --mm-rarity-legendaire:#b98b17;
+  --mm-rarity-commun:#858a80;      /* étain */
+  --mm-rarity-singulier:#6f8f74;   /* sauge */
+  --mm-rarity-rare:#a0673f;        /* cuivre */
+  --mm-rarity-precieux:#8d9ca4;    /* argent */
+  --mm-rarity-exceptionnel:#b8913d;/* laiton */
+  --mm-rarity-legendaire:#c9a227;  /* or */
 }
 .rarity-commun{--mm-rarity:var(--mm-rarity-commun)}
 .rarity-singulier{--mm-rarity:var(--mm-rarity-singulier)}
@@ -55,7 +59,9 @@
 .mm-rarity-pill{
   height:20px;padding:0 8px;border-radius:10px;display:inline-flex;align-items:center;gap:5px;
   background:color-mix(in srgb,var(--mm-rarity) 16%,transparent);
-  color:color-mix(in srgb,var(--mm-rarity) 78%,#000);
+  /* 58 % de la matière dans le noir : de 5 à 7:1 sur la pastille. Les matières
+     claires (argent, laiton, or) tombaient à 3,1:1 avec l'ancien 78 %. */
+  color:color-mix(in srgb,var(--mm-rarity) 58%,#000);
   font-size:0.625rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
 }
 .mm-rarity-pill>i{width:8px;height:8px;border-radius:2px;transform:rotate(45deg);background:var(--mm-rarity);box-shadow:0 0 5px color-mix(in srgb,var(--mm-rarity) 70%,transparent)}
@@ -81,9 +87,9 @@
 .mm-shop-filter{margin:-12px 2px -8px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--mm-ink-soft);font-size:0.8125rem;font-weight:600;cursor:pointer}
 .mm-shop-filter input{appearance:none;width:40px;height:23px;flex:none;margin:0;border-radius:12px;background:#d9d1c0;position:relative;cursor:pointer;transition:background .2s ease}
 .mm-shop-filter input:after{content:'';position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .2s var(--mm-ease)}
-.mm-shop-filter input:checked{background:var(--mm-ink)}
+.mm-shop-filter input:checked{background:var(--mm-fill-strong)}
 .mm-shop-filter input:checked:after{transform:translateX(17px)}
-.mm-shop-filter input:focus-visible{outline:2px solid var(--mm-coral);outline-offset:2px}
+.mm-shop-filter input:focus-visible{outline:2px solid color-mix(in srgb,var(--mm-gold) 80%,var(--mm-ink));outline-offset:2px}
 .mm-shop-empty{margin:0 2px!important;color:var(--mm-muted);font-size:0.8125rem}
 
 /* Panier : textes lisibles, premier panier offert, chances en couleurs */
@@ -94,10 +100,12 @@
 .mm-shop-page .mm-basket-manque{font-size:0.8125rem!important}
 .mm-shop-page .mm-shop-note{font-size:0.75rem!important}
 .mm-basket-card{position:relative}
-.mm-basket-ribbon{position:absolute;z-index:4;top:12px;right:-40px;width:128px;height:22px;transform:rotate(38deg);background:var(--mm-coral);color:#fff;display:grid;place-items:center;font-size:0.625rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 3px 8px #0002;pointer-events:none}
-.mm-basket-gift{margin-top:10px;padding:7px 13px;border:1px solid #f0c2ad;border-radius:12px;background:#fff3e8;color:#9b3d24;display:inline-flex;align-items:center;gap:7px;font-size:0.875rem;font-weight:800}
+/* « Offert » : en laiton foncé, plus en terre cuite (lot D). */
+.mm-basket-ribbon{position:absolute;z-index:4;top:12px;right:-40px;width:128px;height:22px;transform:rotate(38deg);background:var(--c-brass-deep);color:#fffaf0;display:grid;place-items:center;font-size:0.625rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 3px 8px #0002;pointer-events:none}
+.mm-basket-gift{margin-top:10px;padding:7px 13px;border:1px solid color-mix(in srgb,var(--mm-gold) 55%,var(--mm-line));border-radius:12px;background:color-mix(in srgb,var(--mm-gold) 14%,var(--mm-surface));color:var(--mm-overline);display:inline-flex;align-items:center;gap:7px;font-size:0.875rem;font-weight:800}
 .mm-basket-gift svg{width:17px;height:17px}
-.mm-basket-card.is-free.is-idle .mm-basket-action{background:linear-gradient(#d9643f,#c24f30);box-shadow:0 8px 18px #c24f3040;font-size:0.9375rem}
+/* Le panier offert garde le bouton principal (vert pin), un cran plus grand. */
+.mm-basket-card.is-free.is-idle .mm-basket-action{font-size:0.9375rem}
 .mm-basket-action s{margin-left:4px;opacity:.75;font-weight:600;font-size:0.8125rem}
 .mm-shop-page .mm-basket-action{font-size:0.8125rem}
 .mm-shop-page .mm-basket-reward>span small{font-size:0.625rem}
@@ -122,7 +130,6 @@
 [data-theme="dark"] .mm-shop-page .mm-shop-tabs{background:color-mix(in srgb,#16211e 92%,transparent)!important;border-color:#3a4a44!important}
 [data-theme="dark"] .mm-avatar-family-chips{background:color-mix(in srgb,#16211e 92%,transparent)}
 [data-theme="dark"] .mm-avatar-family-chips button{background:#21302b;border-color:#3a4a44;color:#dfe8e3}
-[data-theme="dark"] .mm-basket-gift{background:#3a2a22;border-color:#7a4a36;color:#ffc2a8}
 
 @media(max-width:360px){
   .mm-shop-page .mm-shop-item>strong{font-size:0.9375rem}

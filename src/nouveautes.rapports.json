@@ -310,5 +310,11 @@
     "ajoute": "2026-10-22T16:49",
     "titre": "Une partie d’essai pour bien commencer",
     "texte": "Le tutoriel devient une petite partie guidée : tu poses tes premières lettres, tu valides, puis « Jouer ma première partie » te trouve un adversaire."
+  },
+  {
+    "ajoute": "2026-10-22T17:39",
+    "titre": "Des couleurs plus calmes, le soir aussi",
+    "texte": "Un seul bouton principal vert pin, les mêmes onglets partout et un vrai logo de nuit. La terre cuite désigne ton adversaire ; les petits textes se lisent mieux.",
+    "genre": "affichage"
   }
 ]

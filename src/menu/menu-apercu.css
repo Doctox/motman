@@ -4,14 +4,14 @@
 .mm-appui-long{transform:scale(.95)!important;transition:transform .45s ease-in!important}
 .mm-shop-item,.mm-home-friend{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 
+/* Les jetons --mm-* viennent de tokens.css (:root, clair et sombre) : la copie
+   qui vivait ici aurait figé l'ancien gris des petits textes (lot D). */
 .mm-apercu-voile{
-  --mm-paper:#fffaf0;--mm-surface:#fffdf8;--mm-ink:#073f36;--mm-muted:#6d7773;--mm-line:#d7d1c2;--mm-gold:#c59b45;--mm-sage:#e8ece2;
   position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px 16px;
   background:color-mix(in srgb,var(--mm-paper) 35%,transparent);
   -webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);
   animation:mmApercuVoile .25s ease both;
 }
-[data-theme="dark"] .mm-apercu-voile{--mm-paper:#111b18;--mm-surface:#18241f;--mm-ink:#edf5ef;--mm-muted:#a5b4ae;--mm-line:#3d5048;--mm-gold:#d9b563;--mm-sage:#263a33}
 .mm-apercu{
   width:min(300px,100%);display:grid;justify-items:center;gap:10px;padding:22px 20px 18px;
   border:1px solid var(--mm-line);border-radius:26px;background:var(--mm-surface);color:var(--mm-ink);
@@ -28,11 +28,12 @@
 .mm-apercu strong{font:600 1.35rem/1.15 'Playfair Display',serif}
 .mm-apercu p{margin:0;color:var(--mm-muted);font-size:.875rem;line-height:1.45}
 .mm-apercu-actions{display:grid;gap:8px;width:100%;margin-top:6px}
+/* Les boutons du menu (lot D) : secondaire ivoire et laiton, principal vert pin. */
 .mm-apercu-actions button{
-  min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--mm-ink);border-radius:999px;
-  background:transparent;color:var(--mm-ink);font:700 .9375rem 'DM Sans',sans-serif;cursor:pointer;
+  min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--mm-button-secondary-border);border-radius:999px;
+  background:var(--mm-button-secondary);color:var(--mm-ink);box-shadow:var(--mm-button-shadow-soft);font:600 1rem 'Playfair Display',serif;cursor:pointer;
 }
-.mm-apercu-actions button.principal{background:var(--mm-ink);color:var(--mm-paper)}
+.mm-apercu-actions button.principal{border-color:var(--mm-button-primary-border);background:linear-gradient(180deg,var(--mm-button-primary-top),var(--mm-button-primary-bottom));color:var(--mm-on-fill);box-shadow:var(--mm-button-shadow)}
 .mm-apercu-actions button:disabled{opacity:.55;cursor:default}
 .mm-apercu-actions svg{width:17px;height:17px}
 @keyframes mmApercuVoile{from{opacity:0}}

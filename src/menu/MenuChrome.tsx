@@ -19,7 +19,13 @@ function Brand() {
   // À la première apparition du menu, le logo arrive de l'écran de lancement (H11).
   const logo = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => envolerVersLEnTete(logo.current), [])
-  return <div ref={logo} className="mm-brand"><img src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /></div>
+  // Deux images, comme l'écran de lancement : la nuit montre le VRAI logo de
+  // nuit, au lieu du logo de jour passé au filtre (lot D, 22/10/2026). La
+  // feuille (menu-social-shop.css) n'en affiche qu'une selon le thème.
+  return <div ref={logo} className="mm-brand">
+    <img className="mm-brand-jour" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" />
+    <img className="mm-brand-nuit" src={assetUrl('/assets/motman-logo-v2-dark.webp')} alt="" aria-hidden="true" />
+  </div>
 }
 
 export function Avatar({ label = 'A', small = false }: { label?: string; small?: boolean }) {

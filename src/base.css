@@ -126,6 +126,9 @@ html[data-motion="off"] .mm-launch[data-etape="preparation"] .mm-launch-logo{ani
 .mm-exit-confirm{width:min(100%,320px);padding:26px 22px 20px;border-radius:18px;background:var(--mm-paper);color:var(--mm-ink);text-align:center;box-shadow:0 18px 44px #0b2a2238}
 .mm-exit-confirm h2{margin:0 0 6px;font:600 1.5rem 'Playfair Display',Georgia,serif}
 .mm-exit-confirm p{margin:0 0 18px;color:var(--mm-muted);font:500 0.875rem/1.45 'DM Sans',sans-serif}
-.mm-exit-confirm button{display:block;width:100%;min-height:46px;margin-top:8px;border-radius:999px;font:700 0.9375rem 'DM Sans',sans-serif;cursor:pointer}
-.mm-exit-stay{border:0;background:var(--mm-ink);color:var(--mm-paper)}
-.mm-exit-quit{border:1px solid var(--mm-line);background:transparent;color:var(--mm-ink)}
+/* Les deux boutons du menu (tokens.css, lot D) : le principal vert pin en
+   Playfair — en encre, il devenait une pilule menthe pâle la nuit —, et le
+   secondaire ivoire bordé de laiton. */
+.mm-exit-confirm button{display:block;width:100%;min-height:48px;margin-top:8px;border-radius:999px;font:600 1rem 'Playfair Display',serif;cursor:pointer}
+.mm-exit-stay{border:1px solid var(--mm-button-primary-border);background:linear-gradient(180deg,var(--mm-button-primary-top),var(--mm-button-primary-bottom));color:var(--mm-on-fill);box-shadow:var(--mm-button-shadow)}
+.mm-exit-quit{border:1px solid var(--mm-button-secondary-border);background:var(--mm-button-secondary);color:var(--mm-ink);box-shadow:var(--mm-button-shadow-soft)}

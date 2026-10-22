@@ -46,7 +46,16 @@
   --c-gold:           #c59b45;   /* or laiton */
   --c-sage-100:       #e8ece2;
   --c-sage-050:       #f2f3ec;
-  --c-muted:          #6d7773;
+  /* Le gris des petits textes, un cran plus foncé (lot D, 22/10/2026) :
+     #6d7773 faisait 4,45:1 sur l'ivoire, juste sous le seuil de 4,5:1. Celui-ci
+     fait 5,2:1 sur l'ivoire et 4,5:1 sur la sauge, sans changer de teinte. */
+  --c-muted:          #626c68;
+  /* Laiton foncé : le laiton qui se LIT (4,8:1 sur l'ivoire), pour les surtitres. */
+  --c-brass-deep:     #8a6a26;
+  /* Sauge profonde : l'accent du mode Amis, qui n'emprunte plus le terracotta. */
+  --c-sage-deep:      #5f7f6c;
+  /* La seule teinte froide de la palette, éteinte : le gel de série. */
+  --c-frost:          #6f8f9c;
   --c-line-mm:        #d7d1c2;   /* ligne (système --mm-*) */
   --c-line-warm:      #b8b6aa;   /* ligne (système jeu --line) — VALEUR DIFFÉRENTE */
   --c-line-strong:    #b9b9a9;
@@ -85,6 +94,36 @@
   --mm-shadow:        var(--c-shadow-green);
   --mm-shadow-raised: 0 10px 28px var(--c-shadow-green), 0 2px 6px var(--c-shadow-warm);
   --mm-ease:          cubic-bezier(.22, 1, .36, 1);
+
+  /* ── RÔLES (lot D, 22/10/2026) ───────────────────────────────────────────
+     Le terracotta (--mm-coral) ne dit plus que trois choses : l'adversaire,
+     Valider et les actions qui retirent (plus les pastilles « nouveau » et le
+     bouton plein du défi du jour, gardé par le propriétaire). Ce qu'il
+     habillait d'autre a reçu son propre rôle : */
+  --mm-overline:      var(--c-brass-deep);  /* surtitres en petites capitales */
+  --mm-sage-deep:     var(--c-sage-deep);   /* le mode Amis */
+  --mm-frost:         var(--c-frost);       /* le gel de série */
+  /* L'encre quand elle sert de FOND (disques à initiales, barres, pastilles
+     pleines). La nuit, --mm-ink devient une menthe pâle : posée en fond, elle
+     allumait des disques clairs au milieu du noir. Ce jeton reste un vert
+     profond dans les deux thèmes, et ce qu'on écrit dessus reste ivoire. */
+  --mm-fill-strong:   var(--c-green-900);
+  --mm-on-fill:       var(--c-paper);
+
+  /* ── BOUTONS ─────────────────────────────────────────────────────────────
+     Remontés de `.mm-shell` (menu-controls.css) : les fenêtres posées dans
+     <body> (confirmation d'achat, calendrier de série, quêtes) sont hors de la
+     coquille et ne les voyaient pas — leur bouton principal retombait sur le
+     terracotta, puis passait au vert une fois la feuille du jeu chargée. */
+  --mm-button-primary-top:      #0d6755;
+  --mm-button-primary-bottom:   #075044;
+  --mm-button-primary-border:   #06483b;
+  --mm-button-secondary:        #fffaf0;
+  --mm-button-secondary-border: #d7b86b;
+  --mm-button-danger:           #fff1eb;
+  --mm-button-danger-border:    #e4a38d;
+  --mm-button-shadow:           inset 0 1px 0 #ffffff30, 0 7px 17px #073f3620;
+  --mm-button-shadow-soft:      0 4px 12px #49391f0e;
 
   /* ── ÉCHELLE DE MOUVEMENT ────────────────────────────────────
      Les durées étaient dispersées — .18, .2, .22, .24, .25, .3 s —
@@ -148,4 +187,15 @@
   --mm-line-strong:   var(--c-line-strong-dark);
   --mm-shadow:        var(--c-shadow-dark);
   --mm-shadow-raised: 0 13px 34px #0005, 0 2px 7px #0003;
+  /* Les rôles de nuit : laiton clair, sauge et givre éclaircis pour se lire
+     sur le vert presque noir ; le fond plein reste un vert profond. */
+  --mm-overline:      var(--c-gold-dark);
+  --mm-sage-deep:     #8fb09b;
+  --mm-frost:         #9db7c1;
+  --mm-fill-strong:   #0d6755;
+  --mm-button-secondary:        #22322d;
+  --mm-button-secondary-border: #74694c;
+  /* La nuit, ce qui retire pose une terre, pas un bordeaux. */
+  --mm-button-danger:           #3e3128;
+  --mm-button-danger-border:    #7a5a46;
 }

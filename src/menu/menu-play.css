@@ -12,10 +12,10 @@
 .mm-brand:after{position:absolute;left:50%;bottom:-10px;translate:-50% 0;font:1.125rem/1 'Playfair Display',serif;color:var(--mm-ink)}
 .mm-icon-button{
   width:44px;height:44px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;
-  color:#fff8e9;background:var(--mm-ink);box-shadow:0 4px 10px #073f3625;cursor:pointer;z-index:1;
+  color:#fff8e9;background:var(--mm-fill-strong);box-shadow:0 4px 10px #073f3625;cursor:pointer;z-index:1;
 }
 .mm-shell .mm-icon-button{color:#fff8e9}
-.mm-icon-button{justify-self:end;border:0;background:var(--mm-ink)}
+.mm-icon-button{justify-self:end;border:0;background:var(--mm-fill-strong)}
 .mm-icon-button svg{width:20px;height:20px;stroke-width:2}
 .mm-page{padding:18px 30px 24px;--mm-page-haut:18px;--mm-page-bas:24px}
 
@@ -60,7 +60,7 @@
 
 .mm-play-page{padding-top:20px;--mm-page-haut:20px}
 
-.mm-pace-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mm-pace-choice>button{min-height:66px;padding:9px 8px;border:1px solid var(--mm-line);border-radius:9px;background:var(--mm-surface);color:var(--mm-ink);display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease}@media (hover:hover) and (pointer:fine){.mm-pace-choice>button:hover{background:var(--mm-sage-soft)}}.mm-pace-choice>button.active{border-color:var(--mm-ink);background:var(--mm-sage);box-shadow:inset 0 0 0 1px var(--mm-ink)}.mm-pace-choice>button:active{transform:scale(.985)}.mm-pace-choice svg{width:20px;min-width:20px;color:var(--mm-coral)}.mm-pace-choice span{display:flex;min-width:0;flex-direction:column}.mm-pace-choice strong{font:600 0.8125rem 'Playfair Display',serif}.mm-pace-choice small{margin-top:2px;color:var(--mm-muted);font-size:0.5625rem}
+.mm-pace-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mm-pace-choice>button{min-height:66px;padding:9px 8px;border:1px solid var(--mm-line);border-radius:9px;background:var(--mm-surface);color:var(--mm-ink);display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease}@media (hover:hover) and (pointer:fine){.mm-pace-choice>button:hover{background:var(--mm-sage-soft)}}.mm-pace-choice>button.active{border-color:var(--mm-ink);background:var(--mm-sage);box-shadow:inset 0 0 0 1px var(--mm-ink)}.mm-pace-choice>button:active{transform:scale(.985)}.mm-pace-choice svg{width:20px;min-width:20px;color:var(--mm-ink-soft)}.mm-pace-choice span{display:flex;min-width:0;flex-direction:column}.mm-pace-choice strong{font:600 0.8125rem 'Playfair Display',serif}.mm-pace-choice small{margin-top:2px;color:var(--mm-muted);font-size:0.5625rem}
 
 .mm-recent-history{display:grid;grid-template-rows:0fr;margin-top:0;opacity:0;transform:translateY(5px);transition:grid-template-rows .34s var(--mm-ease),margin-top .34s var(--mm-ease),opacity .2s ease,transform .34s var(--mm-ease)}
 .mm-recent-history.is-visible{grid-template-rows:1fr;margin-top:5px;opacity:1;transform:none}
@@ -73,14 +73,15 @@
 .mm-recent-match-copy{min-width:0;display:flex;flex-direction:column}.mm-recent-match-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 0.9375rem 'Playfair Display',serif}.mm-recent-match-copy small{margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.5rem;color:var(--mm-muted)}
 .mm-recent-match-score{display:flex;flex-direction:column;align-items:flex-end}.mm-recent-match-score b{font:600 1.0625rem 'Playfair Display',serif;white-space:nowrap}.mm-recent-match-score b i{margin:0 4px;color:var(--mm-muted);font-style:normal;font-weight:400}.mm-recent-match-score small{font-size:0.5rem;color:var(--mm-muted);white-space:nowrap}
 .mm-recent-history-empty{min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--mm-muted)}.mm-recent-history-empty svg{width:22px;margin-bottom:5px;color:var(--mm-gold)}.mm-recent-history-empty strong{font:600 0.9375rem 'Playfair Display',serif;color:var(--mm-ink)}.mm-recent-history-empty small{margin-top:4px;max-width:32ch;font-size:0.8125rem;line-height:1.4}
-[data-theme="dark"] .mm-recent-outcome.won{border-color:#4f8d73;background:#203b31;color:#8ed6b5}[data-theme="dark"] .mm-recent-outcome.drawn{border-color:#76653c;background:#3a3322;color:#ead28f}[data-theme="dark"] .mm-recent-outcome.lost{border-color:#865746;background:#452c25;color:#ff9b7b}
+[data-theme="dark"] .mm-recent-outcome.won{border-color:#4f8d73;background:#203b31;color:#8ed6b5}[data-theme="dark"] .mm-recent-outcome.drawn{border-color:#76653c;background:#3a3322;color:#ead28f}
+/* La défaite de nuit : une terre, pas un bordeaux, et le corail de nuit (lot D). */
+[data-theme="dark"] .mm-recent-outcome.lost{border-color:#7a5a46;background:#3e3128;color:#ef9a7c}
 html[data-motion="off"] .mm-recent-history{transition:none}
 
 .mm-ranking-page{padding-top:12px;--mm-page-haut:12px}
 .mm-rank-progress{padding:11px 2px 20px;grid-template-columns:52px 100px 1fr}
-.mm-segmented{height:41px;margin:17px 0 14px;padding:0;border-radius:7px;background:var(--mm-surface);overflow:hidden}
-.mm-segmented button{border-right:1px solid var(--mm-line);border-radius:0;font-size:0.875rem}.mm-segmented button:last-child{border-right:0}
-.mm-segmented button.active{background:var(--mm-sage);box-shadow:none}
+/* Le dessin des onglets est commun (menu-controls.css) : ne reste que la place. */
+.mm-segmented{margin:17px 0 14px}
 .mm-ranking-row.you{border-radius:8px;background:var(--mm-sage)}
 
 .mm-profile-page{padding-top:15px;--mm-page-haut:15px}
@@ -110,13 +111,13 @@ html[data-motion="off"] .mm-recent-history{transition:none}
 
 
 }
-[data-theme="dark"] .mm-icon-button{background:#24594f}
 
 /* Quiet header and a simpler identity card: no decorative glyph or profile shortcut. */
 .mm-brand:after{content:none}
 
 
-.mm-home-friend-avatar>i.playing{background:#c95b31;box-shadow:0 0 0 3px color-mix(in srgb,#c95b31 16%,transparent)}
+/* « En jeu » : le laiton d'un joueur occupé, plus la terre cuite de l'adversaire (lot D). */
+.mm-home-friend-avatar>i.playing{background:var(--mm-gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--mm-gold) 18%,transparent)}
 
 /* Normal matchmaking and resumable asynchronous games. */
 .mm-search-cancel{height:32px;margin:0 14px 11px;padding:0 14px;border:1px solid var(--mm-coral);border-radius:17px;background:transparent;color:var(--mm-coral);font-size:0.625rem;font-weight:700;cursor:pointer}
@@ -138,48 +139,56 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 .mm-current-match-card{min-height:74px;grid-template-columns:38px minmax(0,1fr) auto;padding:12px 14px;border:1px solid var(--mm-line);border-radius:12px;box-shadow:0 4px 12px var(--mm-shadow)}
 .mm-current-match-card.is-my-turn{border-color:color-mix(in srgb,var(--mm-ink) 58%,var(--mm-line));background:color-mix(in srgb,var(--mm-sage) 38%,var(--mm-surface))}
 [data-theme="dark"] .mm-current-match-card{background:#17241f}
-.mm-ranked-status{min-height:86px;display:grid;grid-template-columns:72px 1fr auto;align-items:center;gap:12px;padding:8px 13px;border:1px solid var(--mm-line);border-radius:12px;background:color-mix(in srgb,var(--mm-gold) 9%,var(--mm-surface))}.mm-ranked-status img{width:68px;height:68px;object-fit:contain}.mm-ranked-status>span{display:flex;flex-direction:column}.mm-ranked-status small{color:var(--mm-muted);font-size:0.625rem;text-transform:uppercase;letter-spacing:.08em}.mm-ranked-status strong{font:700 1.3125rem "Playfair Display",serif}.mm-ranked-status b{font-size:0.6875rem;color:var(--mm-coral)}.mm-ranked-status em{font-style:normal;font-weight:800;white-space:nowrap}.mm-ranked-explainer{margin:0;padding:9px 11px;border-radius:9px;background:color-mix(in srgb,var(--mm-sage) 55%,transparent);color:var(--mm-muted);font-size:0.6875rem;line-height:1.45}
+.mm-ranked-status{min-height:86px;display:grid;grid-template-columns:72px 1fr auto;align-items:center;gap:12px;padding:8px 13px;border:1px solid var(--mm-line);border-radius:12px;background:color-mix(in srgb,var(--mm-gold) 9%,var(--mm-surface))}.mm-ranked-status img{width:68px;height:68px;object-fit:contain}.mm-ranked-status>span{display:flex;flex-direction:column}.mm-ranked-status small{color:var(--mm-muted);font-size:0.625rem;text-transform:uppercase;letter-spacing:.08em}.mm-ranked-status strong{font:700 1.3125rem "Playfair Display",serif}.mm-ranked-status b{font-size:0.6875rem;color:var(--mm-overline)}.mm-ranked-status em{font-style:normal;font-weight:800;white-space:nowrap}.mm-ranked-explainer{margin:0;padding:9px 11px;border-radius:9px;background:color-mix(in srgb,var(--mm-sage) 55%,transparent);color:var(--mm-muted);font-size:0.6875rem;line-height:1.45}
 .mm-ranked-timeout{margin:0;padding:9px 11px;border:1px solid color-mix(in srgb,var(--mm-coral) 35%,transparent);border-radius:9px;background:color-mix(in srgb,var(--mm-coral) 12%,var(--mm-surface));color:var(--mm-ink);font-size:0.6875rem;font-weight:600;line-height:1.45}
 @media(max-width:430px){.mm-ranked-status{grid-template-columns:62px 1fr}.mm-ranked-status img{width:58px;height:58px}.mm-ranked-status em{grid-column:2}.mm-ranked-status strong{font-size:1.1875rem}}
 
 /* ── L'écran Jouer : trois onglets, une carte, l'historique dessous ───────────
    Maquette validée le 16/09/2026. Les accents de la maquette sont repris par
-   mode — vert pin, or, terracotta — mais portés par les variables de la DA. */
+   mode — vert pin, or, et sauge pour les amis depuis le lot D (la terre cuite
+   est à l'adversaire) — mais portés par les variables de la DA. */
 .mm-play-page{display:grid;gap:10px;align-content:start}
 .mm-play-mode{display:grid;gap:10px}
-.mm-play-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border:1px solid var(--mm-line);border-radius:16px;background:var(--mm-surface)}
-.mm-shell .mm-play-tabs>button{position:relative;min-height:44px;border:0;border-radius:12px;background:transparent;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mm-muted);font:700 0.8125rem 'DM Sans',sans-serif;cursor:pointer;transition:background .2s ease,color .2s ease}
+/* Le cadre et la pastille sont ceux de tous les onglets (menu-controls.css,
+   lot D) : plus d'aplat vert pin sous l'onglet actif. Chaque mode garde sa
+   couleur dans son icône — vert pin, laiton, sauge pour les amis. */
+.mm-play-tabs{display:grid;grid-template-columns:repeat(3,1fr)}
+.mm-play-tabs>button{position:relative;display:flex;align-items:center;justify-content:center;gap:6px}
 .mm-play-tabs>button i{display:grid;place-items:center}
 .mm-play-tabs>button svg{width:16px;height:16px}
 .mm-play-tabs>button:nth-child(1) svg{color:var(--mm-ink)}
 .mm-play-tabs>button:nth-child(2) svg{color:var(--mm-gold)}
-.mm-play-tabs>button:nth-child(3) svg{color:var(--mm-coral)}
-.mm-shell .mm-play-tabs>button.is-active{background:var(--mm-ink);color:var(--mm-paper)}
-.mm-play-tabs>button.is-active svg{color:inherit}
+.mm-play-tabs>button:nth-child(3) svg{color:var(--mm-sage-deep)}
 .mm-play-tab-badge{position:absolute;top:7px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--mm-coral);box-shadow:0 0 0 2px var(--mm-surface)}
-.mm-play-tabs>button.is-active .mm-play-tab-badge{box-shadow:0 0 0 2px var(--mm-ink)}
+.mm-play-tabs>button.is-active .mm-play-tab-badge{box-shadow:0 0 0 2px var(--mm-sage)}
 
 /* La partie qui attend : une bande, avant la carte du mode. */
 .mm-shell .mm-play-resume{width:100%;padding:11px 13px;display:flex;align-items:center;gap:11px;border:1px solid color-mix(in srgb,var(--mm-ink) 22%,var(--mm-line));border-radius:16px;background:linear-gradient(120deg,var(--mm-sage),var(--mm-surface));box-shadow:0 4px 12px var(--mm-shadow);text-align:left;cursor:pointer}
 .mm-play-resume-copy{flex:1;min-width:0;display:flex;flex-direction:column}
 .mm-play-resume-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 0.9375rem 'Playfair Display',serif}
 .mm-play-resume-copy small{margin-top:1px;color:var(--mm-muted);font-size:0.75rem}
-.mm-play-resume-go{flex:0 0 auto;height:36px;padding:0 14px;display:flex;align-items:center;border-radius:18px;background:var(--mm-ink);color:var(--mm-paper);font-size:0.8125rem;font-weight:800}
+/* « Reprendre » : une petite pilule du bouton principal (lot D). En encre, elle
+   devenait un bouton menthe pâle la nuit. */
+.mm-play-resume-go,.mm-current-match-go{flex:0 0 auto;height:36px;padding:0 15px;display:flex;align-items:center;border:1px solid var(--mm-button-primary-border);border-radius:999px;background:linear-gradient(180deg,var(--mm-button-primary-top),var(--mm-button-primary-bottom));color:var(--mm-on-fill);box-shadow:var(--mm-button-shadow);font:600 0.9375rem 'Playfair Display',serif;font-style:normal}
 
 /* La carte du mode choisi. */
+/* La couleur du mode vit dans la tuile d'icône, plus dans un liseré à gauche
+   (lot D : le motif le plus reconnaissable des modèles du web). */
 .mm-play-card{--mm-accent:var(--mm-ink);position:relative;overflow:hidden;padding:13px 14px 12px;display:grid;gap:12px;border:1px solid var(--mm-line);border-radius:20px;background:var(--mm-surface);box-shadow:0 5px 14px var(--mm-shadow)}
 .mm-play-card.is-gold{--mm-accent:var(--mm-gold)}
-.mm-play-card.is-coral{--mm-accent:var(--mm-coral)}
-.mm-play-card:before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--mm-accent)}
+.mm-play-card.is-sage{--mm-accent:var(--mm-sage-deep)}
 .mm-play-card>header{display:flex;align-items:center;gap:11px}
 .mm-play-card-icon{flex:0 0 auto;width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:color-mix(in srgb,var(--mm-accent) 14%,var(--mm-surface));color:var(--mm-accent)}
 .mm-play-card-icon svg{width:20px;height:20px}
 .mm-play-card h2{margin:0;font:700 1.1875rem 'Playfair Display',serif}
 .mm-play-card header small{display:block;margin-top:1px;color:var(--mm-muted);font-size:0.78125rem}
-.mm-shell .mm-play-cta{min-height:50px;border:1px solid color-mix(in srgb,var(--mm-ink) 88%,#000);border-radius:16px;background:linear-gradient(var(--mm-ink),color-mix(in srgb,var(--mm-ink) 86%,#000));color:var(--mm-paper);display:flex;align-items:center;justify-content:center;gap:8px;font:800 1.0625rem 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 #ffffff30,0 6px 16px color-mix(in srgb,var(--mm-ink) 22%,transparent);cursor:pointer}
+/* « Jouer » : le bouton principal commun (menu-controls.css), en grand appel.
+   Le Classé ne peint plus son fond en laiton (texte ivoire à 2,48:1) : le
+   laiton n'est plus qu'un détail, sa flèche. */
+.mm-shell .mm-play-cta{min-height:52px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:1.125rem}
 .mm-play-cta svg{width:18px;height:18px}
 .mm-shell .mm-play-cta:disabled{opacity:.55;cursor:default;box-shadow:none}
-.mm-shell .mm-play-cta.is-gold{border-color:color-mix(in srgb,var(--mm-gold) 70%,#000);background:linear-gradient(var(--mm-gold),color-mix(in srgb,var(--mm-gold) 78%,#000));box-shadow:inset 0 1px 0 #ffffff38,0 6px 16px color-mix(in srgb,var(--mm-gold) 28%,transparent)}
+.mm-play-cta.is-gold svg{color:#d7b86b}
 
 /* Recherche en cours : la carte se replie sur une ligne, l'écran reste utile. */
 .mm-play-card.is-searching{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:11px;padding:13px 14px}
@@ -203,20 +212,18 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 
 /* Un ami, une ligne. Même grammaire pour l'invitation en attente et l'ajout. */
 .mm-play-friends{display:grid;gap:9px}
-.mm-friend-line{width:100%;position:relative;overflow:hidden;padding:12px 14px 12px 15px;display:flex;align-items:center;gap:12px;border:1px solid var(--mm-line);border-radius:16px;background:var(--mm-surface);box-shadow:0 4px 12px var(--mm-shadow);text-align:left}
-.mm-friend-line:before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--mm-coral)}
-.mm-friend-line.is-offline:before,.mm-friend-line-add:before{background:color-mix(in srgb,var(--mm-muted) 42%,transparent)}
+/* Sans liseré coloré à gauche (lot D) : la présence se lit au point du portrait. */
+.mm-friend-line{width:100%;position:relative;overflow:hidden;padding:12px 14px;display:flex;align-items:center;gap:12px;border:1px solid var(--mm-line);border-radius:16px;background:var(--mm-surface);box-shadow:0 4px 12px var(--mm-shadow);text-align:left}
 .mm-friend-line-copy{flex:1;min-width:0;display:flex;flex-direction:column}
 .mm-friend-line-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 1rem 'Playfair Display',serif}
 .mm-friend-line-copy small{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mm-muted);font-size:0.78125rem}
-.mm-shell .mm-friend-line>button,.mm-friend-line-open{flex:0 0 auto;min-height:38px;padding:0 15px;display:flex;align-items:center;border:1px solid color-mix(in srgb,var(--mm-coral) 35%,transparent);border-radius:18px;background:color-mix(in srgb,var(--mm-coral) 12%,transparent);color:color-mix(in srgb,var(--mm-coral) 82%,#000);font-size:0.8125rem;font-weight:800;cursor:pointer}
+/* « Inviter » et « Ouvrir » : le bouton secondaire (menu-controls.css) ;
+   « Annuler » une invitation envoyée : le bouton qui retire. */
+.mm-shell .mm-friend-line>button,.mm-friend-line-open{flex:0 0 auto;min-height:40px;padding:0 16px;display:flex;align-items:center;font-size:0.9375rem;cursor:pointer}
 .mm-friend-line>button:disabled{opacity:.5;cursor:default}
 .mm-friend-line-add{cursor:pointer}
-.mm-friend-line-add .mm-friend-line-open{border-color:var(--mm-line);background:var(--mm-sage-soft);color:var(--mm-ink)}
 .mm-friend-line-plus{flex:0 0 auto;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;border:1px dashed var(--mm-line);background:var(--mm-sage-soft);color:var(--mm-ink)}
 .mm-friend-line-plus svg{width:18px;height:18px}
-[data-theme="dark"] .mm-shell .mm-play-tabs>button.is-active{background:var(--mm-sage)}
-[data-theme="dark"] .mm-play-cta{color:var(--mm-paper)}
 
 /* ── L'accueil refondu (maquette du 16/09/2026) ──────────────────────────────
    Barre de compte compacte : le même contenu que l'ancienne carte de profil,
@@ -262,13 +269,15 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 
 /* « Partie » : le compte à droite dit l'état, même quand il n'y a rien. */
 .mm-attention-heading>span{min-width:0;height:auto;padding:0;background:transparent;color:var(--mm-muted);font-size:0.8125rem;font-weight:600}
-.mm-current-match-go{height:34px;padding:0 13px;display:flex;align-items:center;border-radius:17px;background:var(--mm-ink);color:var(--mm-paper);font-size:0.8125rem;font-weight:800;font-style:normal}
-.mm-shell .mm-home-new-match{width:100%;min-height:52px;border:1px solid color-mix(in srgb,var(--mm-ink) 88%,#000);border-radius:16px;background:linear-gradient(var(--mm-ink),color-mix(in srgb,var(--mm-ink) 86%,#000));color:var(--mm-paper);display:flex;align-items:center;justify-content:center;gap:9px;font:800 1.0625rem 'DM Sans',sans-serif;box-shadow:inset 0 1px 0 #ffffff30,0 6px 16px color-mix(in srgb,var(--mm-ink) 22%,transparent);cursor:pointer}
+/* « Reprendre » de la carte de partie : même pilule que sur Jouer (plus haut). */
+/* « Nouvelle partie » : le bouton principal commun, en grand appel (lot D). */
+.mm-shell .mm-home-new-match{width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:1.125rem;cursor:pointer}
 .mm-shell .mm-home-new-match svg{width:19px;height:19px}
 /* « Jouer ma première partie » (N2, 22/10/2026) : le seul bouton plein de
    l'accueil d'un joueur neuf, au-dessus du défi, avec ce qu'il promet. */
 .mm-shell .mm-home-first-game{min-height:64px;padding:10px 16px;justify-content:space-between;text-align:left}
 .mm-shell .mm-home-first-game>span{display:grid;gap:2px;flex:1;min-width:0}
+.mm-shell .mm-home-first-game{padding-inline:24px}
 .mm-shell .mm-home-first-game strong{font:700 1.125rem/1.15 'Playfair Display',serif}
 .mm-shell .mm-home-first-game small{font:500 0.8125rem/1.25 'DM Sans',sans-serif;opacity:.86}
 .mm-shell .mm-player-stats .mm-home-new-match{margin-top:12px}
@@ -277,6 +286,9 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 .mm-ranked-compte p{margin:0;color:var(--mm-ink);font-size:0.9375rem;line-height:1.4}
 .mm-ranking-page .mm-ranked-compte{margin:4px 0 12px}
 
+/* La rangée de visages ne se colle plus à la demande d'ami posée au-dessus (lot D :
+   0 px d'écart). */
+.mm-home-friend-request+.mm-home-friend-row{margin-top:14px}
 /* Les amis : une rangée de visages, pas une liste de lignes. */
 .mm-home-friend-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));grid-template-rows:repeat(2,auto);grid-auto-rows:0;overflow:hidden;justify-content:start;column-gap:6px;row-gap:12px}
 .mm-shell .mm-home-friend{min-width:0;padding:4px 2px;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:4px;border:0;border-radius:0;background:transparent;box-shadow:none;text-align:center}
@@ -294,13 +306,15 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 
 /* « Un joueur cherche une partie classée » (20/09/2026) : le bandeau qui
    n'apparaît qu'aux joueurs déjà dans l'appli, quand une recherche s'ouvre.
-   Terre cuite comme les actions urgentes du défi, sans en voler la vedette. */
-.mm-ranked-seeker{display:grid;grid-template-columns:38px 1fr;gap:9px 11px;align-items:center;margin-top:11px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--mm-coral) 45%,var(--mm-line));border-radius:13px;background:color-mix(in srgb,var(--mm-coral) 9%,var(--mm-paper))}
-.mm-ranked-seeker-icone{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--mm-coral) 18%,var(--mm-paper));color:var(--mm-coral)}
+   Lot D : il était en terre cuite, et s'empilait sous le bouton terracotta du
+   défi — deux gros appels de même couleur. Une carte ivoire bordée de laiton,
+   et le bouton principal vert. */
+.mm-ranked-seeker{display:grid;grid-template-columns:38px 1fr;gap:9px 11px;align-items:center;margin-top:11px;padding:12px 13px;border:1px solid color-mix(in srgb,var(--mm-gold) 55%,var(--mm-line));border-radius:13px;background:var(--mm-surface)}
+.mm-ranked-seeker-icone{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--mm-gold) 18%,var(--mm-surface));color:var(--mm-overline)}
 .mm-ranked-seeker-icone svg{width:19px;height:19px}
 .mm-ranked-seeker strong{display:block;font:600 0.9375rem/1.25 'Playfair Display',serif;color:var(--mm-ink)}
 .mm-ranked-seeker small{display:block;margin-top:2px;color:var(--mm-muted);font-size:0.6875rem;line-height:1.3}
-.mm-shell .mm-ranked-seeker button{grid-column:1 / -1;width:100%;min-height:44px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:3px;border:1px solid color-mix(in srgb,var(--mm-coral) 72%,#000);border-radius:11px;background:var(--mm-coral);color:#fff;font:700 0.8125rem/1 'DM Sans',sans-serif}
+.mm-shell .mm-ranked-seeker button{grid-column:1 / -1;width:100%;min-height:46px;padding:0 11px;display:flex;align-items:center;justify-content:center;gap:3px;font-size:1rem;line-height:1}
 .mm-shell .mm-ranked-seeker button svg{width:15px;height:15px}
 /* « Ta recherche classée continue » à l'accueil (C3, 22/10/2026) : une ligne
    calme, en neutre, qui mène à l'onglet Jouer. */

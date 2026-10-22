@@ -24,7 +24,8 @@ import { DefinitionEnAttente } from './DefinitionEnAttente'
 // l'historique ne bougent jamais.
 //
 // Les pictogrammes restent les icônes lucide du reste de l'app, colorées par
-// mode — vert pin, or, terracotta — plutôt que les emojis de la maquette : un
+// mode — vert pin, or, sauge (la terre cuite est rendue à l'adversaire depuis
+// le lot D, 22/10/2026) — plutôt que les emojis de la maquette : un
 // emoji est multicolore là où la DA est monochrome, et son dessin change d'un
 // téléphone à l'autre. Ils sont décoratifs, le libellé à côté porte le sens.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,7 +274,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       </section> : null}
 
       {onglet === 'friends' ? <>
-        <section className="mm-play-card is-coral">
+        <section className="mm-play-card is-sage">
           <header>
             <span className="mm-play-card-icon" aria-hidden="true"><Users /></span>
             <span><h2>Amis</h2><small>{amisEnLigne ? `${amisEnLigne} ami${amisEnLigne > 1 ? 's' : ''} en ligne` : 'Invite un proche à une partie'}</small></span>

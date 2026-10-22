@@ -1,6 +1,6 @@
 /* Quêtes (QuestsPanel.tsx) — même grammaire que le reste du menu : papier
-   vivant, vert pin, terracotta pour ce qui appelle l'attention, or pour ce qui
-   est gagné. Aucune information par la seule couleur : une quête finie porte son
+   vivant, vert pin, laiton pour les surtitres et pour ce qui est gagné (le
+   terracotta, depuis le lot D, ne reste qu'à la pastille « nouveau »). Aucune information par la seule couleur : une quête finie porte son
    bouton, une quête prise porte sa coche. */
 
 /* ── Le bouton, dans l'en-tête, là où vivait la flamme ── */
@@ -68,7 +68,7 @@
 .mm-quests-gain {
   /* Au-DESSUS de la bourse, jamais par-dessus le nombre : on doit voir les deux. */
   position: absolute; left: 50%; bottom: 100%;
-  font-style: normal; font-weight: 800; font-size: .9375rem; color: var(--mm-coral);
+  font-style: normal; font-weight: 800; font-size: .9375rem; color: var(--mm-overline);
   white-space: nowrap; text-shadow: 0 1px 0 var(--mm-paper);
   animation: mmQuestGain 1.5s ease-out forwards;
 }
@@ -79,12 +79,8 @@
   100% { opacity: 0; transform: translate(-50%, -26px) scale(.95); }
 }
 .mm-quests-head small { display: block; margin-top: 3px; color: var(--mm-muted); font-size: .8125rem; }
-.mm-quests-close {
-  grid-column: 2; grid-row: 1; justify-self: end;
-  display: grid; place-items: center; width: 34px; height: 34px;
-  border: 0; border-radius: 50%; background: transparent; color: var(--mm-muted); cursor: pointer;
-}
-.mm-quests-close svg { width: 18px; height: 18px; }
+/* La croix commune (menu-controls.css) ; ici, seulement sa place. */
+.mm-quests-close { grid-column: 2; grid-row: 1; justify-self: end; }
 
 .mm-quests-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
 
@@ -113,7 +109,7 @@
 .mm-quest-copy em {
   display: block; margin-bottom: 1px;
   font: 700 .6875rem/1 'DM Sans', sans-serif; font-style: normal;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--mm-coral);
+  letter-spacing: .06em; text-transform: uppercase; color: var(--mm-overline);
 }
 .mm-quest-copy strong { display: block; font: 700 1rem/1.15 'Playfair Display', Georgia, serif; }
 .mm-quest-copy small { display: block; margin-top: 2px; color: var(--mm-muted); font-size: .75rem; line-height: 1.35; }
@@ -164,13 +160,16 @@
 .mm-quest-claim {
   grid-column: 2 / -1;
   justify-self: start;
-  min-height: 36px;
-  padding: 0 15px;
-  border: 0;
+  min-height: 38px;
+  padding: 0 16px;
+  /* Le bouton principal commun, en petit (lot D) : en encre, il devenait une
+     pilule menthe pâle la nuit. */
+  border: 1px solid var(--mm-button-primary-border);
   border-radius: 999px;
-  background: var(--mm-ink);
-  color: var(--mm-paper);
-  font: 700 .875rem/1 'DM Sans', sans-serif;
+  background: linear-gradient(180deg, var(--mm-button-primary-top), var(--mm-button-primary-bottom));
+  color: var(--mm-on-fill);
+  box-shadow: var(--mm-button-shadow);
+  font: 600 .9375rem/1 'Playfair Display', serif;
   cursor: pointer;
   animation: mmQuestReady 2.6s ease-in-out infinite;
 }
@@ -195,7 +194,7 @@
   box-shadow: 0 4px 12px #17372b1f;
   animation: mmQuestPop .62s cubic-bezier(.18, 1.5, .4, 1) both;
 }
-.mm-quest-gagnee svg { width: 15px; height: 15px; color: var(--mm-coral); }
+.mm-quest-gagnee svg { width: 15px; height: 15px; color: var(--mm-overline); }
 /* Jaillir, pas apparaître : c'est CE moment qui récompense le geste. */
 @keyframes mmQuestPop {
   0% { opacity: 0; transform: translateY(14px) scale(.4); }

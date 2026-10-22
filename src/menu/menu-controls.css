@@ -4,76 +4,111 @@
    ivory/gold secondary actions and quiet coral danger states. Navigation
    rows and game objects keep their own silhouette, but share the same touch.
    -------------------------------------------------------------------------- */
-.mm-shell{
-  --mm-button-primary-top:#0d6755;
-  --mm-button-primary-bottom:#075044;
-  --mm-button-primary-border:#06483b;
-  --mm-button-secondary:#fffaf0;
-  --mm-button-secondary-border:#d7b86b;
-  --mm-button-danger:#fff1eb;
-  --mm-button-danger-border:#e4a38d;
-  --mm-button-shadow:inset 0 1px 0 #ffffff30,0 7px 17px #073f3620;
-  --mm-button-shadow-soft:0 4px 12px #49391f0e;
-}
+/* Les jetons --mm-button-* vivent dans tokens.css depuis le lot D : les
+   fenêtres posées dans <body> les voient aussi. */
 
-/* Primary actions */
-.mm-shell :is(
+/* LE BOUTON PRINCIPAL (lot D, 22/10/2026). Il en existait six dessins : pilule
+   en Playfair ici, rectangles à coins de 16 px en DM Sans 800 sur Jouer et à
+   l'accueil, fond laiton au texte illisible (2,48:1) sur le Classé, sarcelle
+   pour « Rejoindre », terracotta dans les fenêtres. Il n'en reste qu'un : la
+   pilule vert pin en Playfair. Le défi du jour garde sa terre cuite (choix du
+   propriétaire, menu-daily.css) mais prend la même forme.
+   Sans le préfixe `.mm-shell` : la confirmation d'achat, le calendrier de
+   série et les quêtes sont posés dans <body>. */
+:is(
   .mm-save-guest,
   .mm-add-friend button,
   .mm-match-invite-actions button:not(.secondary),
   .mm-pause>button:not(.secondary):not(.danger),
-  .mm-shop-item>button:not(:disabled)
+  .mm-shop-item>button:not(:disabled),
+  .mm-play-cta,
+  .mm-home-new-match,
+  .mm-ranked-seeker button,
+  .mm-object-card>button,
+  .mm-google-account-conflict button,
+  .mm-contact-envoyer,
+  .mm-search-add,
+  .mm-apercu-actions .principal
 ){
-  min-height:44px;border:1px solid var(--mm-button-primary-border);border-radius:999px;
+  /* La hauteur reste celle de chaque bouton (sa feuille) : 52 px pour les grands
+     appels, 44 à 48 px dans les fenêtres, moins dans une ligne. */
+  border:1px solid var(--mm-button-primary-border);border-radius:999px;
   background:linear-gradient(180deg,var(--mm-button-primary-top),var(--mm-button-primary-bottom));
-  color:#fffaf0!important;font-family:'Playfair Display',serif;font-weight:600;letter-spacing:.005em;
+  color:var(--mm-on-fill);font-family:'Playfair Display',serif;font-weight:600;letter-spacing:.005em;
   box-shadow:var(--mm-button-shadow);cursor:pointer;
   transition:transform .18s var(--mm-ease),box-shadow .18s ease,filter .18s ease,background .18s ease;
 }
-@media (hover:hover) and (pointer:fine){.mm-shell :is(
+@media (hover:hover) and (pointer:fine){:is(
   .mm-save-guest,
   .mm-add-friend button,
   .mm-match-invite-actions button:not(.secondary),
   .mm-pause>button:not(.secondary):not(.danger),
-  .mm-shop-item>button:not(:disabled)
-):hover{filter:brightness(1.045);transform:translateY(-1px);box-shadow:inset 0 1px 0 #ffffff35,0 9px 21px #073f3628}}
-.mm-shell :is(
+  .mm-shop-item>button:not(:disabled),
+  .mm-play-cta,
+  .mm-home-new-match,
+  .mm-ranked-seeker button,
+  .mm-object-card>button,
+  .mm-google-account-conflict button,
+  .mm-contact-envoyer,
+  .mm-search-add,
+  .mm-apercu-actions .principal
+):not(:disabled):hover{filter:brightness(1.045);transform:translateY(-1px);box-shadow:inset 0 1px 0 #ffffff35,0 9px 21px #073f3628}}
+:is(
   .mm-save-guest,
   .mm-add-friend button,
   .mm-match-invite-actions button:not(.secondary),
   .mm-pause>button:not(.secondary):not(.danger),
-  .mm-shop-item>button:not(:disabled)
-):active{transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff24,0 4px 10px #073f3619}
+  .mm-shop-item>button:not(:disabled),
+  .mm-play-cta,
+  .mm-home-new-match,
+  .mm-ranked-seeker button,
+  .mm-object-card>button,
+  .mm-google-account-conflict button,
+  .mm-contact-envoyer,
+  .mm-search-add,
+  .mm-apercu-actions .principal
+):not(:disabled):active{transform:translateY(1px) scale(.992);box-shadow:inset 0 1px 0 #ffffff24,0 4px 10px #073f3619}
 
 .mm-add-friend button{padding-inline:16px;gap:7px}
 .mm-shop-item>button:not(:disabled){height:36px;min-height:36px;margin-top:10px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:0.625rem}
 .mm-shop-item>button:disabled{height:36px;border-radius:999px;box-shadow:inset 0 1px 0 #ffffff85}
 
-/* Secondary and reversible actions */
-.mm-shell :is(
+/* Le bouton secondaire, réversible : ivoire et laiton (nuit : vert de carte et
+   laiton éteint, par les jetons). « Inviter » du mode Amis en fait partie : il
+   était habillé de terracotta comme une action qui retire. */
+:is(
   .mm-search-cancel,
   .mm-live-activity>button,
   .mm-match-invite-actions .secondary,
-  .mm-pause>button.secondary
+  .mm-pause>button.secondary,
+  .mm-friend-line>button,
+  .mm-friend-line-open,
+  .mm-createur-fermer,
+  .mm-daily-warning-cancel
 ){
   border:1px solid var(--mm-button-secondary-border);border-radius:999px;
   background:var(--mm-button-secondary);color:var(--mm-ink);
   box-shadow:var(--mm-button-shadow-soft);font-family:'Playfair Display',serif;font-weight:600;
   transition:transform .18s var(--mm-ease),box-shadow .18s ease,background .18s ease,border-color .18s ease;
 }
-@media (hover:hover) and (pointer:fine){.mm-shell :is(
+@media (hover:hover) and (pointer:fine){:is(
   .mm-search-cancel,
   .mm-live-activity>button,
   .mm-match-invite-actions .secondary,
-  .mm-pause>button.secondary
-):hover{transform:translateY(-1px);background:#fffdf7;border-color:#caa451;box-shadow:0 7px 16px #49391f16}}
+  .mm-pause>button.secondary,
+  .mm-friend-line>button,
+  .mm-createur-fermer,
+  .mm-daily-warning-cancel
+):not(:disabled):hover{transform:translateY(-1px);border-color:#caa451;box-shadow:0 7px 16px #49391f16}}
 
-/* Destructive actions stay readable without shouting. */
-.mm-shell :is(.mm-pause>button.danger,.mm-friend-actions .danger){
+/* Ce qui retire reste lisible sans crier : corail pâle, texte terre cuite.
+   Annuler une invitation envoyée en fait partie. */
+:is(.mm-pause>button.danger,.mm-friend-actions .danger,.mm-friend-line.is-waiting>button){
   border:1px solid var(--mm-button-danger-border);border-radius:999px;
-  background:linear-gradient(180deg,#fff8f3,var(--mm-button-danger));color:#b84b2c;
+  background:var(--mm-button-danger);color:#b84b2c;
   box-shadow:0 4px 11px #7b32120d;font-family:'Playfair Display',serif;font-weight:600;
 }
+[data-theme="dark"] :is(.mm-pause>button.danger,.mm-friend-actions .danger,.mm-friend-line.is-waiting>button){color:#ef9a7c;box-shadow:none}
 
 /* Small contextual pills */
 .mm-home-friends>header button,.mm-profile-hero button{
@@ -107,22 +142,48 @@
 }
 
 
-.mm-segmented,.mm-shop-tabs{border-color:#d8c9aa!important;background:#fffaf0!important;box-shadow:0 4px 12px #49391f0d}
-.mm-segmented button,.mm-shop-tabs button{transition:transform .18s var(--mm-ease),background .18s ease,color .18s ease,box-shadow .18s ease}
-.mm-segmented button.active,.mm-shop-tabs button.active{
-  background:linear-gradient(180deg,var(--mm-button-primary-top),var(--mm-button-primary-bottom))!important;
-  color:#fffaf0!important;box-shadow:inset 0 1px 0 #ffffff2e,0 5px 12px #073f3622!important;
+/* LES ONGLETS (lot D, 22/10/2026). Quatre dessins pour un même geste : une
+   pilule pleine en Playfair (Classement), des rectangles plats (Jouer), des
+   icônes au-dessus (Épicerie, Informations), le sélecteur blanc d'iOS (Compte,
+   Mot du créateur). Ils prennent tous le modèle de la barre du bas, que le
+   propriétaire a validé : un cadre ivoire bordé de lin, et une pastille sauge
+   sous l'onglet actif — jamais un aplat vert. Les rayons à icône gardent leur
+   icône au-dessus (cinq rubriques n'entrent pas autrement sur 360 px), mais
+   la même pastille, les mêmes couleurs et la même lettre. */
+:is(.mm-segmented,.mm-play-tabs,.mm-shop-tabs,.mm-account-tabs,.mm-createur-onglets,.mm-legal-tabs){
+  padding:4px;gap:4px;border:1px solid var(--mm-line);border-radius:999px;
+  background:var(--mm-surface);box-shadow:0 4px 12px var(--mm-shadow);
 }
-.mm-segmented button:first-child{border-radius:999px 0 0 999px}.mm-segmented button:last-child{border-radius:0 999px 999px 0}
+:is(.mm-segmented,.mm-play-tabs,.mm-shop-tabs,.mm-account-tabs,.mm-createur-onglets,.mm-legal-tabs)>button{
+  min-width:0;min-height:44px;padding:0 10px;border:0;border-radius:999px;
+  background:transparent;color:var(--mm-muted);box-shadow:none;
+  font:700 0.875rem/1.1 'DM Sans',sans-serif;cursor:pointer;
+  transition:background-color .18s ease,color .18s ease;
+}
+:is(.mm-segmented,.mm-play-tabs,.mm-shop-tabs,.mm-account-tabs,.mm-createur-onglets,.mm-legal-tabs)>button:is(.active,.is-active){
+  background:var(--mm-sage);color:var(--mm-ink);
+}
+@media (hover:hover) and (pointer:fine){:is(.mm-segmented,.mm-play-tabs,.mm-shop-tabs,.mm-account-tabs,.mm-createur-onglets,.mm-legal-tabs)>button:not(.active):not(.is-active):hover{background:color-mix(in srgb,var(--mm-sage) 50%,transparent)}}
+/* Le second niveau (Général / Amis, sous Classé ou Défi du jour) parle plus
+   bas : deux sélecteurs de même poids s'empilaient. */
+.mm-segmented:not(.mm-ranking-epreuve){width:fit-content;min-width:min(100%,240px);margin-inline:auto}
+.mm-segmented:not(.mm-ranking-epreuve)>button{min-height:36px;font-size:0.8125rem}
+/* Les rayons à icône : l'icône au-dessus, la même pastille. */
+:is(.mm-shop-tabs,.mm-legal-tabs)>button{min-height:52px;padding:4px 6px;flex-direction:column;gap:2px;font-size:0.6875rem}
 
-/* Circular utility controls use the same enamel-and-paper treatment. */
-.mm-settings>header button,.mm-friends-panel>header button,.mm-guest-editor>header button,.mm-shop-toolbar>button{
-  width:44px;height:44px;border:1px solid var(--mm-button-secondary-border)!important;border-radius:50%!important;
+/* LA CROIX DE FERMETURE (lot D) : un seul rond ivoire cerclé de laiton, partout.
+   Il y avait aussi des croix nues, grises, plus petites (calendrier de série,
+   quêtes, relecture, informations, paliers). */
+.mm-settings>header button,.mm-friends-panel>header button,.mm-guest-editor>header button,.mm-shop-toolbar>button,
+.mm-streak-calendar-close,.mm-quests-close,.mm-replay-panel header button,.mm-legal-panel>header button,.mm-paliers-fermer{
+  width:44px;height:44px;padding:0;display:grid;place-items:center;
+  border:1px solid var(--mm-button-secondary-border)!important;border-radius:50%!important;
   background:var(--mm-button-secondary)!important;color:var(--mm-ink)!important;
-  box-shadow:0 4px 12px #49391f10!important;
+  box-shadow:0 4px 12px #49391f10!important;cursor:pointer;
 }
-@media (hover:hover) and (pointer:fine){.mm-settings>header button:hover,.mm-friends-panel>header button:hover,.mm-guest-editor>header button:hover,.mm-shop-toolbar>button:hover{
-  transform:translateY(-1px);background:#fffdf8!important;border-color:#c6a149!important;box-shadow:0 7px 16px #49391f18!important;
+:is(.mm-streak-calendar-close,.mm-quests-close,.mm-replay-panel header button,.mm-legal-panel>header button,.mm-paliers-fermer) svg{width:19px;height:19px}
+@media (hover:hover) and (pointer:fine){:is(.mm-settings>header button,.mm-friends-panel>header button,.mm-guest-editor>header button,.mm-shop-toolbar>button,.mm-streak-calendar-close,.mm-quests-close,.mm-replay-panel header button,.mm-legal-panel>header button,.mm-paliers-fermer):hover{
+  transform:translateY(-1px);border-color:#c6a149!important;box-shadow:0 7px 16px #49391f18!important;
 }}
 
 /* Navigation rows remain rows, but inherit the same polished response. */
@@ -136,16 +197,9 @@
 .mm-shell button:disabled{cursor:not-allowed;transform:none!important;box-shadow:none!important;filter:saturate(.45);opacity:.48}
 .mm-shop-item>button:disabled{opacity:1;filter:none;cursor:default}
 
-[data-theme="dark"] .mm-shell{
-  --mm-button-secondary:#22322d;--mm-button-secondary-border:#74694c;
-  --mm-button-danger:#3b2923;--mm-button-danger-border:#835844;
-}[data-theme="dark"] .mm-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}[data-theme="dark"] .mm-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
-/* Les bascules à deux volets (classement, Épicerie) gardaient l'ivoire en mode
-   sombre : deux pavés blancs au milieu d'un écran noir. Le volet inactif prend
-   la teinte des cartes, comme le reste du menu. */
-[data-theme="dark"] .mm-segmented,[data-theme="dark"] .mm-shop-tabs{background:#1c2a25!important;border-color:#3d5048!important;box-shadow:0 4px 12px #0006}
-[data-theme="dark"] .mm-segmented button,[data-theme="dark"] .mm-shop-tabs button{color:var(--mm-muted)}
-[data-theme="dark"] .mm-segmented button.active,[data-theme="dark"] .mm-shop-tabs button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;color:#f3eee1!important;box-shadow:inset 0 1px 0 #ffffff1a,0 5px 12px #0007!important}
+[data-theme="dark"] .mm-pace-choice>button,[data-theme="dark"] .mm-theme-choice button{background:linear-gradient(180deg,#273832,#202e29)!important;border-color:#53665e!important;color:#e8f3ec!important}[data-theme="dark"] .mm-pace-choice>button.active,[data-theme="dark"] .mm-theme-choice button.active{background:linear-gradient(180deg,#315f50,#244b40)!important;border-color:#7dae96!important;color:#f3eee1!important}
+/* Les onglets de nuit n'ont plus de règle à eux : le cadre prend la surface de
+   nuit et la pastille la sauge de nuit, par les jetons. */
 
 
 html[data-motion="off"] .mm-shell button{transition:none!important}
@@ -155,14 +209,15 @@ html[data-motion="off"] .mm-shell button{transition:none!important}
 .mm-legal-layer{align-items:center;padding:22px}
 .mm-legal-panel{width:min(100%,390px);max-height:min(82vh,720px);display:grid;grid-template-rows:auto auto minmax(0,1fr);overflow:hidden;border:1px solid var(--mm-line);border-radius:20px;background:var(--mm-paper);box-shadow:0 24px 70px #061e1852;animation:mmModalIn .36s var(--mm-ease) both}
 .mm-legal-panel>header{height:auto;min-height:76px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--mm-line)}
-.mm-legal-panel>header div{display:flex;flex-direction:column}.mm-legal-panel>header small{color:var(--mm-coral);font-size:0.5625rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase}.mm-legal-panel>header h2{margin:3px 0 0;font:600 1.5625rem/1 'Playfair Display',serif}.mm-legal-panel>header button{width:36px;height:36px;padding:0;border:1px solid var(--mm-line);border-radius:50%;display:grid;place-items:center;background:var(--mm-surface)}.mm-legal-panel>header button svg{width:18px}
-.mm-legal-tabs{padding:10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;border-bottom:1px solid var(--mm-line);background:color-mix(in srgb,var(--mm-sage-soft) 35%,var(--mm-surface))}.mm-legal-tabs button{min-width:0;min-height:48px;padding:6px 3px;border:1px solid transparent;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:var(--mm-muted);font-size:0.5625rem;font-weight:700}.mm-legal-tabs button svg{width:18px;height:18px}.mm-legal-tabs button.active{border-color:var(--mm-line);background:var(--mm-surface);color:var(--mm-ink);box-shadow:0 3px 10px var(--mm-shadow)}
-.mm-legal-scroll{overflow-y:auto;overscroll-behavior:contain;padding:18px 19px 28px}.mm-legal-scroll article{color:var(--mm-ink)}.mm-legal-scroll h3{margin:0 0 2px;font:600 1.5rem/1.15 'Playfair Display',serif}.mm-legal-scroll h4{margin:20px 0 5px;font:700 0.8125rem/1.2 'DM Sans',sans-serif}.mm-legal-scroll p{margin:0;color:var(--mm-muted);font-size:0.6875rem;line-height:1.58}.mm-legal-version{font-size:0.5625rem!important;color:var(--mm-coral)!important}.mm-legal-document{min-height:42px;margin-top:22px;padding:0 14px;border:1px solid var(--mm-line);border-radius:21px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--mm-ink);background:var(--mm-surface);font-size:0.625rem;font-weight:700;text-decoration:none}.mm-legal-document svg{width:16px}
+.mm-legal-panel>header div{display:flex;flex-direction:column}.mm-legal-panel>header small{color:var(--mm-overline);font-size:0.5625rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase}.mm-legal-panel>header h2{margin:3px 0 0;font:600 1.5625rem/1 'Playfair Display',serif}
+/* Les rubriques : le cadre et la pastille des onglets (plus haut), posés sous l'en-tête. */
+.mm-legal-tabs{margin:10px 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.mm-legal-tabs>button{display:flex;align-items:center;justify-content:center;padding:4px 2px;font-size:0.5625rem}.mm-legal-tabs button svg{width:18px;height:18px}
+.mm-legal-scroll{overflow-y:auto;overscroll-behavior:contain;padding:18px 19px 28px}.mm-legal-scroll article{color:var(--mm-ink)}.mm-legal-scroll h3{margin:0 0 2px;font:600 1.5rem/1.15 'Playfair Display',serif}.mm-legal-scroll h4{margin:20px 0 5px;font:700 0.8125rem/1.2 'DM Sans',sans-serif}.mm-legal-scroll p{margin:0;color:var(--mm-muted);font-size:0.6875rem;line-height:1.58}.mm-legal-version{font-size:0.5625rem!important;color:var(--mm-overline)!important}.mm-legal-document{min-height:42px;margin-top:22px;padding:0 14px;border:1px solid var(--mm-line);border-radius:21px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--mm-ink);background:var(--mm-surface);font-size:0.625rem;font-weight:700;text-decoration:none}.mm-legal-document svg{width:16px}
 /* « Nous écrire » (LegalPanel.tsx, src/contactMail.ts) : le sujet en pastilles, le message, et le lien qui ouvre la messagerie. */
-.mm-contact>p{margin-top:6px!important}.mm-contact-sujets{margin:16px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.mm-contact-sujets label{position:relative;min-height:38px;padding:4px 10px;border:1px solid var(--mm-line);border-radius:19px;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--mm-surface);color:var(--mm-muted);font-size:0.75rem;font-weight:700;cursor:pointer}.mm-contact-sujets label.active{border-color:var(--mm-ink);background:var(--mm-ink);color:var(--mm-paper)}.mm-contact-sujets input{position:absolute;opacity:0;pointer-events:none}.mm-contact-sujets label:has(input:focus-visible){outline:2px solid var(--mm-gold);outline-offset:2px}
+.mm-contact>p{margin-top:6px!important}.mm-contact-sujets{margin:16px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.mm-contact-sujets label{position:relative;min-height:38px;padding:4px 10px;border:1px solid var(--mm-line);border-radius:19px;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--mm-surface);color:var(--mm-muted);font-size:0.75rem;font-weight:700;cursor:pointer}.mm-contact-sujets label.active{border-color:color-mix(in srgb,var(--mm-ink) 40%,var(--mm-line));background:var(--mm-sage);color:var(--mm-ink)}.mm-contact-sujets input{position:absolute;opacity:0;pointer-events:none}.mm-contact-sujets label:has(input:focus-visible){outline:2px solid var(--mm-gold);outline-offset:2px}
 .mm-contact-message{margin-top:14px;display:flex;flex-direction:column;gap:6px}.mm-contact-message>span{color:var(--mm-muted);font-size:0.6875rem;font-weight:700}.mm-contact-message textarea{width:100%;min-height:120px;padding:11px;border:1px solid var(--mm-line);border-radius:12px;background:var(--mm-surface);color:var(--mm-ink);font:500 0.875rem/1.45 'DM Sans',sans-serif;resize:vertical}.mm-contact-message textarea:focus-visible{outline:2px solid var(--mm-gold);outline-offset:1px}
 .mm-contact-note{margin-top:8px!important;display:flex;gap:6px;align-items:flex-start}.mm-contact-note svg{flex:none;width:14px;height:14px;margin-top:2px;color:var(--mm-ink-soft,var(--mm-ink))}
-.mm-legal-scroll .mm-contact-envoyer{width:100%;min-height:46px;margin-top:16px;padding:0 16px;border:0;border-radius:23px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--mm-ink);color:var(--mm-paper);font:700 0.875rem 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}.mm-legal-scroll .mm-contact-envoyer svg{width:17px;height:17px}.mm-legal-scroll .mm-contact-envoyer:disabled{opacity:.45;cursor:default;filter:none}.mm-contact-envoyer:focus-visible{outline:2px solid var(--mm-gold);outline-offset:2px}
+.mm-legal-scroll .mm-contact-envoyer{width:100%;min-height:48px;margin-top:16px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:1rem;text-decoration:none;cursor:pointer}.mm-legal-scroll .mm-contact-envoyer svg{width:17px;height:17px}.mm-legal-scroll .mm-contact-envoyer:disabled{opacity:.45;cursor:default;filter:none}.mm-contact-envoyer:focus-visible{outline:2px solid var(--mm-gold);outline-offset:2px}
 .mm-contact-direct{margin-top:12px!important;text-align:center}.mm-contact-direct a{color:var(--mm-ink);font-weight:700}
 [data-theme=dark] .mm-legal-panel{background:#15231e}.mm-legal-panel button:focus-visible,.mm-legal-document:focus-visible{outline:2px solid var(--mm-gold);outline-offset:2px}
 @media(max-height:700px){.mm-legal-layer{padding:12px}.mm-legal-panel{max-height:90vh}.mm-legal-panel>header{min-height:62px}.mm-legal-scroll{padding-top:14px}}
