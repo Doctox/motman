@@ -94,7 +94,17 @@ sauvegardes/
 # deux dépôts, dans « MotMan Contexte/Medias reseaux/scenes/ ».
 /scripts/filmer_*.mjs
 /scripts/lib/tournage.mjs
+# La charte du projet pour la compétence Impeccable (22/10/2026) : portrait du
+# produit, charte visuelle et son complément. Outils de travail, pas du jeu.
+/PRODUCT.md
+/DESIGN.md
+/.impeccable/
 # <<< atelier privé
+
+# La carte du projet produite par Graphify (22/10/2026) : générée (6 Mo),
+# refaite à la demande, locale, jamais versionnée.
+/graphify-out/
+/.graphifyignore
 
 # Le dossier git de l'atelier lui-même.
 /.atelier-git/
