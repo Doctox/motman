@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ArrowLeft, Check, Hourglass, Lightbulb, Settings, Shuffle, Sparkles, Wifi } from 'lucide-react'
 import './styles.css'
-import { startAdaptivePolling, type AdaptivePollingController } from './adaptivePolling'
+import { startAdaptivePolling } from './adaptivePolling'
 import { assetUrl } from './assetUrl'
 import { addCounters, countersFromTurn, questsJustCompleted, type LiveCounters } from './questLiveProgress'
 import { loadQuestBoard } from './questBoardState'
@@ -16,13 +16,11 @@ import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
   acknowledgeMatchResult, cancelMatchInvitation, confirmMatchPresence, createInstantMatch, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn,
-  requestMatchHint, rerollMatchRack, respondToMatchInvitation, saveMatchDraft,
+  requestMatchHint, rerollMatchRack, respondToMatchInvitation,
   type MatchInvitation, type MatchState, type MatchTurn,
   type MatchPace,
 } from './matches'
-import { subscribeToMatchUpdates } from './matchRealtime'
 import { subscribeToMenuUpdates } from './menuRealtime'
-import { erreurDeSynchroAffichee, matchPollDelay } from './matchSyncPolicy'
 import { resultInvitationPollDelay } from './menuSyncPolicy'
 import { MatchInvitationPanel } from './menu/MatchActivityPanels'
 import { clearDeliveredPushNotifications } from './nativePushNotifications'
@@ -39,7 +37,9 @@ import { reportPlayer, setSocialPresence } from './social'
 import { useDragGhost } from './useDragGhost'
 import { DuelPlayer, LeaveMatchPanel, recordDailyAbandon, ResultPanel, type EtatRevanche } from './game/DuelPresentation'
 import { compactClue, sameNumberRecord } from './game/gameDisplay'
-import { attenteAvantEnvoi, brouillonAEnvoyer, cleDuBrouillon, lettresGardeesApresConflit, placementsDuBrouillon, versionSuivante, type BrouillonEnvoye } from './game/brouillonDuTour'
+import { lettresGardeesApresConflit } from './game/brouillonDuTour'
+import { useBrouillonDuTour } from './game/useBrouillonDuTour'
+import { useSynchroDePartie } from './game/useSynchroDePartie'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
@@ -209,10 +209,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const resolvingRef = useRef(false)
   const submittedTurns = useRef(new Set<number>())
   const submitTurnRef = useRef<(automatic?: boolean) => void>(() => undefined)
-  // Le brouillon de lettres (game/brouillonDuTour.ts) : le dernier parti, sa
-  // version, et le tour déjà relancé une fois après un conflit.
-  const brouillonEnvoye = useRef<BrouillonEnvoye | null>(null)
-  const brouillonVersion = useRef(0)
+  // Le tour déjà relancé une fois après un conflit (game/brouillonDuTour.ts).
   const relanceApresConflit = useRef<string | null>(null)
   const wasMyTurn = useRef(false)
   const turnAlertTimer = useRef<number | null>(null)
@@ -220,12 +217,6 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const rackBonusTimer = useRef<number | null>(null)
   const opponentNameRef = useRef('Ton adversaire')
   const hintRequestingRef = useRef(false)
-  const pollingRef = useRef<AdaptivePollingController | null>(null)
-  const realtimeConnectedRef = useRef(false)
-  const unchangedPollsRef = useRef(0)
-  const syncFailuresRef = useRef(0)
-  // Le message affiché par une actualisation ratée : effacé dès que le contact revient.
-  const erreurDeSynchroRef = useRef<string | null>(null)
   const loadedGridId = useRef<string | null>(null)
 
   const assignedToMe = match?.status === 'active' && !match.pause && match.currentPlayerId === playerId
@@ -429,9 +420,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     // "already known", the grid never reloads, and the loading screen freezes.
     const needsGrid = loadedGridId.current !== next.gridId
     if (needsGrid && !next.grid) throw new Error('Le serveur n’a pas transmis la grille publique de cette partie.')
-    unchangedPollsRef.current = 0
-    syncFailuresRef.current = 0
-    erreurDeSynchroRef.current = null
+    synchro.marquerAJour()
     applyMatchState(next)
     if (needsGrid && next.grid) {
       // Online matches receive a sanitized board from the authoritative server:
@@ -449,16 +438,6 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     }
   }
 
-  /**
-   * La partie n'existe plus (404). Le serveur distant le dit par son statut, le
-   * serveur de test par son message — les deux comptent.
-   */
-  const partieIntrouvable = (reason: unknown): boolean => {
-    const statut = (reason as { status?: number } | null)?.status
-    if (statut === 404) return true
-    return reason instanceof Error && /introuvable/i.test(reason.message)
-  }
-
   const recoverConcurrentUpdate = (reason: unknown, gardees: Record<number, Tile> = {}) => {
     const latest = matchStateFromConflict<MatchState>(reason)
     if (!latest) return false
@@ -470,64 +449,14 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     return true
   }
 
+  // L'écran vit tant que la partie : ses minuteurs d'animation meurent avec lui.
+  // Déclaré AVANT la synchro, pour que `alive` soit vrai à son premier sondage.
   useEffect(() => {
     alive.current = true
     window.scrollTo(0, 0)
-    const sync = async () => {
-      try {
-        const next = await loadMatch(playerId, matchId, matchRef.current?.updatedAt)
-        if (!next) {
-          unchangedPollsRef.current += 1
-          syncFailuresRef.current = 0
-          // Rien de neuf, mais le serveur a répondu : le bandeau d'une
-          // actualisation ratée n'a plus lieu d'être. Avant le 13/10/2026, il
-          // restait affiché jusqu'au coup suivant, parfois longtemps.
-          const affichee = erreurDeSynchroRef.current
-          if (affichee) {
-            erreurDeSynchroRef.current = null
-            setError(courante => courante === affichee ? null : courante)
-          }
-          return
-        }
-        acceptRemoteSnapshot(next)
-      } catch (reason) {
-        if (recoverConcurrentUpdate(reason)) return
-        syncFailuresRef.current += 1
-        // L'adresse porte `#partie=<id>`. Sur une partie qui n'existe plus, rester
-        // ici piege le joueur : chaque actualisation le ramene sur la meme partie
-        // morte, et il ne peut en sortir qu'en retapant l'adresse. On rentre donc
-        // a l'accueil, ce qui nettoie l'adresse au passage (App.returnHome).
-        if (alive.current && partieIntrouvable(reason) && !matchRef.current) { onHome(); return }
-        if (alive.current && erreurDeSynchroAffichee(syncFailuresRef.current, Boolean(matchRef.current))) {
-          const message = reason instanceof Error ? reason.message : 'Connexion interrompue'
-          erreurDeSynchroRef.current = message
-          setError(message)
-        }
-      }
-    }
-    const polling = startAdaptivePolling({
-      task: sync,
-      delay: visibility => matchPollDelay({
-        match: matchRef.current,
-        playerId,
-        visibility,
-        realtimeConnected: realtimeConnectedRef.current,
-        unchangedPolls: unchangedPollsRef.current,
-        failureCount: syncFailuresRef.current,
-      }),
-    })
-    pollingRef.current = polling
-    const unsubscribeRealtime = subscribeToMatchUpdates(matchId, updatedAt => {
-      const knownUpdatedAt = matchRef.current?.updatedAt
-      if (!updatedAt || !knownUpdatedAt || new Date(updatedAt).getTime() > new Date(knownUpdatedAt).getTime()) polling.wake()
-    }, status => {
-      realtimeConnectedRef.current = status === 'connected'
-      if (status === 'connected') polling.wake()
-    })
     return () => {
       alive.current = false
-      pollingRef.current = null
-      unsubscribeRealtime(); polling.stop(); stopAnimationTimer()
+      stopAnimationTimer()
       if (hintFlightTimer.current !== null) window.clearTimeout(hintFlightTimer.current)
       if (hintLandingTimer.current !== null) window.clearTimeout(hintLandingTimer.current)
       if (turnAlertTimer.current !== null) window.clearTimeout(turnAlertTimer.current)
@@ -537,6 +466,17 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     // The match identity is fixed for the lifetime of this screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId, playerId])
+
+  // La synchro avec le serveur : sondage adaptatif réveillé par le temps réel
+  // (game/useSynchroDePartie.ts, sortie d'ici le 22/10/2026, K3). Une partie
+  // morte sans rien à l'écran ramène à l'accueil, ce qui nettoie l'adresse.
+  const synchro = useSynchroDePartie({
+    matchId, playerId, partieRef: matchRef, setError,
+    appliquer: acceptRemoteSnapshot,
+    recupererConflit: reason => recoverConcurrentUpdate(reason),
+    partieDisparue: () => { if (alive.current) onHome() },
+  })
+  const pollingRef = synchro.pollingRef
 
   // La récompense XP / plumes est écrite par le serveur avec le dernier coup :
   // on la demande DÈS la fin, elle se charge pendant l'animation au lieu
@@ -582,38 +522,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     }
   }, [assignedToMe, match, match?.pause, turnHasStarted, turnPhase.expired])
 
-  // LE BROUILLON DE LETTRES (16/10/2026, game/brouillonDuTour.ts) : les lettres
-  // posées partent au serveur au fil du tour, sans que l'adversaire les voie. Si
-  // l'envoi de fin de tour se perd en route, c'est elles que le serveur joue, au
-  // lieu de compter un tour manqué.
-  const [relanceBrouillon, setRelanceBrouillon] = useState(0)
-  useEffect(() => {
-    const partie = matchRef.current
-    // Temps limité seulement : en illimité, le serveur ne s'en servirait pas
-    // (24 h sans jouer reste un abandon, match-api/matchDrafts.ts).
-    if (!canAct || resolving || !partie || partie.pace !== 'realtime') return
-    const placements = placementsDuBrouillon(provisional)
-    const cle = cleDuBrouillon(placements)
-    if (!brouillonAEnvoyer(brouillonEnvoye.current, partie.id, partie.turnNumber, cle)) return
-    const envoyer = () => {
-      brouillonVersion.current = versionSuivante(brouillonVersion.current)
-      const envoi: BrouillonEnvoye = { matchId: partie.id, turnNumber: partie.turnNumber, cle }
-      brouillonEnvoye.current = envoi
-      saveMatchDraft(playerId, partie.id, partie.turnNumber, placements, brouillonVersion.current).catch(() => {
-        // Perdu en route : il repart une seconde plus tard s'il est encore le
-        // dernier. La marque d'échec force le renvoi, plateau vide compris.
-        if (brouillonEnvoye.current !== envoi) return
-        brouillonEnvoye.current = { ...envoi, cle: '\u0000' }
-        window.setTimeout(() => setRelanceBrouillon(compte => compte + 1), 1_000)
-      })
-    }
-    // Dans les dernières secondes, chaque lettre part tout de suite : le minuteur
-    // serait annulé par la fin du tour avant d'avoir sonné.
-    const attente = attenteAvantEnvoi(new Date(partie.turnEndsAt).getTime() - serverNow())
-    if (attente === 0) { envoyer(); return }
-    const minuteur = window.setTimeout(envoyer, attente)
-    return () => window.clearTimeout(minuteur)
-  }, [provisional, canAct, resolving, match?.turnNumber, relanceBrouillon]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Le brouillon de lettres, parti au fil du tour (game/useBrouillonDuTour.ts).
+  useBrouillonDuTour({ playerId, partieRef: matchRef, provisional, peutJouer: canAct, enResolution: resolving, tour: match?.turnNumber })
 
   useEffect(() => {
     if (!match || resolving) return
