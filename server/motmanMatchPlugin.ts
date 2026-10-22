@@ -2,46 +2,32 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
-import { botSkillForLevel, botThinkingDelayMs, createBotPersona, planBotMove, type BotSkill } from '../src/botOpponents'
-import {
-  canUseHint,
-  canUseReroll,
-  drawRackFromBag,
-  evaluateTurn,
-  hasTurnStarted,
-  hintCandidates,
-  isTurnSubmissionExpired,
-  keepRackLettersAfterTurn,
-  prepareFinalSprintRacks,
-  presenceDeadline,
-  RACK_SIZE,
-  shouldForfeitAfterInactivity,
-} from '../src/gameRules'
+import { botSkillForLevel, createBotPersona, type BotSkill } from '../src/botOpponents'
+import { isTurnSubmissionExpired } from '../src/gameRules'
 import { isPresenceOnline } from '../src/presencePolicy'
 import { database as accountDatabase, type DatabaseUser } from './motmanDatabase'
 import {
   ASYNC_BOT_MATCH_DELAY_MS,
   ASYNC_SEARCH_DURATION_MS,
-  ASYNC_TURN_DURATION_MS,
   AUTOMATIC_TURN_SUBMIT_GRACE_MS,
   MATCH_DATABASE_PATH,
-  MAX_ASYNC_MATCHES,
-  MIN_REVEAL_DURATION_MS,
-  SOUFFLE_MS,
-  PRESENCE_WINDOW_MS,
   REALTIME_BOT_MATCH_DELAY_MS,
   REALTIME_SEARCH_STALE_MS,
-  REALTIME_TURN_DURATION_MS,
   RECENT_GRID_HISTORY_LIMIT,
-  REVEAL_STEP_MS,
-  FIRST_TURN_READING_MS,
-  TURN_READY_DURATION_MS,
-  TURN_SUBMIT_GRACE_MS,
 } from './match/config'
-import { gridById, gridIds, gridSolution, grids, hash, publicGrid, ruleGrid, wordIndexes } from './match/gridCatalog'
+import { gridIds, grids } from './match/gridCatalog'
 import { sendJson } from './match/http'
+import {
+  absentDeLaPartie, cloreTourEchu, coupDuBot, echeancePresence, forfaitDeLAbsent, grillePublique, hash,
+  heureDuCoupDuBot, jouerCoup, nouvellePartie, preparerChevalets, presenceEchue,
+} from './match/regles'
 import { handleMatchRequest } from './match/requestHandler'
-import type { BotProfile, CatalogGrid, MatchDatabase, MatchInvitation, MatchMode, MatchPace, StoredMatch, StoredTurn } from './match/types'
+import type { BotProfile, CatalogGrid, MatchDatabase, MatchInvitation, MatchMode, MatchPace, StoredMatch } from './match/types'
+
+// Les RÈGLES d'une partie — coup, tour échu, absence, bot, chevalets, grille
+// publique — viennent de match-api par `./match/regles` (22/10/2026, K1). Ce
+// fichier ne garde que ce qui est propre au serveur de test : son stockage JSON,
+// ses comptes, l'appariement et le choix de grille.
 
 const EMPTY_DATABASE: MatchDatabase = { version: 5, invitations: [], matches: [], searches: [] }
 
@@ -78,7 +64,8 @@ function loadMatchDatabase(): MatchDatabase {
         match.lastTurn.inactivityCount ??= 0
         match.lastTurn.wrongPlacements ??= []
       }
-      ensureSharedLetterBag(match)
+      // Le sac partagé des vieilles parties, comme `resolveMatchRow` de match-api.
+      preparerChevalets(match)
     })
     return loaded
   } catch {
@@ -118,69 +105,6 @@ function areFriends(left: string, right: string): boolean {
   return Boolean(accountDatabase.prepare('SELECT 1 FROM friendships WHERE left_user_id = ? AND right_user_id = ?').get(first, second))
 }
 
-function gridForMatch(match: StoredMatch): CatalogGrid {
-  return gridById(match.gridId)
-}
-
-function ensureSharedLetterBag(match: StoredMatch): void {
-  if (Array.isArray(match.letterBag)) return
-  const solution = gridSolution(gridForMatch(match))
-  const available = [...solution.entries()].flatMap(([index, letter]) => match.board[index] ? [] : [letter])
-  const normalizedRacks: Record<string, string[]> = { ...match.racks }
-
-  for (const playerId of match.playerIds) {
-    normalizedRacks[playerId] = (match.racks[playerId] ?? []).filter(letter => {
-      const index = available.indexOf(letter)
-      if (index < 0) return false
-      available.splice(index, 1)
-      return true
-    })
-  }
-
-  match.racks = normalizedRacks
-  match.letterBag = available
-  for (const playerId of match.playerIds) match.racks[playerId] = replenishRack(match, playerId, match.racks[playerId] ?? [])
-}
-
-function ensureFinalSprintRacks(match: StoredMatch): boolean {
-  if (match.status !== 'active') return false
-  const remainingLetters = [...gridSolution(gridForMatch(match)).entries()]
-    .flatMap(([index, letter]) => match.board[index] ? [] : [letter])
-  const finale = prepareFinalSprintRacks({
-    remainingLetters,
-    playerIds: match.playerIds,
-    racks: match.racks,
-  })
-  if (!finale.active) return false
-  const bagChanged = (match.letterBag?.length ?? 0) > 0
-  match.racks = finale.racks
-  match.letterBag = []
-  return finale.changed || bagChanged
-}
-
-function replenishRack(match: StoredMatch, playerId: string, current: string[], avoidLetters: Iterable<string> = []): string[] {
-  ensureSharedLetterBag(match)
-  const drawn = drawRackFromBag({
-    letterBag: match.letterBag ?? [],
-    currentLetters: current,
-    avoidLetters,
-    chooseIndex: (pool, position) => hash(`${match.id}:${playerId}:${match.turnNumber}:${position}`) % pool.length,
-  })
-  match.letterBag = drawn.letterBag
-  return drawn.rack
-}
-
-/** L'échéance « Je suis là » du joueur dont c'est le tour (même règle que match-api). */
-function currentPresenceDeadline(match: StoredMatch): number | null {
-  const joueur = match.currentPlayerId
-  if (!joueur || match.bot?.playerId === joueur) return null
-  return presenceDeadline({
-    pace: match.pace, status: match.status, turnStartedAt: match.turnStartedAt,
-    inactivity: match.inactivity[joueur] ?? 0, acknowledged: match.presenceAck?.[joueur] ?? 0,
-    windowMs: PRESENCE_WINDOW_MS,
-  })
-}
-
 function publicMatch(match: StoredMatch) {
   const {
     letterBag: _privateLetterBag,
@@ -188,99 +112,22 @@ function publicMatch(match: StoredMatch) {
     resultFeedbackBy: _resultFeedbackBy,
     // Les lettres posées au fil du tour ne sortent jamais vers un client.
     brouillons: _brouillons,
+    // Les comptes des quêtes restent au serveur, comme dans `view` de match-api.
+    rackCompletions: _rackCompletions,
+    wordsCompleted: _wordsCompleted,
+    imageWordsCompleted: _imageWordsCompleted,
     ...safeMatch
   } = match
   const players = match.playerIds.map(playerId => playerId === match.bot?.playerId ? botUser(match.bot) : publicUser(playerId)).filter(Boolean)
-  const echeance = currentPresenceDeadline(match)
+  const echeance = echeancePresence(match)
   return {
-    ...safeMatch, presenceAck: match.presenceAck ?? {}, players, grid: publicGrid(gridForMatch(match)),
+    ...safeMatch, presenceAck: match.presenceAck ?? {}, players, grid: grillePublique(match),
     presenceDeadline: echeance === null ? null : new Date(echeance).toISOString(),
   }
 }
 
-function finishMatch(match: StoredMatch, winnerId: string | null, reason: StoredMatch['finishReason']): void {
-  match.status = 'finished'
-  match.winnerId = winnerId
-  match.finishReason = reason
-  match.resultAcknowledgedBy ??= []
-  match.resultFeedbackBy ??= []
-  match.updatedAt = new Date().toISOString()
-  match.turnEndsAt = match.updatedAt
-}
-
-function turnDuration(match: Pick<StoredMatch, 'pace' | 'turnMs'>): number {
-  // Une durée posée sur la partie l'emporte : c'est le tour long que réclament
-  // les e2e qui jouent à l'écran (voir `StoredMatch.turnMs`).
-  return match.turnMs ?? (match.pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)
-}
-
 function activeMatches(playerId: string, pace?: MatchPace): StoredMatch[] {
   return database.matches.filter(match => match.status === 'active' && match.playerIds.includes(playerId) && (!pace || match.pace === pace))
-}
-
-function revealDuration(turn: StoredTurn): number {
-  const steps = turn.wrong.length + turn.correct.length + turn.wordBonuses.length + Number(Boolean(turn.rackBonus))
-  return Math.max(MIN_REVEAL_DURATION_MS, steps * REVEAL_STEP_MS + 350) + SOUFFLE_MS
-}
-
-function startNextTurn(match: StoredMatch, completedAt: Date, turn: StoredTurn): void {
-  const opponentId = match.playerIds.find(playerId => playerId !== turn.playerId) ?? turn.playerId
-  const startsAt = new Date(completedAt.getTime() + revealDuration(turn))
-  match.currentPlayerId = opponentId
-  match.turnNumber += 1
-  match.turnStartedAt = startsAt.toISOString()
-  match.turnEndsAt = new Date(startsAt.getTime() + TURN_READY_DURATION_MS + turnDuration(match)).toISOString()
-}
-
-function sanitizePlacements(match: StoredMatch, playerId: string, placements: unknown[]): Array<{ cellIndex: number; letter: string }> {
-  const solution = gridSolution(gridForMatch(match))
-  const rack = [...(match.racks[playerId] ?? [])]
-  const usedCells = new Set<number>()
-  const sanitized: Array<{ cellIndex: number; letter: string }> = []
-  for (const raw of placements.slice(0, RACK_SIZE)) {
-    if (!raw || typeof raw !== 'object') continue
-    const cellIndex = Number((raw as Record<string, unknown>).cellIndex)
-    const letter = typeof (raw as Record<string, unknown>).letter === 'string' ? String((raw as Record<string, unknown>).letter).toUpperCase().slice(0, 1) : ''
-    const rackIndex = rack.indexOf(letter)
-    if (!Number.isInteger(cellIndex) || !solution.has(cellIndex) || match.board[cellIndex] || usedCells.has(cellIndex) || rackIndex < 0) continue
-    sanitized.push({ cellIndex, letter })
-    rack.splice(rackIndex, 1)
-    usedCells.add(cellIndex)
-  }
-  return sanitized
-}
-
-function applyPlayedTurn(match: StoredMatch, playerId: string, sanitized: Array<{ cellIndex: number; letter: string }>): StoredTurn {
-  const grid = gridForMatch(match)
-  const rack = match.racks[playerId] ?? []
-  const before = new Set(Object.keys(match.board).map(Number))
-  const aidedCell = match.hint?.playerId === playerId && match.hint.turnNumber === match.turnNumber ? match.hint.cellIndex : null
-  const evaluation = evaluateTurn({ grid: ruleGrid(grid), occupiedBefore: before, placements: sanitized, aidedCell })
-  evaluation.correctPlacements.forEach(item => { match.board[item.cellIndex] = { letter: item.letter, playerId } })
-  match.scores[playerId] = (match.scores[playerId] ?? 0) + evaluation.scoreGained
-  if (evaluation.productive) match.productiveTurns[playerId] = (match.productiveTurns[playerId] ?? 0) + 1
-  match.inactivity[playerId] = 0
-  // Jouer, c'est être là : le prochain tour manqué redemandera « Je suis là ».
-  if (match.presenceAck) match.presenceAck[playerId] = 0
-  const usedCorrectLetters = new Set(evaluation.correctPlacements.map(item => item.letter))
-  const retainedRack = keepRackLettersAfterTurn(rack, evaluation.correctPlacements)
-  match.racks[playerId] = replenishRack(match, playerId, retainedRack, usedCorrectLetters)
-  ensureFinalSprintRacks(match)
-  const turn: StoredTurn = {
-    id: randomUUID(), kind: 'played', playerId, turnNumber: match.turnNumber,
-    correct: evaluation.correctCells, wrong: evaluation.wrongCells, wrongPlacements: evaluation.wrongPlacements,
-    aidedCell, letterPoints: evaluation.letterPoints, wordBonuses: evaluation.wordBonuses,
-    rackBonus: evaluation.rackBonus, scoreGained: evaluation.scoreGained, inactivityCount: 0, createdAt: new Date().toISOString(),
-  }
-  match.lastTurn = turn
-  match.hint = null
-  match.updatedAt = turn.createdAt
-  if (evaluation.completesGrid) {
-    const [left, right] = match.playerIds
-    const winner = match.scores[left] === match.scores[right] ? null : match.scores[left] > match.scores[right] ? left : right
-    finishMatch(match, winner, 'completed')
-  } else startNextTurn(match, new Date(match.updatedAt), turn)
-  return turn
 }
 
 function createBotProfile(sourceId: string, preferredSkill?: BotSkill): BotProfile {
@@ -293,60 +140,36 @@ function niveauJoueur(playerId: string): number {
   return Math.min(50, Math.max(1, Number(user?.level ?? 1)))
 }
 
-function botPlacements(match: StoredMatch): Array<{ cellIndex: number; letter: string }> {
-  const bot = match.bot
-  if (!bot) return []
-  const grid = gridForMatch(match)
-  const rack = match.racks[bot.playerId] ?? []
-  const botScore = match.scores[bot.playerId] ?? 0
-  const bestOpponentScore = Math.max(...match.playerIds
-    .filter(playerId => playerId !== bot.playerId)
-    .map(playerId => match.scores[playerId] ?? 0), 0)
-  return planBotMove({
-    grid: ruleGrid(grid),
-    occupiedCells: Object.keys(match.board).map(Number),
-    rackLetters: rack,
-    persona: bot,
-    seed: `${match.id}:${match.turnNumber}:${rack.join('')}`,
-    scoreGap: bestOpponentScore - botScore,
-  }).attempts.map(attempt => ({ cellIndex: attempt.cellIndex, letter: attempt.letter }))
-}
-
-function resolveReadyBots(now = Date.now()): boolean {
-  let changed = false
-  for (const match of database.matches) {
-    if (match.status !== 'active' || !match.bot || match.currentPlayerId !== match.bot.playerId) continue
-    const thinkingDelay = botThinkingDelayMs(`${match.id}:${match.turnNumber}`)
-    if (now < new Date(match.turnStartedAt).getTime() + TURN_READY_DURATION_MS + thinkingDelay) continue
-    applyPlayedTurn(match, match.bot.playerId, sanitizePlacements(match, match.bot.playerId, botPlacements(match)))
-    changed = true
-  }
-  return changed
-}
-
 /**
- * Le tour échoit sans coup reçu : s'il reste des lettres valables dans le
- * brouillon du joueur au trait, reçu pendant ce tour, elles sont jouées comme
- * un coup ordinaire. Même règle que `closeExpiredTurn` de match-api.
+ * Faire avancer une partie que personne ne touche : la même suite que
+ * `resolveMatchRow` de match-api (matchResolve.ts), dans le même ordre — le
+ * joueur parti sans témoin, le coup du bot, « Je suis là » échu, puis le tour
+ * échu (avec les lettres du brouillon s'il y en a). Ce serveur n'a pas de tâche
+ * planifiée : il résout TOUTES les parties à chaque requête.
  */
-function jouerLeBrouillon(match: StoredMatch): StoredTurn | null {
-  // Temps limité seulement : en illimité, 24 h sans jouer reste un abandon.
-  if (match.pace !== 'realtime') return null
-  const brouillon = match.brouillons?.[match.currentPlayerId]
-  if (!brouillon || brouillon.turnNumber !== match.turnNumber) return null
-  if (!(brouillon.receivedAt < new Date(match.turnEndsAt).getTime() + TURN_SUBMIT_GRACE_MS)) return null
-  const valides = sanitizePlacements(match, match.currentPlayerId, brouillon.placements)
-  if (!valides.length) return null
-  const tour = applyPlayedTurn(match, match.currentPlayerId, valides)
-  tour.fromDraft = true
-  return tour
+function resoudrePartie(match: StoredMatch, now: number): boolean {
+  if (match.status !== 'active') return false
+  const chevalets = preparerChevalets(match)
+  const absent = absentDeLaPartie(match, now)
+  if (absent) { forfaitDeLAbsent(match, absent); return true }
+  if (match.bot?.playerId === match.currentPlayerId) {
+    if (now < heureDuCoupDuBot(match)) return chevalets
+    jouerCoup(match, match.bot.playerId, coupDuBot(match))
+    return true
+  }
+  if (presenceEchue(match, now)) { forfaitDeLAbsent(match); return true }
+  // Give the automatic 00:00 payload enough time to leave a sleeping mobile
+  // radio before a poll resolves the turn as an inactivity timeout.
+  if (isTurnSubmissionExpired(now, new Date(match.turnEndsAt).getTime(), AUTOMATIC_TURN_SUBMIT_GRACE_MS)) {
+    cloreTourEchu(match)
+    return true
+  }
+  return chevalets
 }
 
 function resolveExpired(): void {
   const now = Date.now()
-  // Bots live in the authoritative simulation too. Resolve their move before
-  // timeout handling so a sleeping development server never makes them forfeit.
-  let changed = resolveReadyBots(now)
+  let changed = false
   database.invitations.forEach(invitation => {
     if (invitation.status === 'pending' && new Date(invitation.expiresAt).getTime() <= now) { invitation.status = 'expired'; changed = true }
   })
@@ -354,42 +177,10 @@ function resolveExpired(): void {
     const user = publicUser(search.playerId)
     if (!user) return false
     if (search.pace === 'realtime') return now - new Date(search.updatedAt).getTime() < REALTIME_SEARCH_STALE_MS && activeMatches(search.playerId, 'realtime').length === 0
-    return now - new Date(search.createdAt).getTime() < ASYNC_SEARCH_DURATION_MS && activeMatches(search.playerId, 'async').length < MAX_ASYNC_MATCHES
+    return now - new Date(search.createdAt).getTime() < ASYNC_SEARCH_DURATION_MS
   })
   if (validSearches.length !== database.searches.length) { database.searches = validSearches; changed = true }
-  database.matches.forEach(match => {
-    // Temps limité : 30 s sans « Je suis là » ni coup après un tour manqué, et
-    // la partie est perdue pour l'absent (src/gameRules.ts, 18/09/2026).
-    const echeance = match.status === 'active' ? currentPresenceDeadline(match) : null
-    if (echeance !== null && now >= echeance + TURN_SUBMIT_GRACE_MS) {
-      finishMatch(match, match.playerIds.find(playerId => playerId !== match.currentPlayerId) ?? null, 'timeout')
-      changed = true
-      return
-    }
-    // Give the automatic 00:00 payload enough time to leave a sleeping mobile
-    // radio before a poll resolves the turn as an inactivity timeout.
-    if (match.status !== 'active' || !isTurnSubmissionExpired(now, new Date(match.turnEndsAt).getTime(), AUTOMATIC_TURN_SUBMIT_GRACE_MS)) return
-    // Les lettres reçues au fil du tour, plutôt qu'un tour manqué (match-api,
-    // matchDrafts.ts) : même règle qu'en production.
-    if (jouerLeBrouillon(match)) { changed = true; return }
-    const inactivePlayerId = match.currentPlayerId
-    const inactivityCount = (match.inactivity[inactivePlayerId] ?? 0) + 1
-    match.inactivity[inactivePlayerId] = inactivityCount
-    const occurredAt = new Date()
-    match.lastTurn = {
-      id: randomUUID(), kind: 'timeout', playerId: inactivePlayerId, turnNumber: match.turnNumber,
-      correct: [], wrong: [], wrongPlacements: [], aidedCell: null, letterPoints: 0, wordBonuses: [], rackBonus: 0,
-      scoreGained: 0, inactivityCount, createdAt: occurredAt.toISOString(),
-    }
-    match.hint = null
-    match.updatedAt = occurredAt.toISOString()
-    const opponentId = match.playerIds.find(playerId => playerId !== inactivePlayerId) ?? null
-    if (shouldForfeitAfterInactivity(inactivityCount, match.pace)) finishMatch(match, opponentId, 'timeout')
-    else {
-      startNextTurn(match, occurredAt, match.lastTurn)
-    }
-    changed = true
-  })
+  database.matches.forEach(match => { if (resoudrePartie(match, now)) changed = true })
   if (changed) saveDatabase()
 }
 
@@ -401,7 +192,6 @@ function resolveBotFallback(playerId: string): void {
   const humanCandidate = database.searches.some(candidate => candidate.id !== search.id && candidate.pace === search.pace)
   if (humanCandidate) return
   if (search.pace === 'realtime' && activeMatches(playerId, 'realtime').length) return
-  if (search.pace === 'async' && activeMatches(playerId, 'async').length >= MAX_ASYNC_MATCHES) return
   // Même règle que la production : le bot qui remplace un humain absent joue au
   // niveau du joueur (src/botOpponents.ts).
   const bot = createBotProfile(search.id, botSkillForLevel(niveauJoueur(playerId)))
@@ -472,44 +262,22 @@ function selectGridForPlayers(hostId: string, guestId: string, sourceId: string,
 }
 
 /**
- * Le délai avant que le tout premier tour ne commence. En temps limité, c'est
- * la FENÊTRE DE LECTURE : les deux joueurs découvrent la grille avant que le
- * chronomètre du premier ne parte (voir FIRST_TURN_READING_MS).
+ * Une partie neuve (server/match/regles.ts) : l'état de départ de match-api, et
+ * la FENÊTRE DE LECTURE avant le premier tour en temps limité.
  *
  * Le serveur de test posait jusqu'ici `turnStartedAt = maintenant`, là où la
  * production écrit `maintenant + READY_MS` : les e2e ne voyaient donc jamais la
  * fenêtre que tout joueur traverse. Ils testent désormais le vrai chemin.
  */
-function attenteAvantPremierTour(pace: MatchPace): number {
-  return pace === 'realtime' ? FIRST_TURN_READING_MS : TURN_READY_DURATION_MS
-}
-
 function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId: string | null = null, bot: BotProfile | null = null, turnMs?: number): StoredMatch {
   const now = new Date()
-  const dureeDuTour = turnMs ?? (pace === 'async' ? ASYNC_TURN_DURATION_MS : REALTIME_TURN_DURATION_MS)
   const grid = selectGridForPlayers(hostId, guestId, sourceId, now)
-  const difficulty: StoredMatch['difficulty'] = bot?.skill === 'beginner' ? 'easy' : bot?.skill === 'expert' ? 'hard' : 'normal'
-  const match: StoredMatch = {
-    id: randomUUID(), invitationId, mode, pace, gridId: grid.id, difficulty, turnMs,
-    playerIds: [hostId, guestId], bot, currentPlayerId: hostId, turnNumber: 1,
-    turnStartedAt: new Date(now.getTime() + attenteAvantPremierTour(pace)).toISOString(),
-    turnEndsAt: new Date(now.getTime() + attenteAvantPremierTour(pace) + dureeDuTour).toISOString(),
-    board: {}, racks: {}, letterBag: [...gridSolution(grid).values()], scores: { [hostId]: 0, [guestId]: 0 },
-    productiveTurns: { [hostId]: 0, [guestId]: 0 },
-    inactivity: { [hostId]: 0, [guestId]: 0 }, hint: null,
-    hintUsed: {}, rerollUsed: {}, lastTurn: null, status: 'active', winnerId: null, finishReason: null,
-    resultAcknowledgedBy: [], resultFeedbackBy: [],
-    createdAt: now.toISOString(), updatedAt: now.toISOString(),
-  }
-  match.racks[hostId] = replenishRack(match, hostId, [])
-  match.racks[guestId] = replenishRack(match, guestId, [])
-  return match
+  return nouvellePartie({ id: randomUUID(), hostId, guestId, mode, pace, grid, invitationId, bot, turnMs, now })
 }
 
 const requestContext = {
   database, cleanPlayerId, publicUser, areFriends, activeMatches, resolveExpired, lobbyState,
-  ensureFinalSprintRacks, publicMatch, saveDatabase, createMatch, finishMatch, gridForMatch,
-  replenishRack, sanitizePlacements, startNextTurn, applyPlayedTurn, jouerLeBrouillon,
+  publicMatch, saveDatabase, createMatch,
 }
 
 function attachMatchApi(middlewares: { use: (route: string, handler: (request: IncomingMessage, response: ServerResponse) => void) => void }): void {

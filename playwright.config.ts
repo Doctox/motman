@@ -75,7 +75,9 @@ export default defineConfig({
       // passer est un abandon (src/gameRules.ts). À six secondes, un test qui
       // gardait une partie ouverte un peu longtemps la perdait au hasard.
       MOTMAN_ASYNC_TURN_DURATION_MS: '20000',
-      // Long enough for Chromium/WebKit to observe the two-beat turn cue reliably.
+      // READY_MS de match-api (1,8 s) : le délai avant le PREMIER tour d'une
+      // partie illimitée, rien d'autre. Jusqu'au 22/10/2026 il s'ajoutait aussi
+      // à la fin de chaque tour, ce que la production ne fait pas (K1).
       MOTMAN_TURN_READY_DURATION_MS: '350',
       // La fenêtre de lecture du premier tour vaut dix secondes en production.
       // Raccourcie ici comme le reste, mais pas trop : la page doit avoir le temps

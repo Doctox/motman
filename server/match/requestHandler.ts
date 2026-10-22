@@ -1,15 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { canUseHint, canUseReroll, hasTurnStarted, hintCandidates, indicesUtilises } from '../../src/gameRules'
 import {
-  canUseHint, canUseReroll, hasTurnStarted, hintCandidates, indicesUtilises, isTurnSubmissionExpired, shouldForfeitAfterInactivity,
-} from '../../src/gameRules'
-import {
-  ASYNC_INVITATION_DURATION_MS, AUTOMATIC_TURN_SUBMIT_GRACE_MS, INVITATION_DURATION_MS, MAX_ASYNC_MATCHES,
+  ASYNC_INVITATION_DURATION_MS, AUTOMATIC_TURN_SUBMIT_GRACE_MS, INVITATION_DURATION_MS,
   REALTIME_SEARCH_STALE_MS, TURN_SUBMIT_GRACE_MS,
 } from './config'
-import { gridSolution, hash, ruleGrid } from './gridCatalog'
 import { readBody, sendJson, sendNoContent } from './http'
-import type { BotProfile, CatalogGrid, MatchDatabase, MatchMode, MatchPace, StoredMatch, StoredTurn } from './types'
+import {
+  brouillonAccepte, cloreTourEchu, confirmerPresence, filtrerCoup, grilleDeRegles, hash, jouerCoup,
+  lettresRestantes, preparerChevalets, remplirChevalet, terminer,
+} from './regles'
+import type { BotProfile, MatchDatabase, MatchMode, MatchPace, StoredMatch } from './types'
 
 type PublicPlayer = { displayName: string; online: boolean }
 
@@ -21,24 +22,18 @@ export type MatchRequestContext = {
   activeMatches(playerId: string, pace?: MatchPace): StoredMatch[]
   resolveExpired(): void
   lobbyState(playerId: string): unknown
-  ensureFinalSprintRacks(match: StoredMatch): boolean
   publicMatch(match: StoredMatch): unknown
   saveDatabase(): void
   createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId?: string | null, bot?: BotProfile | null, turnMs?: number): StoredMatch
-  finishMatch(match: StoredMatch, winnerId: string | null, reason: StoredMatch['finishReason']): void
-  gridForMatch(match: StoredMatch): CatalogGrid
-  replenishRack(match: StoredMatch, playerId: string, current: string[], avoidLetters?: Iterable<string>): string[]
-  sanitizePlacements(match: StoredMatch, playerId: string, placements: unknown[]): Array<{ cellIndex: number; letter: string }>
-  startNextTurn(match: StoredMatch, completedAt: Date, turn: StoredTurn): void
-  applyPlayedTurn(match: StoredMatch, playerId: string, placements: Array<{ cellIndex: number; letter: string }>): StoredTurn
-  jouerLeBrouillon(match: StoredMatch): StoredTurn | null
 }
 
 export async function handleMatchRequest(request: IncomingMessage, response: ServerResponse, context: MatchRequestContext): Promise<void> {
+  // L'instant où la requête est ARRIVÉE, comme `recuA` dans match-api : les
+  // échéances se comparent à lui, pas à la fin de sa préparation.
+  const recuA = Date.now()
   const {
     database, cleanPlayerId, publicUser, areFriends, activeMatches, resolveExpired, lobbyState,
-    ensureFinalSprintRacks, publicMatch, saveDatabase, createMatch, finishMatch, gridForMatch,
-    replenishRack, sanitizePlacements, startNextTurn, applyPlayedTurn, jouerLeBrouillon,
+    publicMatch, saveDatabase, createMatch,
   } = context
   const url = new URL(request.url ?? '/', 'http://motman.local')
   const route = url.pathname.replace(/^\/api\/matches\/?/, '').replace(/^\/+/, '')
@@ -57,7 +52,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     const matchId = route.slice('match/'.length)
     const match = database.matches.find(candidate => candidate.id === matchId && candidate.playerIds.includes(playerId))
     if (!match) return sendJson(response, 404, { error: 'Partie introuvable.' })
-    if (ensureFinalSprintRacks(match)) {
+    if (preparerChevalets(match)) {
       match.updatedAt = new Date().toISOString()
       saveDatabase()
     }
@@ -183,13 +178,12 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     }
     if (pace === 'realtime' && activeMatches(playerId, 'realtime').length)
       return sendJson(response, 409, { error: 'Tu as déjà une partie en temps réel.' })
-    if (pace === 'async' && activeMatches(playerId, 'async').length >= MAX_ASYNC_MATCHES)
-      return sendJson(response, 409, { error: 'Tu as déjà trois parties asynchrones.' })
+    // Pas de plafond de parties illimitées : la production n'en a pas
+    // (server_matchmake_atomic). Ce serveur en refusait une quatrième.
     const candidate = [...database.searches]
       .filter(search => search.playerId !== playerId && search.pace === pace)
-      .filter(search => pace === 'realtime'
-        ? Date.now() - new Date(search.updatedAt).getTime() < REALTIME_SEARCH_STALE_MS && activeMatches(search.playerId, 'realtime').length === 0
-        : activeMatches(search.playerId, 'async').length < MAX_ASYNC_MATCHES)
+      .filter(search => pace === 'async'
+        || (Date.now() - new Date(search.updatedAt).getTime() < REALTIME_SEARCH_STALE_MS && activeMatches(search.playerId, 'realtime').length === 0))
       .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())[0]
     if (candidate) {
       // Tour sur mesure, demandé par l'appariement (e2e seulement) : un test qui
@@ -216,74 +210,52 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   }
 
   const matchId = typeof body.matchId === 'string' ? body.matchId : ''
-  // A turn submission is resolved before expiry. Other actions may safely
-  // advance every expired match first.
-  if (route !== 'turn') resolveExpired()
-  let match = database.matches.find(candidate => candidate.id === matchId && candidate.playerIds.includes(playerId))
+  // La partie avance d'abord, pour TOUTES les actions — un coup compris —,
+  // comme `resolveRow` en tête de match-api : coup du bot, absence, tour échu
+  // (passé la marge de l'envoi automatique). Jusqu'au 22/10/2026, ce serveur
+  // l'épargnait au coup, et un coup envoyé à la main entre la marge manuelle et
+  // la marge automatique était JOUÉ ; la production le refuse.
+  resolveExpired()
+  const match = database.matches.find(candidate => candidate.id === matchId && candidate.playerIds.includes(playerId))
   if (!match) return sendJson(response, 404, { error: 'Partie introuvable.' })
-  if (ensureFinalSprintRacks(match)) {
+  if (preparerChevalets(match)) {
     match.updatedAt = new Date().toISOString()
     saveDatabase()
   }
-  const requestedGrace = body.automatic === true ? AUTOMATIC_TURN_SUBMIT_GRACE_MS : TURN_SUBMIT_GRACE_MS
-  if (route === 'turn' && match.status === 'active' && isTurnSubmissionExpired(Date.now(), new Date(match.turnEndsAt).getTime(), requestedGrace)) {
-    // Un coup ENVOYÉ PAR LE JOUEUR qui arrive trop tard lui coûte son tour,
-    // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
-    // Même règle que `timeoutTurn(row, { absence: false })` dans match-api —
-    // ici `resolveExpired()` balaie toutes les parties, on lui reprend donc
-    // son incrément après coup plutôt que de le lui passer en paramètre.
-    const envoyeParLeJoueur = body.automatic !== true && match.currentPlayerId === playerId
-    const manquesAvant = match.inactivity[playerId] ?? 0
-    resolveExpired()
-    match = database.matches.find(candidate => candidate.id === matchId && candidate.playerIds.includes(playerId))
-    if (!match) return sendJson(response, 404, { error: 'Partie introuvable.' })
-    if (envoyeParLeJoueur) {
-      match.inactivity[playerId] = manquesAvant
-      match.presenceAck = { ...(match.presenceAck ?? {}), [playerId]: manquesAvant }
-      saveDatabase()
-    }
-  }
 
   const requestedTurnNumber = Number(body.turnNumber)
-  if (route === 'turn' && Number.isInteger(requestedTurnNumber) && match.lastTurn?.playerId === playerId && match.lastTurn.turnNumber === requestedTurnNumber) {
+  // Les lettres posées au fil du tour (16/10/2026) : `brouillonRecevable` de
+  // match-api (matchDrafts.ts). Rangées à part, jamais renvoyées au client.
+  if (route === 'draft') {
+    const version = Number(body.version)
+    if (!Number.isSafeInteger(version) || version <= 0) return sendJson(response, 400, { error: 'Brouillon invalide.' })
+    if (!brouillonAccepte(match, playerId, requestedTurnNumber, recuA)) return sendJson(response, 200, { ok: false })
+    // Un brouillon plus ancien que celui déjà reçu est IGNORÉ, en silence : la
+    // production répond `{ ok: true }` quoi que garde `server_save_match_draft`.
+    // Ce serveur répondait `{ ok: false }`, une réponse que le jeu ne donne pas.
+    const precedent = match.brouillons?.[playerId]
+    const plusRecent = !precedent || precedent.turnNumber < match.turnNumber || (precedent.turnNumber === match.turnNumber && precedent.version < version)
+    if (plusRecent) {
+      const placements = filtrerCoup(match, playerId, Array.isArray(body.placements) ? body.placements : [])
+      match.brouillons = { ...(match.brouillons ?? {}), [playerId]: { turnNumber: match.turnNumber, version, placements, receivedAt: recuA } }
+      saveDatabase()
+    }
+    return sendJson(response, 200, { ok: true })
+  }
+
+  if (route === 'turn' && match.lastTurn?.playerId === playerId && match.lastTurn.turnNumber === requestedTurnNumber) {
     return sendJson(response, 200, { match: publicMatch(match), result: match.lastTurn })
   }
   if (match.status !== 'active') return sendJson(response, 409, { error: 'Cette partie est terminée.', match: publicMatch(match) })
 
-  // Les lettres posées au fil du tour (16/10/2026) : même règle que match-api
-  // (matchDrafts.ts). Rangées à part, jamais renvoyées au client.
-  if (route === 'draft') {
-    const maintenant = Date.now()
-    const version = Number(body.version)
-    const recevable = match.pace === 'realtime'
-      && match.currentPlayerId === playerId
-      && requestedTurnNumber === match.turnNumber
-      && hasTurnStarted(maintenant, new Date(match.turnStartedAt).getTime())
-      && maintenant < new Date(match.turnEndsAt).getTime() + TURN_SUBMIT_GRACE_MS
-      && Number.isSafeInteger(version) && version > 0
-    const precedent = match.brouillons?.[playerId]
-    const plusRecent = !precedent || precedent.turnNumber < match.turnNumber || (precedent.turnNumber === match.turnNumber && precedent.version < version)
-    if (!recevable || !plusRecent) return sendJson(response, 200, { ok: false })
-    const placements = sanitizePlacements(match, playerId, Array.isArray(body.placements) ? body.placements : [])
-    match.brouillons = { ...(match.brouillons ?? {}), [playerId]: { turnNumber: match.turnNumber, version, placements, receivedAt: maintenant } }
-    saveDatabase()
-    return sendJson(response, 200, { ok: true })
-  }
-
-  // « Je suis là » : même règle que match-api (acknowledgePresence).
+  // « Je suis là » : `acknowledgePresence` de match-api.
   if (route === 'present') {
-    const manques = match.inactivity[playerId] ?? 0
-    if ((match.presenceAck?.[playerId] ?? 0) < manques) {
-      match.presenceAck = { ...(match.presenceAck ?? {}), [playerId]: manques }
-      match.updatedAt = new Date().toISOString()
-      saveDatabase()
-    }
+    if (confirmerPresence(match, playerId)) saveDatabase()
     return sendJson(response, 200, { match: publicMatch(match) })
   }
 
   if (route === 'forfeit') {
-    const winner = match.playerIds.find(id => id !== playerId) ?? null
-    finishMatch(match, winner, 'forfeit')
+    terminer(match, match.playerIds.find(id => id !== playerId) ?? null, 'forfeit')
     saveDatabase()
     return sendJson(response, 200, publicMatch(match))
   }
@@ -293,100 +265,68 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     return sendJson(response, 409, { error: 'Le prochain tour commence après les résultats.', match: publicMatch(match) })
   }
 
+  // L'indice et le mélange vivent EN LIGNE dans `index.ts` de match-api, qui ne
+  // s'importe pas (il démarre `Deno.serve`). Ils sont donc suivis pas à pas, avec
+  // les fonctions de la production : même tirage (`hash` de l'identifiant et du
+  // tour), même fin de grille (`neededLetters`), même chevalet (`refill`).
   if (route === 'hint') {
-    if (!canUseHint(match.hintUsed[playerId])) return sendJson(response, 409, { error: 'Indice déjà utilisé pendant cette partie.' })
-    const currentGrid = gridForMatch(match)
-    const solution = gridSolution(currentGrid)
+    if (!canUseHint(match.hintUsed[playerId])) return sendJson(response, 409, { error: 'Ton indice a déjà été utilisé.' })
+    const pendingPlacements = filtrerCoup(match, playerId, Array.isArray(body.placements) ? body.placements : [])
     const rack = match.racks[playerId] ?? []
-    const pendingPlacements = context.sanitizePlacements(
-      match,
-      playerId,
-      Array.isArray(body.placements) ? body.placements : [],
-    )
-    const candidates = hintCandidates(
-      ruleGrid(currentGrid),
-      rack,
-      Object.keys(match.board).map(Number),
-      pendingPlacements,
-    )
+    const candidates = hintCandidates(grilleDeRegles(match), rack, Object.keys(match.board).map(Number), pendingPlacements)
     if (!candidates.length) return sendJson(response, 409, { error: 'Aucun indice disponible.' })
-    const selected = candidates[hash(`${match.id}:${playerId}:${match.turnNumber}:hint`) % candidates.length]
+    const selected = candidates[hash(`${match.id}:${match.turnNumber}:hint`) % candidates.length]
     match.hint = { playerId, cellIndex: selected.cellIndex, letter: selected.letter, turnNumber: match.turnNumber }
     match.hintUsed[playerId] = indicesUtilises(match.hintUsed[playerId]) + 1
     match.board[selected.cellIndex] = { letter: selected.letter, playerId }
     const hintedLetterIndex = rack.indexOf(selected.letter)
-    match.racks[playerId] = rack.filter((_, index) => index !== hintedLetterIndex)
+    match.racks[playerId] = hintedLetterIndex < 0 ? rack : rack.filter((_, index) => index !== hintedLetterIndex)
     match.updatedAt = new Date().toISOString()
-    if ([...solution.keys()].every(index => match.board[index])) {
+    if (lettresRestantes(match).length === 0) {
       const [left, right] = match.playerIds
       const winner = match.scores[left] === match.scores[right] ? null : match.scores[left] > match.scores[right] ? left : right
-      finishMatch(match, winner, 'completed')
-    } else ensureFinalSprintRacks(match)
+      terminer(match, winner, 'completed')
+    } else preparerChevalets(match)
     saveDatabase()
     return sendJson(response, 200, publicMatch(match))
   }
 
   if (route === 'reroll') {
-    const rerollAllowed = canUseReroll({
-      alreadyUsed: Boolean(match.rerollUsed[playerId]),
-      pendingPlacements: 0,
-      hintActive: match.hint?.playerId === playerId && match.hint.turnNumber === match.turnNumber,
-    })
-    if (!rerollAllowed) return sendJson(response, 409, { error: 'Relance déjà utilisée ou indisponible pendant ce tour.' })
+    if (!canUseReroll({ alreadyUsed: Boolean(match.rerollUsed[playerId]), pendingPlacements: 0, hintActive: Boolean(match.hint) })) {
+      return sendJson(response, 409, { error: 'Le mélange n’est plus disponible.' })
+    }
     const currentRack = match.racks[playerId] ?? []
     match.letterBag = [...(match.letterBag ?? []), ...currentRack]
-    match.racks[playerId] = replenishRack(match, playerId, [], currentRack)
     match.rerollUsed[playerId] = true
+    match.racks[playerId] = remplirChevalet(match, playerId, [], currentRack)
     match.updatedAt = new Date().toISOString()
     saveDatabase()
     return sendJson(response, 200, publicMatch(match))
   }
 
   if (route !== 'turn') return sendJson(response, 404, { error: 'Action inconnue.' })
-  if (Number.isInteger(requestedTurnNumber) && requestedTurnNumber !== match.turnNumber) {
+  // Le coup, pas à pas comme l'action `turn` d'index.ts (en ligne, non importable).
+  if (requestedTurnNumber !== match.turnNumber) {
     return sendJson(response, 409, { error: 'Ce tour est déjà terminé.', match: publicMatch(match) })
   }
-  const placements = Array.isArray(body.placements) ? body.placements : []
-  const sanitized = sanitizePlacements(match, playerId, placements)
+  const valid = filtrerCoup(match, playerId, Array.isArray(body.placements) ? body.placements : [])
   const hasPlacedHint = match.hint?.playerId === playerId && match.hint.turnNumber === match.turnNumber
-  const automaticTimeoutIsEarly = body.automatic === true
-    && sanitized.length === 0
-    && Date.now() < new Date(match.turnEndsAt).getTime()
-  if (automaticTimeoutIsEarly) {
+  const automatic = body.automatic === true
+  const submissionGrace = automatic ? AUTOMATIC_TURN_SUBMIT_GRACE_MS : TURN_SUBMIT_GRACE_MS
+  const turnEndsAt = new Date(match.turnEndsAt).getTime()
+  if (automatic && valid.length === 0 && Date.now() < turnEndsAt) {
     return sendJson(response, 409, {
       error: 'Le tour est toujours en cours.',
       code: 'TURN_STILL_ACTIVE',
       match: publicMatch(match),
     })
   }
-
-  // Reaching zero with placed letters validates them exactly like the button.
-  // Reaching zero without a placement remains a genuine inactivity timeout.
-  if (body.automatic === true && sanitized.length === 0 && !hasPlacedHint) {
-    // Rien d'envoyé à 00:00 : les lettres reçues au fil du tour, s'il y en a.
-    const joue = jouerLeBrouillon(match)
-    if (joue) {
-      saveDatabase()
-      return sendJson(response, 200, { match: publicMatch(match), result: joue })
-    }
-    const inactivityCount = (match.inactivity[playerId] ?? 0) + 1
-    match.inactivity[playerId] = inactivityCount
-    const occurredAt = new Date()
-    match.lastTurn = {
-      id: randomUUID(), kind: 'timeout', playerId, turnNumber: match.turnNumber,
-      correct: [], wrong: [], wrongPlacements: [], aidedCell: null, letterPoints: 0,
-      wordBonuses: [], rackBonus: 0, scoreGained: 0, inactivityCount,
-      createdAt: occurredAt.toISOString(),
-    }
-    match.hint = null
-    match.updatedAt = occurredAt.toISOString()
-    const opponentId = match.playerIds.find(id => id !== playerId) ?? null
-    if (shouldForfeitAfterInactivity(inactivityCount, match.pace)) finishMatch(match, opponentId, 'timeout')
-    else startNextTurn(match, occurredAt, match.lastTurn)
-    saveDatabase()
-    return sendJson(response, 200, { match: publicMatch(match), result: match.lastTurn })
-  }
-  const result = applyPlayedTurn(match, playerId, sanitized)
+  // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu pendant
+  // le tour, s'il y en a, plutôt qu'un tour manqué. Un coup ENVOYÉ À LA MAIN
+  // trop tard coûte le tour sans compter comme une absence (`absence: automatic`).
+  if (recuA >= turnEndsAt + submissionGrace || (automatic && valid.length === 0 && !hasPlacedHint)) {
+    cloreTourEchu(match, { absence: automatic })
+  } else jouerCoup(match, playerId, valid)
   saveDatabase()
-  return sendJson(response, 200, { match: publicMatch(match), result })
+  return sendJson(response, 200, { match: publicMatch(match), result: match.lastTurn })
 }

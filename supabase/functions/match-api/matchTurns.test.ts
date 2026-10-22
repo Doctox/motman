@@ -1,6 +1,6 @@
 import { ruleGrid } from './matchGrid.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
-import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn } from './matchTurns.ts'
+import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, CADENCE_PRODUCTION, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn, type Cadence } from './matchTurns.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MÉCANIQUE D'UN TOUR — et surtout, la frontière anti-triche.
@@ -267,6 +267,33 @@ Deno.test('la durée de révélation ne descend jamais sous 700 ms', () => {
   const ligne = match()
   timeoutTurn(ligne)
   verifie(revealDuration(ligne.state.lastTurn!) >= 700, 'plancher de 700 ms respecté')
+})
+
+// ── La cadence (22/10/2026, K1) ──────────────────────────────────────────────
+// Le serveur de test des e2e importe ces fonctions avec SA cadence, raccourcie.
+// Elle ne doit changer que les durées, et la production rester à la sienne.
+
+Deno.test('sans cadence, un coup suit celle de la production', () => {
+  const ligne = match({}, { pace: 'realtime' })
+  const avant = Date.now()
+  const tour = applyTurn(ligne, GRILLE, JOUEUR, [{ cellIndex: 0, letter: 'M' }])
+  const debut = Date.parse(ligne.turn_started_at)
+  verifie(debut >= avant + revealDuration(tour, CADENCE_PRODUCTION), 'la révélation de la production')
+  egal(Date.parse(ligne.turn_ends_at) - debut, CADENCE_PRODUCTION.tourLimiteMs, 'un tour de 45 s, rien de plus')
+})
+
+Deno.test('une cadence raccourcie ne change que les durées', () => {
+  const cadence: Cadence = { ...CADENCE_PRODUCTION, tourLimiteMs: 12_000, pasDeRevelationMs: 30, revelationMinimaleMs: 20, souffleMs: 0, fenetrePresenceMs: 8_000, margePresenceMs: 1_200 }
+  const ligne = match({}, { pace: 'realtime' })
+  const tour = applyTurn(ligne, GRILLE, JOUEUR, [{ cellIndex: 0, letter: 'm' }], cadence)
+  egal(tour.correct, [0], 'la lettre se juge pareil')
+  egal(revealDuration(tour, cadence), Math.max(20, (tour.correct.length + tour.wrongPlacements.length + tour.wordBonuses.length + (tour.rackBonus ? 1 : 0)) * 30), 'la même formule, aux durées près')
+  egal(Date.parse(ligne.turn_ends_at) - Date.parse(ligne.turn_started_at), 12_000, 'le tour réglé')
+  timeoutTurn(ligne, { cadence })
+  egal(Date.parse(ligne.turn_ends_at) - Date.parse(ligne.turn_started_at), 12_000, 'un tour manqué aussi')
+  const manque = match({ inactivity: { [JOUEUR]: 1 } })
+  egal(currentPresenceDeadline(manque, cadence), Date.parse(manque.turn_started_at) + 8_000, 'la fenêtre réglée')
+  verifie(presenceExpired(manque, Date.parse(manque.turn_started_at) + 9_200, cadence), 'et sa marge réglée')
 })
 
 // ── Dérivation de la grille ──────────────────────────────────────────────────

@@ -738,6 +738,39 @@ test('une validation automatique mobile retardée conserve les lettres posées',
   expect(accepted.match.board[placement.cellIndex]?.letter).toBe(placement.letter)
 })
 
+// LE SERVEUR DE TEST JOUE AVEC LES RÈGLES DE MATCH-API (22/10/2026, K1). Il
+// les recopiait, et deux de ses écarts se voyaient d'ici : une lettre accentuée
+// était refusée (la production retire l'accent), et une quatrième partie
+// illimitée aussi (la production n'a aucun plafond). Il importe désormais les
+// fonctions de la production (server/match/regles.ts) ; ces deux tests le
+// vérifient par le vrai chemin HTTP, src/serveurDeTestRegles.test.ts par le code.
+test('une lettre envoyée avec son accent est jouée sans lui, comme en production', async ({ request, browserName }) => {
+  test.skip(browserName === 'webkit', 'Règle serveur, indépendante du moteur visuel.')
+  const accents: Record<string, string> = { A: 'à', E: 'é', I: 'î', O: 'ô', U: 'ù', C: 'ç' }
+  const { first, matchId } = await createNormalMatch(request, 'realtime', 'Accents')
+  let match = await loadMatch(request, first.playerId, matchId)
+  // Le chevalet est tiré au hasard : on passe jusqu'à en voir un qui porte une
+  // voyelle ou un C. Huit chevalets de cinq lettres sans aucune, ce serait
+  // une fixture qui a changé, pas de la malchance.
+  for (let tour = 0; tour < 8; tour += 1) {
+    const placement = playablePlacements(match).find(candidate => accents[candidate.letter])
+    if (placement) {
+      const joue = await submitTurn(request, match, [{ cellIndex: placement.cellIndex, letter: accents[placement.letter] }])
+      expect(joue.result.correct).toContain(placement.cellIndex)
+      expect(joue.match.board[String(placement.cellIndex)]?.letter).toBe(placement.letter)
+      return
+    }
+    match = (await submitTurn(request, match, [])).match
+  }
+  throw new Error('Aucune voyelle ni C en huit chevalets : la fixture a-t-elle changé ?')
+})
+
+test('une quatrième partie illimitée se trouve, comme en production', async ({ request, browserName }) => {
+  test.skip(browserName === 'webkit', 'Règle serveur, indépendante du moteur visuel.')
+  const { matches } = await createAsyncMatchesForPlayer(request, 4, 'Quatre')
+  expect(new Set(matches.map(item => item.matchId)).size).toBe(4)
+})
+
 // LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026). Partie classée du
 // propriétaire : son envoi de 00:00 ne lui est jamais parvenu, il a perdu
 // toutes ses lettres, plus une absence. Le brouillon reçu pendant le tour les
@@ -754,15 +787,19 @@ test('sans envoi de fin de tour, le serveur joue les lettres reçues au fil du t
 
   // Une relance, comme `loadMatch` : après la longue attente de la fenêtre de
   // lecture, la connexion gardée ouverte peut être coupée (ECONNRESET, vu le 16/10).
-  const brouillon = async (version: number) => {
+  const brouillon = async (version: number, placements = [placement]) => {
     const envoi = () => request.post('/api/matches/draft', {
-      data: { playerId: match.currentPlayerId, matchId, turnNumber: match.turnNumber, placements: [placement], version },
+      data: { playerId: match.currentPlayerId, matchId, turnNumber: match.turnNumber, placements, version },
     })
     try { return await envoi() } catch { return envoi() }
   }
   expect(await (await brouillon(2)).json()).toEqual({ ok: true })
   // Un brouillon plus ancien, arrivé après, ne remplace pas le plus récent.
-  expect(await (await brouillon(1)).json()).toEqual({ ok: false })
+  // La réponse n'en dit rien — `{ ok: true }`, comme en production, où
+  // `server_save_match_draft` l'ignore en silence (22/10/2026, K1 : le serveur
+  // de test répondait `{ ok: false }`). Il part donc VIDE : s'il remplaçait le
+  // bon, le tour se clorait sans lettre, et les vérifications plus bas tomberaient.
+  expect(await (await brouillon(1, [])).json()).toEqual({ ok: true })
 
   // Rien n'arrive à 00:00. Passé la marge de l'envoi automatique (4 s sur ce
   // serveur), la première relecture clôt le tour — avec les lettres.
@@ -860,7 +897,14 @@ test('une grille complète atteint l’écran final', async ({ browser, request 
     const submitted = remainingBefore <= 6 ? placements.slice(0, 1) : placements
     match = (await submitTurn(request, match, submitted)).match
 
-    const remaining = [...solution.entries()].filter(([index]) => !match.board[index]).map(([, letter]) => letter)
+    // Dans l'ordre des CASES, comme `neededLetters` de match-api, qui fait le
+    // chevalet du sprint final. `solutionFor` range ses lettres mot par mot :
+    // c'était l'ordre du serveur de test tant qu'il recopiait la règle, et le
+    // test le supposait (22/10/2026, K1).
+    const remaining = [...solution.entries()]
+      .filter(([index]) => !match.board[index])
+      .sort(([gauche], [droite]) => gauche - droite)
+      .map(([, letter]) => letter)
     if (match.status === 'active' && remaining.length > 0 && remaining.length <= 10) {
       sawFinalSprint = true
       const sharedRack = remaining.slice(0, 5)

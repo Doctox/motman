@@ -61,8 +61,12 @@ describe('la fenêtre de lecture du premier tour', () => {
   })
 
   it('vaut la même chose sur le serveur de test, sinon les e2e testent autre chose', () => {
+    // Depuis le 22/10/2026 (K1), le serveur de test IMPORTE la valeur de
+    // matchSetup.ts au lieu de la recopier : seule une variable MOTMAN_* des
+    // e2e peut la raccourcir.
     const local = readFileSync('server/match/config.ts', 'utf8')
-    expect(nombre(local, /FIRST_TURN_READING_MS = numericEnvironment\('MOTMAN_FIRST_TURN_READING_MS', ([\d_]+)/)).toBe(lectureMs)
+    expect(local).toContain("import { FIRST_TURN_READING_MS as LECTURE_PRODUCTION_MS, READY_MS } from '../../supabase/functions/match-api/matchSetup.ts'")
+    expect(local).toContain("numericEnvironment('MOTMAN_FIRST_TURN_READING_MS', LECTURE_PRODUCTION_MS, 0)")
   })
 })
 

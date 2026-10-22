@@ -41,15 +41,21 @@ export function brouillonPossible(row: Pick<MatchRow, 'pace'>): boolean {
   return row.pace === 'realtime'
 }
 
-/** Un brouillon n'est reçu que du joueur dont c'est le tour, pendant ce tour. Pur. */
-export function brouillonRecevable(row: Pick<MatchRow, 'pace' | 'status' | 'paused_at' | 'current_player_id' | 'turn_number' | 'turn_started_at' | 'turn_ends_at'>, userId: string, turnNumber: number, recuA: number): boolean {
+/**
+ * Un brouillon n'est reçu que du joueur dont c'est le tour, pendant ce tour. Pur.
+ *
+ * `margeMs` : toujours BROUILLON_MARGE_MS en production. Le serveur de test des
+ * e2e (server/match/regles.ts) passe sa marge raccourcie d'un coup à la main,
+ * pour que l'égalité des deux marges tienne aussi chez lui (22/10/2026, K1).
+ */
+export function brouillonRecevable(row: Pick<MatchRow, 'pace' | 'status' | 'paused_at' | 'current_player_id' | 'turn_number' | 'turn_started_at' | 'turn_ends_at'>, userId: string, turnNumber: number, recuA: number, margeMs = BROUILLON_MARGE_MS): boolean {
   return brouillonPossible(row)
     && row.status === 'active'
     && !row.paused_at
     && row.current_player_id === userId
     && turnNumber === row.turn_number
     && recuA >= Date.parse(row.turn_started_at)
-    && recuA < Date.parse(row.turn_ends_at) + BROUILLON_MARGE_MS
+    && recuA < Date.parse(row.turn_ends_at) + margeMs
 }
 
 /**
@@ -57,9 +63,9 @@ export function brouillonRecevable(row: Pick<MatchRow, 'pace' | 'status' | 'paus
  * d'un autre tour ou s'il est arrivé trop tard. Pur : la vérification des
  * lettres elles-mêmes (chevalet, cases libres) reste celle d'un coup.
  */
-export function lettresDuBrouillon(row: Pick<MatchRow, 'pace' | 'turn_number' | 'turn_ends_at'>, brouillon: Brouillon | null): Placement[] {
+export function lettresDuBrouillon(row: Pick<MatchRow, 'pace' | 'turn_number' | 'turn_ends_at'>, brouillon: Brouillon | null, margeMs = BROUILLON_MARGE_MS): Placement[] {
   if (!brouillonPossible(row) || !brouillon || brouillon.turnNumber !== row.turn_number) return []
-  if (!(Date.parse(brouillon.receivedAt) < Date.parse(row.turn_ends_at) + BROUILLON_MARGE_MS)) return []
+  if (!(Date.parse(brouillon.receivedAt) < Date.parse(row.turn_ends_at) + margeMs)) return []
   return Array.isArray(brouillon.placements) ? brouillon.placements : []
 }
 

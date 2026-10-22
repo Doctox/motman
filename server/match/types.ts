@@ -1,24 +1,9 @@
 import type { BotSkill } from '../../src/botOpponents'
-import type { GridDimensionsSource } from '../../src/gridDimensions'
+import type { Turn } from '../../supabase/functions/match-api/matchModel.ts'
 
-export type CatalogWord = {
-  wordId?: string
-  answer: string
-  clue?: string
-  image?: unknown
-  direction: 'across' | 'down'
-  arrow?: string
-  clueCell: number[]
-  cells: number[][]
-}
-
-export type CatalogGrid = GridDimensionsSource & {
-  id: string
-  clueCells?: number[][]
-  /** Cases noires des grilles à thème. */
-  blockedCells?: number[][]
-  words: CatalogWord[]
-}
+// La grille et le tour ont la forme de ceux de match-api (22/10/2026, K1) : ce
+// serveur leur applique les fonctions de la production (server/match/regles.ts).
+export type { CatalogGrid, CatalogWord } from '../../supabase/functions/match-api/matchModel.ts'
 
 export type MatchPace = 'realtime' | 'async'
 export type MatchMode = 'friend' | 'normal'
@@ -51,24 +36,8 @@ export type BotProfile = {
   frameId: string
 }
 
-export type StoredTurn = {
-  id: string
-  kind: 'played' | 'timeout'
-  playerId: string
-  turnNumber: number
-  correct: number[]
-  wrong: number[]
-  wrongPlacements: Array<{ cellIndex: number; letter: string }>
-  aidedCell: number | null
-  letterPoints: number
-  wordBonuses: Array<{ cells: number[]; points: number; direction: 'across' | 'down' }>
-  rackBonus: number
-  scoreGained: number
-  inactivityCount: number
-  createdAt: string
-  /** Joué avec les lettres du brouillon (match-api/matchDrafts.ts, 16/10/2026). */
-  fromDraft?: boolean
-}
+/** Le tour de match-api, tel quel. */
+export type StoredTurn = Turn
 
 /** Les lettres posées, reçues au fil du tour : jamais montrées au client (publicMatch les retire). */
 export type StoredDraft = { turnNumber: number; version: number; placements: Array<{ cellIndex: number; letter: string }>; receivedAt: number }
@@ -105,7 +74,15 @@ export type StoredMatch = {
   inactivity: Record<string, number>
   /** Temps limité : le compte de tours manqués auquel chacun a répondu « Je suis là ». */
   presenceAck?: Record<string, number>
-  hint: { playerId: string; cellIndex: number; letter: string; turnNumber: number } | null
+  /**
+   * Comptes que `applyTurn` de match-api tient pour les quêtes (chevalets
+   * vidés, mots terminés, mots en image). Gardés ici comme dans `state` ; le
+   * client ne les reçoit pas, pas plus qu'en production (publicMatch les retire).
+   */
+  rackCompletions?: Record<string, number>
+  wordsCompleted?: Record<string, number>
+  imageWordsCompleted?: Record<string, number>
+  hint:{ playerId: string; cellIndex: number; letter: string; turnNumber: number } | null
   hintUsed: Record<string, boolean | number>
   rerollUsed: Record<string, boolean | number>
   lastTurn: StoredTurn | null

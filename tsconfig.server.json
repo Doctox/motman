@@ -25,6 +25,18 @@
     "src/presencePolicy.ts",
     "src/socialSearchPolicy.ts",
     "src/catalogueGrilles.d.ts",
-    "src/data/*.json"
+    "src/data/*.json",
+    "src/ghostOpponent.ts",
+    "src/dailyThemes.ts",
+    "src/gridSelection.ts",
+    "supabase/functions/match-api/matchModel.ts",
+    "supabase/functions/match-api/matchGrid.ts",
+    "supabase/functions/match-api/matchTurns.ts",
+    "supabase/functions/match-api/matchDrafts.ts",
+    "supabase/functions/match-api/matchSetup.ts",
+    "supabase/functions/match-api/botDelay.ts",
+    "supabase/functions/_shared/http.ts",
+    "supabase/functions/_shared/lectures.ts",
+    "supabase/functions/_shared/supabaseClients.ts"
   ]
 }
