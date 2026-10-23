@@ -14,6 +14,8 @@ describe('le lien marqué', () => {
     expect(canalDuLien('?src=IG')).toBe('instagram')
     expect(canalDuLien('?src=tt')).toBe('tiktok')
     expect(canalDuLien('?src=yt')).toBe('youtube')
+    expect(canalDuLien('?src=partage')).toBe('partage')
+    expect(canalDuLien('?src=ami')).toBe('ami')
     expect(canalDuLien('?utm_source=facebook&utm_medium=social')).toBe('facebook')
   })
 

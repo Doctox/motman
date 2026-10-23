@@ -67,6 +67,8 @@ const NOMS_DES_CANAUX: Record<string, string> = {
   tiktok: 'TikTok',
   youtube: 'YouTube',
   facebook: 'Facebook',
+  partage: 'Défi partagé par un joueur',
+  ami: 'Code ami partagé',
   site: 'Adresse tapée ou favori',
   autre: 'Un autre site',
 }

@@ -92,6 +92,8 @@ describe('d’où viennent les nouveaux', () => {
     expect(nomDuCanal('tiktok')).toBe('TikTok')
     expect(nomDuCanal('site')).toBe('Adresse tapée ou favori')
     expect(nomDuCanal('lien-flyer')).toBe('Lien « flyer »')
+    expect(nomDuCanal('partage')).toBe('Défi partagé par un joueur')
+    expect(nomDuCanal('ami')).toBe('Code ami partagé')
     expect(nomDuCanal('inconnu')).toBe('inconnu')
   })
 

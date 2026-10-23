@@ -9,7 +9,7 @@
 //     Défi du jour « Jardin » : 60 points 💪
 //     🥈 2e sur 7 joueurs aujourd'hui
 //
-//     Tu fais mieux ? 👉 https://www.doctox.fr/motman/
+//     Tu fais mieux ? 👉 https://www.doctox.fr/motman/?src=partage
 //
 // PAS D'ADVERSAIRE DANS LE MESSAGE (propriétaire, 19/09/2026). « J'ai battu le
 // bot » cassait l'adversaire à prénom que le jeu présente ; le score du joueur
@@ -23,7 +23,11 @@
 import { Capacitor } from '@capacitor/core'
 import { Share } from '@capacitor/share'
 
-export const MOTMAN_SHARE_URL = 'https://www.doctox.fr/motman/'
+// LES LIENS PARTAGÉS SONT MARQUÉS (23/10/2026) : `?src=partage` pour le défi,
+// `?src=ami` pour le code ami. Celui qui arrive par eux est compté comme tel
+// (src/sourceDuJoueur.ts) : le pouls dit enfin si les partages ramènent du monde.
+export const MOTMAN_SHARE_URL = 'https://www.doctox.fr/motman/?src=partage'
+export const MOTMAN_INVITE_URL = 'https://www.doctox.fr/motman/?src=ami'
 const STORAGE_KEY = 'motman-daily-share-v1'
 
 export type DailyShareInput = {

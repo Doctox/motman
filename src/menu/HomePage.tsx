@@ -17,6 +17,7 @@ import { RankedSeekerBanner } from './RankedSeekerBanner'
 import { ChronoRecherche } from './ChronoRecherche'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import { GamePulse } from './GamePulse'
+import { MOTMAN_INVITE_URL } from '../dailyShare'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -53,7 +54,8 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, j
   // alors sur l'affichage du code, qui reste utilisable a la main.
   const [codePartage, setCodePartage] = useState<string | null>(null)
   const partagerCode = async () => {
-    const texte = `Rejoins-moi sur MotMan ! Mon code ami : ${codeAmi}`
+    // Avec le lien, marqué : le message disait le code sans dire où jouer (23/10/2026).
+    const texte = `Rejoins-moi sur MotMan ! Mon code ami : ${codeAmi}\n${MOTMAN_INVITE_URL}`
     try {
       if (navigator.share) { await navigator.share({ text: texte }); return }
       await navigator.clipboard.writeText(codeAmi)

@@ -21,7 +21,7 @@ describe('le texte partagé', () => {
       'Défi du jour « Corps humain » : 76 points 💪',
       "🥈 2e sur 7 joueurs aujourd'hui",
       '',
-      'Tu fais mieux ? 👉 https://www.doctox.fr/motman/',
+      'Tu fais mieux ? 👉 https://www.doctox.fr/motman/?src=partage',
     ].join('\n'))
   })
 
@@ -48,7 +48,7 @@ describe('le texte partagé', () => {
 
   it('pas de rang sans classement, ni pour un nouvel essai (le classement ne retient que le premier)', () => {
     const sansRang = dailyShareText(entree({ rank: null }))
-    expect(sansRang).toBe('Défi du jour « Corps humain » : 76 points 💪\n\nTu fais mieux ? 👉 https://www.doctox.fr/motman/')
+    expect(sansRang).toBe('Défi du jour « Corps humain » : 76 points 💪\n\nTu fais mieux ? 👉 https://www.doctox.fr/motman/?src=partage')
     expect(dailyShareText(entree({ attempt: 2 }))).not.toContain('sur 7')
   })
 })

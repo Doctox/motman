@@ -40,6 +40,8 @@ const ALIAS: Record<string, string> = {
   facebook: 'facebook', fb: 'facebook',
   google: 'google',
   playstore: 'play-store', 'play-store': 'play-store', play: 'play-store',
+  // Les liens que les joueurs partagent eux-mêmes (src/dailyShare.ts, 23/10/2026).
+  partage: 'partage', ami: 'ami',
 }
 
 /** Le canal d'un lien marqué (`?src=` ou `?utm_source=`), ou `null` s'il n'y en a pas. */
