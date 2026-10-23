@@ -125,6 +125,19 @@ html:not([data-motion="off"]) .essai-layer .essai-voile .essai-contour{animation
 .essai-layer .essai-fin-jouer{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;background:var(--essai-encre);color:#fffaf0}
 .essai-layer .essai-fin-jouer svg{width:20px;height:20px}
 .essai-layer .essai-fin-plus-tard{margin-top:8px;border:0;background:transparent;color:#5d6b63}
+/* Le défi du jour proposé en premier (23/10/2026) : sa terre cuite, comme sur
+   l'accueil ; la partie normale en second, filet d'encre. Trois boutons et une
+   phrase de plus : sur un petit écran, la fiche défile au lieu de déborder. */
+.essai-layer .essai-fin{max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+.essai-layer .essai-fin-defi{margin:0 0 12px;font:400 0.9375rem/1.4 'DM Sans',system-ui,sans-serif;color:#28463e;text-wrap:pretty}
+.essai-layer .essai-fin-defi b{font-weight:600;color:var(--mm-coral,var(--essai-terre));white-space:nowrap}
+.essai-layer .essai-fin-relever{background:var(--mm-coral,var(--essai-terre))}
+.essai-layer .essai-fin-normale{display:inline-flex;align-items:center;justify-content:center;gap:9px;margin-top:8px;border:1.5px solid var(--essai-encre);background:transparent;color:var(--essai-encre)}
+.essai-layer .essai-fin-normale svg{width:20px;height:20px}
+@media (max-height:640px){
+  .essai-layer .essai-fin{padding-top:16px}
+  .essai-layer .essai-fin ul{gap:6px;margin-bottom:12px}
+}
 
 html[data-motion="off"] .essai-layer .essai-tuile{transition:none}
 html[data-motion="off"] .essai-layer .essai-lettre.is-arriving span{animation:none}
@@ -155,3 +168,5 @@ html[data-motion="off"] .essai-layer .essai-lettre.is-arriving span{animation:no
 [data-theme="dark"] .essai-layer .essai-fin{background:#17352f}
 [data-theme="dark"] .essai-layer .essai-fin li{color:#d5e3dc}
 [data-theme="dark"] .essai-layer .essai-fin-plus-tard{color:#a9bab3}
+[data-theme="dark"] .essai-layer .essai-fin-defi{color:#d5e3dc}
+[data-theme="dark"] .essai-layer .essai-fin-relever{background:var(--mm-coral,var(--essai-terre));color:#111b18}

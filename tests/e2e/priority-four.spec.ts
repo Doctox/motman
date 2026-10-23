@@ -93,7 +93,13 @@ test('le tutoriel est une partie d’essai qui prend par la main, puis lance la 
 
   await expect(essai.getByRole('heading', { name: 'Prends ton temps' })).toBeVisible()
   await page.screenshot({ path: `output/quality/partie-d-essai-fin-${testInfo.project.name}.png`, fullPage: false })
-  await essai.getByRole('button', { name: 'Jouer ma première partie' }).click()
+  // Le défi du jour passe devant (23/10/2026), sa tentative unique dite avant.
+  // On ne le lance pas ici : il ne vit que par Supabase, que le serveur de
+  // test ne sert pas. La partie normale reste à un toucher.
+  await expect(essai.getByRole('button', { name: 'Relever le défi du jour' })).toBeVisible()
+  await expect(essai).toContainText('Une seule tentative')
+  await expect(essai.getByRole('button', { name: 'Jouer ma première partie' })).toHaveCount(0)
+  await essai.getByRole('button', { name: 'Une partie normale' }).click()
   await expect(essai).toBeHidden()
   // La recherche est lancée : on n'a pas à choisir un mode qu'on ne connaît pas.
   await expect(page).toHaveURL(/#jouer$/)

@@ -23,6 +23,7 @@ import { EMPTY_SOCIAL_STATE, loadSocialState, registerSocialProfile, setSocialPr
 import { AccountPanel } from './menu/AccountPanel'
 import { AppHeader, BottomNav } from './menu/MenuChrome'
 import { PartieDEssai } from './menu/PartieDEssai'
+import { useDailyChallenge } from './menu/DailyChallenge'
 import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
 import { MatchInvitationPanel, MatchWaitingPanel } from './menu/MatchActivityPanels'
@@ -96,6 +97,9 @@ export function MenuApp({
   // du guide court, l'Épicerie et les Quêtes s'expliqueront une fois à leur
   // première visite (src/premiersPassages.ts). Pas l'habitué qui le revoit.
   const premiereOuverture = useRef(completedTutorialVersion() === 0)
+  // Le défi du jour, que la fin de la partie d'essai propose en premier quand
+  // il est encore jouable sur cet appareil (propriétaire, 23/10/2026).
+  const defiDuJour = useDailyChallenge()
   // Le mot du créateur, une fois par jour (src/creatorNote.ts). Pas le jour du
   // tout premier lancement : le tutoriel occupe déjà l'écran, et deux fenêtres
   // de suite pour un nouveau venu, c'est une de trop. Il le lira demain.
@@ -393,15 +397,18 @@ export function MenuApp({
   // La fin de la partie d'essai (22/10/2026). « Jouer ma première partie »
   // lance tout de suite une recherche normale en temps limité (N1) : le guide
   // finissait sur « Choisir un mode », trois onglets et deux rythmes posés à
-  // quelqu'un qui ne savait pas encore ce qu'ils voulaient dire.
-  const terminerEssai = (lancer: boolean) => {
+  // quelqu'un qui ne savait pas encore ce qu'ils voulaient dire. Depuis le
+  // 23/10/2026, le défi du jour à thème passe devant quand il est jouable.
+  const terminerEssai = (suite: 'partie' | 'defi' | null) => {
     const premiere = premiereOuverture.current && !essaiRevu
     premiereOuverture.current = false
     completeFirstRunTutorial()
     if (premiere) ouvrirPremiersPassages()
     setTutorialOpen(false)
     setEssaiRevu(false)
-    if (lancer && premiere) jouerPremierePartie()
+    if (!premiere) return
+    if (suite === 'partie') jouerPremierePartie()
+    if (suite === 'defi') void playDailyChallenge()
   }
   // Tant qu'aucune partie n'est finie, « Jouer ma première partie » lance la
   // recherche au lieu d'ouvrir l'écran des choix (N1, N2).
@@ -570,7 +577,9 @@ export function MenuApp({
       <MatchWaitingPanel invitation={outgoingInvitation} busy={matchBusy} cancel={() => void cancelInvitation(outgoingInvitation.id)} />
     </div> : null}
     {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
-      ? <PartieDEssai premiere={premiereOuverture.current && !essaiRevu} jouer={() => terminerEssai(true)} fermer={() => terminerEssai(false)} />
+      ? <PartieDEssai premiere={premiereOuverture.current && !essaiRevu} jouer={() => terminerEssai('partie')}
+        defi={defiDuJour.status === 'todo' ? { theme: defiDuJour.theme, jouer: () => terminerEssai('defi') } : null}
+        fermer={() => terminerEssai(null)} />
       : null}
     {motDuCreateur && page === 'home' && !tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !matchLobby.incoming[0]
       ? <CreatorNote close={() => { motDuCreateurMontre(dailyDateKey(Date.now())); setMotDuCreateur(false) }} />

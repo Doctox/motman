@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react'
-import { BookOpen, Check, Clock, Gamepad2, Lightbulb } from 'lucide-react'
+import { BookOpen, Check, Clock, Gamepad2, Grid2x2Check, Lightbulb } from 'lucide-react'
 import { motionReduced } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { COUP_ADVERSE, ESSAI_COLONNES, ESSAI_GRILLE, ESSAI_RANGEES, etatInitial, jouerEssai, MOT_DU_JOUEUR, type EtatEssai } from './essaiRegles'
@@ -62,11 +62,17 @@ function rectangleDe(racine: HTMLElement, selecteur: string, marge = 2): Fenetre
   return { x: gauche, y: haut, l: droite - gauche, h: bas - haut }
 }
 
-export function PartieDEssai({ premiere, jouer, fermer }: {
+export function PartieDEssai({ premiere, jouer, defi = null, fermer }: {
   /** Tout premier lancement : la fin propose de lancer la vraie partie. */
   premiere: boolean
   /** « Jouer ma première partie » : lance la recherche (N1). */
   jouer: () => void
+  /**
+   * Le défi du jour, s'il est encore jouable aujourd'hui sur cet appareil : la
+   * fin le propose en premier (propriétaire, 23/10/2026), la partie normale en
+   * second. Null : la fin garde « Jouer ma première partie ».
+   */
+  defi?: { theme: string | null; jouer: () => void } | null
   /** « Passer », « Plus tard » ou « Fermer ». */
   fermer: () => void
 }) {
@@ -186,8 +192,19 @@ export function PartieDEssai({ premiere, jouer, fermer }: {
         <li><Check aria-hidden="true" />Une lettre fausse ne coûte aucun point.</li>
         <li><Lightbulb aria-hidden="true" />Bloqué ? L’indice pose une lettre juste, sans point.</li>
       </ul>
-      {premiere
+      {premiere && defi
         ? <>
+          {/* La tentative unique se dit AVANT de jouer (règle du 20/09/2026) :
+              cette phrase remplace ici la fenêtre « Une seule fois par jour ». */}
+          <p className="essai-fin-defi">
+            {defi.theme ? <>Aujourd’hui, le défi du jour a pour thème <b>{defi.theme}</b>.</> : 'Aujourd’hui, tout le monde joue la même grille du jour.'}
+            {' '}Une seule tentative{' '}: gagnée, perdue ou abandonnée, elle compte pour le classement du jour.
+          </p>
+          <button type="button" className="essai-fin-jouer essai-fin-relever" data-dialog-autofocus onClick={defi.jouer}><Grid2x2Check aria-hidden="true" />Relever le défi du jour</button>
+          <button type="button" className="essai-fin-normale" onClick={jouer}><Gamepad2 aria-hidden="true" />Une partie normale</button>
+          <button type="button" className="essai-fin-plus-tard" onClick={fermer}>Plus tard</button>
+        </>
+        : premiere ? <>
           <button type="button" className="essai-fin-jouer" data-dialog-autofocus onClick={jouer}><Gamepad2 aria-hidden="true" />Jouer ma première partie</button>
           <button type="button" className="essai-fin-plus-tard" onClick={fermer}>Plus tard</button>
         </>
