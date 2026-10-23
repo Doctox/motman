@@ -38,6 +38,21 @@ Le scénario exécute successivement 10, 50 puis 100 joueurs :
 8. rechargement du lobby et lecture autoritaire des matchs ;
 9. abandon technique des matchs et suppression des comptes temporaires.
 
+### Installer le projet de test (23/10/2026)
+
+Remplir `.env.loadtest.local` avec la référence, les deux clés et le mot de
+passe de la base (`MOTMAN_STAGING_DB_PASSWORD`). Connecter ensuite la CLI au
+compte du propriétaire (`npx supabase login`), puis :
+
+```powershell
+node scripts/preparer_projet_de_charge.mjs
+```
+
+Le script pose les migrations, les quatre fonctions du banc, des limites de
+connexion relevées (tous les joueurs du banc partent d'une seule adresse IP)
+et le catalogue local. Il remplit aussi `MOTMAN_STAGING_URL` et
+`MOTMAN_LOAD_TEST_CONFIRM`.
+
 ### Capacité d'un live (23/10/2026)
 
 ```powershell
