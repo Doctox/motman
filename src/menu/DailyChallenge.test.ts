@@ -70,7 +70,7 @@ describe('la carte « Défi réussi ! »', () => {
     expect(partage.envoyer).toHaveBeenCalledTimes(1)
     const texte = (partage.envoyer.mock.calls[0] as unknown as [string])[0]
     expect(texte).toMatch(/: 308 points 💪/)
-    expect(texte).toContain("2e sur 5 joueurs aujourd'hui")
+    expect(texte).toContain("2e du défi aujourd'hui")
     expect(texte).not.toContain('59')
     expect(texte).not.toContain('1er sur 2')
   })
@@ -94,8 +94,10 @@ describe('la carte « Défi réussi ! »', () => {
 describe('la carte avant la partie', () => {
   it('trouve ses mots selon le nombre de joueurs du jour', () => {
     expect(phraseDesJoueursDuJour(0)).toBe('Sois le premier à relever le défi du jour !')
-    expect(phraseDesJoueursDuJour(1)).toBe('Un joueur l’a déjà relevé : à toi de jouer !')
-    expect(phraseDesJoueursDuJour(12)).toBe('Fais partie des 12 joueurs à avoir relevé le défi !')
+    // Sous 30, aucun nombre : « 6 joueurs » annonçait un jeu vide (23/10/2026).
+    expect(phraseDesJoueursDuJour(1)).toBe('Même grille pour tout le monde : à toi de jouer !')
+    expect(phraseDesJoueursDuJour(29)).toBe('Même grille pour tout le monde : à toi de jouer !')
+    expect(phraseDesJoueursDuJour(30)).toBe('Fais partie des 30 joueurs à avoir relevé le défi !')
   })
 
   it('invite à être le premier, puis à rejoindre les autres', async () => {
@@ -108,7 +110,14 @@ describe('la carte avant la partie', () => {
     racine = createRoot(hote)
     classement.lire.mockResolvedValue({ day: jour, general: [], friends: [], total: 7, me: null })
     await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })
-    expect(hote.textContent).toContain('Fais partie des 7 joueurs à avoir relevé le défi !')
+    expect(hote.textContent).toContain('Même grille pour tout le monde : à toi de jouer !')
+    expect(hote.textContent).not.toContain('7 joueurs')
+
+    act(() => racine.unmount())
+    racine = createRoot(hote)
+    classement.lire.mockResolvedValue({ day: jour, general: [], friends: [], total: 37, me: null })
+    await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })
+    expect(hote.textContent).toContain('Fais partie des 37 joueurs à avoir relevé le défi !')
   })
 
   it('hors ligne, ne promet rien', async () => {

@@ -158,10 +158,18 @@ export function DailyStreakChip() {
  * UNE seule flamme, dans le coin haut droit, et c'est elle qui ouvre le
  * calendrier de série (place demandée par le propriétaire le 16/09/2026).
  */
-/** L'invitation de la carte avant la partie, selon le nombre de joueurs du jour. */
+/** À partir de combien de joueurs du jour la carte dit leur nombre. */
+export const JOUEURS_DU_JOUR_DITS_DES = 30
+
+/**
+ * L'invitation de la carte avant la partie, selon le nombre de joueurs du jour.
+ * PAS DE NOMBRE SOUS 30 (propriétaire, 23/10/2026) : « Fais partie des 6
+ * joueurs » annonçait un jeu presque vide au nouveau venu, qui voit cette
+ * carte en premier. Zéro reste dit : être le premier est une invitation.
+ */
 export function phraseDesJoueursDuJour(total: number): string {
   if (total <= 0) return 'Sois le premier à relever le défi du jour !'
-  if (total === 1) return 'Un joueur l’a déjà relevé : à toi de jouer !'
+  if (total < JOUEURS_DU_JOUR_DITS_DES) return 'Même grille pour tout le monde : à toi de jouer !'
   return `Fais partie des ${total} joueurs à avoir relevé le défi !`
 }
 

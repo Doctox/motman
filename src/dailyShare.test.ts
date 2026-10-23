@@ -19,7 +19,7 @@ describe('le texte partagé', () => {
   it('une victoire : défi, score, rang et invitation', () => {
     expect(dailyShareText(entree())).toBe([
       'Défi du jour « Corps humain » : 76 points 💪',
-      "🥈 2e sur 7 joueurs aujourd'hui",
+      "🥈 2e du défi aujourd'hui",
       '',
       'Tu fais mieux ? 👉 https://www.doctox.fr/motman/?src=partage',
     ].join('\n'))
@@ -42,8 +42,11 @@ describe('le texte partagé', () => {
     }
   })
 
-  it('1er, et un joueur seul au singulier', () => {
-    expect(dailyShareText(entree({ rank: { position: 1, total: 1 } }))).toContain("🥇 1er sur 1 joueur aujourd'hui")
+  // « sur 7 joueurs » disait un jeu presque vide à qui reçoit le message (23/10/2026).
+  it('1er, et jamais le nombre de joueurs', () => {
+    const texte = dailyShareText(entree({ rank: { position: 1, total: 1 } }))
+    expect(texte).toContain("🥇 1er du défi aujourd'hui")
+    expect(dailyShareText(entree())).not.toMatch(/sur \d+ joueur/)
   })
 
   it('pas de rang sans classement, ni pour un nouvel essai (le classement ne retient que le premier)', () => {
@@ -151,7 +154,7 @@ describe('le partage de l’accueil se refait depuis le classement du jour', () 
       me: { note: 308, position: 2, outcome: 'win' }, total: 5, saved: garde,
     })
     expect(texte).toMatch(/^Défi du jour « Animaux » : 308 points 💪/)
-    expect(texte).toContain("2e sur 5 joueurs aujourd'hui")
+    expect(texte).toContain("2e du défi aujourd'hui")
     expect(texte).not.toContain('59')
     expect(texte).not.toContain('1er sur 2')
   })

@@ -78,7 +78,7 @@ describe('le partage en fin de défi du jour', () => {
     expect(garde.text).toMatch(/^Défi du jour.* : 202 points 💪/)
     expect(garde.text).not.toMatch(/: 42 points/)
     expect(garde.text).not.toMatch(/\bbot\b/i)
-    expect(garde.text).toContain("🥉 3e sur 9 joueurs aujourd'hui")
+    expect(garde.text).toContain("🥉 3e du défi aujourd'hui")
     expect(garde.text).not.toContain('⬛')
   })
 

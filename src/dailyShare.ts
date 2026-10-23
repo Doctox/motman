@@ -7,13 +7,17 @@
 // courte, qui se lit d'un coup d'œil dans une conversation :
 //
 //     Défi du jour « Jardin » : 60 points 💪
-//     🥈 2e sur 7 joueurs aujourd'hui
+//     🥈 2e du défi aujourd'hui
 //
 //     Tu fais mieux ? 👉 https://www.doctox.fr/motman/?src=partage
 //
 // PAS D'ADVERSAIRE DANS LE MESSAGE (propriétaire, 19/09/2026). « J'ai battu le
 // bot » cassait l'adversaire à prénom que le jeu présente ; le score du joueur
 // suffit, et le rang dit la compétition — celle du classement du jour.
+//
+// LA PLACE, JAMAIS LE TOTAL (propriétaire, 23/10/2026). « 2e sur 7 joueurs »
+// annonçait un jeu presque vide à l'ami qui reçoit le message, et c'est lui
+// qu'on veut faire venir. La place suffit à la provocation.
 //
 // AUCUNE RÉPONSE NE SORT D'ICI : ni lettre, ni définition, ni forme de grille.
 // Le rang vient du classement du SERVEUR ; il n'est dit que pour le premier
@@ -97,7 +101,7 @@ export function dailyShareText(input: DailyShareInput): string {
       ? `${defi} : ${points} 🤝`
       : `${defi} : ${points}… 😤`
   const rang = input.attempt === 1 && input.rank && input.rank.position > 0 && input.rank.total > 0
-    ? `${medaille(input.rank.position)} ${ordinal(input.rank.position)} sur ${input.rank.total} joueur${input.rank.total > 1 ? 's' : ''} aujourd'hui`
+    ? `${medaille(input.rank.position)} ${ordinal(input.rank.position)} du défi aujourd'hui`
     : ''
   return [resultat, rang, '', `Tu fais mieux ? 👉 ${MOTMAN_SHARE_URL}`]
     .filter((ligne, index) => ligne !== '' || index === 2)
