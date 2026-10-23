@@ -8,6 +8,9 @@ import WebSocket from 'ws'
 
 export const PRODUCTION_PROJECT_REF = 'kfacjvxzdtxybvxhfmzg'
 const DEFAULT_STAGES = [10, 50, 100]
+// Jusqu'à 1 000 joueurs par palier (23/10/2026) : la question posée était
+// celle d'un live de créateur, des centaines de parties en même temps.
+const MAX_STAGE_PLAYERS = 1_000
 const REQUEST_TIMEOUT_MS = 20_000
 const SETUP_CONCURRENCY = 10
 
@@ -113,10 +116,20 @@ function parseStages() {
   const values = (argument?.slice('--stages='.length) ?? DEFAULT_STAGES.join(','))
     .split(',')
     .map(value => Number(value.trim()))
-  assert.ok(values.length > 0 && values.every(value => Number.isInteger(value) && value >= 2 && value <= 100))
+  assert.ok(values.length > 0 && values.every(value => Number.isInteger(value) && value >= 2 && value <= MAX_STAGE_PLAYERS))
   assert.ok(values.every(value => value % 2 === 0), 'Chaque palier doit contenir un nombre pair de joueurs.')
   return values
 }
+
+/** `--partie=180` : la durée, en secondes, de la partie jouée à chaque palier (0 = aucune). */
+function parseGameSeconds() {
+  const argument = process.argv.find(item => item.startsWith('--partie='))
+  const seconds = argument ? Number(argument.slice('--partie='.length)) : 0
+  assert.ok(Number.isInteger(seconds) && seconds >= 0 && seconds <= 1_800, '--partie : de 0 à 1 800 secondes.')
+  return seconds
+}
+
+const pause = ms => new Promise(resolvePromise => setTimeout(resolvePromise, ms))
 
 async function mapLimit(items, concurrency, callback) {
   const results = new Array(items.length)
@@ -200,6 +213,7 @@ async function createPlayers(config, runId, count, onPlayerCreated) {
     const player = {
       id: created.user.id,
       email,
+      displayName: `Charge ${String(index + 1).padStart(3, '0')}`,
       token: null,
       client,
       runId,
@@ -210,7 +224,7 @@ async function createPlayers(config, runId, count, onPlayerCreated) {
     player.token = signedIn.session.access_token
     const bootstrap = await invoke(config, player, 'account-api', {
       action: 'bootstrap',
-      identity: { displayName: `Charge ${String(index + 1).padStart(3, '0')}` },
+      identity: { displayName: player.displayName },
     })
     if (!bootstrap.ok) throw new Error(`Bootstrap ${email}: ${bootstrap.status} ${bootstrap.message}`)
     return player
@@ -284,9 +298,112 @@ async function cleanupMatches(config, actors, lobbyPhase) {
   return entries.length
 }
 
-async function runStage(config, allPlayers, virtualUsers) {
+// ── LA PARTIE QUI DURE (23/10/2026) ─────────────────────────────────────────
+// Les phases ci-dessus font UN appel par joueur : elles disent si une rafale
+// passe, pas si des centaines de parties tiennent ensemble pendant des minutes.
+// Ici, chaque joueur fait ce que fait l'appli en partie, au rythme du client
+// quand le temps réel est branché (src/matchSyncPolicy.ts) :
+//   - il relit la partie toutes les 8 à 12 s, avec `knownUpdatedAt` comme le
+//     vrai client (la réponse est alors un simple « unchanged ») ;
+//   - à son tour, il envoie un brouillon, réfléchit 4 à 7 s, puis joue. Il
+//     passe : un coup vide joué à la main ne compte pas comme une absence
+//     (matchTurns.ts), la partie dure donc tout le palier.
+// Mesuré en production le 22/10/2026 : ≈ 10 appels par minute et par joueur en
+// partie. Ce rythme-ci en est proche.
+
+/** Les deux joueurs de chaque partie, d'après la relecture du lobby. */
+export function participantsParPartie(lobbyPhase) {
+  const parties = new Map()
+  phaseLoop: for (let index = 0; index < lobbyPhase.samples.length; index += 1) {
+    for (const match of lobbyPhase.samples[index].payload?.active ?? []) {
+      if (typeof match?.id !== 'string') continue
+      const joueurs = parties.get(match.id) ?? []
+      if (!joueurs.includes(index)) joueurs.push(index)
+      parties.set(match.id, joueurs)
+      continue phaseLoop
+    }
+  }
+  return parties
+}
+
+async function jouerEnContinu(config, player, matchId, finMs, echantillons) {
+  let partie = null
+  let version = 0
+  const noter = (action, resultat) => {
+    echantillons.push({ action, at: Date.now(), ok: resultat.ok, status: resultat.status, durationMs: resultat.durationMs, code: resultat.code, message: resultat.message })
+    if (resultat.payload?.match) partie = resultat.payload.match
+  }
+  // Les joueurs n'arrivent pas tous à la même seconde.
+  await pause(Math.random() * 4_000)
+  while (Date.now() < finMs) {
+    noter('match', await invoke(config, player, 'match-api', partie?.updatedAt
+      ? { action: 'match', matchId, knownUpdatedAt: partie.updatedAt }
+      : { action: 'match', matchId }))
+    if (partie?.status === 'finished') return
+    const aMoi = partie && partie.currentPlayerId === player.id && Date.now() >= Date.parse(partie.turnStartedAt)
+    if (aMoi) {
+      version += 1
+      noter('draft', await invoke(config, player, 'match-api', { action: 'draft', matchId, turnNumber: partie.turnNumber, placements: [], version }))
+      await pause(4_000 + Math.random() * 3_000)
+      noter('turn', await invoke(config, player, 'match-api', {
+        action: 'turn', matchId, turnNumber: partie.turnNumber, placements: [], automatic: false, knownUpdatedAt: partie.updatedAt,
+      }))
+    }
+    await pause(8_000 + Math.random() * 4_000)
+  }
+}
+
+/** Le palier vu par tranches de 30 s : c'est là qu'on voit le moment où ça cède. */
+export function parTranches(echantillons, debutMs) {
+  const tranches = new Map()
+  for (const echantillon of echantillons) {
+    const tranche = Math.floor((echantillon.at - debutMs) / 30_000) * 30
+    const liste = tranches.get(tranche) ?? []
+    liste.push(echantillon)
+    tranches.set(tranche, liste)
+  }
+  return [...tranches.entries()].sort(([a], [b]) => a - b).map(([depuisSecondes, liste]) => {
+    const resume = summarizeSamples(liste, 30_000)
+    return { depuisSecondes, requetes: resume.requests, echecs: resume.failures, statuts: resume.statusCounts, p50: resume.latencyMs.p50, p95: resume.latencyMs.p95, parSeconde: resume.throughputPerSecond }
+  })
+}
+
+async function partieSoutenue(config, actors, lobbyPhase, seconds) {
+  const parties = participantsParPartie(lobbyPhase)
+  const debutMs = Date.now()
+  const finMs = debutMs + seconds * 1_000
+  const echantillons = []
+  await Promise.all([...parties.entries()].flatMap(([matchId, joueurs]) =>
+    joueurs.map(index => jouerEnContinu(config, actors[index], matchId, finMs, echantillons))))
+  const wallMs = Date.now() - debutMs
+  const parAction = {}
+  for (const action of ['match', 'draft', 'turn']) {
+    const liste = echantillons.filter(echantillon => echantillon.action === action)
+    const { failuresPreview, ...resume } = summarizeSamples(liste, wallMs)
+    parAction[action] = { ...resume, failuresPreview }
+  }
+  const joueurs = [...parties.values()].reduce((total, liste) => total + liste.length, 0)
+  const total = summarizeSamples(echantillons, wallMs)
+  return {
+    name: 'partie-soutenue',
+    secondes: seconds,
+    parties: parties.size,
+    joueurs,
+    appelsParMinuteEtParJoueur: joueurs ? Number((echantillons.length / joueurs / (wallMs / 60_000)).toFixed(2)) : 0,
+    wallMs,
+    ...total,
+    parAction,
+    tranches: parTranches(echantillons, debutMs),
+  }
+}
+
+async function runStage(config, allPlayers, virtualUsers, options = {}) {
   const actors = allPlayers.slice(0, virtualUsers)
   const phases = []
+
+  // L'ouverture de l'appli par tous, à la même seconde : l'arrivée d'un live.
+  phases.push(await runPhase('ouverture-en-rafale', actors, player =>
+    invoke(config, player, 'account-api', { action: 'bootstrap', identity: { displayName: player.displayName } })))
 
   const realtimeStartedAt = performance.now()
   const realtimeSamples = await Promise.all(actors.map(subscribeMenu))
@@ -318,6 +435,10 @@ async function runStage(config, allPlayers, virtualUsers) {
   }))
   phases.push(await runPhase('authoritative-match-view', matchViews, item =>
     invoke(config, item.player, 'match-api', { action: 'match', matchId: item.matchId })))
+
+  // Le temps réel reste ouvert pendant la partie, comme dans l'appli.
+  const partie = options.gameSeconds ? await partieSoutenue(config, actors, lobbyAfter, options.gameSeconds) : null
+  if (partie) phases.push(partie)
 
   await closeRealtime(actors)
   const cleanedMatches = await cleanupMatches(config, actors, lobbyAfter)
@@ -379,6 +500,10 @@ async function preflight(config) {
 async function main() {
   const config = await loadConfig()
   const stages = parseStages()
+  const gameSeconds = parseGameSeconds()
+  // `--continuer` : un palier qui échoue n'arrête pas les suivants. Pour un test
+  // de capacité, le palier qui cède est justement ce qu'on cherche.
+  const continuer = process.argv.includes('--continuer')
   const runId = `lt-${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}-${randomBytes(3).toString('hex')}`
   const projectRef = projectRefFromUrl(config.url)
   const startedAt = new Date().toISOString()
@@ -392,6 +517,7 @@ async function main() {
     productionProtected: projectRef !== PRODUCTION_PROJECT_REF,
     startedAt,
     stagesRequested: stages,
+    gameSeconds,
     preflight: preflightResult,
     stages: [],
     cleanup: null,
@@ -405,7 +531,7 @@ async function main() {
       (index, player) => { players[index] = player },
     )
     for (const stage of stages) {
-      const result = await runStage(config, players, stage)
+      const result = await runStage(config, players, stage, { gameSeconds })
       report.stages.push(result)
       console.log(JSON.stringify({
         stage,
@@ -413,7 +539,7 @@ async function main() {
         matches: `${result.matchesObserved}/${result.expectedMatches}`,
         failures: result.verdict.failures,
       }))
-      if (!result.verdict.passed) break
+      if (!result.verdict.passed && !continuer) break
     }
   } finally {
     const cleanup = await cleanupPlayers(config, players)

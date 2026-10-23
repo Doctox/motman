@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   PRODUCTION_PROJECT_REF,
+  parTranches,
+  participantsParPartie,
   percentile,
   projectRefFromUrl,
   summarizeSamples,
@@ -52,4 +54,29 @@ test('summarizes status, throughput and latency percentiles', () => {
     throughputPerSecond: 3,
     failuresPreview: [{ status: 503, code: 'DOWN', message: 'nope' }],
   })
+})
+
+// La partie qui dure (23/10/2026) : les deux joueurs de chaque partie, et le
+// palier découpé par tranches de 30 s pour voir le moment où ça cède.
+test('retrouve les deux joueurs de chaque partie dans la relecture du lobby', () => {
+  const lobby = { samples: [
+    { payload: { active: [{ id: 'partie-a' }] } },
+    { payload: { active: [{ id: 'partie-a' }] } },
+    { payload: { active: [{ id: 'partie-b' }] } },
+    { payload: {} },
+    { payload: { active: [{ id: 'partie-b' }] } },
+  ] }
+  assert.deepEqual([...participantsParPartie(lobby).entries()], [['partie-a', [0, 1]], ['partie-b', [2, 4]]])
+})
+
+test('découpe les appels par tranches de 30 secondes', () => {
+  const debut = 1_000_000
+  const tranches = parTranches([
+    { at: debut + 1_000, ok: true, status: 200, durationMs: 100 },
+    { at: debut + 29_000, ok: true, status: 200, durationMs: 300 },
+    { at: debut + 31_000, ok: false, status: 503, durationMs: 900 },
+  ], debut)
+  assert.equal(tranches.length, 2)
+  assert.deepEqual(tranches.map(tranche => [tranche.depuisSecondes, tranche.requetes, tranche.echecs]), [[0, 2, 0], [30, 1, 1]])
+  assert.equal(tranches[1].statuts['503'], 1)
 })
