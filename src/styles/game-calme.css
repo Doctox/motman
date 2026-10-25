@@ -12,12 +12,20 @@
    (TurnTiming.tsx) se vide avec le tour. La couleur ne change qu'aux 5
    dernières secondes (`URGENCE_MS`), sans palpiter. */
 .scoreboard .turn{border-color:#e6dfcf}
+/* L'ANNEAU NE FAIT PLUS RAMER ANDROID (25/10/2026). Mis à jour toutes les
+   250 ms avec une transition de 0,3 s, il ne s'arrêtait jamais de bouger : le
+   GPU redessinait le coin du tableau des scores, ombres comprises, à chaque
+   image, pendant tout le tour. Mesuré sur le Note 10 : un quart du temps GPU,
+   194 dessins en 3 s. Sur un S24 en 120 Hz, l'écran prenait du retard puis
+   tout arrivait d'un coup (« j'ai validé et il s'est rien passé »). L'iPhone,
+   lui, ne souffrait pas. Désormais : son propre calque, et un pas tous les
+   quarts de seconde sans transition. Il reste 15 à 35 dessins en 3 s. */
 .turn-ring{
   position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);
-  transform:rotate(-90deg);pointer-events:none;overflow:visible;
+  transform:rotate(-90deg);pointer-events:none;overflow:visible;will-change:transform;
 }
 .turn-ring circle{fill:none;stroke-width:3px;vector-effect:non-scaling-stroke;stroke-linecap:round}
-.turn-ring .turn-ring-reste{stroke:#2d8961;transition:stroke-dasharray .3s linear,stroke .4s ease}
+.turn-ring .turn-ring-reste{stroke:#2d8961;transition:stroke .4s ease}
 .turn.urgent .turn-ring .turn-ring-reste{stroke:var(--terra)}
 .turn.urgent .turn-timer{animation:none!important}
 [data-theme="dark"] .scoreboard .turn{border-color:#2f4039}
