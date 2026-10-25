@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { REWARD_STEP_MS } from '../gameRules'
 import type { MatchTurn } from '../matches'
 import {
-  openingScores, planTurnSteps, revealRemainingMs, revelationDepassee,
+  fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee,
   turnStepDelayMs, wordRewardCell,
 } from './turnChoreography'
 
@@ -115,6 +115,17 @@ describe('un résultat arrivé en retard ne rejoue pas une révélation périmé
     // Un coup joué localement n'a pas de fin de révélation : il se déroule en
     // entier, sinon le joueur ne verrait jamais son propre coup.
     expect(revelationDepassee(3, null, -9_999)).toBe(false)
+  })
+
+  // Le S24 du propriétaire (25/10/2026) : « Validation… », puis le tour de
+  // l'adversaire, sans voir ses lettres. L'horloge estimée se croyait en avance.
+  it('un coup que je viens d’envoyer se révèle toujours, au moins à son rythme normal', () => {
+    const fenetre = fenetreDuCoupFrais(5, -3_000)
+    expect(fenetre).toBeGreaterThanOrEqual(5 * REWARD_STEP_MS)
+    expect(revelationDepassee(5, 1_000, fenetre)).toBe(false)
+    expect(turnStepDelayMs(5, fenetre)).toBe(REWARD_STEP_MS)
+    // Quand il reste plus que la durée nominale, on garde ce qui reste.
+    expect(fenetreDuCoupFrais(2, 20_000)).toBe(20_000)
   })
 
   it('n’est jamais périmé quand il n’y a rien à montrer', () => {

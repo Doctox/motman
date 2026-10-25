@@ -104,6 +104,22 @@ export function revealRemainingMs(stepCount: number, revealEndsAt: number | null
 }
 
 /**
+ * LE COUP QUE LE JOUEUR VIENT D'ENVOYER SE RÉVÈLE TOUJOURS (25/10/2026).
+ *
+ * Le propriétaire, sur son S24 : « Validation… », puis plus rien, et c'était
+ * déjà le tour de l'adversaire. Le serveur avait pourtant réservé 12 s à la
+ * révélation de ses cinq lettres ; c'est le téléphone qui, se croyant en avance
+ * sur l'heure du serveur, a jugé le résultat « arrivé trop tard » et l'a sauté.
+ * Un résultat qu'on vient de demander ne peut pas être en retard : si l'horloge
+ * estimée dit le contraire, c'est elle qui se trompe. La fenêtre d'un coup frais
+ * vaut donc au moins sa durée nominale. Le saut reste pour les vrais retards
+ * (appli rouverte après une veille, réseau qui a tout gardé).
+ */
+export function fenetreDuCoupFrais(stepCount: number, remainingMs: number): number {
+  return Math.max(remainingMs, stepCount * REWARD_STEP_MS + RALLONGE_SANS_ECHEANCE_MS)
+}
+
+/**
  * Vrai quand le résultat arrive trop tard pour être joué. L'appelant doit alors
  * sauter directement à l'état final — surtout pas rejouer la séquence.
  *

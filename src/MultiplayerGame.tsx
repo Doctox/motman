@@ -43,7 +43,7 @@ import { useSynchroDePartie } from './game/useSynchroDePartie'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
-import { openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
+import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
 import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
@@ -208,6 +208,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
   const provisionalRef = useRef<Record<number, Tile>>({})
   const resolvingRef = useRef(false)
   const submittedTurns = useRef(new Set<number>())
+  /** Mon dernier envoi : son tour et son instant, pour reconnaître un coup frais. */
+  const derniereValidation = useRef<{ tour: number; a: number } | null>(null)
   const submitTurnRef = useRef<(automatic?: boolean) => void>(() => undefined)
   // Le tour déjà relancé une fois après un conflit (game/brouillonDuTour.ts).
   const relanceApresConflit = useRef<string | null>(null)
@@ -306,7 +308,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     })
   }
 
-  const animateTurn = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null) => {
+  /** `frais` : le coup que je viens d'envoyer, qui se révèle toujours (turnChoreography.ts). */
+  const animateTurn = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null, frais = false) => {
     stopAnimationTimer()
     setWrongCells(new Set())
     setRevealedWrong({})
@@ -346,7 +349,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
         setStatus(`Chevalet complet · +${step.points}`)
       }
     }
-    const revealRemaining = revealRemainingMs(steps.length, revealEndsAt, serverNow())
+    const restant = revealRemainingMs(steps.length, revealEndsAt, serverNow())
+    const revealRemaining = frais ? fenetreDuCoupFrais(steps.length, restant) : restant
     const finishAnimation = () => {
       setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setWordHighlight(null)
       setRevealedWrong({}); provisionalRef.current = {}; setProvisional({})
@@ -432,7 +436,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     if (next.lastTurn && next.lastTurn.id !== seenTurn.current) {
       seenTurn.current = next.lastTurn.id
       annoncerQuetes(next.lastTurn)
-      animateTurn(next.lastTurn, next.lastTurn.playerId === playerId ? 'player' : 'bot', next.scores, next.status === 'active' ? new Date(next.turnStartedAt).getTime() : null)
+      // Mon coup peut revenir par la mise à jour reçue AVANT la réponse de
+      // l'envoi (temps réel) : il est tout aussi frais, s'il date de moins de 15 s.
+      const envoi = derniereValidation.current
+      const frais = next.lastTurn.playerId === playerId && envoi !== null && envoi.tour === next.lastTurn.turnNumber && performance.now() - envoi.a < 15_000
+      animateTurn(next.lastTurn, next.lastTurn.playerId === playerId ? 'player' : 'bot', next.scores, next.status === 'active' ? new Date(next.turnStartedAt).getTime() : null, frais)
     } else if (!resolvingRef.current) {
       setDisplayedScores(current => sameNumberRecord(current, next.scores) ? current : next.scores)
     }
@@ -712,16 +720,22 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onPaceChange, o
     if (!automatic && (!canAct || serverNow() >= new Date(currentMatch.turnEndsAt).getTime())) return
     if (submittedTurns.current.has(currentMatch.turnNumber)) return
     submittedTurns.current.add(currentMatch.turnNumber)
+    derniereValidation.current = { tour: currentMatch.turnNumber, a: performance.now() }
     resolvingRef.current = true; setResolving(true); setError(null); setStatus(automatic ? 'Tour terminé · validation…' : 'Validation…')
+    // L'écran ne reste jamais muet (25/10/2026) : « Validation… » pendant 20 s,
+    // puis le tour suivant, c'est ce que le propriétaire a vécu par réseau lent.
+    const lenteur = window.setTimeout(() => setStatus('Connexion lente · ton coup arrive…'), 3_000)
     try {
       const response = await playMatchTurn(playerId, currentMatch.id, currentMatch.turnNumber, Object.entries(provisionalRef.current).map(([cellIndex, tile]) => ({ cellIndex: Number(cellIndex), letter: tile.letter })), automatic, currentMatch.updatedAt)
+      window.clearTimeout(lenteur)
       applyMatchState(response.match)
       annoncerQuetes(response.result)
       if (seenTurn.current !== response.result.id) {
         seenTurn.current = response.result.id
-        animateTurn(response.result, 'player', response.match.scores, response.match.status === 'active' ? new Date(response.match.turnStartedAt).getTime() : null)
+        animateTurn(response.result, 'player', response.match.scores, response.match.status === 'active' ? new Date(response.match.turnStartedAt).getTime() : null, true)
       }
     } catch (reason) {
+      window.clearTimeout(lenteur)
       // La partie a bougé depuis le dernier sondage. Avant le 16/10/2026, le
       // plateau se vidait et rien ne repartait : à 00:00, le joueur perdait ses
       // lettres. Tant que le tour est encore le sien, il les garde et l'envoi
