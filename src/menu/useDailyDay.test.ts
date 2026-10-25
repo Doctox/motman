@@ -20,7 +20,7 @@ vi.mock('../dailyLeaderboard', () => ({
 }))
 
 import { loadDailyLeaderboard, type DailyLeaderboard } from '../dailyLeaderboard'
-import { useDailyLeaderboard } from './useDailyDay'
+import { oublierDernierClassement, useDailyLeaderboard } from './useDailyDay'
 
 const charge = vi.mocked(loadDailyLeaderboard)
 
@@ -31,6 +31,7 @@ const classementDu = (day: string) =>
 beforeEach(() => {
   horloge.jour = '2026-09-11'
   charge.mockReset()
+  oublierDernierClassement()
   // Seul l'intervalle est simulé : React et ses promesses gardent leur vraie
   // mécanique, sans quoi le test ne dirait plus rien du câblage réel.
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
@@ -62,6 +63,19 @@ describe('le classement du défi et le changement de jour', () => {
     expect(charge).toHaveBeenCalledTimes(2)
     expect(monte.resultat.classement.day).toBe('2026-09-12')
     await monte.demonter()
+  })
+
+  // « Je lag quand j'appuie sur Accueil » (25/10/2026) : l'accueil se démonte à
+  // chaque changement d'onglet, et la carte repartait vide une seconde.
+  it('garde le dernier classement entre deux passages, sans le relire avant 30 s', async () => {
+    charge.mockResolvedValue(classementDu('2026-09-11'))
+    const premier = await monteCrochet(useDailyLeaderboard)
+    await premier.demonter()
+    const second = await monteCrochet(useDailyLeaderboard)
+    expect(charge).toHaveBeenCalledTimes(1)
+    expect(second.resultat.chargement).toBe(false)
+    expect(second.resultat.classement.day).toBe('2026-09-11')
+    await second.demonter()
   })
 
   it('ne recharge pas tant que le jour ne change pas', async () => {

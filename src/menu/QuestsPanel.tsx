@@ -77,6 +77,9 @@ function QuestsPanel({ close }: { close: () => void }) {
 
   const recuperer = async (quest: QuestView, scope: 'day' | 'week') => {
     if (enCours) return
+    // Le doigt sent le geste tout de suite (25/10/2026) : le serveur met plus
+    // d'une seconde à créditer, et « Un instant… » en grisé passait pour un lag.
+    haptic(8)
     setEnCours(quest.id)
     setErreur('')
     try {
@@ -200,8 +203,8 @@ function QuestRow({ quest, reward, eyebrow, decoupee = false, gagnee, enCours, r
       {gagnee.xp > 0 ? <b style={{ animationDelay: '180ms' }}><Sparkles aria-hidden="true" />+{gagnee.xp} XP</b> : null}
       {gagnee.freezes > 0 ? <b style={{ animationDelay: '60ms' }}><Snowflake aria-hidden="true" />+{gagnee.freezes} gel de série</b> : null}
     </p> : quest.claimed ? <p className="mm-quest-prise">Récompense prise</p>
-      : quest.done ? <button type="button" className="mm-quest-claim" disabled={enCours} onClick={recuperer}>
-        {enCours ? 'Un instant…' : 'Récupérer'}
+      : quest.done ? <button type="button" className={`mm-quest-claim${enCours ? ' is-claiming' : ''}`} disabled={enCours} onClick={recuperer}>
+        {enCours ? 'Récupération…' : 'Récupérer'}
       </button>
       : <p className="mm-quest-reward">{reward}</p>}
   </li>

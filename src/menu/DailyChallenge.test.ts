@@ -28,6 +28,7 @@ import { recordDailyResult } from '../dailyChallenge'
 import { dailyDateKey } from '../dailyDate'
 import { saveDailyShare } from '../dailyShare'
 import { DailyChallengeHero, phraseDesJoueursDuJour } from './DailyChallenge'
+import { oublierDernierClassement } from './useDailyDay'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -37,6 +38,7 @@ let hote: HTMLDivElement
 beforeEach(() => {
   localStorage.clear()
   classement.lire.mockReset()
+  oublierDernierClassement()
   partage.envoyer.mockClear()
   hote = document.createElement('div')
   document.body.append(hote)
@@ -107,6 +109,7 @@ describe('la carte avant la partie', () => {
     expect(hote.textContent).toContain('Sois le premier à relever le défi du jour !')
 
     act(() => racine.unmount())
+    oublierDernierClassement()
     racine = createRoot(hote)
     classement.lire.mockResolvedValue({ day: jour, general: [], friends: [], total: 7, me: null })
     await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })
@@ -114,6 +117,7 @@ describe('la carte avant la partie', () => {
     expect(hote.textContent).not.toContain('7 joueurs')
 
     act(() => racine.unmount())
+    oublierDernierClassement()
     racine = createRoot(hote)
     classement.lire.mockResolvedValue({ day: jour, general: [], friends: [], total: 37, me: null })
     await act(async () => { racine.render(createElement(DailyChallengeHero, { onPlay: vi.fn(), onOpenRanking: vi.fn() })) })

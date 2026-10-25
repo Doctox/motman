@@ -49,6 +49,20 @@ export type DailyLeaderboardState = {
   erreur: string | null
 }
 
+// LE DERNIER CLASSEMENT LU, GARDÉ ENTRE DEUX PASSAGES (25/10/2026). L'accueil se
+// démonte à chaque changement d'onglet : il repartait vide, le classement
+// arrivait une seconde plus tard, et la carte du défi sautait (« je lag quand
+// j'appuie sur Accueil », propriétaire). Le dernier classement lu pour CE jour
+// s'affiche tout de suite ; il n'est relu qu'au-delà de 30 s, ou quand on tire
+// pour actualiser.
+export const RELECTURE_CLASSEMENT_MS = 30_000
+let dernierClassement: { jour: string; classement: DailyLeaderboard; luA: number } | null = null
+
+/** Pour les tests : oublier le dernier classement lu. */
+export function oublierDernierClassement(): void {
+  dernierClassement = null
+}
+
 /**
  * Le classement du défi du jour, rechargé au changement de jour.
  *
@@ -62,13 +76,22 @@ export function useDailyLeaderboard(): DailyLeaderboardState {
   // relecture. Un nouveau jour, lui, repart de zéro.
   const actualisation = useActualisation()
   const jourCharge = useRef<string | null>(null)
-  const [etat, setEtat] = useState<DailyLeaderboardState>({ classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
+  const [etat, setEtat] = useState<DailyLeaderboardState>(() => dernierClassement?.jour === jour
+    ? { classement: dernierClassement.classement, chargement: false, erreur: null }
+    : { classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
   useEffect(() => {
     let vivant = true
-    if (jourCharge.current !== jour) setEtat({ classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
+    const enMemoire = dernierClassement?.jour === jour ? dernierClassement : null
+    if (enMemoire) setEtat({ classement: enMemoire.classement, chargement: false, erreur: null })
+    else if (jourCharge.current !== jour) setEtat({ classement: EMPTY_DAILY_LEADERBOARD, chargement: true, erreur: null })
     jourCharge.current = jour
+    // `actualisation` vaut 0 au montage : au-delà, on a tiré pour actualiser.
+    if (enMemoire && actualisation === 0 && Date.now() - enMemoire.luA < RELECTURE_CLASSEMENT_MS) return
     loadDailyLeaderboard()
-      .then(classement => { if (vivant) setEtat({ classement, chargement: false, erreur: null }) })
+      .then(classement => {
+        dernierClassement = { jour, classement, luA: Date.now() }
+        if (vivant) setEtat({ classement, chargement: false, erreur: null })
+      })
       .catch(raison => {
         if (vivant) setEtat({
           classement: EMPTY_DAILY_LEADERBOARD,

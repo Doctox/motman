@@ -90,15 +90,28 @@ export function libelleSignalements(nombre: number): string {
   return nombre > 1 ? 'signalements' : 'signalement'
 }
 
+// LE DERNIER POULS LU, GARDÉ ENTRE DEUX PASSAGES (25/10/2026). Il repartait de
+// rien à chaque retour sur l'accueil : la carte apparaissait une seconde plus
+// tard et poussait toute la page vers le bas (« je lag quand j'appuie sur
+// Accueil »). Le dernier pouls s'affiche tout de suite ; il n'est relu qu'au-delà
+// de 30 s, ou quand on le demande.
+const RELECTURE_POULS_MS = 30_000
+let dernierPouls: { valeur: GamePulse; luA: number } | null = null
+
 export function GamePulse() {
-  const [pouls, setPouls] = useState<GamePulse | null>(null)
+  const [pouls, setPouls] = useState<GamePulse | null>(() => dernierPouls?.valeur ?? null)
   const [erreur, setErreur] = useState(false)
   const [tour, setTour] = useState(0)
 
   useEffect(() => {
+    // `tour` vaut 0 au montage : au-delà, le propriétaire a demandé un rafraîchissement.
+    if (tour === 0 && dernierPouls && Date.now() - dernierPouls.luA < RELECTURE_POULS_MS) return
     let vivant = true
     loadGamePulse()
-      .then(valeur => { if (vivant) { setPouls(valeur); setErreur(false) } })
+      .then(valeur => {
+        dernierPouls = { valeur, luA: Date.now() }
+        if (vivant) { setPouls(valeur); setErreur(false) }
+      })
       .catch(() => { if (vivant) setErreur(true) })
     return () => { vivant = false }
   }, [tour])
