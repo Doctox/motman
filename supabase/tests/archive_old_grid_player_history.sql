@@ -22,6 +22,13 @@ begin
     raise exception 'History retention test requires one active grid';
   end if;
 
+  -- Les vraies parties passent elles aussi le cap des 90 jours : les premières
+  -- datent du 25/07/2026, et le 25/10/2026 la production en avait déjà douze à
+  -- archiver (« Expected two archived rows, got 14 »). Une première passe les
+  -- range, dans cette transaction annulée, pour que le décompte ne porte que sur
+  -- les lignes de ce test.
+  perform private.archive_old_grid_player_history(90, 180, 5000);
+
   insert into public.grid_player_history (
     user_id, play_key, grid_id, mode, pace, outcome, completed,
     score, opponent_score, duration_seconds, feedback, completed_at,
