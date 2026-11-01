@@ -319,10 +319,8 @@ export type GamePulse = {
   signalementsOuverts: number
   /** Depuis combien d'heures attend le plus ancien. */
   signalementPlusAncienHeures: number
-  /** Son fantôme en classée est-il allumé ? (11/10/2026) */
+  /** Les joueurs de l'ombre viennent-ils en classée ? (11/10/2026, l'interrupteur s'appelle encore `fantome`) */
   fantome?: boolean
-  /** La note du fantôme, distincte de la sienne (13/10/2026) ; `null` avant sa première partie. */
-  fantomeNote?: { points: number; matches: number; wins: number; losses: number; draws: number } | null
   /** Les joueurs de l'ombre (13/10/2026), par ordre d'arrivée. */
   ombres?: Array<{ nom: string; arrivee: string; points: number; parties: number }>
   /** D'où viennent les nouveaux joueurs (17/10/2026) : par canal, 7 et 30 derniers jours. */

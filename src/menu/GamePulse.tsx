@@ -41,13 +41,6 @@ export function libelleEnLigne(enLigne: number): string {
   return enLigne > 1 ? 'joueurs en ligne' : 'joueur en ligne'
 }
 
-/** « Sa note : 982 · 9 parties, 3 gagnées, 6 perdues » — l'équilibre du fantôme (13/10/2026). */
-export function noteDuFantome(note: NonNullable<GamePulse['fantomeNote']>): string {
-  const parties = `${note.matches} partie${note.matches > 1 ? 's' : ''}`
-  const egalites = note.draws ? `, ${note.draws} nulle${note.draws > 1 ? 's' : ''}` : ''
-  return `Sa note : ${note.points} · ${parties}, ${note.wins} gagnée${note.wins > 1 ? 's' : ''}, ${note.losses} perdue${note.losses > 1 ? 's' : ''}${egalites}`
-}
-
 /** « 1 012 · 7 parties », ou « arrive le 16/10 » tant qu'il n'est pas là (13/10/2026). */
 export function ligneDOmbre(ombre: { arrivee: string; points: number; parties: number }, maintenant = Date.now()): string {
   if (Date.parse(ombre.arrivee) > maintenant) {
@@ -172,11 +165,12 @@ function Ligne({ nom, valeur }: { nom: string; valeur: number }) {
 }
 
 /**
- * L'interrupteur du fantôme (11/10/2026) : allumé, il prend la place du
- * propriétaire en classée quand un joueur attend depuis une minute et que
- * personne d'autre n'est en ligne. Le serveur revérifie le rôle à chaque appui.
+ * L'interrupteur des joueurs de l'ombre (né le 11/10/2026 pour le fantôme, sorti
+ * du jeu le 01/11/2026) : allumés, ils viennent en classée quand un joueur attend
+ * depuis une minute et que personne d'autre n'est en ligne. Le serveur revérifie
+ * le rôle à chaque appui.
  */
-export function InterrupteurFantome({ allumeAuDepart, basculer = setGhostSwitch }: {
+export function InterrupteurOmbres({ allumeAuDepart, basculer = setGhostSwitch }: {
   allumeAuDepart: boolean
   basculer?: (allume: boolean) => Promise<boolean>
 }) {
@@ -197,11 +191,11 @@ export function InterrupteurFantome({ allumeAuDepart, basculer = setGhostSwitch 
         <span>
           <Ghost aria-hidden="true" />
           <span>
-            Fantôme en classée
-            <small>{allume ? 'Joue à ta place quand personne n’est en ligne' : 'Éteint : les joueurs attendent un vrai adversaire'}</small>
+            Ombres en classée
+            <small>{allume ? 'Viennent jouer quand personne n’est en ligne' : 'Éteintes : les joueurs attendent un vrai adversaire'}</small>
           </span>
         </span>
-        <input type="checkbox" role="switch" aria-label="Fantôme en classée" checked={allume} disabled={occupe} onChange={event => changer(event.currentTarget.checked)} />
+        <input type="checkbox" role="switch" aria-label="Ombres en classée" checked={allume} disabled={occupe} onChange={event => changer(event.currentTarget.checked)} />
         <i aria-hidden="true" />
       </label>
       {rate ? <p className="mm-pulse-note" role="alert">Réglage non enregistré, réessaie.</p> : null}
@@ -282,14 +276,11 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEn
           ? <dl>{pouls.sources.map(source => <div key={source.canal}><dt>{nomDuCanal(source.canal)}</dt><dd className="mm-pulse-ombre">{ligneDeSource(source)}</dd></div>)}</dl>
           : <p className="mm-pulse-note">Aucune arrivée comptée pour l’instant : le décompte a commencé le 17/10.</p>}
 
-        <h3>Ton fantôme</h3>
-        <InterrupteurFantome allumeAuDepart={pouls.fantome !== false} />
-        {pouls.fantomeNote ? <p className="mm-pulse-note">{noteDuFantome(pouls.fantomeNote)}</p> : null}
-
-        {pouls.ombres?.length ? <>
-          <h3>Joueurs de l’ombre</h3>
-          <dl>{pouls.ombres.map(ombre => <div key={ombre.nom}><dt>{ombre.nom}</dt><dd className="mm-pulse-ombre">{ligneDOmbre(ombre)}</dd></div>)}</dl>
-        </> : null}
+        <h3>Joueurs de l’ombre</h3>
+        <InterrupteurOmbres allumeAuDepart={pouls.fantome !== false} />
+        {pouls.ombres?.length
+          ? <dl>{pouls.ombres.map(ombre => <div key={ombre.nom}><dt>{ombre.nom}</dt><dd className="mm-pulse-ombre">{ligneDOmbre(ombre)}</dd></div>)}</dl>
+          : null}
 
         <button type="button" className="mm-pulse-fermer" data-dialog-autofocus onClick={fermer}>Fermer</button>
       </div>

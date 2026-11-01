@@ -393,10 +393,8 @@ Deno.serve(async request => {
       // il y serait toujours compté (propriétaire, 20/09/2026).
       const { data: pouls, error: poulsError } = await admin.rpc('server_game_pulse', { p_moi: user.id })
       if (poulsError) throw poulsError
-      // L'état de son fantôme en classée, pour l'interrupteur du même cadre.
-      // Et sa note à lui (13/10/2026), pour juger de l'équilibre d'un coup d'œil.
-      const { data: noteFantome } = await admin.from('ghost_ratings').select('points,matches,wins,losses,draws').eq('owner_id', user.id).maybeSingle()
-      // Les joueurs de l'ombre (13/10/2026) : arrivée, note, parties.
+      // Les joueurs de l'ombre (13/10/2026) : arrivée, note, parties. Et, plus bas,
+      // l'état de leur interrupteur, pour le même cadre.
       const { data: ombres } = await admin.from('shadow_players').select('user_id,arrives_at').order('arrives_at')
       const idsOmbres = (ombres ?? []).map(ligne => String(ligne.user_id))
       const [{ data: nomsOmbres }, { data: notesOmbres }] = idsOmbres.length
@@ -418,7 +416,7 @@ Deno.serve(async request => {
       const { data: lignesSources } = await admin.from('player_source_daily')
         .select('jour,canal,joueurs').gte('jour', jourAvant(aujourdhui, 29))
       const sources = bilanDesSources((lignesSources ?? []).map(ligne => ({ jour: String(ligne.jour), canal: String(ligne.canal), joueurs: Number(ligne.joueurs) })), aujourdhui)
-      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), fantomeNote: noteFantome ?? null, ombres: listeOmbres, sources } })
+      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), ombres: listeOmbres, sources } })
     }
 
     // QUI EST EN LIGNE ET CE QU'IL FAIT (11/10/2026), derrière « En ligne » dans

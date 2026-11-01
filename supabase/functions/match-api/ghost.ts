@@ -14,6 +14,11 @@
 // du joueur le montrent comme le vrai compte. Mais le propriétaire n'est pas
 // inscrit dans la partie : il ne la voit pas, n'y joue pas, n'en reçoit rien,
 // et son classement ne bouge pas.
+//
+// 01/11/2026, demande du propriétaire : « enlève DocTox des bots ». Son fantôme
+// n'est plus proposé (`adversairesAutomatiques`) ; seuls les joueurs de l'ombre
+// viennent encore, par le même chemin. Le reste du code sert à eux, et aux
+// parties de DocTox déjà dans les historiques.
 
 import { parisHour } from '../_shared/parisTime.ts'
 import { loadPublicProfiles } from '../_shared/publicProfiles.ts'
@@ -29,9 +34,9 @@ import { atomicResult, prepareAtomicMatch, type AtomicMatchResult } from './matc
 export type Proprietaire = { id: string; displayName: string; avatarId: string; frameId: string; level: number }
 
 /**
- * Un adversaire automatique de classée : le fantôme du propriétaire, ou l'un
- * des joueurs de l'ombre (13/10/2026) — des comptes `shadow` qui n'existent que
- * pour ça, chacun avec sa force et SA note classée.
+ * Un adversaire automatique de classée : l'un des joueurs de l'ombre
+ * (13/10/2026) — des comptes `shadow` qui n'existent que pour ça, chacun avec
+ * sa force et SA note classée.
  */
 export type AdversaireAutomatique = Proprietaire & {
   points: number
@@ -52,22 +57,6 @@ export async function allumerFantome(admin: AdminClient, allume: boolean): Promi
     .upsert({ name: 'fantome', enabled: allume, updated_at: new Date().toISOString() }, { onConflict: 'name' })
   if (error) throw error
   return allume
-}
-
-/** Le compte admin actif dont le fantôme prend l'apparence (le plus ancien, s'il y en avait plusieurs). */
-export async function proprietaireDuFantome(admin: AdminClient): Promise<Proprietaire | null> {
-  const { data: compte } = await admin.from('profiles')
-    .select('id').eq('role', 'admin').eq('status', 'active')
-    .order('created_at', { ascending: true }).limit(1).maybeSingle()
-  if (!compte?.id) return null
-  const id = String(compte.id)
-  const [profils, { data: progression }] = await Promise.all([
-    loadPublicProfiles(admin, [id]),
-    admin.from('player_progress').select('level').eq('user_id', id).maybeSingle(),
-  ])
-  const profil = profils.get(id)
-  if (!profil) return null
-  return { id, displayName: profil.displayName, avatarId: profil.avatarId, frameId: profil.frameId, level: Number(progression?.level) || 1 }
 }
 
 /** La note classée telle que la base la lit (`private.ranked_effective_points`). */
@@ -95,22 +84,17 @@ export function botFantome(adversaire: Proprietaire & { ombre?: boolean; tuning?
   }
 }
 
-/** Le fantôme du propriétaire et les joueurs de l'ombre déjà arrivés, avec leur note. */
+/** Les joueurs de l'ombre déjà arrivés, avec leur note. DocTox n'en est plus (01/11/2026). */
 export async function adversairesAutomatiques(admin: AdminClient, maintenant = Date.now()): Promise<AdversaireAutomatique[]> {
-  const [proprio, { data: ombres }] = await Promise.all([
-    proprietaireDuFantome(admin),
-    // `*` plutôt qu'une liste : la colonne `heures` (migration 20261013200000)
-    // peut arriver après cette fonction sans la casser.
-    admin.from('shadow_players').select('*').lte('arrives_at', new Date(maintenant).toISOString()),
-  ])
-  const idsOmbres = (ombres ?? []).map(ligne => String(ligne.user_id))
-  const ids = [...(proprio ? [proprio.id] : []), ...idsOmbres]
+  // `*` plutôt qu'une liste : la colonne `heures` (migration 20261013200000)
+  // peut arriver après cette fonction sans la casser.
+  const { data: ombres } = await admin.from('shadow_players').select('*').lte('arrives_at', new Date(maintenant).toISOString())
+  const ids = (ombres ?? []).map(ligne => String(ligne.user_id))
   if (!ids.length) return []
-  const [profils, { data: progressions }, { data: actifs }, { data: noteFantome }] = await Promise.all([
+  const [profils, { data: progressions }, { data: actifs }] = await Promise.all([
     loadPublicProfiles(admin, ids),
     admin.from('player_progress').select('user_id,level,ranked_points,ranked_matches').in('user_id', ids),
     admin.from('profiles').select('id').in('id', ids).eq('status', 'active'),
-    proprio ? admin.from('ghost_ratings').select('points').eq('owner_id', proprio.id).maybeSingle() : Promise.resolve({ data: null }),
   ])
   const progression = new Map((progressions ?? []).map(ligne => [String(ligne.user_id), ligne]))
   const actif = new Set((actifs ?? []).map(ligne => String(ligne.id)))
@@ -121,17 +105,13 @@ export async function adversairesAutomatiques(admin: AdminClient, maintenant = D
     const profil = profils.get(id)
     const avancee = progression.get(id)
     if (!profil || !actif.has(id)) continue
-    const ombre = id !== proprio?.id
-    const noteDuFantome = (noteFantome as { points?: number } | null)?.points
-    const points = !ombre && typeof noteDuFantome === 'number'
-      // Le fantôme du propriétaire a sa propre note (13/10/2026) ; avant sa première partie, celle du propriétaire.
-      ? noteDuFantome
-      : pointsEffectifs(Number(avancee?.ranked_points ?? 0), Number(avancee?.ranked_matches ?? 0))
     liste.push({
       id, displayName: profil.displayName, avatarId: profil.avatarId, frameId: profil.frameId,
-      level: Number(avancee?.level) || 1, points, ombre,
-      tuning: ombre ? reglages.get(id) ?? FANTOME_REGLAGES : FANTOME_REGLAGES,
-      heures: ombre ? heures.get(id) ?? null : null,
+      level: Number(avancee?.level) || 1,
+      points: pointsEffectifs(Number(avancee?.ranked_points ?? 0), Number(avancee?.ranked_matches ?? 0)),
+      ombre: true,
+      tuning: reglages.get(id) ?? FANTOME_REGLAGES,
+      heures: heures.get(id) ?? null,
     })
   }
   return liste

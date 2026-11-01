@@ -3,7 +3,7 @@ import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { FANTOME_REFLEXION_MAX_MS, FANTOME_REFLEXION_MIN_MS, FANTOME_REGLAGES } from '../../../src/ghostOpponent.ts'
 import { botTurnDelayMs } from './botDelay.ts'
 import { parisHour } from '../_shared/parisTime.ts'
-import { botFantome, choisirAdversaire, type AdversaireAutomatique } from './ghost.ts'
+import { adversairesAutomatiques, botFantome, choisirAdversaire, type AdversaireAutomatique } from './ghost.ts'
 import { nowIso, type Bot, type MatchRow } from './matchModel.ts'
 import { heureDeRappel, view } from './matchView.ts'
 
@@ -19,18 +19,27 @@ import { heureDeRappel, view } from './matchView.ts'
 const JOUEUR = 'aaaaaaaa-0000-4000-8000-000000000001'
 const PROPRIO = 'bbbbbbbb-0000-4000-8000-000000000002'
 
-/** Une base réduite à ce que `view` lit : profils, niveaux, et rien d'autre. */
-function base(): AdminClient {
+const OMBRE = 'cccccccc-0000-4000-8000-000000000003'
+
+/** Une base réduite à ce que `view` lit : profils, niveaux, et les ombres qu'on lui donne. */
+function base(ombres: unknown[] = []): AdminClient {
   const profils = [
     { id: JOUEUR, display_name: 'Joueur', friend_code: 'AAAAAAAA', last_seen: nowIso(), activity: 'playing', avatar_id: 'amina', frame_id: 'cadre-ivoire', animation_id: 'none' },
     // Le propriétaire est HORS LIGNE : c'est justement quand son fantôme joue.
     { id: PROPRIO, display_name: 'DocTox', friend_code: 'BBBBBBBB', last_seen: '2026-10-01T10:00:00.000Z', activity: 'online', avatar_id: 'chat', frame_id: 'cadre-fleurs', animation_id: 'petales' },
+    { id: OMBRE, display_name: 'Ombre', friend_code: 'CCCCCCCC', last_seen: '2026-10-01T10:00:00.000Z', activity: 'online', avatar_id: 'lapin', frame_id: 'cadre-ivoire', animation_id: 'none' },
   ]
   const chaine = (lignes: unknown[]) => {
     const requete: Record<string, unknown> = {}
-    for (const methode of ['select', 'eq', 'order', 'limit']) requete[methode] = () => requete
+    // Qui cherche le compte admin le trouve : c'est ainsi que DocTox entrait dans la liste.
+    let compteAdmin: { id: string } | null = null
+    requete.eq = (colonne: string, valeur: unknown) => {
+      if (colonne === 'role' && valeur === 'admin') compteAdmin = { id: PROPRIO }
+      return requete
+    }
+    for (const methode of ['select', 'lte', 'order', 'limit']) requete[methode] = () => requete
     requete.in = (_colonne: string, ids: string[]) => chaine((lignes as Array<{ id?: string; user_id?: string }>).filter(ligne => ids.includes(ligne.id ?? ligne.user_id ?? '')))
-    requete.maybeSingle = () => Promise.resolve({ data: null, error: null })
+    requete.maybeSingle = () => Promise.resolve({ data: compteAdmin, error: null })
     requete.single = () => Promise.resolve({ data: null, error: null })
     requete.then = (suite: (valeur: unknown) => unknown) => suite({ data: lignes, error: null })
     return requete
@@ -38,7 +47,8 @@ function base(): AdminClient {
   return {
     from: (table: string) => {
       if (table === 'profiles') return chaine(profils)
-      if (table === 'player_progress') return chaine([{ user_id: JOUEUR, level: 7 }, { user_id: PROPRIO, level: 20 }])
+      if (table === 'player_progress') return chaine([{ user_id: JOUEUR, level: 7 }, { user_id: PROPRIO, level: 20 }, { user_id: OMBRE, level: 12, ranked_points: 1040, ranked_matches: 8 }])
+      if (table === 'shadow_players') return chaine(ombres)
       return chaine([])
     },
   } as unknown as AdminClient
@@ -123,8 +133,16 @@ Deno.test('le fantôme réfléchit comme un humain, pas comme un bot', () => {
   }
 })
 
+// « Enlève DocTox des bots » (propriétaire, 01/11/2026). Le compte admin existe
+// toujours en base : il ne doit plus jamais revenir dans la liste, même seul.
+Deno.test('DocTox n’est plus un adversaire automatique, les ombres le restent', async () => {
+  const liste = await adversairesAutomatiques(base([{ user_id: OMBRE, tuning: FANTOME_REGLAGES, heures: [19, 20] }]))
+  assertEquals(liste.map(candidat => [candidat.id, candidat.ombre, candidat.points, candidat.level, candidat.heures]), [[OMBRE, true, 1040, 12, [19, 20]]])
+  assertEquals(await adversairesAutomatiques(base()), [])
+})
+
 // ── Les joueurs de l'ombre (13/10/2026) ──────────────────────────────────────
-const adversaire = (id: string, points: number, ombre = true): AdversaireAutomatique => ({
+const adversaire =(id: string, points: number, ombre = true): AdversaireAutomatique => ({
   id, displayName: id, avatarId: 'lapin', frameId: 'cadre-ivoire', level: 10, points, ombre, tuning: FANTOME_REGLAGES,
 })
 // Des identifiants neutres : le dépôt est public, un pseudo d'ombre ne s'y lit pas.
