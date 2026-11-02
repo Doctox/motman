@@ -337,3 +337,9 @@ html[data-motion="off"] .mm-search-respire i{animation:none;opacity:.6}
 .mm-home-account{padding:14px 13px}
 /* Jouer › Classé : l'écusson couvre les deux rangées, « 1198 pt » ne pend plus seul. */
 @media(max-width:430px){.mm-ranked-status img{grid-row:span 2}}
+
+/* Trois rythmes pour une invitation entre amis, jusqu'à 320 px. */
+.mm-pace-choice.is-trois{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mm-play-card .mm-pace-choice.is-trois>button{padding-inline:4px}
+.mm-play-card .mm-pace-choice.is-trois strong{font-size:0.8125rem;line-height:1.15}
+.mm-play-card .mm-pace-choice.is-trois small{font-size:0.65625rem}

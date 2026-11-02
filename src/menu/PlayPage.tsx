@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, History, Trophy, UserPlus, Users } from 'lucide-react'
+import { BarChart3, ChevronRight, History, Link2, Trophy, UserPlus, Users } from 'lucide-react'
 import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
-import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState } from '../matches'
+import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState, RythmeChoisi } from '../matches'
+import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
 import { ChronoRecherche } from './ChronoRecherche'
 import { MatchReplay } from './MatchReplay'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
@@ -93,14 +94,17 @@ function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
 }
 
 /** Les deux rythmes, côte à côte. Le même bloc sert à Normal et à Amis. */
-function PaceChoice({ pace, setPace, label }: { pace: MatchPace; setPace: (pace: MatchPace) => void; label: string }) {
-  return <div className="mm-pace-choice" role="group" aria-label={label}>
+function PaceChoice({ pace, setPace, label, avecChaine = false }: { pace: RythmeChoisi; setPace: (rythme: RythmeChoisi) => void; label: string; avecChaine?: boolean }) {
+  return <div className={`mm-pace-choice ${avecChaine ? 'is-trois' : ''}`} role="group" aria-label={label}>
     <button type="button" className={pace === 'realtime' ? 'active' : ''} aria-pressed={pace === 'realtime'} aria-label="Temps limité, 45 secondes par tour" onClick={() => setPace('realtime')}>
       <strong>Temps limité</strong><small>45 s par tour</small>
     </button>
     <button type="button" className={pace === 'async' ? 'active' : ''} aria-pressed={pace === 'async'} aria-label="Temps illimité, 24 heures par tour" onClick={() => setPace('async')}>
       <strong>Temps illimité</strong><small>24 h par tour</small>
     </button>
+    {avecChaine ? <button type="button" className={pace === 'chaine' ? 'active' : ''} aria-pressed={pace === 'chaine'} aria-label={`En chaîne, ${SECONDES_DU_TOUR_DE_CHAINE} secondes par tour`} onClick={() => setPace('chaine')}>
+      <strong>En chaîne</strong><small>{SECONDES_DU_TOUR_DE_CHAINE} s par tour</small>
+    </button> : null}
   </div>
 }
 
@@ -124,9 +128,9 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   identity: GuestIdentity
   social: SocialState
   lobby: MatchLobbyState
-  invite: (friendId: string, pace: MatchPace) => Promise<void>
+  invite: (friendId: string, rythme: RythmeChoisi) => Promise<void>
   cancelInvite: (invitationId: string) => Promise<void>
-  searchMatch: (pace: MatchPace) => Promise<void>
+  searchMatch: (rythme: RythmeChoisi) => Promise<void>
   cancelSearch: (pace: MatchPace) => Promise<void>
   /** Aucune partie finie : la carte Normal lui parle de durée, pas de classement (N1). */
   nouveau?: boolean
@@ -146,7 +150,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
 }) {
   const [onglet, setOnglet] = useState<PlayTabId>(() => initialTab ?? lireDernierMode())
   const [normalPace, setNormalPace] = useState<MatchPace>('realtime')
-  const [friendPace, setFriendPace] = useState<MatchPace>('realtime')
+  const [friendPace, setFriendPace] = useState<RythmeChoisi>('realtime')
   const [matchBusy, setMatchBusy] = useState<string | null>(null)
   const [searchBusy, setSearchBusy] = useState<MatchPace | null>(null)
 
@@ -180,10 +184,10 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
 
   const choisirOnglet = (id: PlayTabId) => setOnglet(id)
 
-  const lancerRechercheNormale = async () => {
+  const lancerRechercheNormale = async (rythme: RythmeChoisi = normalPace) => {
     retenirMode('normal')
-    setSearchBusy(normalPace)
-    try { await searchMatch(normalPace) } finally { setSearchBusy(null) }
+    setSearchBusy(rythme === 'async' ? 'async' : 'realtime')
+    try { await searchMatch(rythme) } finally { setSearchBusy(null) }
   }
 
   const arreterRecherche = async (pace: MatchPace) => {
@@ -213,7 +217,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       <Avatar label={playerInitials(matchOpponent(reprise, identity.playerId))} small />
       <span className="mm-play-resume-copy">
         <strong>{matchOpponent(reprise, identity.playerId)} · {reprise.currentPlayerId === identity.playerId ? 'à toi' : 'en attente'}</strong>
-        <small>{reprise.pace === 'async' ? `Illimité · ${asyncTimeLeft(reprise)}` : 'Temps limité'}</small>
+        <small>{reprise.pace === 'async' ? `Illimité · ${asyncTimeLeft(reprise)}` : reprise.chaine ? 'En chaîne' : 'Temps limité'}</small>
       </span>
       <span className="mm-play-resume-go">Reprendre</span>
     </button> : null}
@@ -222,20 +226,33 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
           titre="On te trouve un adversaire…"
-          detail={asyncSearching ? 'Tu peux revenir plus tard' : 'Prends le temps de t’installer'}
+          detail={asyncSearching ? 'Tu peux revenir plus tard' : realtimeSearch?.variante === 'chaine' ? 'En chaîne · prends le temps de t’installer' : 'Prends le temps de t’installer'}
           disabled={searchBusy !== null}
           annuler={() => void arreterRecherche(asyncSearching ? 'async' : 'realtime')}
         />
-        : <section className="mm-play-card">
-          <header>
-            <span className="mm-play-card-icon" aria-hidden="true"><Trophy /></span>
-            <span><h2>Normal</h2><small>{nouveau ? 'Un adversaire en quelques secondes · une dizaine de minutes' : 'Adversaire au hasard · sans classement'}</small></span>
-          </header>
-          <PaceChoice pace={normalPace} setPace={setNormalPace} label="Choisir le rythme de la partie" />
-          <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale()}>
-            Jouer <ChevronRight />
-          </button>
-        </section>) : null}
+        : <>
+          <section className="mm-play-card">
+            <header>
+              <span className="mm-play-card-icon" aria-hidden="true"><Trophy /></span>
+              <span><h2>Normal</h2><small>{nouveau ? 'Un adversaire en quelques secondes · une dizaine de minutes' : 'Adversaire au hasard · sans classement'}</small></span>
+            </header>
+            <PaceChoice pace={normalPace} setPace={rythme => { if (rythme !== 'chaine') setNormalPace(rythme) }} label="Choisir le rythme de la partie" />
+            <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale()}>
+              Jouer <ChevronRight />
+            </button>
+          </section>
+          {/* LE DUEL EN CHAÎNE (02/11/2026, demande du propriétaire) : sa propre carte,
+              pas un troisième rythme. Le mode reste une propriété de la partie. */}
+          <section className="mm-play-card">
+            <header>
+              <span className="mm-play-card-icon" aria-hidden="true"><Link2 /></span>
+              <span><h2>En chaîne</h2><small>{SECONDES_DU_TOUR_DE_CHAINE} s pour poser le plus de lettres · une erreur et ça passe</small></span>
+            </header>
+            <button type="button" className="mm-play-cta" aria-label="Jouer une partie en chaîne" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale('chaine')}>
+              Jouer <ChevronRight />
+            </button>
+          </section>
+        </>) : null}
 
       {onglet === 'ranked' ? <section className="mm-play-card is-gold">
         <header>
@@ -279,7 +296,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
             <span className="mm-play-card-icon" aria-hidden="true"><Users /></span>
             <span><h2>Amis</h2><small>{amisEnLigne ? `${amisEnLigne} ami${amisEnLigne > 1 ? 's' : ''} en ligne` : 'Invite un proche à une partie'}</small></span>
           </header>
-          <PaceChoice pace={friendPace} setPace={setFriendPace} label="Choisir le rythme de la partie entre amis" />
+          <PaceChoice pace={friendPace} setPace={setFriendPace} label="Choisir le rythme de la partie entre amis" avecChaine />
         </section>
 
         <div className="mm-play-friends">
@@ -293,21 +310,21 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
           <Avatar label={playerInitials(invitation.guest?.displayName ?? 'A')} small />
           <span className="mm-friend-line-copy">
             <strong>{invitation.guest?.displayName ?? 'Ton ami'}</strong>
-            <small>{invitation.pace === 'async' ? 'Temps illimité' : 'Temps limité'} · invitation envoyée…</small>
+            <small>{libelleDuRythme(rythmeDeLInvitation(invitation))} · invitation envoyée…</small>
           </span>
           <button type="button" disabled={matchBusy !== null} onClick={async () => { setMatchBusy(invitation.id); await cancelInvite(invitation.id); setMatchBusy(null) }}>Annuler</button>
         </div>)}
 
         {social.friends.map(friend => {
           const invitation = lobby.outgoing.find(candidate => candidate.guestId === friend.playerId)
-          const injoignable = friendPace === 'realtime' && (!friend.online || friend.activity === 'playing')
+          const injoignable = friendPace !== 'async' && (!friend.online || friend.activity === 'playing')
           return <div className={`mm-friend-line ${friend.online ? '' : 'is-offline'} ${invitation ? 'is-waiting' : ''}`} key={friend.playerId}>
             <span className="mm-home-friend-avatar"><SocialPortrait user={friend} small /><i className={friend.activity} /></span>
             <span className="mm-friend-line-copy">
               <strong>{friend.displayName}</strong>
               <small>{invitation
                 // L'essentiel d'abord : la ligne est étroite et se coupe à droite.
-                ? `Invitation envoyée · ${invitation.pace === 'async' ? 'temps illimité' : 'temps limité'}`
+                ? `Invitation envoyée · ${libelleDuRythme(rythmeDeLInvitation(invitation)).toLowerCase()}`
                 : injoignable ? `${presenceLabel(friend.activity)} · invitation en illimité` : presenceLabel(friend.activity)}</small>
             </span>
             {invitation
@@ -322,7 +339,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
                 disabled={injoignable || matchBusy !== null}
                 aria-label={`Inviter ${friend.displayName}`}
                 onClick={async () => { retenirMode('friends'); setMatchBusy(friend.playerId); await invite(friend.playerId, friendPace); setMatchBusy(null) }}
-              >{friendPace === 'realtime' && friend.activity === 'playing' ? 'En jeu' : 'Inviter'}</button>}
+              >{friendPace !== 'async' && friend.activity === 'playing' ? 'En jeu' : 'Inviter'}</button>}
           </div>
         })}
 
