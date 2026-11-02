@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, History, Link2, Trophy, UserPlus, Users } from 'lucide-react'
+import { BarChart3, ChevronRight, History, Trophy, UserPlus, Users } from 'lucide-react'
 import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
-import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState, RythmeChoisi } from '../matches'
-import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
+import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState } from '../matches'
 import { ChronoRecherche } from './ChronoRecherche'
 import { MatchReplay } from './MatchReplay'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
@@ -15,6 +14,9 @@ import { asyncTimeLeft, matchOpponent } from './HomePage'
 import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { useHauteurAnimee } from './hauteurAnimee'
 import { DefinitionEnAttente } from './DefinitionEnAttente'
+import { Link2 } from 'lucide-react'
+import type { RythmeChoisi } from '../matches'
+import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // L'ÉCRAN JOUER — trois onglets, une carte, l'historique toujours là.
