@@ -105,13 +105,27 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 }
 [data-theme="dark"] .scoreboard .player .player-title:before,
 [data-theme="dark"] .scoreboard .player .player-title:after{background:linear-gradient(180deg,#8a6b2c,#5e4719)}
+/* 11 caractères à 12 px : de 61 à 72 px selon les lettres. La colonne du pseudo
+   ne les offre qu'à partir de 400 px (game-actions.css) ; avant, ces deux
+   longueurs gardent la taille du dessous, et les pseudos plus courts leur 14 ou 16 px. */
+@media(max-width:399px){
+  .scoreboard .player small[data-longueur="long"]{font-size:0.6875rem}
+  .scoreboard .player small[data-longueur="tres-long"]{font-size:0.625rem}
+}
 @media(max-width:370px){
   .scoreboard .player small{font-size:0.875rem}
   .scoreboard .player small[data-longueur="moyen"]{font-size:0.75rem}
-  .scoreboard .player small[data-longueur="long"]{font-size:0.6875rem}
-  .scoreboard .player small[data-longueur="tres-long"]{font-size:0.625rem}
   .scoreboard .player .player-title{max-width:calc(100% - 14px)}
   .scoreboard .player .player-title>span{padding-inline:6px;font-size:0.53125rem}
+}
+/* La taille suit le NOMBRE de lettres, pas leur largeur : « JEAN-MICHEL » prend
+   un tiers de place de plus que « Joueur Test », et 16 caractères ne tiennent
+   sur une ligne que sur les plus larges téléphones. Ce qui déborde passe sur deux
+   lignes plutôt que de perdre sa fin ; 1,1 d'interligne au moins, à 1 le bas des
+   lettres de la seconde ligne se fait rogner (« Pyg »). */
+.scoreboard .player small{
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  white-space:normal;overflow-wrap:anywhere;
 }
 [data-theme="dark"] .scoreboard .player strong{color:#ff8f6b}
 [data-theme="dark"] .scoreboard .player:last-child strong{color:#9bddbc}

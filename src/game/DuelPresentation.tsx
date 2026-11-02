@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { BellRing, Check, Gamepad2, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { isFirstBasketFree, loadPlayerCosmetics } from '../cosmetics'
@@ -62,11 +62,32 @@ export function longueurDuPseudo(nom: string): 'court' | 'moyen' | 'long' | 'tre
   return lettres <= 6 ? 'court' : lettres <= 8 ? 'moyen' : lettres <= 11 ? 'long' : 'tres-long'
 }
 
+/**
+ * Le pseudo qui ne tient pas sur une ligne passe sur deux (game-scoreboard.css).
+ * Cela dépend de ses lettres et de la largeur de la carte : seule la mesure le
+ * dit. La carte basse de l'appli réduit alors le score (game-actions.css).
+ */
+function usePseudoSurDeuxLignes(nom: string) {
+  const pseudo = useRef<HTMLElement>(null)
+  const [deuxLignes, setDeuxLignes] = useState(false)
+  useLayoutEffect(() => {
+    const element = pseudo.current
+    if (!element || typeof ResizeObserver === 'undefined') return
+    const mesurer = () => setDeuxLignes(element.offsetHeight > Number.parseFloat(getComputedStyle(element).fontSize) * 1.5)
+    mesurer()
+    const observateur = new ResizeObserver(mesurer)
+    observateur.observe(element)
+    return () => observateur.disconnect()
+  }, [nom])
+  return { pseudo, deuxLignes }
+}
+
 export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null }) {
   // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
   // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
   const affiche = useCountUp(score)
-  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small data-longueur={longueurDuPseudo(name)}>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
+  const { pseudo, deuxLignes } = usePseudoSurDeuxLignes(name)
+  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
 }
 
 /**

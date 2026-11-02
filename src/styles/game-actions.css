@@ -187,6 +187,10 @@ html[data-motion="off"] .hint-button,html[data-motion="off"] .validate,html[data
   .native-runtime .multiplayer-shell:not(.is-finished)>.scoreboard{margin-bottom:12px}
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .game-portrait,
   .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player .avatar{width:48px;height:48px;flex-basis:48px}
+  /* Carte de 62 px : deux lignes de pseudo, le niveau et le score sortaient de la
+     carte et passaient sous la banderole. Les deux scores restent de même taille. */
+  .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard:has(.pseudo-deux-lignes) .player strong{margin-top:0;font-size:1.25rem}
+  .native-runtime .multiplayer-shell:not(.is-finished) .scoreboard .player.pseudo-deux-lignes em{margin-top:0}
 }
 
 /* ── LA GRILLE PREND LA PLACE LIBRE (14/09/2026) ─────────────────────────────
@@ -330,3 +334,14 @@ html[data-motion="off"] .ranked-seeker-dialog{animation:none}
 .multiplayer-shell .scoreboard .player:first-child .game-portrait.has-frame-art{margin-left:3px;margin-right:4px}
 .multiplayer-shell .scoreboard .player:last-child .game-portrait.has-frame-art{margin-right:3px;margin-left:4px}
 @media(max-width:370px){.multiplayer-shell .scoreboard .player{padding-inline:6px}}
+
+/* Le pseudo avait MOINS de place à 390 px qu'à 360 (02/11/2026, « Joueur T… ») :
+   passé 370 px, la gouttière, le minuteur et les écarts reprenaient d'un coup
+   16,5 px à sa colonne (67 à 370 px, 50,5 à 371), regagnés seulement vers 405 px,
+   tandis que sa police prenait 1 px. Le minuteur garde sa taille et la grille
+   ne bouge pas : c'est le vide autour du minuteur qui passe au pseudo, y compris
+   quand un écran court réduit le minuteur à 62 ou 64 px dans sa colonne de 84.
+   Le portrait cède aussi 1 px de chaque côté : à ×1,50 (Tricot, Ruche), l'art
+   reste dans la carte et ne touche pas le pseudo, vérifié sur le site et en natif. */
+@media(max-width:699px){.multiplayer-shell .scoreboard{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:4px}}
+@media(min-width:371px) and (max-width:699px){.multiplayer-shell .scoreboard .player{padding-inline:6px;gap:5px}}

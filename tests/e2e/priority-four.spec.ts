@@ -1,4 +1,4 @@
-import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test'
+import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 
@@ -862,6 +862,102 @@ test('l’art du plus grand cadre ne touche ni le pseudo ni l’XP, et ne dépla
     expect(illustre[ecran].hauteur).toBeCloseTo(simple[ecran].hauteur, 0)
     expect(illustre[ecran].pseudo.left).toBeCloseTo(simple[ecran].pseudo.left, 0)
     expect(illustre[ecran].pseudo.top).toBeCloseTo(simple[ecran].pseudo.top, 0)
+  }
+})
+
+test('le bandeau de duel garde le pseudo entier, de 360 à 430 px', async ({ browser, browserName }) => {
+  // Le 02/11/2026, « Joueur Test » se lisait « Joueur T… » à 390 px et en entier à
+  // 360 : passé 370 px, le bandeau reprenait 16,5 px à la colonne du pseudo. Mesuré
+  // de part et d'autre de cette marche, avec le cadre à l'art le plus large (qui
+  // réclame sa marge) : 11 caractères tiennent sur une ligne ; les 16 du pseudo le
+  // plus long autorisé, sur deux au plus, sans sortir de la carte ni passer sous la
+  // banderole, même sur la carte basse de l'appli (62 px).
+  const feuille = readFileSync('src/cosmetic-portrait.css', 'utf8')
+  const [plusLarge] = [...feuille.matchAll(/data-frame="([a-z0-9-]+)"\]\{--frame-art-scale:([\d.]+)/g)]
+    .map(([, id, echelle]) => ({ id, echelle: Number(echelle) }))
+    .sort((gauche, droite) => droite.echelle - gauche.echelle)
+  const api = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+
+  const ouvrir = async (displayName: string) => {
+    const joueur = async (nom: string, cadre: string) => {
+      const identity = { version: 1, playerId: `guest_${randomUUID()}`, displayName: nom, accountType: 'guest', createdAt: new Date().toISOString() }
+      const cosmetics = {
+        plumes: 12_345,
+        ownedAvatarIds: ['plume-motman'], ownedFrameIds: ['cadre-ivoire', cadre], ownedAnimationIds: ['animation-none'],
+        equippedAvatarId: 'plume-motman', equippedFrameId: cadre, equippedAnimationId: 'animation-none',
+      }
+      // Son propre contexte : le cookie de session d'un joueur parlerait à la place de l'autre.
+      const session = await playwrightRequest.newContext({ baseURL: SERVEUR_TEST, extraHTTPHeaders: { Origin: SERVEUR_TEST } })
+      expect((await session.post('/api/auth/bootstrap', { data: { identity, cosmetics, progress: { level: 12 } } })).ok()).toBe(true)
+      await session.dispose()
+      return identity
+    }
+    const moi = await joueur(displayName, plusLarge.id)
+    const adversaire = await joueur('Adversaire', 'cadre-ivoire')
+    expect((await api.post('/api/matches/search', { data: { playerId: moi.playerId, pace: 'async' } })).ok()).toBe(true)
+    const { matchId } = await (await api.post('/api/matches/search', { data: { playerId: adversaire.playerId, pace: 'async' } })).json() as { matchId: string | null }
+    expect(matchId).toBeTruthy()
+
+    const context = await browser.newContext({ viewport: { width: 360, height: 800 } })
+    await context.addInitScript(stored => {
+      localStorage.setItem('motman-player-v1', JSON.stringify(stored))
+      localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+      localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+    }, moi)
+    const page = await context.newPage()
+    await page.goto(`/#partie=${encodeURIComponent(String(matchId))}`)
+    await expect(page.locator('.scoreboard .player-you small')).toHaveText(displayName)
+    await page.evaluate(() => document.fonts.ready)
+    return { context, page }
+  }
+
+  const relever = async (page: Page, largeur: number, hauteur: number) => {
+    await page.setViewportSize({ width: largeur, height: hauteur })
+    // La largeur change, le pseudo se replie, l'observateur prévient, React redessine.
+    await page.evaluate(() => new Promise(fin => requestAnimationFrame(() => requestAnimationFrame(fin))))
+    return page.locator('.scoreboard .player-you').evaluate(carte => {
+      const pseudo = carte.querySelector<HTMLElement>('small')!
+      const plage = document.createRange()
+      plage.selectNodeContents(pseudo)
+      const banderole = carte.querySelector('.player-title')
+      return {
+        lignes: new Set([...plage.getClientRects()].map(boite => Math.round(boite.top))).size,
+        coupe: pseudo.scrollWidth > pseudo.clientWidth + 1 || pseudo.scrollHeight > pseudo.clientHeight + 1,
+        margeHaute: pseudo.getBoundingClientRect().top - carte.getBoundingClientRect().top,
+        margeBasse: (banderole ?? carte).getBoundingClientRect().top - carte.querySelector('strong')!.getBoundingClientRect().bottom,
+      }
+    })
+  }
+
+  const onze = await ouvrir('Joueur Test')
+  try {
+    for (const largeur of [360, 370, 371, 375, 390, 399, 400, 412, 430]) {
+      expect(await relever(onze.page, largeur, 800), `${largeur} px`).toMatchObject({ lignes: 1, coupe: false })
+    }
+  } finally {
+    await onze.context.close()
+  }
+
+  const seize = await ouvrir('Joueur Test Long')
+  try {
+    const verifier = async (hauteur: number) => {
+      for (const largeur of [360, 375, 390, 412, 430]) {
+        const releve = await relever(seize.page, largeur, hauteur)
+        expect(releve.coupe, `${largeur} px`).toBe(false)
+        expect(releve.lignes, `${largeur} px`).toBeLessThanOrEqual(2)
+        expect(releve.margeHaute, `${largeur} px`).toBeGreaterThan(1)
+        expect(releve.margeBasse, `${largeur} px`).toBeGreaterThanOrEqual(-1)
+      }
+    }
+    await verifier(800)
+    // Le mode natif est celui d'Android : seul Chromium le joue.
+    if (browserName === 'chromium') {
+      await seize.page.evaluate(() => document.documentElement.classList.add('native-runtime'))
+      await verifier(796)
+    }
+  } finally {
+    await seize.context.close()
+    await api.dispose()
   }
 })
 
