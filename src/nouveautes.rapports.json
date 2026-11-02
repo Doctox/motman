@@ -359,6 +359,12 @@
     "genre": "jeu"
   },
   {
+    "ajoute": "2026-11-02T23:46",
+    "titre": "Tes derniers matchs sont dans ton profil",
+    "texte": "Ils quittent la page Jouer pour laisser la place aux modes de jeu. Une ligne dans ton profil les ouvre, et tu peux toujours y revoir une partie.",
+    "genre": "affichage"
+  },
+  {
     "ajoute": "2026-11-03T00:35",
     "titre": "Nouveau mode : En chaîne",
     "texte": "30 secondes pour poser le plus de lettres : chaque lettre juste t’en donne une nouvelle, une erreur et ça passe à l’autre. À essayer depuis la page Jouer, ou entre amis.",

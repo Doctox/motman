@@ -452,17 +452,41 @@ test('L’Épicerie ne monte que les animations visibles', async ({ page }, test
   await page.screenshot({ path: `output/quality/p4-shop-${testInfo.project.name}.png`, fullPage: false })
 })
 
-test('les derniers matchs restent visibles quel que soit le mode choisi', async ({ page }) => {
-  // C'est ce qui a décidé le passage aux onglets (maquette du 16/09/2026) : les
-  // accordéons faisaient disparaître l'historique dès qu'on ouvrait un mode.
+test('les derniers matchs quittent Jouer pour le profil', async ({ page }) => {
+  // Demande du propriétaire, 02/11/2026 : la place de Jouer revient aux modes de jeu.
+  // Le serveur de test ne garde pas d'historique : la réponse porte deux parties finies.
+  await page.route('**/api/matches/state*', async route => {
+    const reponse = await route.fetch()
+    const corps = await reponse.json() as Record<string, unknown>
+    const finie = { mode: 'normal', pace: 'realtime', score: 42, opponentScore: 31, completedAt: new Date().toISOString() }
+    await route.fulfill({ response: reponse, json: { ...corps, recent: [
+      { ...finie, id: 'partie-1', opponentName: 'Théo', outcome: 'win' },
+      { ...finie, id: 'partie-2', opponentName: 'Anne', outcome: 'loss' },
+    ] } })
+  })
   await page.goto('/#jouer')
+  await expect(page.getByRole('heading', { name: 'Normal' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tes derniers matchs' })).toHaveCount(0)
+  await expect(page.getByText('Ta première partie t’attend')).toHaveCount(0)
 
-  const history = page.getByLabel('Historique des cinq derniers matchs')
-  await expect(history).toBeVisible()
-  for (const mode of ['Classé', 'Amis', 'Normal']) {
-    await page.getByRole('tab', { name: mode, exact: true }).click()
-    await expect(history).toBeVisible()
-  }
+  await page.getByRole('link', { name: 'Profil' }).or(page.getByRole('button', { name: 'Profil' })).first().click()
+  const ligne = page.getByRole('button', { name: /Tes derniers matchs/ })
+  await expect(ligne).toBeVisible()
+  await expect(ligne).toContainText('Théo')
+  await ligne.click()
+  const fenetre = page.getByRole('dialog', { name: 'Tes derniers matchs' })
+  await expect(fenetre).toBeVisible()
+  await expect(fenetre).toContainText('Anne')
+  await page.screenshot({ path: `output/quality/p4-derniers-matchs-${test.info().project.name}.png`, fullPage: false })
+  await fenetre.getByRole('button', { name: 'Fermer' }).click()
+  await expect(fenetre).toHaveCount(0)
+})
+
+test('avant la première partie, Jouer dit comment ça se passe, et le profil n’a pas de ligne vide', async ({ page }) => {
+  await page.goto('/#jouer')
+  await expect(page.getByText('Ta première partie t’attend')).toBeVisible()
+  await page.getByRole('link', { name: 'Profil' }).or(page.getByRole('button', { name: 'Profil' })).first().click()
+  await expect(page.getByRole('button', { name: /Tes derniers matchs/ })).toHaveCount(0)
 })
 
 test('l’écran Jouer ne propose plus que Normal, Classé et Amis', async ({ page }) => {

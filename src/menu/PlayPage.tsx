@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { BarChart3, ChevronRight, History, Trophy, UserPlus, Users } from 'lucide-react'
-import { matchHistoryDateLabel, matchHistoryResultLabel, matchHistoryTone } from '../matchHistory'
-import type { MatchHistoryEntry, MatchLobbyState, MatchPace, MatchState } from '../matches'
+import type { MatchLobbyState, MatchPace, MatchState } from '../matches'
 import { ChronoRecherche } from './ChronoRecherche'
-import { MatchReplay } from './MatchReplay'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
 import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
-import { etiquetteClassee } from './classementEnClair'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import type { SocialState } from '../social'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
@@ -19,12 +16,11 @@ import type { RythmeChoisi } from '../matches'
 import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// L'ÉCRAN JOUER — trois onglets, une carte, l'historique toujours là.
+// L'ÉCRAN JOUER — trois onglets, une carte.
 //
-// Maquette validée par le propriétaire le 16/09/2026. Les trois accordéons
-// cachaient l'historique dès qu'on en ouvrait un : c'est ce qui a décidé la
-// bascule vers des onglets. Seule la carte du milieu change ; la reprise et
-// l'historique ne bougent jamais.
+// Maquette validée par le propriétaire le 16/09/2026. Seule la carte du milieu
+// change ; la reprise ne bouge jamais. Les derniers matchs sont au profil depuis
+// le 02/11/2026 : la place revient aux modes de jeu.
 //
 // Les pictogrammes restent les icônes lucide du reste de l'app, colorées par
 // mode — vert pin, or, sauge (la terre cuite est rendue à l'adversaire depuis
@@ -63,35 +59,15 @@ function partieAReprendre(actives: MatchState[], playerId: string): MatchState |
   return actives.find(match => match.currentPlayerId === playerId) ?? actives[0] ?? null
 }
 
-function RecentMatchHistory({ matches }: { matches: MatchHistoryEntry[] }) {
-  // Partie ouverte en relecture. Seules celles dont le plateau a survecu sont
-  // cliquables : avant la colonne `final_board`, il n'existe plus nulle part.
-  const [relecture, setRelecture] = useState<MatchHistoryEntry | null>(null)
+/**
+ * Avant la première partie : ce qu'il faut savoir pour se lancer. Les derniers
+ * matchs ont déménagé au profil le 02/11/2026 (HistoriqueDesParties.tsx).
+ */
+function PremierePartie() {
   return <div className="mm-recent-history is-visible">
-    <section className="mm-recent-history-card" aria-label="Historique des cinq derniers matchs">
-      <header><span><History /></span><div><h2>Derniers matchs</h2><small>Tes cinq résultats les plus récents</small></div></header>
-      {matches.length ? <div className="mm-recent-match-list">
-        {matches.slice(0, 5).map(match => {
-          const tone = matchHistoryTone(match.outcome)
-          const opponentName = match.opponentName ?? 'Adversaire'
-          // « Solo » a quitté l'interface : une partie de ce mode est un défi du
-          // jour (il en porte la date) ou une partie d'entraînement d'avant.
-          // Une classée dit ses points (22/10/2026, code C6) : elle s'appelait
-          // « Multijoueur », sans un mot de ce qu'elle avait rapporté.
-          const modeLabel = match.dailyDate ? 'Défi du jour' : match.ranked ? etiquetteClassee(match.rankedDelta, match.rankedSansPoints) : match.mode === 'solo' ? 'Entraînement' : 'Multijoueur'
-          const relisible = Boolean(match.board)
-          const contenu = <>
-            <span className={`mm-recent-outcome ${tone}`}>{tone === 'won' ? 'V' : tone === 'drawn' ? 'N' : 'D'}</span>
-            <span className="mm-recent-match-copy"><strong>{opponentName}</strong><small>{matchHistoryResultLabel(match.outcome)} · {modeLabel} · {match.pace === 'async' ? 'Illimité' : 'Limité'}</small></span>
-            <span className="mm-recent-match-score"><b>{match.score}<i>–</i>{match.opponentScore}</b><small>{matchHistoryDateLabel(match.completedAt)}</small></span>
-          </>
-          return relisible
-            ? <button type="button" className="mm-recent-match-row is-replayable" key={match.id} onClick={() => setRelecture(match)} aria-label={`Revoir la partie contre ${opponentName}`}>{contenu}</button>
-            : <article className="mm-recent-match-row" key={match.id}>{contenu}</article>
-        })}
-      </div> : <div className="mm-recent-history-empty"><History /><strong>Ta première partie t’attend</strong><small>Une partie dure une dizaine de minutes. Tu as 30 secondes pour lire la grille avant ton premier tour. Une lettre fausse ne coûte aucun point.</small></div>}
+    <section className="mm-recent-history-card">
+      <div className="mm-recent-history-empty"><History /><strong>Ta première partie t’attend</strong><small>Une partie dure une dizaine de minutes. Tu as 30 secondes pour lire la grille avant ton premier tour. Une lettre fausse ne coûte aucun point.</small></div>
     </section>
-    {relecture ? <MatchReplay match={relecture} onClose={() => setRelecture(null)} /> : null}
   </div>
 }
 
@@ -356,6 +332,6 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
 
     {onAttend ? <DefinitionEnAttente /> : null}
 
-    <RecentMatchHistory matches={lobby.recent} />
+    {lobby.recent.length ? null : <PremierePartie />}
   </div>
 }
