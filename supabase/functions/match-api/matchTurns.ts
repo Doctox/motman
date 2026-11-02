@@ -11,7 +11,7 @@
 import { planBotMove } from '../../../src/botOpponents.ts'
 import { evaluateTurn, keepRackLettersAfterTurn, PRESENCE_WINDOW_MS, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
 import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
-import { ASYNC_TURN_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type MatchRow, type State, type Turn } from './matchModel.ts'
+import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type Chaine, type MatchRow, type State, type Turn } from './matchModel.ts'
 
 /** Marge sur l'échéance « Je suis là », pour laisser arriver une réponse partie à temps. */
 export const PRESENCE_GRACE_MS = 2_000
@@ -37,6 +37,8 @@ export type Cadence = {
   /** La durée d'un tour, en temps limité puis en illimité. */
   tourLimiteMs: number
   tourIllimiteMs: number
+  /** Un tour de duel en chaîne (matchChaine.ts). */
+  tourChaineMs: number
   /** La révélation d'un coup : un pas par case, mot ou chevalet, et un minimum. */
   pasDeRevelationMs: number
   revelationMinimaleMs: number
@@ -50,6 +52,7 @@ export type Cadence = {
 export const CADENCE_PRODUCTION: Cadence = {
   tourLimiteMs: REALTIME_TURN_MS,
   tourIllimiteMs: ASYNC_TURN_MS,
+  tourChaineMs: CHAINE_TOUR_MS,
   pasDeRevelationMs: REWARD_STEP_MS,
   revelationMinimaleMs: 700,
   souffleMs: SOUFFLE_ENTRE_TOURS_MS,
@@ -98,6 +101,19 @@ export function sanitizePlacements(row: MatchRow, grid: CatalogGrid, playerId: s
   return { rack, sanitized }
 }
 
+/** Les mots qu'un joueur vient de finir, pour ses quêtes. Une seule écriture, que le coup soit entier ou lettre par lettre. */
+export function noterLesMotsFinis(state: State, grid: CatalogGrid, playerId: string, mots: ReadonlyArray<{ id?: string; answer: string }>): void {
+  if (!mots.length) return
+  state.wordsCompleted ??= {}
+  state.wordsCompleted[playerId] = (state.wordsCompleted[playerId] ?? 0) + mots.length
+  const enImage = mots.filter(bonus => grid.words.some(mot =>
+    (bonus.id ? mot.wordId === bonus.id : mot.answer === bonus.answer) && mot.image)).length
+  if (enImage) {
+    state.imageWordsCompleted ??= {}
+    state.imageWordsCompleted[playerId] = (state.imageWordsCompleted[playerId] ?? 0) + enImage
+  }
+}
+
 export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, placements: Array<{ cellIndex: number; letter: string }>, cadence: Cadence = CADENCE_PRODUCTION): Turn {
   const state = row.state
   const rules = ruleGrid(grid)
@@ -114,16 +130,7 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
   // Quêtes (src/quests.ts) : un mot est à celui qui pose sa DERNIÈRE lettre —
   // c'est déjà la règle du bonus de mot. Compté ici, où la vérité se décide, et
   // jamais recalculé ailleurs : le plateau final ne dit pas qui a fini quoi.
-  if (evaluated.wordBonuses.length) {
-    state.wordsCompleted ??= {}
-    state.wordsCompleted[playerId] = (state.wordsCompleted[playerId] ?? 0) + evaluated.wordBonuses.length
-    const enImage = evaluated.wordBonuses.filter(bonus => grid.words.some(mot =>
-      (bonus.id ? mot.wordId === bonus.id : mot.answer === bonus.answer) && mot.image)).length
-    if (enImage) {
-      state.imageWordsCompleted ??= {}
-      state.imageWordsCompleted[playerId] = (state.imageWordsCompleted[playerId] ?? 0) + enImage
-    }
-  }
+  noterLesMotsFinis(state, grid, playerId, evaluated.wordBonuses)
   if (evaluated.rackBonus) {
     state.rackCompletions ??= {}
     state.rackCompletions[playerId] = (state.rackCompletions[playerId] ?? 0) + 1
@@ -171,6 +178,8 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
  * c'est un tour manqué, exactement comme avant.
  */
 export function closeExpiredTurn(row: MatchRow, grid: CatalogGrid, brouillon: Array<{ cellIndex: number; letter: string }>, { absence = true, cadence = CADENCE_PRODUCTION }: { absence?: boolean; cadence?: Cadence } = {}): void {
+  // En chaîne, chaque lettre a déjà été jugée : il n'y a pas de brouillon à jouer.
+  if (row.state.chaine) { fermerTourDeChaine(row, { echu: true, absence, cadence }); return }
   const valides = sanitizePlacements(row, grid, row.current_player_id, brouillon).sanitized
   if (!valides.length) { timeoutTurn(row, { absence, cadence }); preparerCoupDuBot(row, grid); return }
   const tour = applyTurn(row, grid, row.current_player_id, valides, cadence)
@@ -186,11 +195,68 @@ export function timeoutTurn(row: MatchRow, { absence = true, cadence = CADENCE_P
   const turn: Turn = { id: crypto.randomUUID(), kind: 'timeout', playerId, turnNumber: row.turn_number, correct: [], wrong: [], wrongPlacements: [], aidedCell: null, letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0, inactivityCount: inactivity, createdAt: nowIso() }
   state.lastTurn = turn; state.hint = null
   if (absence && shouldForfeitAfterInactivity(inactivity, row.pace)) finish(state, row, state.playerIds.find(id => id !== playerId)!, 'timeout')
+  else if (state.chaine) passerLaMainEnChaine(row, cadence)
   else {
     const next = state.playerIds.find(id => id !== playerId)!
     const start = new Date(Date.now() + revealDuration(turn, cadence)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()
     row.turn_ends_at = new Date(start.getTime() + dureeDuTour(row.pace, cadence)).toISOString()
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LA FIN D'UN TOUR DE CHAÎNE (02/11/2026). Ici plutôt que dans matchChaine.ts : un
+// tour échu passe par `closeExpiredTurn`, et l'inverse ferait un cycle d'imports.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function chaineVierge(tour: number): Chaine {
+  return { tour, lettres: [], letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0 }
+}
+
+/** Le tour de l'autre : les lettres ont déjà été vues, donc un court temps mort et non une révélation. */
+function passerLaMainEnChaine(row: MatchRow, cadence: Cadence): void {
+  const debut = new Date(Date.now() + cadence.souffleMs)
+  row.current_player_id = row.state.playerIds.find(id => id !== row.current_player_id)!
+  row.turn_number += 1
+  row.turn_started_at = debut.toISOString()
+  row.turn_ends_at = new Date(debut.getTime() + cadence.tourChaineMs).toISOString()
+  row.state.chaine = chaineVierge(row.turn_number)
+}
+
+/** Le tour joué, tel que le reste du jeu le connaît (écran de fin, quêtes, `lastTurn`). */
+export function tourDeLaChaine(row: MatchRow, fausses: Array<{ cellIndex: number; letter: string }> = []): Turn {
+  const chaine = row.state.chaine ?? chaineVierge(row.turn_number)
+  return {
+    id: crypto.randomUUID(), kind: 'played', playerId: row.current_player_id, turnNumber: row.turn_number,
+    correct: chaine.lettres.map(lettre => lettre.cellIndex), wrong: fausses.map(lettre => lettre.cellIndex), wrongPlacements: fausses,
+    aidedCell: null, letterPoints: chaine.letterPoints, wordBonuses: chaine.wordBonuses, rackBonus: chaine.rackBonus,
+    scoreGained: chaine.scoreGained, inactivityCount: 0, createdAt: nowIso(),
+  }
+}
+
+/**
+ * Le tour de chaîne se ferme : une lettre fausse (`fausses`), « Passer », ou le
+ * temps. `echu` : c'est le temps. Sans aucune lettre posée, c'est alors un tour
+ * manqué comme en temps limité ; avec des lettres, un tour joué, jamais une absence.
+ *
+ * LA FENÊTRE « JE SUIS LÀ » (30 s) VAUT ICI LE TOUR ENTIER, là où elle tombait avant
+ * les 45 s d'un tour ordinaire. Sans ce test, l'envoi de 00:00 d'un téléphone resté
+ * ouvert passerait toujours avant elle, et un joueur parti ne perdrait jamais.
+ */
+export function fermerTourDeChaine(row: MatchRow, { echu = false, absence = false, fausses = [], cadence = CADENCE_PRODUCTION }: { echu?: boolean; absence?: boolean; fausses?: Array<{ cellIndex: number; letter: string }>; cadence?: Cadence } = {}): void {
+  const state = row.state
+  const joueur = row.current_player_id
+  const sansLettre = !state.chaine?.lettres.length && !fausses.length
+  if (sansLettre && echu) {
+    if (absence && currentPresenceDeadline(row, cadence) !== null) { forfeitAbsentPlayer(row); return }
+    timeoutTurn(row, { absence, cadence })
+    return
+  }
+  // Jouer, c'est être là (comme `applyTurn`) : passer à la main compte aussi.
+  state.inactivity[joueur] = 0
+  if (state.presenceAck) state.presenceAck[joueur] = 0
+  state.lastTurn = tourDeLaChaine(row, fausses)
+  state.hint = null
+  passerLaMainEnChaine(row, cadence)
 }
 
 /** L'échéance « Je suis là » du joueur dont c'est le tour (voir presenceDeadline), ou null. */
@@ -281,7 +347,8 @@ export function botPlacements(row: MatchRow, grid: CatalogGrid) {
  * partie, sans relire six kilo-octets de grille (matchDrafts.ts).
  */
 export function preparerCoupDuBot(row: MatchRow, grid: CatalogGrid): void {
-  if (row.status === 'active' && row.pace === 'realtime' && row.state.bot?.playerId === row.current_player_id) {
+  // En chaîne, ses lettres se décident une à une, à leur heure (matchChaine.ts).
+  if (row.status === 'active' && row.pace === 'realtime' && !row.state.chaine && row.state.bot?.playerId === row.current_player_id) {
     row.state.coupPrepare = { turnNumber: row.turn_number, placements: botPlacements(row, grid) }
   } else delete row.state.coupPrepare
 }

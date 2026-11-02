@@ -1,7 +1,7 @@
 import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
-import { botSkillForLevel, chooseGrid, createMatch, initialMatchState } from './matchSetup.ts'
+import { botSkillForLevel, chooseGrid, createMatch, FIRST_TURN_READING_MS, initialMatchState, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
-import type { CatalogGrid } from './matchModel.ts'
+import { CHAINE_TOUR_MS, REALTIME_TURN_MS, type CatalogGrid, type MatchRow } from './matchModel.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NAISSANCE D'UNE PARTIE.
@@ -285,4 +285,22 @@ Deno.test('la grille du calendrier ne tourne jamais, même occupée ailleurs', a
   verifie(misesAJour.length === 0, 'la grille du jour est partagée par tous : elle ne cède pas')
   verifie(grid.id === 'ordinaire-b' && row.grid_id === 'ordinaire-b', `grille du jour attendue, obtenu ${grid.id}`)
   verifie(row.state.isDaily === true, 'la partie est le défi du jour')
+})
+
+Deno.test('un duel en chaîne : 30 s au premier tour, et une grille de rechange ne change pas la partie', async () => {
+  const { admin, misesAJour } = baseEnCollision(TROIS_GRILLES)
+  const prepare = await prepareAtomicMatch(admin, HOTE, INVITE, 'realtime', null, null, 'chaine')
+  verifie(prepare.endsAt.getTime() - prepare.startedAt.getTime() === CHAINE_TOUR_MS, 'un tour de 30 s')
+  verifie(prepare.startedAt.getTime() - Date.now() > FIRST_TURN_READING_MS - 2_000, 'après la fenêtre de lecture, comme en temps limité')
+  verifie(prepare.state.chaine?.tour === 1 && prepare.state.chaine.lettres.length === 0, 'une chaîne neuve')
+  const { data } = await (admin.from('server_matches') as unknown as { insert: (v: unknown) => { select: () => { single: () => Promise<{ data: MatchRow }> } } })
+    .insert({ grid_id: prepare.grid.id, state: prepare.state, turn_number: 1 }).select().single()
+  const { row } = await resolveAtomicGridCollision(admin, data, prepare.grid, HOTE, INVITE, null, null, prepare.selectionSeed)
+  verifie(misesAJour.length === 1, `une rotation attendue, obtenu ${misesAJour.length}`)
+  verifie(row.grid_id !== prepare.grid.id, 'la plus jeune cède sa grille')
+  verifie(Boolean(row.state.chaine), 'et reste un duel en chaîne : sans ça, ce serait une partie de 45 s pour un tour de 30')
+
+  const ordinaire = await prepareAtomicMatch(admin, HOTE, INVITE, 'realtime', null, null)
+  verifie(ordinaire.state.chaine === undefined, 'une partie ordinaire n’en porte aucune trace')
+  verifie(ordinaire.endsAt.getTime() - ordinaire.startedAt.getTime() === REALTIME_TURN_MS, '45 s, comme avant')
 })

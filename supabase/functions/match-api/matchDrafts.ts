@@ -29,7 +29,7 @@
 import { logServerError } from '../_shared/http.ts'
 import { botTurnDelayMs } from './botDelay.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
-import type { MatchRow } from './matchModel.ts'
+import type { MatchRow, State } from './matchModel.ts'
 
 /** La marge d'un coup envoyé à la main, au-delà de la fin du tour (déplacée d'`index.ts`). */
 export const MANUAL_SUBMIT_GRACE_MS = 2_000
@@ -43,9 +43,12 @@ export type Brouillon = { turnNumber: number; placements: Placement[]; receivedA
  * En temps LIMITÉ seulement. En illimité, « 24 h sans jouer = abandon » reste
  * la règle du propriétaire (18/09/2026) : un joueur qui pose des lettres puis
  * ferme l'appli ne doit pas les voir jouées le lendemain à sa place.
+ *
+ * Pas non plus en duel en chaîne (matchChaine.ts) : chaque lettre y est jugée dès
+ * qu'elle est posée, il ne reste rien à jouer à la fin du tour.
  */
-export function brouillonPossible(row: Pick<MatchRow, 'pace'>): boolean {
-  return row.pace === 'realtime'
+export function brouillonPossible(row: Pick<MatchRow, 'pace'> & { state?: Pick<State, 'chaine'> }): boolean {
+  return row.pace === 'realtime' && !row.state?.chaine
 }
 
 /**

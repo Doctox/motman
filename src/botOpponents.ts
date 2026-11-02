@@ -122,6 +122,34 @@ function wrongLetterFor(rack: readonly string[], expected: string, seed: string)
   return candidates[fnv1a(seed) % candidates.length]
 }
 
+/** Les coups justes à sa portée, du meilleur au moins bon. Le choix d'une lettre, en temps limité comme en chaîne. */
+function casesDuBot(grid: GameRuleGrid, occupied: ReadonlySet<number>, blocked: ReadonlySet<number>, rack: readonly string[], tuning: BotTuning, seed: string, step: number) {
+  const candidates = rack.flatMap(letter => grid.cells.flatMap((cell, cellIndex) => {
+    if (cell.kind !== 'letter' || cell.solution !== letter || occupied.has(cellIndex) || blocked.has(cellIndex)) return []
+    const evaluation = evaluateTurn({ grid, occupiedBefore: occupied, placements: [{ cellIndex, letter }] })
+    const wordPoints = evaluation.wordBonuses.reduce((total, word) => total + word.points, 0)
+    const relatedWords = grid.words.filter(word => {
+      const cells = word.cells?.map(([row, column]) => row * grid.columns + column) ?? []
+      return cells.includes(cellIndex)
+    })
+    const crossingPressure = relatedWords.length
+    const progressPressure = relatedWords.reduce((total, word) => {
+      const indexes = word.cells?.map(([row, column]) => row * grid.columns + column) ?? []
+      if (!indexes.length) return total
+      const filledAfter = indexes.filter(index => occupied.has(index) || index === cellIndex).length
+      return total + (filledAfter * filledAfter) / indexes.length
+    }, 0)
+    const score = evaluation.scoreGained * 12
+      + wordPoints * tuning.wordBonusWeight * 3
+      + crossingPressure * 1.5
+      + progressPressure * tuning.wordBonusWeight
+      + (fnv1a(`${seed}:jitter:${step}:${cellIndex}`) % 5) / 10
+    return [{ cellIndex, letter, score }]
+  }))
+  candidates.sort((left, right) => right.score - left.score)
+  return candidates
+}
+
 export function planBotMove({
   grid,
   occupiedCells,
@@ -150,31 +178,9 @@ export function planBotMove({
   const blockedThisTurn = new Set<number>()
 
   for (let step = 0; step < target; step += 1) {
-    const candidates = rack.flatMap(letter => grid.cells.flatMap((cell, cellIndex) => {
-      if (cell.kind !== 'letter' || cell.solution !== letter || occupied.has(cellIndex) || blockedThisTurn.has(cellIndex)) return []
-      const evaluation = evaluateTurn({ grid, occupiedBefore: occupied, placements: [{ cellIndex, letter }] })
-      const wordPoints = evaluation.wordBonuses.reduce((total, word) => total + word.points, 0)
-      const relatedWords = grid.words.filter(word => {
-        const cells = word.cells?.map(([row, column]) => row * grid.columns + column) ?? []
-        return cells.includes(cellIndex)
-      })
-      const crossingPressure = relatedWords.length
-      const progressPressure = relatedWords.reduce((total, word) => {
-        const indexes = word.cells?.map(([row, column]) => row * grid.columns + column) ?? []
-        if (!indexes.length) return total
-        const filledAfter = indexes.filter(index => occupied.has(index) || index === cellIndex).length
-        return total + (filledAfter * filledAfter) / indexes.length
-      }, 0)
-      const score = evaluation.scoreGained * 12
-        + wordPoints * tuning.wordBonusWeight * 3
-        + crossingPressure * 1.5
-        + progressPressure * tuning.wordBonusWeight
-        + (fnv1a(`${seed}:jitter:${step}:${cellIndex}`) % 5) / 10
-      return [{ cellIndex, letter, score }]
-    }))
+    const candidates = casesDuBot(grid, occupied, blockedThisTurn, rack, tuning, seed, step)
 
     if (!candidates.length) break
-    candidates.sort((left, right) => right.score - left.score)
     const choiceWindow = persona.skill === 'beginner' ? Math.min(2, candidates.length) : 1
     const chosen = candidates[fnv1a(`${seed}:choice:${step}`) % choiceWindow]
     const correctRoll = fnv1a(`${seed}:accuracy:${step}:${chosen.cellIndex}`) % 100
@@ -210,4 +216,48 @@ export function planBotMove({
       seed: `${seed}:after`,
     }),
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EN CHAÎNE (02/11/2026). L'adversaire automatique pose une lettre à la fois, à son
+// rythme, jusqu'à sa première erreur, sa dernière lettre ou la fin du temps. Pas de
+// plafond de lettres : la justesse le remplace, et elle donne en moyenne une chaîne
+// d'environ 3 lettres justes (débutant), 4,5 (normal) et 7 (expert).
+//
+// Réglages à essayer, non mesurés sur de vraies parties : ils partent de la maquette
+// validée par le propriétaire (une lettre toutes les 1 à 2,5 s, une erreur sur six).
+// ─────────────────────────────────────────────────────────────────────────────
+export const BOT_CHAINE: Record<BotSkill, { justesse: number; premiereMs: readonly [number, number]; pasMs: readonly [number, number] }> = {
+  beginner: { justesse: 74, premiereMs: [2_500, 5_000], pasMs: [2_400, 4_200] },
+  regular: { justesse: 82, premiereMs: [2_000, 4_000], pasMs: [1_900, 3_300] },
+  expert: { justesse: 88, premiereMs: [1_500, 3_000], pasMs: [1_400, 2_600] },
+}
+
+/** Le temps que prend sa lettre de ce rang, depuis la précédente (ou le début du tour). */
+export function delaiDeLettreDuBot(seed: string, rang: number, skill: BotSkill): number {
+  const { premiereMs, pasMs } = BOT_CHAINE[skill]
+  const [minimum, maximum] = rang === 0 ? premiereMs : pasMs
+  return minimum + fnv1a(`${seed}:lettre:${rang}`) % (maximum - minimum + 1)
+}
+
+/** Sa prochaine lettre, ou null s'il n'en a plus aucune à poser. Elle peut être fausse : c'est ce qui l'arrête. */
+export function planBotChainLetter({ grid, occupiedCells, rackLetters, persona, seed, step, scoreGap = 0 }: {
+  grid: GameRuleGrid
+  occupiedCells: Iterable<number>
+  rackLetters: readonly string[]
+  persona: BotPersona
+  seed: string
+  step: number
+  scoreGap?: number
+}): BotMoveAttempt | null {
+  const tuning = botTuning(persona)
+  const candidates = casesDuBot(grid, new Set(occupiedCells), new Set(), rackLetters, tuning, seed, step)
+  if (!candidates.length) return null
+  const choiceWindow = persona.skill === 'beginner' ? Math.min(2, candidates.length) : 1
+  const chosen = candidates[fnv1a(`${seed}:choice:${step}`) % choiceWindow]
+  const pressureBoost = scoreGap >= tuning.pressureGap * 2 ? 2 : scoreGap >= tuning.pressureGap ? 1 : 0
+  const justesse = Math.min(97, BOT_CHAINE[persona.skill].justesse + pressureBoost * 3)
+  if (fnv1a(`${seed}:accuracy:${step}:${chosen.cellIndex}`) % 100 < justesse) return { cellIndex: chosen.cellIndex, letter: chosen.letter, correct: true }
+  const wrong = wrongLetterFor(rackLetters, chosen.letter, `${seed}:wrong:${step}:${chosen.cellIndex}`)
+  return wrong ? { cellIndex: chosen.cellIndex, letter: wrong, correct: false } : { cellIndex: chosen.cellIndex, letter: chosen.letter, correct: true }
 }

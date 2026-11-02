@@ -8,6 +8,7 @@
 // besoin et qui ne méritent pas un fichier à eux.
 
 import type { BotSkill, BotTuning } from '../../../src/botOpponents.ts'
+import { CHAINE_TOUR_MS } from '../../../src/gameRules.ts'
 
 export const nowIso = () => new Date().toISOString()
 
@@ -16,8 +17,17 @@ export const nowIso = () => new Date().toISOString()
 // expiration) — d'où leur présence ici plutôt que dans l'un des deux.
 export const REALTIME_TURN_MS = 45_000
 export const ASYNC_TURN_MS = 24 * 60 * 60 * 1000
+export { CHAINE_TOUR_MS }
 
 export type Pace = 'realtime' | 'async'
+/**
+ * LA VARIANTE D'UNE PARTIE, à côté de son rythme et de son mode (02/11/2026). Un
+ * duel en chaîne est une partie en TEMPS LIMITÉ : absence, défi jamais interrompu,
+ * historique, XP et plumes valent tels quels. Seule la mécanique du tour change,
+ * et elle se lit dans `state.chaine`. En base, la file et les invitations portent
+ * la variante pour rester séparées (migration 20261102220000).
+ */
+export type Variante = 'classique' | 'chaine'
 export type Mode = 'solo' | 'friend' | 'normal' | 'ranked'
 export type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: unknown; direction: 'across' | 'down'; arrow?: string; clueCell: number[]; cells: number[][] }
 /** `theme` + `dailyOnly` : grille à thème, RÉSERVÉE au défi du jour (src/dailyThemes.ts). */
@@ -34,6 +44,20 @@ export type Turn = {
   rackBonus: number; scoreGained: number; inactivityCount: number; createdAt: string;
   /** Joué avec les lettres du brouillon, l'envoi de fin de tour n'étant pas arrivé (matchDrafts.ts, 16/10/2026). */
   fromDraft?: boolean
+}
+/**
+ * Le tour de chaîne EN COURS : ce qui a été posé et ce que ça a rapporté. Tout y
+ * est déjà public (ce sont des lettres justes, sur le plateau). Le numéro d'une
+ * lettre est son rang dans `lettres` ; une lettre fausse n'y entre pas, elle clôt
+ * le tour et se lit dans `lastTurn`.
+ */
+export type Chaine = {
+  tour: number
+  lettres: Array<{ cellIndex: number; letter: string }>
+  letterPoints: number
+  wordBonuses: Turn['wordBonuses']
+  rackBonus: number
+  scoreGained: number
 }
 export type State = {
   invitationId: string | null; difficulty: 'easy' | 'normal' | 'hard'; playerIds: [string, string]; bot: Bot | null;
@@ -57,6 +81,8 @@ export type State = {
    * personne (matchDrafts.ts). `view` ne le renvoie jamais tel quel.
    */
   coupPrepare?: { turnNumber: number; placements: Array<{ cellIndex: number; letter: string }> };
+  /** Présent : c'est un duel en chaîne (matchChaine.ts). Rien d'autre ne marque ce mode dans la partie. */
+  chaine?: Chaine;
 }
 export type MatchRow = {
   id: string; mode: Mode; pace: Pace; grid_id: string; state: State; status: 'pending' | 'active' | 'finished'; current_player_id: string;

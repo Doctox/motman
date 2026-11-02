@@ -55,6 +55,14 @@ export const REWARD_STEP_MS = 1_240
  */
 export const SOUFFLE_ENTRE_TOURS_MS = 1_500
 export const REWARD_EFFECT_LIFETIME_MS = 1_180
+/**
+ * DUEL EN CHAÎNE (02/11/2026, l'idée du propriétaire) : 30 s par tour, qui ne
+ * repartent pas à chaque lettre. Chaque lettre posée en donne une nouvelle, et
+ * une lettre fausse passe la main. Le temps mort entre deux tours est le souffle
+ * ci-dessus. Le +5 reste `RACK_COMPLETION_BONUS`, ici toutes les `RACK_SIZE`
+ * lettres justes d'affilée d'un même tour. Les règles : match-api/matchChaine.ts.
+ */
+export const CHAINE_TOUR_MS = 30_000
 
 export function gameWordCellIndexes(grid: Pick<GameRuleGrid, 'columns'>, word: GameRuleWord): number[] {
   if (word.cells?.length) return word.cells.map(([row, column]) => row * grid.columns + column)

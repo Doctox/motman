@@ -23,7 +23,8 @@ import { normalRotationGrids } from '../../../src/dailyThemes.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { neededLetters, refill, ruleGrid } from './matchGrid.ts'
-import { ASYNC_TURN_MS, nowIso, REALTIME_TURN_MS, type Bot, type CatalogGrid, type MatchRow, type Mode, type Pace, type State } from './matchModel.ts'
+import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, type Bot, type CatalogGrid, type MatchRow, type Mode, type Pace, type State, type Variante } from './matchModel.ts'
+import { chaineVierge } from './matchTurns.ts'
 
 export type ActiveMatchGrid = { id: string; gridId: string; createdAt: string }
 
@@ -224,7 +225,7 @@ export async function playersBlocked(admin: AdminClient, firstId: string, second
   return Boolean(data?.length)
 }
 
-export function initialMatchState(grid: CatalogGrid, hostId: string, guestId: string, invitationId: string | null, bot: Bot | null): State {
+export function initialMatchState(grid: CatalogGrid, hostId: string, guestId: string, invitationId: string | null, bot: Bot | null, variante: Variante = 'classique'): State {
   const rules = ruleGrid(grid)
   const state: State = {
     invitationId, difficulty: bot?.skill === 'beginner' ? 'easy' : bot?.skill === 'expert' ? 'hard' : 'normal',
@@ -232,6 +233,7 @@ export function initialMatchState(grid: CatalogGrid, hostId: string, guestId: st
     productiveTurns: { [hostId]: 0, [guestId]: 0 }, inactivity: { [hostId]: 0, [guestId]: 0 },
     rackCompletions: { [hostId]: 0, [guestId]: 0 },
     hint: null, hintUsed: {}, rerollUsed: {}, lastTurn: null,
+    ...(variante === 'chaine' ? { chaine: chaineVierge(1) } : {}),
   }
   state.racks[hostId] = refill(rules, state, hostId, [])
   state.racks[guestId] = refill(rules, state, guestId, [])
@@ -311,13 +313,15 @@ export async function prepareAtomicMatch(
   pace: Pace,
   invitationId: string | null,
   bot: Bot | null,
+  variante: Variante = 'classique',
 ) {
   const humanPlayerIds = [hostId, guestId].filter(id => id !== bot?.playerId)
   const selectionSeed = `${hostId}:${guestId}:${Date.now()}`
   const grid = await chooseGrid(admin, selectionSeed, humanPlayerIds)
   const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
-  const endsAt = new Date(startedAt.getTime() + (pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
-  const state = initialMatchState(grid, hostId, guestId, invitationId, bot)
+  const dureeDuTour = variante === 'chaine' ? CHAINE_TOUR_MS : pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS
+  const endsAt = new Date(startedAt.getTime() + dureeDuTour)
+  const state = initialMatchState(grid, hostId, guestId, invitationId, bot, variante)
   return { grid, state, startedAt, endsAt, selectionSeed, humanPlayerIds }
 }
 
@@ -357,7 +361,8 @@ export async function resolveAtomicGridCollision(
     if (!newerThanConflict) break
     const replacement = await chooseGrid(admin, `${selectionSeed}:collision:${collisionAttempt}`, humanPlayerIds, row.id)
     if (replacement.id === grid.id) break
-    const state = marquer(initialMatchState(replacement, hostId, guestId, invitationId, bot))
+    // Une grille de rechange ne change pas la partie : un duel en chaîne le reste.
+    const state = marquer(initialMatchState(replacement, hostId, guestId, invitationId, bot, initialRow.state.chaine ? 'chaine' : 'classique'))
     const { data: updatedRow, error: updateError } = await admin.from('server_matches')
       // `updated_at` bouge avec la grille : un client qui avait lu la partie
       // avant le changement recevait sinon « rien de nouveau » et gardait
