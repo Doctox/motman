@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Gift, ListChecks } from 'lucide-react'
 import { isBasketFree, type PlayerCosmetics } from '../cosmetics'
-import { questReward } from '../quests'
+import { currentDailyDateKey } from '../dailyDate'
+import { questReward, weekKey } from '../quests'
 import { useQuestBoard, type QuestBoard } from '../questBoardState'
+import { useDailyCountdown } from './DailyChallenge'
 import { QuestsPanel } from './QuestsPanel'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,10 +19,14 @@ import { QuestsPanel } from './QuestsPanel'
 
 export type LigneARecuperer = { quoi: 'quetes' | 'panier'; texte: string }
 
-/** Ce que paieraient les quêtes finies, dit comme le serveur le versera (src/quests.ts). */
-function texteDesQuetes(board: QuestBoard, gelsEnPoche: number): string | null {
-  const jour = board.day.filter(quete => quete.done && !quete.claimed).length
-  const semaine = board.week.done && !board.week.claimed ? questReward('week', gelsEnPoche) : null
+/**
+ * Ce que paieraient les quêtes finies, dit comme le serveur le versera (src/quests.ts).
+ * Le tableau en mémoire ne change qu'à la réponse suivante du serveur : appli restée
+ * ouverte la nuit, il montrerait les quêtes d'hier, perdues à minuit.
+ */
+function texteDesQuetes(board: QuestBoard, gelsEnPoche: number, aujourdhui: string): string | null {
+  const jour = board.dayKey === aujourdhui ? board.day.filter(quete => quete.done && !quete.claimed).length : 0
+  const semaine = board.weekKey === weekKey(aujourdhui) && board.week.done && !board.week.claimed ? questReward('week', gelsEnPoche) : null
   const nombre = jour + (semaine ? 1 : 0)
   if (!nombre) return null
   const plumes = jour * questReward('day', gelsEnPoche).plumes + (semaine?.plumes ?? 0)
@@ -36,8 +42,9 @@ export function ligneARecuperer(
   board: QuestBoard | null,
   cosmetics: Pick<PlayerCosmetics, 'openedBaskets' | 'freeBaskets' | 'streakFreezes'>,
   aDejaJoue: boolean,
+  aujourdhui: string,
 ): LigneARecuperer | null {
-  const quetes = board ? texteDesQuetes(board, cosmetics.streakFreezes) : null
+  const quetes = board ? texteDesQuetes(board, cosmetics.streakFreezes, aujourdhui) : null
   if (quetes) return { quoi: 'quetes', texte: quetes }
   if (aDejaJoue && isBasketFree(cosmetics)) return { quoi: 'panier', texte: 'Un panier offert t’attend' }
   return null
@@ -50,7 +57,10 @@ export function ARecuperer({ cosmetics, aDejaJoue, ouvrirEpicerie }: {
 }) {
   const board = useQuestBoard()
   const [quetesOuvertes, setQuetesOuvertes] = useState(false)
-  const ligne = ligneARecuperer(board, cosmetics, aDejaJoue)
+  // Le compte à rebours relit l'heure au retour au premier plan : c'est lui qui
+  // fait disparaître la ligne quand la journée a changé.
+  useDailyCountdown()
+  const ligne = ligneARecuperer(board, cosmetics, aDejaJoue, currentDailyDateKey())
   return <>
     {ligne ? <button type="button" className="mm-a-recuperer" onClick={ligne.quoi === 'quetes' ? () => setQuetesOuvertes(true) : ouvrirEpicerie}>
       {ligne.quoi === 'quetes' ? <ListChecks aria-hidden="true" /> : <Gift aria-hidden="true" />}

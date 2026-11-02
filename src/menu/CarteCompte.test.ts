@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { CARTE_COMPTE_REPOS_MS, carteCompteAMontrer, ceQuIlAGagne, reporterCarteCompte } from './CarteCompte'
 
 function stockage() {
@@ -26,6 +26,16 @@ describe('la carte qui propose le compte', () => {
     reporterCarteCompte(maintenant, memoire)
     expect(carteCompteAMontrer(true, 12, maintenant + CARTE_COMPTE_REPOS_MS - 1, memoire)).toBe(false)
     expect(carteCompteAMontrer(true, 12, maintenant + CARTE_COMPTE_REPOS_MS, memoire)).toBe(true)
+  })
+
+  it('un stockage bloqué ne fait pas tomber l’accueil', () => {
+    const refuse = { getItem: () => { throw new Error('bloqué') }, setItem: () => { throw new Error('bloqué') } }
+    expect(carteCompteAMontrer(true, 12, maintenant, refuse)).toBe(true)
+    expect(() => reporterCarteCompte(maintenant, refuse)).not.toThrow()
+    vi.stubGlobal('localStorage', undefined)
+    expect(carteCompteAMontrer(true, 12, maintenant)).toBe(true)
+    expect(() => reporterCarteCompte(maintenant)).not.toThrow()
+    vi.unstubAllGlobals()
   })
 
   it('dit ce que le joueur a gagné, avec ses chiffres', () => {

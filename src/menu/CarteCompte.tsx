@@ -17,18 +17,20 @@ export const CARTE_COMPTE_REPOS_MS = 3 * 24 * 60 * 60 * 1_000
 type Stockage = Pick<Storage, 'getItem' | 'setItem'>
 
 /** Un invité qui a déjà joué, et qui n'a pas dit « Plus tard » il y a moins de 3 jours. */
-export function carteCompteAMontrer(estInvite: boolean, xpTotale: number, maintenant = Date.now(), stockage: Stockage = localStorage): boolean {
+export function carteCompteAMontrer(estInvite: boolean, xpTotale: number, maintenant = Date.now(), stockage?: Stockage): boolean {
   if (!estInvite || xpTotale <= 0) return false
   try {
-    return Number(stockage.getItem(CLE) ?? 0) <= maintenant
+    // Lu ici et non en valeur par défaut : un navigateur qui bloque le stockage
+    // lève une erreur dès qu'on nomme `localStorage`, et l'accueil tombait avec.
+    return Number((stockage ?? localStorage).getItem(CLE) ?? 0) <= maintenant
   } catch {
     return true
   }
 }
 
-export function reporterCarteCompte(maintenant = Date.now(), stockage: Stockage = localStorage): void {
+export function reporterCarteCompte(maintenant = Date.now(), stockage?: Stockage): void {
   try {
-    stockage.setItem(CLE, String(maintenant + CARTE_COMPTE_REPOS_MS))
+    (stockage ?? localStorage).setItem(CLE, String(maintenant + CARTE_COMPTE_REPOS_MS))
   } catch {
     // Sans stockage, elle reviendra au prochain lancement.
   }
@@ -55,7 +57,7 @@ export function CarteCompte({ estInvite, xpTotale, plumes, niveau, creerCompte }
     <UserRoundCheck aria-hidden="true" />
     <div>
       <strong>Garde ce que tu as gagné</strong>
-      <p>{ceQuIlAGagne(plumes, niveau)} {pluriel ? 'sont' : 'est'} seulement sur cet appareil. Avec un compte, tu les retrouves partout.</p>
+      <p>{ceQuIlAGagne(plumes, niveau)} {pluriel ? 'sont' : 'est'} seulement sur cet appareil. Avec un compte, tu {pluriel ? 'les' : 'le'} retrouves partout.</p>
       <div className="mm-carte-compte-actions">
         <button type="button" className="principal" onClick={creerCompte}>Créer mon compte</button>
         <button type="button" onClick={() => { reporterCarteCompte(); setRangee(true) }}>Plus tard</button>

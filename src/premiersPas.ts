@@ -26,13 +26,14 @@ function envoyerAuServeur(etape: PremierPas): void {
 
 export function noterPremierPas(
   etape: PremierPas,
-  stockage: Stockage = localStorage,
+  stockage?: Stockage,
   envoyer: (etape: PremierPas) => void = envoyerAuServeur,
 ): void {
   try {
-    const dejaFaits = (stockage.getItem(CLE) ?? '').split(',')
+    const memoire = stockage ?? localStorage
+    const dejaFaits = (memoire.getItem(CLE) ?? '').split(',')
     if (dejaFaits.includes(etape)) return
-    stockage.setItem(CLE, [...dejaFaits.filter(Boolean), etape].join(','))
+    memoire.setItem(CLE, [...dejaFaits.filter(Boolean), etape].join(','))
   } catch {
     return
   }

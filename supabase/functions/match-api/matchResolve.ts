@@ -29,6 +29,11 @@ export function turnExpired(row: Pick<MatchRow, 'turn_ends_at'>, now = Date.now(
   return now >= new Date(row.turn_ends_at).getTime() + AUTOMATIC_SUBMIT_GRACE_MS
 }
 
+/** La main a changé, et celui qui la reçoit n'est pas celui qui lit la partie à l'instant. */
+export function mainAAnnoncer(aLaMain: string, avant: string, lecteur?: string): boolean {
+  return aLaMain !== avant && aLaMain !== lecteur
+}
+
 /**
  * `recuA` : l'instant où la requête du joueur est ARRIVÉE, et non celui où l'on
  * finit de la préparer. Entre les deux, `match-api` passe 814 ms en médiane et
@@ -85,7 +90,7 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
       closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)))
       row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (initializedBag || initializedFinale) row = await persist(admin, row)
-    if (turnAdvanced && row.current_player_id !== previousPlayerId && row.current_player_id !== lecteur) notifyCurrentTurn(admin, row)
+    if (turnAdvanced && mainAAnnoncer(row.current_player_id, previousPlayerId, lecteur)) notifyCurrentTurn(admin, row)
     return row
   } catch (error) {
     // Polling, Realtime and a simultaneous action can all notice the same

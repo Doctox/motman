@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { QuestBoard } from '../questBoardState'
-import type { QuestView } from '../quests'
-import { ligneARecuperer } from './ARecuperer'
+import { weekKey, type QuestView } from '../quests'
+import { ligneARecuperer as ligne } from './ARecuperer'
 
 const quete = (done: boolean, claimed = false): QuestView => ({
   id: `q-${Math.random()}`, title: 'Quête', hint: '', counter: 'lettres', target: 1, progress: done ? 1 : 0, done, claimed,
 }) as QuestView
 
+const AUJOURDHUI = '2026-11-02'
+const ligneARecuperer = (board: QuestBoard | null, cosmetics: Parameters<typeof ligne>[1], aDejaJoue: boolean, jour = AUJOURDHUI) => ligne(board, cosmetics, aDejaJoue, jour)
+
 const tableau = (jour: boolean[], semaine = false, semainePrise = false): QuestBoard => ({
+  dayKey: AUJOURDHUI,
+  weekKey: weekKey(AUJOURDHUI),
   day: jour.map(faite => quete(faite)),
   week: quete(semaine, semainePrise),
 }) as QuestBoard
@@ -41,6 +46,17 @@ describe('la ligne « À récupérer » de l’accueil', () => {
     expect(ligneARecuperer(tableau([false, false, false]), premier, false)).toBeNull()
     expect(ligneARecuperer(tableau([false, false, false]), premier, true)).toEqual({ quoi: 'panier', texte: 'Un panier offert t’attend' })
     expect(ligneARecuperer(tableau([false, false, false]), { ...rien, freeBaskets: 1 }, true)?.quoi).toBe('panier')
+  })
+
+  it('appli restée ouverte la nuit : ne promet pas les quêtes d’hier, perdues à minuit', () => {
+    const hier = tableau([true, true, false])
+    expect(ligneARecuperer(hier, rien, true, '2026-11-03')).toBeNull()
+  })
+
+  it('garde la quête de la semaine jusqu’au dimanche, pas au-delà', () => {
+    const avecSemaine = tableau([false, false, false], true)
+    expect(ligneARecuperer(avecSemaine, rien, true, '2026-11-03')?.texte).toBe('1 quête finie · 1 gel de série')
+    expect(ligneARecuperer(avecSemaine, rien, true, '2026-11-09')).toBeNull()
   })
 
   it('ne montre qu’une ligne : les quêtes d’abord, elles se perdent à minuit', () => {
