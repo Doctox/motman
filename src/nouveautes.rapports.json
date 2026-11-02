@@ -336,5 +336,10 @@
     "ajoute": "2026-11-02T14:23",
     "titre": "Après le niveau 50, les étoiles",
     "texte": "La barre ne s’arrête plus : passé le niveau 50, chaque 2 000 XP te donne une étoile, sur ton profil et à l’accueil."
+  },
+  {
+    "ajoute": "2026-11-02T15:33",
+    "titre": "Ton carnet de timbres",
+    "texte": "Chaque défi joué ajoute un timbre à ton carnet, dans ton profil. Un jour manqué n’en retire aucun, et des titres t’attendent en chemin."
   }
 ]

@@ -24,7 +24,10 @@ export type FrameDefinition = {
   glow?: string
   pricePlumes: number
   rarity: CosmeticRarity
-  availability: 'starter' | 'epicerie'
+  /** `easter-egg` : ni en vente ni dans un panier, il se mérite ailleurs (le carnet). */
+  availability: 'starter' | 'epicerie' | 'easter-egg'
+  /** Le nombre de timbres qui donne ce cadre. Le serveur tient le même dans `stamp_book_frames`. */
+  carnet?: number
 }
 
 export type AnimationDefinition = {

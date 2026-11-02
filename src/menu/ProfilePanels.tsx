@@ -8,6 +8,7 @@ import { etoileSuivante, etoilesDuJoueur, experienceGoalForLevel, MAX_PLAYER_LEV
 import { rankImage, rankedDivision } from '../ranked'
 import { EMPTY_PLAYER_STATS, loadPlayerStats, type PlayerStats } from '../playerStats'
 import { loadRankedLeaderboard, type RankedLeaderboard, type RankedMatchmakingState } from '../rankedMatchmaking'
+import { LigneDuCarnet } from './Carnet'
 import { ChronoRecherche } from './ChronoRecherche'
 import { useDialogFocus } from '../useDialogFocus'
 import { DailyLeaderboardPanel } from './DailyChallenge'
@@ -182,6 +183,7 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openAccount, 
   return <div className="mm-page mm-profile-page">
     <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{etoiles ? etoiles.etoiles ? nombreDEtoiles(etoiles.etoiles) : 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{etoiles ? <><strong>{frenchNumber.format(etoiles.xp)}</strong> / {frenchNumber.format(XP_PAR_ETOILE)} XP vers la {etoileSuivante(etoiles.etoiles)}</> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
+    <LigneDuCarnet titres={progress.titles} />
     <PlayerStatsPanel jouer={jouerPremierePartie} />
     {/* La bourse, et plus l'entrée de l'Épicerie : celle-ci a son onglet depuis
         qu'elle est dans la barre du bas. Le solde reste ici parce qu'il n'a rien
@@ -244,7 +246,7 @@ export function EditGuestPanel({ identity, progress, cosmetics, close, save }: {
       })}</div></fieldset>
       <fieldset><legend>Titre</legend><div className="mm-owned-title-grid">
         <button type="button" className={titleId === null ? 'active' : ''} aria-pressed={titleId === null} onClick={() => setTitleId(null)}><strong>Sans titre</strong><small>Profil épuré</small></button>
-        {progress.titles.map(title => <button type="button" disabled={!title.unlocked} className={titleId === title.id ? 'active' : ''} aria-pressed={titleId === title.id} onClick={() => title.unlocked && setTitleId(title.id)} key={title.id}><strong>{title.name}</strong><small>{title.unlocked ? title.description : title.unlockType === 'level' ? `Niveau ${title.requiredValue}` : 'Classement'}</small></button>)}
+        {progress.titles.map(title => <button type="button" disabled={!title.unlocked} className={titleId === title.id ? 'active' : ''} aria-pressed={titleId === title.id} onClick={() => title.unlocked && setTitleId(title.id)} key={title.id}><strong>{title.name}</strong><small>{title.unlocked ? title.description : title.unlockType === 'level' ? `Niveau ${title.requiredValue}` : title.unlockType === 'special' ? `${title.requiredValue} timbres` : 'Classement'}</small></button>)}
       </div></fieldset>
       {error ? <p className="mm-account-error" role="alert">{error}</p> : null}
       </div>

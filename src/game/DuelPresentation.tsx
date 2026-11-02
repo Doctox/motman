@@ -7,6 +7,7 @@ import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from
 import { GameResultScreen } from '../GameResultScreen'
 import { dailyShareText, saveDailyShare, type DailyShareInput } from '../dailyShare'
 import { loadDailyLeaderboard } from '../dailyLeaderboard'
+import { TimbreDuJour } from '../menu/Carnet'
 import { DailyStreakReward } from '../menu/DailyChallenge'
 import { DailyShareButton } from '../menu/DailyShareButton'
 import {
@@ -264,6 +265,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
     avantRecompense={match.mode === 'ranked' && match.rankedRating ? <CarteClassee classement={match.rankedRating} /> : null}
   >
     {dailyEffects ? <DailyStreakReward effects={dailyEffects} /> : null}
+    {dailyEffects && match.dailyDate ? <TimbreDuJour playerId={playerId} jour={match.dailyDate} gagne={won} /> : null}
     {dailyShare ? <DailyShareButton text={dailyShare} /> : null}
     {experienceAward && quetes ? <QuetesDeLaFin quetes={quetes} /> : null}
     {panierOffert ? <p className="result-premier-panier">
