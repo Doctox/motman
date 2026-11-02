@@ -1,3 +1,4 @@
+import { evenementDeChaineValide, type EvenementDeChaine } from './game/chaineDuTour'
 import { enDirectValide, type EnDirect } from './game/lettresEnDirect'
 import { supabase, supabaseConfigured } from './supabaseClient'
 
@@ -11,13 +12,16 @@ export type MatchRealtimeStatus = 'connected' | 'disconnected'
  * solution and the opponent's rack.
  *
  * Une seule exception (02/11/2026) : `lettres`, les lettres que l'adversaire vient
- * de poser, sans dire si elles sont justes (game/lettresEnDirect.ts).
+ * de poser, sans dire si elles sont justes (game/lettresEnDirect.ts). Et `chaine`,
+ * les lettres d'un tour de duel en chaîne, justes et déjà sur le plateau : une lettre
+ * ne fait plus relire la partie à celui qui attend (game/chaineDuTour.ts).
  */
 export function subscribeToMatchUpdates(
   matchId: string,
   onUpdate: (updatedAt: string | null) => void,
   onStatus?: (status: MatchRealtimeStatus) => void,
   onLettres?: (enDirect: EnDirect) => void,
+  onChaine?: (evenement: EvenementDeChaine) => void,
 ): () => void {
   if (!supabaseConfigured || localTestServer) {
     onStatus?.('disconnected')
@@ -33,6 +37,10 @@ export function subscribeToMatchUpdates(
     .on('broadcast', { event: 'lettres' }, message => {
       const enDirect = enDirectValide(message.payload)
       if (enDirect) onLettres?.(enDirect)
+    })
+    .on('broadcast', { event: 'chaine' }, message => {
+      const evenement = evenementDeChaineValide(message.payload)
+      if (evenement) onChaine?.(evenement)
     })
     .subscribe(status => {
       if (status === 'SUBSCRIBED') onStatus?.('connected')

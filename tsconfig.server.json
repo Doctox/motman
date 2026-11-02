@@ -33,6 +33,7 @@
     "supabase/functions/match-api/matchModel.ts",
     "supabase/functions/match-api/matchGrid.ts",
     "supabase/functions/match-api/matchTurns.ts",
+    "supabase/functions/match-api/matchChaine.ts",
     "supabase/functions/match-api/matchDrafts.ts",
     "supabase/functions/match-api/matchSetup.ts",
     "supabase/functions/match-api/botDelay.ts",

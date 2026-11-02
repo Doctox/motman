@@ -28,6 +28,32 @@ describe('matchPollDelay', () => {
     expect(matchPollDelay({ match: botMatch, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(1_250)
   })
 
+  describe('en duel en chaîne', () => {
+    const CHAINE = { tour: 2, lettres: [], letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0 }
+    const adversaire = { playerId: 'opponent', displayName: 'Camille', level: 4, avatarId: 'plume', frameId: 'cadre-ivoire' }
+    const delai = (partie: MatchState, connecte: boolean, now = 2_000) => matchPollDelay({ match: partie, playerId: 'player', visibility: 'visible', realtimeConnected: connecte, unchangedPolls: 0, failureCount: 0, now })
+
+    it('on vient voir sa prochaine lettre à son heure, pas toutes les 1,25 s pendant 30 s', () => {
+      const partie = match({ chaine: CHAINE, bot: adversaire, nextCheckAt: new Date(5_000).toISOString() })
+      expect(delai(partie, true)).toBe(3_250)
+      expect(delai(partie, false)).toBe(3_250)
+      expect(delai(partie, true, 4_900), 'jamais en rafale').toBe(1_250)
+    })
+
+    it('celui qui attend un humain garde son filet : les lettres passent par le temps réel', () => {
+      const partie = match({ chaine: CHAINE, nextCheckAt: new Date(5_000).toISOString(), turnEndsAt: new Date(31_000).toISOString() })
+      expect(delai(partie, true), 'et l’heure de rappel ne le fait pas sonder en rafale').toBe(8_000)
+      expect(delai(partie, true, 6_000)).toBe(8_000)
+      expect(delai(partie, false)).toBe(2_000)
+    })
+
+    it('celui qui joue n’a pas besoin de relire : chaque réponse lui donne tout', () => {
+      const partie = match({ chaine: CHAINE, currentPlayerId: 'player', turnEndsAt: new Date(31_000).toISOString() })
+      expect(delai(partie, true)).toBe(12_000)
+      expect(delai(partie, false)).toBe(12_000)
+    })
+  })
+
   it('revient voir au plus tard à l’heure où le fantôme du propriétaire jouera, jamais en rafale', () => {
     const fantome = match({ mode: 'ranked', nextCheckAt: new Date(20_000).toISOString() })
     // Son coup est prévu à 20 s : on revient au plus tard à 20,25 s, et non

@@ -12,10 +12,11 @@ import { DailyStreakReward } from '../menu/DailyChallenge'
 import { DailyShareButton } from '../menu/DailyShareButton'
 import {
   acknowledgeMatchResult,
-  type MatchPace,
   type MatchState,
   type PendingMatchResult,
+  type RythmeChoisi,
 } from '../matches'
+import { rythmeDeLaPartie } from './chaineDuTour'
 import type { ExperienceAward } from '../playerProgress'
 import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RANKED_PLACEMENT_MATCHES } from '../ranked'
 import { raisonSansPoints } from '../menu/classementEnClair'
@@ -145,7 +146,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
   onEpicerie?: () => void
   revanche?: Revanche
   /** « Rejouer » : la même recherche, au même rythme (N3, 22/10/2026). */
-  rejouer?: (pace: MatchPace) => void
+  rejouer?: (rythme: RythmeChoisi) => void
   /** « Rejouer en classée » : la file classée, sans détour (C2, 22/10/2026). */
   rejouerClassee?: () => void
 }) {
@@ -272,7 +273,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
     : match.isDaily
       ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Jouer une partie</button>
       : rejouer && (match.mode === 'normal' || match.mode === 'solo')
-        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(premiereSansChrono ? 'realtime' : match.pace))}><RotateCcw aria-hidden="true" />{premiereSansChrono ? 'Rejouer · 45 s par tour' : 'Rejouer'}</button>
+        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(premiereSansChrono ? 'realtime' : rythmeDeLaPartie(match)))}><RotateCcw aria-hidden="true" />{premiereSansChrono ? 'Rejouer · 45 s par tour' : 'Rejouer'}</button>
         : <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Nouvelle partie</button>
   return <GameResultScreen
     outcome={draw ? 'draw' : won ? 'win' : 'loss'}

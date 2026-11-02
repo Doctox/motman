@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import type { MatchState } from '../matches'
 import { useReadingWindow } from './ReadingWindow'
 import { serverNow } from '../serverClock'
+import { SECONDES_DU_TOUR_DE_CHAINE } from './chaineDuTour'
 
 const ASYNC_TURN_DURATION_SECONDS = 24 * 60 * 60
 
-function turnClockLabel(seconds: number, async: boolean): string {
-  if (!async) return String(Math.min(45, seconds))
+function turnClockLabel(seconds: number, async: boolean, plafond = 45): string {
+  if (!async) return String(Math.min(plafond, seconds))
   const visibleSeconds = Math.min(ASYNC_TURN_DURATION_SECONDS, seconds)
   if (visibleSeconds >= 3_600) return `${Math.ceil(visibleSeconds / 3_600)}h`
   if (visibleSeconds >= 60) return `${Math.ceil(visibleSeconds / 60)}m`
@@ -92,7 +93,7 @@ export function TurnTimer({ match, resolving }: { match: MatchState; resolving: 
     if (lectureRestante !== null) return String(lectureRestante)
     if (match.status !== 'active' || resolving) return '—'
     const seconds = Math.max(0, Math.ceil((new Date(match.turnEndsAt).getTime() - serverNow()) / 1_000))
-    return turnClockLabel(seconds, match.pace === 'async')
+    return turnClockLabel(seconds, match.pace === 'async', match.chaine ? SECONDES_DU_TOUR_DE_CHAINE : undefined)
   }
   // L'anneau autour du chiffre se vide avec le tour, comme une tasse qui
   // refroidit (A3). Plein pendant la lecture et la révélation : rien ne court.

@@ -36,6 +36,9 @@ export function matchPollDelay({
   if (!match) return realtimeConnected ? 8_000 : 2_000
 
   const botIsThinking = Boolean(match.bot && match.currentPlayerId === match.bot.playerId)
+  // En chaîne, ses lettres n'arrivent que si on lit la partie : on vient à l'heure de la
+  // prochaine, que le serveur donne, plutôt que toutes les 1,25 s pendant 30 s.
+  if (botIsThinking && match.chaine && match.nextCheckAt) return Math.max(1_250, Date.parse(match.nextCheckAt) - now + 250)
   if (botIsThinking) return 1_250
 
   const untilTurnBoundary = Math.max(0, new Date(match.turnEndsAt).getTime() - now + 180)
@@ -43,9 +46,12 @@ export function matchPollDelay({
   const unchangedBackoff = Math.min(8_000, Math.floor(Math.max(0, unchangedPolls) / 2) * 1_000)
 
   const ownTurn = match.currentPlayerId === playerId
-  const fallback = match.pace === 'async'
-    ? realtimeConnected ? 30_000 : 8_000
-    : realtimeConnected ? ownTurn ? 12_000 : 8_000 : ownTurn ? 3_000 : 2_000
+  // En chaîne, chaque réponse à une lettre donne déjà tout à celui qui joue.
+  const fallback = match.chaine && ownTurn
+    ? 12_000
+    : match.pace === 'async'
+      ? realtimeConnected ? 30_000 : 8_000
+      : realtimeConnected ? ownTurn ? 12_000 : 8_000 : ownTurn ? 3_000 : 2_000
   const ordinaire = Math.min(fallback + unchangedBackoff, boundaryDelay)
 
   // QUAND REVENIR VOIR. Le fantôme du propriétaire n'est pas annoncé comme bot,
@@ -57,7 +63,8 @@ export function matchPollDelay({
   // ordinaire visait déjà. Jamais sous 1,25 s, comme pour un bot qui réfléchit :
   // un coup qui tarde ne doit pas faire sonder en rafale jusqu'à « Trop de
   // requêtes ».
-  if (match.nextCheckAt && !ownTurn) {
+  // Pas en chaîne : cette heure-là tomberait en plein tour, et il resterait 1,25 s entre deux lectures.
+  if (match.nextCheckAt && !ownTurn && !match.chaine) {
     return Math.min(ordinaire, Math.max(1_250, Date.parse(match.nextCheckAt) - now + 250))
   }
   return ordinaire

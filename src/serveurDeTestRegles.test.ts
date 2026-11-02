@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { revealDuration } from '../supabase/functions/match-api/matchTurns'
 import { AUTOMATIC_TURN_SUBMIT_GRACE_MS, CADENCE_LOCALE } from '../server/match/config'
 import { grids } from '../server/match/gridCatalog'
-import { echeancePresence, filtrerCoup, grilleDeRegles, jouerCoup, nouvellePartie } from '../server/match/regles'
+import { echeancePresence, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup, nouvellePartie, poserLettre } from '../server/match/regles'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LE SERVEUR DE TEST JOUE AVEC LES VRAIES RÈGLES (22/10/2026, code K1).
@@ -122,5 +122,42 @@ describe('un coup sur le serveur de test se juge comme en production', () => {
     const { match } = partie()
     match.inactivity[HOTE] = 1
     expect(echeancePresence(match)).toBe(Date.parse(match.turnStartedAt) + CADENCE_LOCALE.fenetrePresenceMs)
+  })
+})
+
+describe('un duel en chaîne sur le serveur de test se joue comme en production', () => {
+  const HOTE = 'guest_00000000-0000-4000-8000-000000000001'
+  const INVITE = 'guest_00000000-0000-4000-8000-000000000002'
+  const partie = () => {
+    const match = nouvellePartie({ id: 'chaine', hostId: HOTE, guestId: INVITE, mode: 'normal', pace: 'realtime', grid: grids[0], invitationId: null, bot: null, now: new Date(Date.now() - 60_000), turnMs: 120_000, variante: 'chaine' })
+    return match
+  }
+  const coup = (match: ReturnType<typeof partie>) => {
+    const regles = grilleDeRegles(match)
+    const letter = match.racks[HOTE][0]
+    return { cellIndex: regles.cells.findIndex((cell, index) => cell.kind === 'letter' && cell.solution === letter && !match.board[index]), letter }
+  }
+
+  it('une lettre juste, puis son renvoi : un seul point, le même verdict, et le tour continue', () => {
+    const match = partie()
+    expect(match.chaine?.lettres).toEqual([])
+    const lettre = coup(match)
+    const demande = { turnNumber: 1, numero: 1, ...lettre }
+    const reponse = poserLettre(match, HOTE, demande, Date.now())
+    expect(reponse.lettre).toEqual({ numero: 1, statut: 'jouee', juste: true })
+    expect(match.scores[HOTE]).toBeGreaterThanOrEqual(1)
+    const score = match.scores[HOTE]
+    expect(poserLettre(match, HOTE, demande, Date.now()).lettre.statut).toBe('deja-jugee')
+    expect(match.scores[HOTE]).toBe(score)
+    expect(match.currentPlayerId).toBe(HOTE)
+    expect(match.chaine?.lettres).toHaveLength(1)
+  })
+
+  it('« Passer » ferme le tour, et le tour suivant dure ce que dit la cadence de la chaîne', () => {
+    const match = partie()
+    fermerChaine(match, { echu: false, absence: false })
+    expect(match.currentPlayerId).toBe(INVITE)
+    expect(match.chaine?.tour).toBe(2)
+    expect(Date.parse(match.turnEndsAt) - Date.parse(match.turnStartedAt)).toBe(120_000)
   })
 })

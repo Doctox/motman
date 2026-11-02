@@ -1,14 +1,18 @@
 import type { SocialUser } from './social'
 import type { GeneratedGrid } from './generator'
 import { hasSupabaseSession } from './supabaseClient'
-import { FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, RELANCES_FIN_DE_TOUR, type Relances } from './supabaseFunctions'
+import { FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, RELANCES_FIN_DE_TOUR, RELANCES_LETTRE, type Relances } from './supabaseFunctions'
 import type { EnDirect } from './game/lettresEnDirect'
 import type { BoardSnapshot } from './matchBoardSnapshot'
 import type { MatchHistoryOutcome } from './matchHistory'
 
 export type MatchPace = 'realtime' | 'async'
 export type MatchMode = 'solo' | 'friend' | 'normal' | 'ranked'
-export type MatchSearch = { id: string; pace: MatchPace; createdAt: string }
+/** Un duel en chaîne est une partie en temps limité : `pace` vaut `realtime` (match-api/matchModel.ts). */
+export type MatchVariante = 'classique' | 'chaine'
+/** Ce que le joueur choisit : un rythme, ou le duel en chaîne. */
+export type RythmeChoisi = MatchPace | 'chaine'
+export type MatchSearch = { id: string; pace: MatchPace; variante?: MatchVariante; createdAt: string }
 export type MatchHistoryEntry = {
   id: string
   mode: 'solo' | 'multiplayer'
@@ -44,6 +48,7 @@ export type MatchInvitation = {
   hostId: string
   guestId: string
   pace: MatchPace
+  variante?: MatchVariante
   createdAt: string
   expiresAt: string
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired'
@@ -73,6 +78,16 @@ export type MatchTurn = {
    * (16/10/2026, voir saveMatchDraft).
    */
   fromDraft?: boolean
+}
+
+/** Le tour de chaîne en cours (match-api/matchChaine.ts) : tout y est déjà public. */
+export type EtatDeChaine = {
+  tour: number
+  lettres: Array<{ cellIndex: number; letter: string }>
+  letterPoints: number
+  wordBonuses: MatchTurn['wordBonuses']
+  rackBonus: number
+  scoreGained: number
 }
 
 export type MatchState = {
@@ -139,6 +154,17 @@ export type MatchState = {
   // fin d'enregistrer la série via recordDailyResult(). Absents pour un match normal.
   isDaily?: boolean
   dailyDate?: string
+  /** Présent : c'est un duel en chaîne. */
+  chaine?: EtatDeChaine | null
+}
+
+/**
+ * La réponse à une lettre : le verdict de CETTE lettre, puis ce qui a changé. Le
+ * plateau complet n'accompagne que la fin d'un tour (match-api/matchChaine.ts).
+ */
+export type ReponseDeLettre = {
+  lettre: { numero: number; statut: 'jouee' | 'deja-jugee' | 'refusee'; juste?: boolean; raison?: string }
+  partie: Pick<MatchState, 'id' | 'status' | 'winnerId' | 'finishReason' | 'currentPlayerId' | 'turnNumber' | 'turnStartedAt' | 'turnEndsAt' | 'racks' | 'scores' | 'productiveTurns' | 'inactivity' | 'presenceAck' | 'presenceDeadline' | 'lastTurn' | 'chaine' | 'updatedAt' | 'serverTime'> & { board?: MatchState['board'] }
 }
 
 export type MatchLobbyState = {
@@ -178,10 +204,15 @@ export async function loadMatchLobby(playerId: string): Promise<MatchLobbyState>
   return supabaseMatch<MatchLobbyState>('state')
 }
 
-export async function createInstantMatch(playerId: string, targetId: string, pace: MatchPace): Promise<MatchLobbyState> {
-  if (localTestServer) return localMatch('create', { playerId, targetId, pace })
+/** Le rythme choisi, tel que le serveur le lit : une chaîne, c'est du temps limité de variante `chaine`. */
+function corpsDuRythme(rythme: RythmeChoisi): { pace: MatchPace; variante?: MatchVariante } {
+  return rythme === 'chaine' ? { pace: 'realtime', variante: 'chaine' } : { pace: rythme }
+}
+
+export async function createInstantMatch(playerId: string, targetId: string, rythme: RythmeChoisi): Promise<MatchLobbyState> {
+  if (localTestServer) return localMatch('create', { playerId, targetId, ...corpsDuRythme(rythme) })
   void playerId
-  return supabaseMatch<MatchLobbyState>('create', { targetId, pace })
+  return supabaseMatch<MatchLobbyState>('create', { targetId, ...corpsDuRythme(rythme) })
 }
 
 export async function respondToMatchInvitation(playerId: string, invitationId: string, decision: 'accept' | 'decline'): Promise<MatchLobbyState> {
@@ -196,10 +227,10 @@ export async function cancelMatchInvitation(playerId: string, invitationId: stri
   return supabaseMatch<MatchLobbyState>('cancel', { invitationId })
 }
 
-export async function searchNormalMatch(playerId: string, pace: MatchPace): Promise<{ lobby: MatchLobbyState; matchId: string | null }> {
-  if (localTestServer) return localMatch('search', { playerId, pace })
+export async function searchNormalMatch(playerId: string, rythme: RythmeChoisi): Promise<{ lobby: MatchLobbyState; matchId: string | null }> {
+  if (localTestServer) return localMatch('search', { playerId, ...corpsDuRythme(rythme) })
   void playerId
-  return supabaseMatch<{ lobby: MatchLobbyState; matchId: string | null }>('search', { pace })
+  return supabaseMatch<{ lobby: MatchLobbyState; matchId: string | null }>('search', corpsDuRythme(rythme))
 }
 
 export async function cancelNormalSearch(playerId: string, pace: MatchPace): Promise<MatchLobbyState> {
@@ -237,7 +268,8 @@ export function isDailyClosedError(reason: unknown): boolean {
   return (reason as { payload?: { code?: unknown } } | null)?.payload?.code === 'DAILY_CLOSED'
 }
 
-export async function loadMatch(playerId: string, matchId: string, knownUpdatedAt?: string, surEnDirect?: (enDirect: EnDirect) => void): Promise<MatchState | null> {
+/** `knownGridId` : en chaîne, celui qui a déjà la grille ne la reçoit pas à chaque relecture. */
+export async function loadMatch(playerId: string, matchId: string, knownUpdatedAt?: string, surEnDirect?: (enDirect: EnDirect) => void, knownGridId?: string): Promise<MatchState | null> {
   if (localTestServer) {
     const query = new URLSearchParams({ playerId, ...(knownUpdatedAt ? { since: knownUpdatedAt } : {}) })
     const local = await localMatch<(MatchState & { enDirect?: EnDirect; unchanged?: boolean }) | null>(`match/${encodeURIComponent(matchId)}?${query}`)
@@ -245,7 +277,7 @@ export async function loadMatch(playerId: string, matchId: string, knownUpdatedA
     return local?.unchanged ? null : local
   }
   void playerId
-  const remote = await supabaseMatch<{ match?: MatchState; unchanged?: boolean; enDirect?: EnDirect }>('match', { matchId, knownUpdatedAt })
+  const remote = await supabaseMatch<{ match?: MatchState; unchanged?: boolean; enDirect?: EnDirect }>('match', { matchId, knownUpdatedAt, ...(knownGridId ? { knownGridId } : {}) })
   if (remote.enDirect) surEnDirect?.(remote.enDirect)
   return remote.unchanged ? null : remote.match ?? null
 }
@@ -254,6 +286,21 @@ export async function playMatchTurn(playerId: string, matchId: string, turnNumbe
   if (localTestServer) return localMatch('turn', { playerId, matchId, turnNumber, placements, automatic, knownUpdatedAt })
   void playerId
   return supabaseMatch<{ match: MatchState; result: MatchTurn }>('turn', { matchId, turnNumber, placements, automatic, knownUpdatedAt }, FUNCTION_TIMEOUT_MS, automatic ? RELANCES_FIN_DE_TOUR : undefined)
+}
+
+/** Une lettre qui n'est pas arrivée au bout de ce délai revient au chevalet : le tour n'en dure que 30 s. */
+const LETTRE_DELAI_MS = 12_000
+
+/**
+ * UNE LETTRE DU DUEL EN CHAÎNE (02/11/2026) : jugée dès qu'elle arrive au serveur.
+ * Relancée si l'appel reste muet : son numéro la rend sans effet si elle est déjà
+ * passée (match-api/matchChaine.ts). `partieA` : l'heure du serveur, selon le
+ * téléphone, à son départ. Une lettre partie à temps n'est pas perdue en route.
+ */
+export async function poserLettreDeChaine(playerId: string, matchId: string, lettre: { turnNumber: number; numero: number; cellIndex: number; letter: string; partieA: number }): Promise<ReponseDeLettre> {
+  if (localTestServer) return localMatch('lettre', { playerId, matchId, ...lettre })
+  void playerId
+  return supabaseMatch<ReponseDeLettre>('lettre', { matchId, ...lettre }, LETTRE_DELAI_MS, RELANCES_LETTRE)
 }
 
 /** Un brouillon qui traîne ne sert plus à rien : le suivant le remplace. */

@@ -11,16 +11,16 @@
 // recherche ne doit jamais repartir d'elle-même au prochain lancement de l'appli.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MatchPace } from './matches'
+import type { RythmeChoisi } from './matches'
 
-let enAttente: MatchPace | null = null
+let enAttente: RythmeChoisi | null = null
 
-export function demanderRechercheAuRetour(pace: MatchPace): void {
-  enAttente = pace
+export function demanderRechercheAuRetour(rythme: RythmeChoisi): void {
+  enAttente = rythme
 }
 
 /** La recherche à lancer, une seule fois : la lire l'efface. */
-export function prendreRechercheAuRetour(): MatchPace | null {
+export function prendreRechercheAuRetour(): RythmeChoisi | null {
   const pace = enAttente
   enAttente = null
   return pace

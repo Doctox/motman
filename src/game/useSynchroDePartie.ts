@@ -3,6 +3,7 @@ import { startAdaptivePolling, type AdaptivePollingController } from '../adaptiv
 import { loadMatch, type MatchState } from '../matches'
 import { subscribeToMatchUpdates } from '../matchRealtime'
 import { erreurDeSynchroAffichee, matchPollDelay } from '../matchSyncPolicy'
+import type { EvenementDeChaine } from './chaineDuTour'
 import type { EnDirect } from './lettresEnDirect'
 
 /**
@@ -24,7 +25,7 @@ export function partieIntrouvable(reason: unknown): boolean {
  * qu'en e2e. `marquerAJour` remet les compteurs à zéro quand une version de la
  * partie arrive par un autre chemin (un coup validé, un conflit récupéré).
  */
-export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, recupererConflit, partieDisparue, recevoirEnDirect, setError }: {
+export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError }: {
   matchId: string
   playerId: string
   /** La partie connue, pour ne demander que ce qui a changé. */
@@ -37,6 +38,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   partieDisparue: () => void
   /** Les lettres de l'adversaire, par le sondage comme par le temps réel. */
   recevoirEnDirect?: (enDirect: EnDirect) => void
+  /** Une lettre de duel en chaîne, arrivée par le temps réel. */
+  recevoirChaine?: (evenement: EvenementDeChaine) => void
   setError: Dispatch<SetStateAction<string | null>>
 }): { pollingRef: RefObject<AdaptivePollingController | null>; marquerAJour: () => void } {
   const pollingRef = useRef<AdaptivePollingController | null>(null)
@@ -45,8 +48,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   const echecs = useRef(0)
   const erreurAffichee = useRef<string | null>(null)
   // Les rappels changent à chaque rendu ; le sondage, lui, vit tant que l'écran.
-  const rappels = useRef({ appliquer, recupererConflit, partieDisparue, recevoirEnDirect, setError })
-  rappels.current = { appliquer, recupererConflit, partieDisparue, recevoirEnDirect, setError }
+  const rappels = useRef({ appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError })
+  rappels.current = { appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError }
 
   const marquerAJour = useCallback(() => {
     sondagesInchanges.current = 0
@@ -58,7 +61,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
     let vivant = true
     const sync = async () => {
       try {
-        const next = await loadMatch(playerId, matchId, partieRef.current?.updatedAt, enDirect => { if (vivant) rappels.current.recevoirEnDirect?.(enDirect) })
+        const connue = partieRef.current
+        const next = await loadMatch(playerId, matchId, connue?.updatedAt, enDirect => { if (vivant) rappels.current.recevoirEnDirect?.(enDirect) }, connue?.chaine ? connue.gridId : undefined)
         if (!vivant) return
         if (!next) {
           sondagesInchanges.current += 1
@@ -106,7 +110,7 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
     }, status => {
       tempsReelConnecte.current = status === 'connected'
       if (status === 'connected') polling.wake()
-    }, enDirect => rappels.current.recevoirEnDirect?.(enDirect))
+    }, enDirect => rappels.current.recevoirEnDirect?.(enDirect), evenement => rappels.current.recevoirChaine?.(evenement))
     return () => {
       vivant = false
       pollingRef.current = null

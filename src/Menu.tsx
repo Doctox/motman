@@ -12,7 +12,7 @@ import type { MenuRealtimeStatus, MenuWakeupScope } from './menuRealtime'
 import { BOT_SEARCH_MS, BOT_SEARCH_WAKE_MARGIN_MS, lobbyMenuPollDelay, socialMenuPollDelay } from './menuSyncPolicy'
 import {
   acknowledgeMatchResult, cancelMatchInvitation, cancelNormalSearch, createDailyMatch, createInstantMatch, EMPTY_MATCH_LOBBY, isDailyClosedError, loadMatchLobby,
-  respondToMatchInvitation, searchNormalMatch, type MatchLobbyState, type MatchPace,
+  respondToMatchInvitation, searchNormalMatch, type MatchLobbyState, type MatchPace, type RythmeChoisi,
 } from './matches'
 import { PendingResultPanel } from './game/DuelPresentation'
 import { clearDeliveredPushNotifications } from './nativePushNotifications'
@@ -27,6 +27,7 @@ import { noterPremierPas } from './premiersPas'
 import { useDailyChallenge } from './menu/DailyChallenge'
 import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
+import { paceDuRythme } from './game/chaineDuTour'
 import { MatchInvitationPanel, MatchWaitingPanel } from './menu/MatchActivityPanels'
 import { PlayPage, type PlayTabId } from './menu/PlayPage'
 import { EditGuestPanel, ProfilePage, RankingPage } from './menu/ProfilePanels'
@@ -455,9 +456,9 @@ export function MenuApp({
     setMatchLobby(EMPTY_MATCH_LOBBY)
   }
 
-  const inviteFriend = async (friendId: string, pace: MatchPace) => {
+  const inviteFriend = async (friendId: string, rythme: RythmeChoisi) => {
     try {
-      const next = await createInstantMatch(identity.playerId, friendId, pace)
+      const next = await createInstantMatch(identity.playerId, friendId, rythme)
       setMatchLobby(next)
       // L'ami m'avait déjà invité au même rythme : le serveur a accepté son
       // invitation au lieu d'en créer une seconde, et la partie existe déjà.
@@ -468,7 +469,7 @@ export function MenuApp({
         onStartMatch(dejaCommencee.id)
         return
       }
-      if (pace === 'async') notify('Invitation envoyée · Tu peux continuer')
+      if (rythme === 'async') notify('Invitation envoyée · Tu peux continuer')
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Invitation impossible')
     }
@@ -481,12 +482,14 @@ export function MenuApp({
     finally { setMatchBusy(false) }
   }
 
-  const beginNormalSearch = async (pace: MatchPace, premierePartie = false) => {
+  const beginNormalSearch = async (rythme: RythmeChoisi, premierePartie = false) => {
     partiesAvantRecherche.current = new Set(matchLobby.active.map(match => match.id))
     rechercheEnregistree.current = false
+    // Une recherche en chaîne est une ligne en temps limité de la file.
+    const pace = paceDuRythme(rythme)
     setPendingSearch(pace)
     try {
-      const result = await searchNormalMatch(identity.playerId, pace)
+      const result = await searchNormalMatch(identity.playerId, rythme)
       rechercheEnregistree.current = true
       setMatchLobby(result.lobby)
       if (result.matchId) {
@@ -506,8 +509,8 @@ export function MenuApp({
   useEffect(() => {
     if (rechercheAuRetourLancee.current) return
     rechercheAuRetourLancee.current = true
-    const pace = prendreRechercheAuRetour()
-    if (pace) void beginNormalSearch(pace)
+    const rythme = prendreRechercheAuRetour()
+    if (rythme) void beginNormalSearch(rythme)
     // Une seule fois, à l'arrivée du menu : `beginNormalSearch` change à chaque rendu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

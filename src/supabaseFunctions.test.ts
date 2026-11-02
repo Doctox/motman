@@ -139,4 +139,8 @@ describe('l’envoi de fin de tour', () => {
   it('le brouillon de lettres se rejoue sans risque', () => {
     expect(isReplayable('match-api', { action: 'draft' })).toBe(true)
   })
+
+  it('une lettre de duel en chaîne aussi : son numéro rend le renvoi sans effet', () => {
+    expect(isReplayable('match-api', { action: 'lettre' })).toBe(true)
+  })
 })

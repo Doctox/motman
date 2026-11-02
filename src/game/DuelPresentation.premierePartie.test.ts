@@ -19,7 +19,7 @@ vi.mock('../sensoryPreferences', () => ({ haptic: vi.fn(), playEffect: vi.fn(), 
 vi.mock('../GameResultScreen', () => ({ GameResultScreen: ({ children }: { children: ReactNode }) => children }))
 
 import { loadPlayerCosmetics, savePlayerCosmetics } from '../cosmetics'
-import type { MatchPace, MatchState } from '../matches'
+import type { MatchPace, MatchState, RythmeChoisi } from '../matches'
 import { ResultPanel } from './DuelPresentation'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -57,7 +57,7 @@ function partie(pace: MatchPace): MatchState {
 /** `dejaGagne` : l'XP d'avant la partie. Zéro, c'est la première partie qui rapporte. */
 const gains = (dejaGagne: number, niveauAvant = 1) => ({ levelBefore: niveauAvant, xpAfter: dejaGagne + 40, breakdown: { total: 40 } })
 
-async function ouvrir(pace: MatchPace, rappels: { rejouer?: (pace: MatchPace) => void; onEpicerie?: () => void } = {}) {
+async function ouvrir(pace: MatchPace, rappels: { rejouer?: (rythme: RythmeChoisi) => void; onEpicerie?: () => void } = {}) {
   await act(async () => {
     racine.render(createElement(ResultPanel, { match: partie(pace), playerId: MOI, opponentName: 'Théo', onExit: vi.fn(), onHome: vi.fn(), ...rappels }))
   })

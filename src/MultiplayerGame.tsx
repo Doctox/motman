@@ -16,9 +16,9 @@ import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
 import {
   acknowledgeMatchResult, cancelMatchInvitation, confirmMatchPresence, createInstantMatch, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn,
-  requestMatchHint, rerollMatchRack, respondToMatchInvitation,
-  type MatchInvitation, type MatchState, type MatchTurn,
-  type MatchPace,
+  poserLettreDeChaine, requestMatchHint, rerollMatchRack, respondToMatchInvitation,
+  type MatchInvitation, type MatchState, type MatchTurn, type ReponseDeLettre,
+  type MatchPace, type RythmeChoisi,
 } from './matches'
 import { subscribeToMenuUpdates } from './menuRealtime'
 import { resultInvitationPollDelay } from './menuSyncPolicy'
@@ -43,7 +43,8 @@ import { useSynchroDePartie } from './game/useSynchroDePartie'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
-import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
+import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, wordRewardCell, type TurnStep } from './game/turnChoreography'
+import { appliquerEvenementDeChaine, chevaletStable, fusionnerReponseDeLettre, ligneDeChaine, nouveautesDeChaine, numeroSuivant, REGLE_DE_LA_CHAINE, rythmeDeLaPartie, SECONDES_DU_TOUR_DE_CHAINE, statutDeFinDeTour, tourClos, tourEnCours, type AvisDeLettre, type EvenementDeChaine, type VuDeLaChaine } from './game/chaineDuTour'
 import { StableBoardLetters } from './game/StableBoardLetters'
 import { enDirectLePlusRecent, lettresDeLAdversaire, type EnDirect } from './game/lettresEnDirect'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
@@ -83,7 +84,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   /** L'écran de fin : « Ouvrir » le panier offert, à l'Épicerie (02/11/2026). */
   onEpicerie?: () => void
   /** L'écran de fin : « Rejouer » relance la même recherche (N3, 22/10/2026). */
-  onRejouer?: (pace: MatchPace) => void
+  onRejouer?: (rythme: RythmeChoisi) => void
   /** L'écran de fin d'une classée : « Rejouer en classée » (C2, 22/10/2026). */
   onRejouerClassee?: () => void
   /**
@@ -140,6 +141,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   const fitBoardRef = useClueAutoFit()
   const [provisional, setProvisional] = useState<Record<number, Tile>>({})
   const [enDirect, setEnDirect] = useState<EnDirect | null>(null)
+  // DUEL EN CHAÎNE (02/11/2026, game/chaineDuTour.ts). Une lettre à la fois : elle
+  // reste posée, en attente, jusqu'au verdict du serveur, et l'écran le dit si ça traîne.
+  const lettreEnRoute = useRef(false)
+  const [lettreEnVol, setLettreEnVol] = useState(false)
+  const [avisDeLettre, setAvisDeLettre] = useState<AvisDeLettre>(null)
+  const chaineVue = useRef<VuDeLaChaine | null>(null)
+  const chevaletDeChaine = useRef<Tile[]>([])
   const [selected, setSelected] = useState<Tile | null>(null)
   // `x0`/`y0` : le point de contact brut ; `glisse` : le doigt a dépassé
   // SEUIL_GLISSER_PX. Avant, c'est un toucher, et le clic fait le reste.
@@ -247,7 +255,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   const opponentLevel = opponent?.level ?? match?.bot?.level
   const { ghostRef, moveGhost, stopGhost } = useDragGhost()
   opponentNameRef.current = opponentName
-  const rack = useMemo<Tile[]>(() => createMatchRackTiles(match?.racks[playerId] ?? [], match?.turnNumber ?? 0), [match?.racks, match?.turnNumber, playerId])
+  const enChaine = Boolean(match?.chaine)
+  const rack = useMemo<Tile[]>(() => {
+    if (!enChaine) return createMatchRackTiles(match?.racks[playerId] ?? [], match?.turnNumber ?? 0)
+    chevaletDeChaine.current = chevaletStable(chevaletDeChaine.current, match?.racks[playerId] ?? [])
+    return chevaletDeChaine.current
+  }, [enChaine, match?.racks, match?.turnNumber, playerId])
   const placedIds = useMemo(() => new Set(Object.values(provisional).map(tile => tile.id)), [provisional])
   const focusedWordCells = useMemo(() => {
     if (!expandedClue || !grid) return new Set<number>()
@@ -312,8 +325,97 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     })
   }
 
+  const peindreEtape = (step: TurnStep, owner: 'player' | 'bot', hauteur: number) => {
+    // Au calme (15/10/2026, A5 et A6) : une erreur ne vibre plus, et celles de
+    // l'adversaire restent chez lui, sans son ni vibration sur MON téléphone.
+    // Ses bons coups gardent leurs sons doux ; seules mes mains vibrent.
+    if (step.kind === 'wrong') {
+      setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
+      setWrongCells(new Set([step.cellIndex]))
+      setRevealedWrong({ [step.cellIndex]: step.letter })
+      setStatus(owner === 'player' ? `${step.letter} n’est pas ici` : `${opponentNameRef.current} essaie ${step.letter}`)
+      if (owner === 'player') playEffect('error')
+    } else if (step.kind === 'correct') {
+      setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
+      if (owner === 'player') setGreenCells(new Set([step.cellIndex])); else setOrangeCells(new Set([step.cellIndex]))
+      showEffect({ kind: 'letter', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
+      playEffect('score', { transpose: hauteur })
+      if (owner === 'player') haptic(10)
+      setStatus(owner === 'player' ? `Lettre correcte · +${step.points}` : `${opponentNameRef.current} marque +${step.points}`)
+    } else if (step.kind === 'word') {
+      setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({})
+      setWordHighlight({ cells: new Set(step.cells), owner, direction: step.direction })
+      showEffect({ kind: 'word', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
+      playEffect('word', { transpose: hauteur })
+      if (owner === 'player') haptic([14, 28, 14])
+      setStatus(`Mot terminé · +${step.points}`)
+    } else {
+      setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
+      showRackBonusEffect(step.points, owner)
+      playEffect('word', { transpose: hauteur })
+      setStatus(`Chevalet complet · +${step.points}`)
+    }
+  }
+
+  /** Ce qui reste à montrer d'un tour de chaîne : ce sont des lettres posées à l'instant, une à une. */
+  const montrerLaChaine = (duTour: Parameters<typeof nouveautesDeChaine>[1], owner: 'player' | 'bot') => {
+    const neuf = nouveautesDeChaine(chaineVue.current, duTour)
+    chaineVue.current = neuf.vu
+    if (!neuf.cases.length && !neuf.mots.length && !neuf.bonus) return
+    stopAnimationTimer()
+    const lettres = neuf.rang + neuf.cases.length
+    const hauteur = ladderFor(Array.from({ length: Math.max(1, lettres) }, () => 'correct' as const))[Math.max(0, lettres - 1)] ?? 0
+    neuf.cases.forEach(cellIndex => peindreEtape({ kind: 'correct', points: 1, cellIndex, aided: false }, owner, hauteur))
+    neuf.mots.forEach(mot => peindreEtape({ kind: 'word', points: mot.points, cells: mot.cells, direction: mot.direction, cellIndex: wordRewardCell(mot.cells, mot.direction) }, owner, hauteur))
+    if (neuf.bonus) peindreEtape({ kind: 'rack', points: neuf.bonus }, owner, hauteur)
+    animationTimer.current = window.setTimeout(() => {
+      setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
+      animationTimer.current = null
+    }, 800)
+  }
+
+  /**
+   * LA FIN D'UN TOUR DE CHAÎNE : pas de révélation, les lettres ont déjà été vues.
+   * La lettre fausse reste lisible pendant le temps mort, puis le tour suivant part.
+   */
+  const finirLeTourDeChaine = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null) => {
+    provisionalRef.current = {}; setProvisional({})
+    // Seulement un tour qu'on suivait : à l'ouverture de la partie, rien ne se rejoue.
+    if (chaineVue.current?.tour === turn.turnNumber) montrerLaChaine(tourClos(turn), owner)
+    setDisplayedScores(finalScores)
+    resolvingRef.current = false; setResolving(false); setRevealingPlayerId(null)
+    const apres = matchRef.current
+    if (apres?.status === 'finished') {
+      if (apres.finishReason !== 'completed') return
+      // La dernière lettre reste un instant à l'écran, comme après un coup ordinaire.
+      resolvingRef.current = true; setResolving(true); setStatus('Grille terminée')
+      animationTimer.current = window.setTimeout(() => {
+        setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
+        resolvingRef.current = false; setResolving(false); setStatus('Partie terminée')
+        animationTimer.current = null
+      }, FINAL_GRID_COMPLETION_HOLD_MS)
+      return
+    }
+    // Un tour clos depuis longtemps (appli rouverte) n'a plus rien à montrer.
+    if (revealEndsAt !== null && serverNow() > revealEndsAt + EMPTY_TURN_NOTICE_MS) return
+    const faux = turn.wrongPlacements[0]
+    emptyTurnNoticeUntil.current = Date.now() + EMPTY_TURN_NOTICE_MS
+    setStatus(statutDeFinDeTour(turn, owner === 'player', opponentNameRef.current))
+    if (!faux) return
+    if (owner === 'player') playEffect('error')
+    stopAnimationTimer()
+    setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
+    setWrongCells(new Set([faux.cellIndex]))
+    setRevealedWrong({ [faux.cellIndex]: faux.letter })
+    animationTimer.current = window.setTimeout(() => {
+      setWrongCells(new Set()); setRevealedWrong({})
+      animationTimer.current = null
+    }, 1_400)
+  }
+
   /** `frais` : le coup que je viens d'envoyer, qui se révèle toujours (turnChoreography.ts). */
   const animateTurn = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null, frais = false) => {
+    if (matchRef.current?.chaine) { finirLeTourDeChaine(turn, owner, finalScores, revealEndsAt); return }
     stopAnimationTimer()
     setWrongCells(new Set())
     setRevealedWrong({})
@@ -322,37 +424,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     // un `switch` qui traduit chaque étape décrite en effets d'écran.
     const steps = planTurnSteps(turn)
     const hauteurs = ladderFor(steps.map(step => step.kind))
-    const peint = (step: TurnStep, hauteur: number) => {
-      // Au calme (15/10/2026, A5 et A6) : une erreur ne vibre plus, et celles de
-      // l'adversaire restent chez lui, sans son ni vibration sur MON téléphone.
-      // Ses bons coups gardent leurs sons doux ; seules mes mains vibrent.
-      if (step.kind === 'wrong') {
-        setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
-        setWrongCells(new Set([step.cellIndex]))
-        setRevealedWrong({ [step.cellIndex]: step.letter })
-        setStatus(owner === 'player' ? `${step.letter} n’est pas ici` : `${opponentNameRef.current} essaie ${step.letter}`)
-        if (owner === 'player') playEffect('error')
-      } else if (step.kind === 'correct') {
-        setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
-        if (owner === 'player') setGreenCells(new Set([step.cellIndex])); else setOrangeCells(new Set([step.cellIndex]))
-        showEffect({ kind: 'letter', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
-        playEffect('score', { transpose: hauteur })
-        if (owner === 'player') haptic(10)
-        setStatus(owner === 'player' ? `Lettre correcte · +${step.points}` : `${opponentNameRef.current} marque +${step.points}`)
-      } else if (step.kind === 'word') {
-        setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({})
-        setWordHighlight({ cells: new Set(step.cells), owner, direction: step.direction })
-        showEffect({ kind: 'word', label: `+${step.points}`, owner, cellIndex: step.cellIndex })
-        playEffect('word', { transpose: hauteur })
-        if (owner === 'player') haptic([14, 28, 14])
-        setStatus(`Mot terminé · +${step.points}`)
-      } else {
-        setGreenCells(new Set()); setOrangeCells(new Set()); setWrongCells(new Set()); setRevealedWrong({}); setWordHighlight(null)
-        showRackBonusEffect(step.points, owner)
-        playEffect('word', { transpose: hauteur })
-        setStatus(`Chevalet complet · +${step.points}`)
-      }
-    }
+    const peint = (step: TurnStep, hauteur: number) => peindreEtape(step, owner, hauteur)
     const restant = revealRemainingMs(steps.length, revealEndsAt, serverNow())
     const revealRemaining = frais ? fenetreDuCoupFrais(steps.length, restant) : restant
     const finishAnimation = () => {
@@ -429,6 +501,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     const needsGrid = loadedGridId.current !== next.gridId
     if (needsGrid && !next.grid) throw new Error('Le serveur n’a pas transmis la grille publique de cette partie.')
     synchro.marquerAJour()
+    const dejaOuverte = Boolean(matchRef.current)
     applyMatchState(next)
     if (needsGrid && next.grid) {
       // Online matches receive a sanitized board from the authoritative server:
@@ -437,6 +510,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       setGrid(next.grid)
     }
     setError(null)
+    // Les lettres de la chaîne, d'où qu'elles viennent. À l'ouverture, ce qui est déjà
+    // sur le plateau n'a pas à se rejouer. Le tour de l'autre arrive aussi par ici.
+    if (next.chaine?.lettres.length && next.chaine.tour === next.turnNumber) {
+      if (dejaOuverte) montrerLaChaine(tourEnCours(next.chaine), next.currentPlayerId === playerId ? 'player' : 'bot')
+      else chaineVue.current = nouveautesDeChaine(null, tourEnCours(next.chaine)).vu
+    }
     if (next.lastTurn && next.lastTurn.id !== seenTurn.current) {
       seenTurn.current = next.lastTurn.id
       annoncerQuetes(next.lastTurn)
@@ -488,6 +567,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     recupererConflit: reason => recoverConcurrentUpdate(reason),
     partieDisparue: () => { if (alive.current) onHome() },
     recevoirEnDirect: recu => setEnDirect(actuel => enDirectLePlusRecent(actuel, recu)),
+    recevoirChaine: recu => recevoirLaChaine(recu),
   })
   // Les lettres de l'autre pendant son tour (game/lettresEnDirect.ts).
   const lettresEnDirect = useMemo(() => lettresDeLAdversaire(enDirect, match, playerId), [enDirect, match, playerId])
@@ -532,13 +612,15 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   useEffect(() => () => { document.title = initialTitle.current }, [])
 
   useEffect(() => {
-    if (assignedToMe && !match?.pause && turnHasStarted && turnPhase.expired && match && !submittedTurns.current.has(match.turnNumber)) {
+    // Une lettre encore en route passe d'abord : elle peut être la dernière du tour.
+    if (assignedToMe && !match?.pause && turnHasStarted && turnPhase.expired && match && !lettreEnVol && !submittedTurns.current.has(match.turnNumber)) {
       submitTurnRef.current(true)
     }
-  }, [assignedToMe, match, match?.pause, turnHasStarted, turnPhase.expired])
+  }, [assignedToMe, lettreEnVol, match, match?.pause, turnHasStarted, turnPhase.expired])
 
-  // Le brouillon de lettres, parti au fil du tour (game/useBrouillonDuTour.ts).
-  useBrouillonDuTour({ playerId, partieRef: matchRef, provisional, peutJouer: canAct, enResolution: resolving, tour: match?.turnNumber })
+  // Le brouillon de lettres, parti au fil du tour (game/useBrouillonDuTour.ts). Pas
+  // en chaîne : chaque lettre y est déjà jugée dès qu'elle est posée.
+  useBrouillonDuTour({ playerId, partieRef: matchRef, provisional, peutJouer: canAct && !enChaine, enResolution: resolving, tour: match?.turnNumber })
 
   useEffect(() => {
     if (!match || resolving) return
@@ -565,8 +647,65 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     return () => window.clearTimeout(attente)
   }, [activite, isMyTurn, match?.id, match?.turnNumber, resolving])
 
+  /** Celui qui attend : la lettre arrive sans relire la partie (game/chaineDuTour.ts). */
+  const recevoirLaChaine = (evenement: EvenementDeChaine) => {
+    const partie = matchRef.current
+    if (!alive.current || !partie?.chaine || partie.currentPlayerId === playerId) return
+    const suite = appliquerEvenementDeChaine(partie, evenement)
+    if (suite) acceptRemoteSnapshot(suite)
+    else if (evenement.turnNumber > partie.turnNumber) pollingRef.current?.wake()
+  }
+
+  /** La lettre part au serveur : une à la fois, et elle reste à l'écran jusqu'au verdict. */
+  const envoyerLettre = (tile: Tile, cellIndex: number) => {
+    const partie = matchRef.current
+    if (!partie?.chaine) return
+    if (lettreEnRoute.current) { setAvisDeLettre(avis => avis ?? 'patience'); return }
+    lettreEnRoute.current = true
+    setLettreEnVol(true)
+    provisionalRef.current = { [cellIndex]: tile }
+    setProvisional({ [cellIndex]: tile })
+    setSelected(null); setError(null); haptic(10); playEffect('place'); noterActivite()
+    const lenteur = window.setTimeout(() => setAvisDeLettre('lente'), 2_500)
+    const finDeLaLettre = () => {
+      window.clearTimeout(lenteur)
+      lettreEnRoute.current = false
+      setLettreEnVol(false)
+      setAvisDeLettre(null)
+    }
+    poserLettreDeChaine(playerId, partie.id, { turnNumber: partie.turnNumber, numero: numeroSuivant(partie), cellIndex, letter: tile.letter, partieA: serverNow() })
+      .then(reponse => {
+        if (!alive.current) return
+        recevoirVerdict(reponse)
+      })
+      .catch(raison => {
+        if (!alive.current) return
+        provisionalRef.current = {}
+        setProvisional({})
+        // Rien de perdu : la lettre revient au chevalet, et la relecture dit où en est le serveur.
+        if (recoverConcurrentUpdate(raison)) return
+        const payload = (raison as { payload?: { match?: MatchState } })?.payload
+        if (payload?.match) applyMatchState(payload.match)
+        setError(raison instanceof Error ? raison.message : 'Ta lettre n’est pas arrivée. Réessaie.')
+        pollingRef.current?.wake()
+      })
+      .finally(finDeLaLettre)
+  }
+
+  const recevoirVerdict = (reponse: ReponseDeLettre) => {
+    provisionalRef.current = {}
+    setProvisional({})
+    const partie = matchRef.current
+    if (!partie) return
+    acceptRemoteSnapshot(fusionnerReponseDeLettre(partie, reponse, playerId))
+    if (reponse.lettre.raison === 'trop-tard') setStatus('Tour terminé')
+    // Refusée sans coûter le tour : le chevalet a changé, ou un autre écran a joué.
+    else if (reponse.lettre.statut === 'refusee') pollingRef.current?.wake()
+  }
+
   const placeTile = (tile: Tile, cellIndex: number, origin: 'rack' | number = 'rack') => {
     if (!canAct || resolving || !grid || match?.board[cellIndex] || grid.cells[cellIndex].kind !== 'letter') return
+    if (match?.chaine) { envoyerLettre(tile, cellIndex); return }
     updateProvisional(current => {
       const next = { ...current }
       Object.entries(next).forEach(([index, item]) => { if (item.id === tile.id) delete next[Number(index)] })
@@ -596,6 +735,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     placeTile(tile, cellIndex)
   }
   const reprendreAuToucher = (cellIndex: number, tile: Tile) => {
+    // En chaîne, une lettre posée est partie : elle ne se reprend pas.
+    if (matchRef.current?.chaine) return
     const depuis = lettreDeLaCase(cellIndex)?.getBoundingClientRect()
     if (depuis) volEnAttente.current = { vers: 'chevalet', cellIndex, tileId: tile.id, depuis, instant: performance.now() }
     returnTile(cellIndex)
@@ -622,6 +763,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     mainPrecedente.current = new Set(ids)
     if (!avant || rackRolling || motionReduced()) return
     const nouvelles = ids.filter(id => !avant.has(id))
+    // En chaîne, la lettre donnée se pose à sa place d'un seul petit mouvement.
+    if (enChaine && nouvelles.length === 1) {
+      lettreDuChevalet(nouvelles[0])?.animate([{ opacity: 0, transform: 'translateY(-8px) scale(.9)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' })
+      return
+    }
     if (nouvelles.length < 2) return
     nouvelles.forEach((id, rang) => lettreDuChevalet(id)?.animate(
       [{ opacity: 0, transform: 'translateY(-14px) scale(.86)' }, { opacity: 1, transform: 'none' }],
@@ -655,6 +801,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     // Un seul doigt à la fois : un deuxième contact (l'autre main, la paume, le
     // pouce qui tient le téléphone) ne reprend pas une lettre en plein geste.
     if (!canAct || resolving || drag) return
+    if (enChaine && origin !== 'rack') return
     event.currentTarget.setPointerCapture(event.pointerId)
     refreshCellBoxes()
     // Le fantôme ne naît qu'au premier VRAI mouvement (22/10/2026) : un simple
@@ -723,7 +870,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
 
   const validate = async (automatic = false) => {
     const currentMatch = matchRef.current
-    if (!currentMatch || currentMatch.status !== 'active' || currentMatch.currentPlayerId !== playerId || resolvingRef.current) return
+    if (!currentMatch || currentMatch.status !== 'active' || currentMatch.currentPlayerId !== playerId || resolvingRef.current || lettreEnRoute.current) return
     if (!automatic && (!canAct || serverNow() >= new Date(currentMatch.turnEndsAt).getTime())) return
     if (submittedTurns.current.has(currentMatch.turnNumber)) return
     submittedTurns.current.add(currentMatch.turnNumber)
@@ -733,7 +880,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     // puis le tour suivant, c'est ce que le propriétaire a vécu par réseau lent.
     const lenteur = window.setTimeout(() => setStatus('Connexion lente · ton coup arrive…'), 3_000)
     try {
-      const response = await playMatchTurn(playerId, currentMatch.id, currentMatch.turnNumber, Object.entries(provisionalRef.current).map(([cellIndex, tile]) => ({ cellIndex: Number(cellIndex), letter: tile.letter })), automatic, currentMatch.updatedAt)
+      // En chaîne, tout est déjà jugé : « Passer » et 00:00 ne font que fermer le tour.
+      const response = await playMatchTurn(playerId, currentMatch.id, currentMatch.turnNumber, currentMatch.chaine ? [] : Object.entries(provisionalRef.current).map(([cellIndex, tile]) => ({ cellIndex: Number(cellIndex), letter: tile.letter })), automatic, currentMatch.chaine ? undefined : currentMatch.updatedAt)
       window.clearTimeout(lenteur)
       applyMatchState(response.match)
       annoncerQuetes(response.result)
@@ -981,7 +1129,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     setErreurRevanche(null)
     setRevanche({ etape: 'envoi' })
     try {
-      const lobby = await createInstantMatch(playerId, adversaireId, match.pace)
+      const lobby = await createInstantMatch(playerId, adversaireId, rythmeDeLaPartie(match))
       // Mon ami m'avait déjà réinvité au même rythme : le serveur a accepté SON
       // invitation au lieu d'en créer une seconde. La partie existe, on y entre.
       const dejaCommencee = lobby.active.find(partie => partie.id !== match.id && partie.playerIds.includes(adversaireId))
@@ -1078,6 +1226,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       hintActive: Boolean(hint),
     },
   })
+  // En chaîne, il n'y a jamais rien à valider : chaque lettre part toute seule.
+  const rienAValider = Boolean(match.chaine) || Object.keys(provisional).length === 0
   const presentationPhase = matchPresentationPhase(match.status, resolving)
   const showGame = presentationPhase === 'game'
   // Par-dessus tout le reste : l'échéance serveur de 30 s court même quand les
@@ -1161,12 +1311,12 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn && lectureRestante === null ? 'duel-rack-waiting' : ''}`}>
-        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>Touche une définition pour l’agrandir.</span></div> : <div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''}`} data-rack="true" aria-label="Lettres disponibles">
+        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0, isMyTurn, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''} ${lettreEnVol ? 'is-en-vol' : ''}`} data-rack="true" aria-label="Lettres disponibles">
         {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.glisse && drag.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
-        <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>
-      </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
-      <div className="turn-actions"><button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button><button className={`validate ${isMyTurn && !resolving && Object.keys(provisional).length === 0 ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving} title={isMyTurn && Object.keys(provisional).length === 0 ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : Object.keys(provisional).length === 0 ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button></div>
+        {match.chaine ? null : <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>}
+      </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>{match.chaine ? 'Belle chaîne' : 'Chevalet complet'}</strong><small>{match.chaine ? '5 lettres de suite' : '5 lettres correctes'}</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
+      <div className={`turn-actions ${match.chaine ? 'is-chaine' : ''}`}>{match.chaine ? null : <button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button>}<button className={`validate ${isMyTurn && !resolving && rienAValider ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving || lettreEnVol} title={isMyTurn && rienAValider && !match.chaine ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : rienAValider ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button></div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}

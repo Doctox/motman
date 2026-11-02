@@ -178,3 +178,12 @@ html[data-motion="off"] .multiplayer-shell .confirmed-board-layer .confirmed-boa
 }
 [data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.provisional-effect{color:#e8f3ec!important;-webkit-text-fill-color:#e8f3ec!important}
 [data-theme="dark"] .slot.bot-play{background:#482a20!important;box-shadow:inset 0 0 0 3px #ef805d!important}
+
+/* --------------------------------------------------------------------------
+   DUEL EN CHAÎNE (02/11/2026). Mêmes écrans, moins deux boutons : ni indice ni
+   relance dans cette version. Le chevalet s'éteint un peu tant qu'une lettre est en
+   route, d'un seul changement, sans rien d'animé en continu près des ombres.
+   -------------------------------------------------------------------------- */
+.multiplayer-shell .rack.is-chaine{grid-template-columns:repeat(5,minmax(0,1fr))}
+.multiplayer-shell .turn-actions.is-chaine{grid-template-columns:minmax(0,1fr)}
+.multiplayer-shell .rack.is-en-vol .rack-letter{opacity:.72}
