@@ -89,7 +89,9 @@ export function ecouterLesNotificationsTouchees(): Promise<void> {
     await PushNotifications.addListener('pushNotificationActionPerformed', action => {
       const route = pushNotificationRoute(action.notification.data)
       if (!route) return
-      history.replaceState(null, '', route)
+      // Le rappel du défi laisse à une partie en cours son adresse : c'est elle qui
+      // la rouvre si l'appli se relance.
+      if (route !== '#accueil' || !location.hash.startsWith('#partie=')) history.replaceState(null, '', route)
       window.dispatchEvent(new CustomEvent('motman:notification-touchee', { detail: route }))
     })
   })()

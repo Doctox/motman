@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./supabaseClient', () => ({ supabase: { rpc: vi.fn() }, supabaseConfigured: true }))
+const serveur = vi.hoisted(() => ({ rpc: vi.fn(), android: { accepte: true } }))
+vi.mock('./supabaseClient', () => ({ supabase: { rpc: serveur.rpc }, supabaseConfigured: true }))
+vi.mock('./nativePushNotifications', () => ({ demanderNotifications: () => Promise.resolve(serveur.android.accepte) }))
 
-import { carteDuRappelAMontrer, lireReponseRappel, noterReponseRappel, oublierReponseRappel } from './rappelDuDefi'
+import { activerRappelDuDefi, arreterRappelDuDefi, carteDuRappelAMontrer, lireReponseRappel, noterReponseRappel, oublierReponseRappel } from './rappelDuDefi'
 
 function stockage() {
   const valeurs = new Map<string, string>()
@@ -69,5 +72,40 @@ describe('le souvenir de la réponse', () => {
     vi.stubGlobal('localStorage', undefined)
     expect(lireReponseRappel('moi')).toBeNull()
     vi.unstubAllGlobals()
+  })
+})
+
+describe('la réponse du joueur', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    serveur.rpc.mockReset()
+    serveur.rpc.mockResolvedValue({ data: true, error: null })
+    serveur.android.accepte = true
+  })
+
+  it('oui : Android accepte, le serveur note, on ne repose plus la question', async () => {
+    expect(await activerRappelDuDefi('moi')).toBe(true)
+    expect(serveur.rpc).toHaveBeenCalledWith('set_daily_reminder', { p_actif: true })
+    expect(lireReponseRappel('moi')).toEqual({ reponse: 'oui' })
+  })
+
+  it('refus dans la fenêtre d’Android : rien au serveur, et c’est un non', async () => {
+    serveur.android.accepte = false
+    expect(await activerRappelDuDefi('moi')).toBe(false)
+    expect(serveur.rpc).not.toHaveBeenCalled()
+    expect(lireReponseRappel('moi')?.reponse).toBe('non')
+  })
+
+  it('panne du serveur : la réponse s’oublie, la carte reviendra', async () => {
+    serveur.rpc.mockResolvedValue({ data: null, error: new Error('panne') })
+    expect(await activerRappelDuDefi('moi')).toBe(false)
+    expect(lireReponseRappel('moi')).toBeNull()
+  })
+
+  it('arrêter dit la vérité si le serveur n’a rien entendu', async () => {
+    expect(await arreterRappelDuDefi('moi')).toBe(true)
+    expect(serveur.rpc).toHaveBeenCalledWith('set_daily_reminder', { p_actif: false })
+    serveur.rpc.mockResolvedValue({ data: null, error: new Error('panne') })
+    expect(await arreterRappelDuDefi('moi')).toBe(false)
   })
 })

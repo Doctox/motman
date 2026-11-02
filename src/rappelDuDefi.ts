@@ -66,14 +66,18 @@ async function ecrireAuServeur(actif: boolean): Promise<void> {
 
 /**
  * Le « oui » : la fenêtre d'Android si besoin, puis le serveur. Rend false si
- * Android refuse ou si l'écriture échoue ; on oublie alors la réponse, pour ne
- * pas laisser croire à un rappel qui ne viendra jamais.
+ * Android refuse ou si l'écriture échoue. Un refus dans la fenêtre vaut un
+ * « Non merci ». Une panne, elle, oublie la réponse : la carte reviendra au
+ * prochain défi, plutôt que de laisser croire à un rappel qui ne viendrait jamais.
  */
 export async function activerRappelDuDefi(playerId: string): Promise<boolean> {
   noterReponseRappel(playerId, 'oui')
   try {
     const { demanderNotifications } = await import('./nativePushNotifications')
-    if (!await demanderNotifications()) throw new Error('Notifications refusées.')
+    if (!await demanderNotifications()) {
+      noterReponseRappel(playerId, 'non')
+      return false
+    }
     await ecrireAuServeur(true)
     return true
   } catch {

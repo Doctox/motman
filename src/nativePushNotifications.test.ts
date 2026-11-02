@@ -66,6 +66,16 @@ describe('toucher une notification', () => {
     await premiere
   })
 
+  it('le rappel du défi laisse à une partie en cours son adresse, et mène à l’accueil sinon', () => {
+    const toucher = () => natif.ecoutes.get('pushNotificationActionPerformed')?.({ notification: { data: { type: 'daily_reminder' } } })
+    history.replaceState(null, '', '#partie=4b8a3f49-c8b4-4b12-94e7-6ece8825831f')
+    toucher()
+    expect(location.hash).toBe('#partie=4b8a3f49-c8b4-4b12-94e7-6ece8825831f')
+    history.replaceState(null, '', '#profil')
+    toucher()
+    expect(location.hash).toBe('#accueil')
+  })
+
   it('ne change rien pour une destination inconnue', () => {
     history.replaceState(null, '', '#accueil')
     natif.ecoutes.get('pushNotificationActionPerformed')?.({ notification: { data: { type: 'inconnu' } } })
