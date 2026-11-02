@@ -8,28 +8,30 @@
 // La règle : inviter un ami qui m'a déjà invité AU MÊME RYTHME, c'est accepter
 // son invitation. Une seule partie, celle qu'il a proposée. À rythmes
 // différents (lui en illimité, moi en temps limité), ce sont deux demandes
-// différentes : on ne fusionne pas.
+// différentes : on ne fusionne pas. De même entre un duel en chaîne et une partie
+// en temps limité.
 //
 // Le cas vraiment simultané — les deux requêtes insèrent leur invitation avant
 // que l'une voie l'autre — est tranché par `jeDoisAccepter` : les deux requêtes
 // comparent les MÊMES deux identifiants, une seule accepte.
 
 import type { AdminClient } from '../_shared/supabaseClients.ts'
-import { nowIso, type Pace } from './matchModel.ts'
+import { nowIso, type Pace, type Variante } from './matchModel.ts'
 
 export type InvitationRow = {
   id: string
   host_id: string
   guest_id: string
   pace: Pace
+  variante?: Variante
   status: string
   expires_at: string
 }
 
 /** L'invitation que `ami` m'a envoyée, au même rythme, encore en attente et valable. */
-export async function invitationCroisee(admin: AdminClient, moi: string, ami: string, pace: Pace): Promise<InvitationRow | null> {
+export async function invitationCroisee(admin: AdminClient, moi: string, ami: string, pace: Pace, variante: Variante = 'classique'): Promise<InvitationRow | null> {
   const { data, error } = await admin.from('server_match_invitations').select('*')
-    .eq('host_id', ami).eq('guest_id', moi).eq('pace', pace).eq('status', 'pending')
+    .eq('host_id', ami).eq('guest_id', moi).eq('pace', pace).eq('variante', variante).eq('status', 'pending')
     .gt('expires_at', nowIso())
     .order('created_at', { ascending: true }).limit(1).maybeSingle()
   if (error) throw error

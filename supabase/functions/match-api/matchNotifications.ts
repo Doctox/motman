@@ -10,7 +10,7 @@
 
 import { queuePush, sendPushToUser } from '../_shared/pushNotifications.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
-import type { MatchRow, Pace } from './matchModel.ts'
+import type { MatchRow, Pace, Variante } from './matchModel.ts'
 import { inQuietHours } from './matchReminders.ts'
 
 export function notifyCurrentTurn(admin: AdminClient, row: MatchRow): void {
@@ -33,10 +33,11 @@ export function notifyFriendInvitation(
   invitationId: string,
   inviterName: string,
   pace: Pace,
+  variante: Variante = 'classique',
 ): void {
   queuePush(sendPushToUser(admin, guestId, {
     title: `Invitation de ${inviterName}`,
-    body: pace === 'async' ? 'Te propose une partie en temps illimité.' : 'Te propose une partie en temps limité.',
+    body: variante === 'chaine' ? 'Te propose une partie en chaîne.' : pace === 'async' ? 'Te propose une partie en temps illimité.' : 'Te propose une partie en temps limité.',
     data: { type: 'friend_invitation', invitationId },
     tag: `invitation-${invitationId}`,
   }))

@@ -46,6 +46,12 @@ export const RELANCES_ORDINAIRES: Relances = { essaiMs: ATTEMPT_TIMEOUT_MS, essa
 // 16/10 au soir). Cet envoi-là est donc relancé toutes les 2,5 s.
 export const RELANCES_FIN_DE_TOUR: Relances = { essaiMs: 2_500, essais: 4 }
 
+// UNE LETTRE DU DUEL EN CHAÎNE (02/11/2026). Le joueur attend le verdict pour poser
+// la suivante, et les 30 s courent : un appel muet est relancé après 3 s, au-delà du
+// pire délai mesuré d'un appel normal (3,5 s reste rare). Le numéro de la lettre
+// rend le renvoi sans effet (match-api/matchChaine.ts).
+export const RELANCES_LETTRE: Relances = { essaiMs: 3_000, essais: 4 }
+
 export async function invokeSupabaseFunction<T>(
   name: string,
   body: Record<string, unknown>,
@@ -75,7 +81,7 @@ export async function invokeSupabaseFunction<T>(
 // un tour déjà joué et renvoie le même résultat.
 export const RETRY_DELAY_MS = 600
 const REPLAYABLE: Record<string, ReadonlySet<string>> = {
-  'match-api': new Set(['state', 'match', 'turn', 'draft', 'daily-leaderboard', 'player-stats', 'history-grid', 'ranked-state', 'ranked-leaderboard']),
+  'match-api': new Set(['state', 'match', 'turn', 'draft', 'lettre', 'daily-leaderboard', 'player-stats', 'history-grid', 'ranked-state', 'ranked-leaderboard']),
 }
 
 export function isReplayable(name: string, body: Record<string, unknown>): boolean {

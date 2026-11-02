@@ -16,7 +16,7 @@ import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { publicGrid } from './matchGrid.ts'
 import type { Bot, CatalogGrid, MatchRow } from './matchModel.ts'
 import { currentPresenceDeadline } from './matchTurns.ts'
-import { botTurnDelayMs } from './botDelay.ts'
+import { botTurnDelayMs, heureDeLaLettreDuBot } from './botDelay.ts'
 import { fantomeReflexionMs } from '../../../src/ghostOpponent.ts'
 
 export async function profile(admin: AdminClient, id: string) {
@@ -121,6 +121,8 @@ export async function view(
     // Remontés au client pour que l'écran de fin sache qu'il s'agit du défi du
     // jour et enregistre la série locale (game/DuelPresentation.tsx).
     ...(state.isDaily ? { isDaily: true, dailyDate: state.dailyDate } : {}),
+    // Un duel en chaîne : le tour en cours, déjà public (matchChaine.ts).
+    ...(state.chaine ? { chaine: state.chaine } : {}),
     // PAS DE GRILLE PENDANT LA CONFIRMATION (22/10/2026, code S3). Pendant les
     // 30 s où les deux joueurs acceptent, la grille partait déjà : un joueur
     // averti la lisait avant l'autre, et refusait sans frais si elle ne lui
@@ -130,7 +132,11 @@ export async function view(
 }
 
 /** L'heure de rappel : le coup du fantôme, ou la même loi bornée à la fin du tour pour tout autre adversaire. */
-export function heureDeRappel(row: Pick<MatchRow, 'id' | 'turn_number' | 'turn_started_at' | 'turn_ends_at' | 'state'>, fantomeAuTrait: boolean): string {
+export function heureDeRappel(row: Pick<MatchRow, 'id' | 'turn_number' | 'turn_started_at' | 'turn_ends_at' | 'current_player_id' | 'state'>, fantomeAuTrait: boolean): string {
+  // En chaîne, ses lettres arrivent quand on lit la partie : on revient à l'heure de la prochaine.
+  if (row.state.chaine && row.state.bot?.playerId === row.current_player_id) {
+    return new Date(Math.min(heureDeLaLettreDuBot(row), Date.parse(row.turn_ends_at))).toISOString()
+  }
   const debut = Date.parse(row.turn_started_at)
   const reflexion = fantomeAuTrait ? botTurnDelayMs(row) : fantomeReflexionMs(`${row.id}:${row.turn_number}`)
   return new Date(Math.min(debut + reflexion, Date.parse(row.turn_ends_at))).toISOString()

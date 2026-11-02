@@ -13,7 +13,8 @@
 
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { awardFinished } from './awards.ts'
-import { botTurnDelayMs } from './botDelay.ts'
+import { botTurnDelayMs, heureDeLaLettreDuBot } from './botDelay.ts'
+import { avancerChaineDuBot } from './matchChaine.ts'
 import { ensureFinalSprintRacks, ensureSharedLetterBag, ruleGrid } from './matchGrid.ts'
 import type { MatchRow } from './matchModel.ts'
 import { notifyCurrentTurn } from './matchNotifications.ts'
@@ -63,7 +64,9 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
     const tourDuBot = row.state.bot?.playerId === row.current_player_id
     const quelqueChoseEstDu = absentSansTemoin(row) !== null
       || (tourDuBot
-        ? Date.now() >= new Date(row.turn_started_at).getTime() + botTurnDelayMs(row)
+        ? Date.now() >= (row.state.chaine
+          ? Math.min(heureDeLaLettreDuBot(row), new Date(row.turn_ends_at).getTime())
+          : new Date(row.turn_started_at).getTime() + botTurnDelayMs(row))
         : presenceExpired(row, recuA) || turnExpired(row, recuA))
       || !Array.isArray(row.state.letterBag)
     if (!quelqueChoseEstDu) return row
@@ -77,6 +80,11 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
     if (absent) {
       // Plus personne n'a fait avancer la partie depuis trois minutes (matchTurns.ts).
       forfeitAbsentPlayer(row, absent); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
+    } else if (row.state.chaine && row.state.bot?.playerId === row.current_player_id) {
+      // Sa chaîne, lettre par lettre (matchChaine.ts) : la main ne change qu'à la fin.
+      if (avancerChaineDuBot(row, grid)) {
+        row = await persist(admin, row); turnAdvanced = row.current_player_id !== previousPlayerId; await awardFinished(admin, row)
+      }
     } else if (row.state.bot?.playerId === row.current_player_id) {
       const delay = botTurnDelayMs(row)
       if (Date.now() >= new Date(row.turn_started_at).getTime() + delay) {

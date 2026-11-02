@@ -13,7 +13,7 @@ const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3
 // `matchModel.ts` pour les types, `awards.ts` pour la clôture — sortie d'ici pour
 // devenir testable (voir `awards.test.ts`).
 import { awardFinished, recordDailyPlay, recordMatchHistory } from './awards.ts'
-import { nowIso, type MatchRow, type Pace } from './matchModel.ts'
+import { nowIso, type MatchRow, type Pace, type Variante } from './matchModel.ts'
 
 // Doit rester égal au seuil de `server_create_bot_match_atomic` (migration
 // 20260914090000) : en dessous, le RPC répond `waiting` et rien ne se passe.
@@ -29,7 +29,8 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 // `matchGrid.ts` et `matchTurns.ts`. Sorties d'ici pour devenir testables —
 // ce fichier démarre un serveur à l'import.
 import { ensureFinalSprintRacks, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
-import { acknowledgePresence, applyTurn, closeExpiredTurn, finish, sanitizePlacements, vainqueurAuxPoints } from './matchTurns.ts'
+import { acknowledgePresence, applyTurn, closeExpiredTurn, fermerTourDeChaine, finish, sanitizePlacements, vainqueurAuxPoints } from './matchTurns.ts'
+import { jugerLettre, lireDemandeDeLettre, lireVariante, reponseDeLettre } from './matchChaine.ts'
 import { brouillonRecevable, lettresDuBrouillon, lettresEnDirect, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
@@ -44,6 +45,9 @@ import { allumerFantome, fantomeAllume } from './ghost.ts'
 import { joueursEnLigne } from './onlinePlayers.ts'
 import { bilanDesSources, jourAvant } from './playerSources.ts'
 import { enPleinDefi } from './enPleinDefi.ts'
+
+/** La marge d'une lettre (matchChaine.ts) : celle d'un coup à la main, puis celle d'un envoi parti à temps. */
+const MARGES_DE_LETTRE = { mainMs: MANUAL_SUBMIT_GRACE_MS, envoiMs: AUTOMATIC_SUBMIT_GRACE_MS }
 
 Deno.serve(async request => {
   // L'instant où la requête ARRIVE. Toutes les échéances du joueur se lisent
@@ -212,6 +216,7 @@ Deno.serve(async request => {
         hostId: item.host_id,
         guestId: item.guest_id,
         pace: item.pace,
+        variante: item.variante ?? 'classique',
         createdAt: item.created_at,
         expiresAt: item.expires_at,
         status: item.status,
@@ -281,7 +286,7 @@ Deno.serve(async request => {
         incoming: (incomingRows ?? []).map(invitationView),
         outgoing: (outgoingRows ?? []).map(invitationView),
         active: await Promise.all(rows.map(row => view(admin, row, user.id, undefined, profiles))),
-        searches: (searches ?? []).map(item => ({ id: item.id, pace: item.pace, createdAt: item.created_at })),
+        searches: (searches ?? []).map(item => ({ id: item.id, pace: item.pace, variante: item.variante ?? 'classique', createdAt: item.created_at })),
         recent,
         pendingResults,
         rankedSeekers: rankedSeekers ?? 0,
@@ -305,7 +310,7 @@ Deno.serve(async request => {
       // tirée au sort : un joueur de niveau 8 pouvait tomber sur un expert,
       // exactement dans la partie qu'il croyait jouer contre quelqu'un.
       // Le niveau est lu une fois, pas une fois par recherche.
-      const enAttente = (searches ?? []) as { id: string; pace: string; created_at: string }[]
+      const enAttente = (searches ?? []) as { id: string; pace: string; variante?: Variante; created_at: string }[]
       // Pas de bot en temps limité pendant son défi du jour : rien ne doit l'en
       // faire sortir (enPleinDefi.ts, 19/10/2026). Sa recherche attend la fin.
       const enDefi = enAttente.some(search => search.pace === 'realtime') && await enPleinDefi(admin, user.id)
@@ -315,7 +320,7 @@ Deno.serve(async request => {
       for (const search of aBasculer) {
         const bot = createBot(`${user.id}:${search.id}`, forceBot)
         const pace = search.pace as Pace
-        const prepared = await prepareAtomicMatch(admin, user.id, bot.playerId, pace, null, bot)
+        const prepared = await prepareAtomicMatch(admin, user.id, bot.playerId, pace, null, bot, search.variante)
         const result = await atomicResult(admin.rpc('server_create_bot_match_atomic', {
           p_user_id: user.id,
           p_search_id: search.id,
@@ -537,7 +542,7 @@ Deno.serve(async request => {
     // Rend une réponse d'erreur, ou `null` si c'est réglé.
     const repondreInvitation = async (invitation: InvitationRow, decision: 'accept' | 'decline'): Promise<Response | null> => {
       const prepared = decision === 'accept' && invitation.status === 'pending'
-        ? await prepareAtomicMatch(admin, invitation.host_id, user.id, invitation.pace as Pace, invitation.id, null)
+        ? await prepareAtomicMatch(admin, invitation.host_id, user.id, invitation.pace as Pace, invitation.id, null, invitation.variante)
         : null
       const result = await atomicResult(admin.rpc('server_respond_match_invitation_atomic', {
         p_invitation_id: invitation.id,
@@ -575,29 +580,30 @@ Deno.serve(async request => {
     if (action === 'create') {
       const targetId = typeof body.targetId === 'string' && UUID_PATTERN.test(body.targetId) ? body.targetId : ''
       if (!targetId) return json(400, { error: 'Joueur invalide.' })
-      const pace: Pace = body.pace === 'async' ? 'async' : 'realtime'
+      const variante = lireVariante(body.variante)
+      const pace: Pace = variante !== 'chaine' && body.pace === 'async' ? 'async' : 'realtime'
       const [left, right] = [user.id, targetId].sort()
       if (await playersBlocked(admin, user.id, targetId)) return json(409, { error: 'Cette invitation ne peut pas être envoyée.' })
       const { data: friendship } = await admin.from('friendships').select('left_user_id').eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
       if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans tes amis.' })
       // L'ami m'a déjà invité au même rythme : l'inviter à mon tour, c'est
       // accepter. Une seule partie pour les deux (voir matchInvitations.ts).
-      const dejaInvite = await invitationCroisee(admin, user.id, targetId, pace)
+      const dejaInvite = await invitationCroisee(admin, user.id, targetId, pace, variante)
       if (dejaInvite) return await repondreInvitation(dejaInvite, 'accept') ?? json(200, await lobby())
       const { data: invitation, error: invitationError } = await admin.from('server_match_invitations')
-        .insert({ host_id: user.id, guest_id: targetId, pace, expires_at: new Date(Date.now() + (pace === 'async' ? 7 * 86400000 : 120000)).toISOString() })
+        .insert({ host_id: user.id, guest_id: targetId, pace, variante, expires_at: new Date(Date.now() + (pace === 'async' ? 7 * 86400000 : 120000)).toISOString() })
         .select('id').single()
       if (invitationError || !invitation) throw invitationError ?? new Error('Invitation non créée.')
       // Les deux invitations sont parties à la même milliseconde : aucune des
       // deux requêtes n'a vu l'autre avant d'insérer. Une seule accepte.
-      const course = await invitationCroisee(admin, user.id, targetId, pace)
+      const course = await invitationCroisee(admin, user.id, targetId, pace, variante)
       if (course) {
         if (!jeDoisAccepter(invitation.id, course.id)) return json(200, await lobby())
         await admin.from('server_match_invitations').update({ status: 'cancelled' }).eq('id', invitation.id).eq('status', 'pending')
         return await repondreInvitation(course, 'accept') ?? json(200, await lobby())
       }
       const inviter = await profile(admin, user.id)
-      notifyFriendInvitation(admin, targetId, invitation.id, inviter?.displayName ?? 'Un ami', pace)
+      notifyFriendInvitation(admin, targetId, invitation.id, inviter?.displayName ?? 'Un ami', pace, variante)
       return json(200, await lobby())
     }
 
@@ -614,7 +620,10 @@ Deno.serve(async request => {
     }
 
     if (action === 'search' || action === 'search-cancel') {
-      const pace: Pace = body.pace === 'async' ? 'async' : 'realtime'
+      // Une recherche « en chaîne » est une ligne en temps limité de la file, de
+      // variante `chaine` : `server_matchmake_atomic` ne l'apparie qu'avec sa pareille.
+      const variante = lireVariante(body.variante)
+      const pace: Pace = variante !== 'chaine' && body.pace === 'async' ? 'async' : 'realtime'
       if (action === 'search-cancel') {
         await admin.from('server_match_searches').delete().eq('user_id', user.id).eq('pace', pace)
         return json(200, { lobby: await lobby(), matchId: null })
@@ -636,6 +645,7 @@ Deno.serve(async request => {
           p_state: null,
           p_turn_started_at: null,
           p_turn_ends_at: null,
+          p_variante: variante,
         }))
 
         if (discovery.status === 'waiting') break
@@ -644,7 +654,7 @@ Deno.serve(async request => {
           continue
         }
 
-        const prepared = await prepareAtomicMatch(admin, discovery.opponentId, user.id, pace, null, null)
+        const prepared = await prepareAtomicMatch(admin, discovery.opponentId, user.id, pace, null, null, variante)
         const committed = await atomicResult(admin.rpc('server_matchmake_atomic', {
           p_user_id: user.id,
           p_pace: pace,
@@ -654,6 +664,7 @@ Deno.serve(async request => {
           p_state: prepared.state,
           p_turn_started_at: prepared.startedAt.toISOString(),
           p_turn_ends_at: prepared.endsAt.toISOString(),
+          p_variante: variante,
         }))
 
         if (committed.status === 'matched' && committed.match) {
@@ -701,7 +712,6 @@ Deno.serve(async request => {
     // a besoin, la vue aussi, et c'est six kilo-octets à chaque fois.
     const chargerGrille = gridLoader(admin, (found as MatchRow).grid_id)
     let row = await resolveRow(found as MatchRow, chargerGrille)
-    const grid = await chargerGrille()
     if (action === 'match') {
       // A ranked ready-check closes the interrupted casual match atomically in
       // PostgreSQL. If the accepting request disappears before its follow-up
@@ -712,9 +722,14 @@ Deno.serve(async request => {
       // quand rien d'autre n'a changé (matchDrafts.ts).
       const enDirect = await lettresEnDirect(admin, row, user.id)
       const direct = enDirect ? { enDirect } : {}
+      // Rien n'a changé : pas besoin de la grille, ni ici ni en base.
       if (body.knownUpdatedAt === row.updated_at) return json(200, { unchanged: true, ...direct })
-      return json(200, { match: await view(admin, row, user.id, grid), ...direct })
+      // En chaîne, la partie change à chaque lettre : celui qui l'a déjà ne reçoit pas
+      // six kilo-octets de grille à chaque relecture (matchChaine.ts).
+      const grilleConnue = Boolean(row.state.chaine) && body.knownGridId === row.grid_id
+      return json(200, { match: await view(admin, row, user.id, grilleConnue ? undefined : await chargerGrille()), ...direct })
     }
+    const grid = await chargerGrille()
     // LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026, matchDrafts.ts). Vérifiées
     // comme un coup, rangées à part, et la réponse ne dit RIEN de leur justesse.
     // Hors du tour du joueur, le brouillon est simplement ignoré.
@@ -733,11 +748,36 @@ Deno.serve(async request => {
         match: await view(admin, row, user.id, grid),
       })
     }
+    // LE DUEL EN CHAÎNE (02/11/2026, matchChaine.ts) : chaque lettre est jugée dès
+    // qu'elle arrive. Le premier arrivé gagne : si la partie a changé entre la lecture
+    // et l'écriture, la lettre est rejugée sur la ligne fraîche, sans rien compter deux fois.
+    if (action === 'lettre') {
+      const demande = lireDemandeDeLettre(body)
+      if (!demande) return json(400, { error: 'Lettre invalide.' })
+      let jugement = jugerLettre(row, grid, user.id, demande, recuA, MARGES_DE_LETTRE)
+      for (let essai = 0; jugement.ecrit; essai += 1) {
+        try {
+          row = await persist(admin, row)
+          break
+        } catch (erreur) {
+          if (!(erreur instanceof MatchStateConflictError) || essai >= 2) throw erreur
+          row = erreur.latest
+          jugement = jugerLettre(row, grid, user.id, demande, recuA, MARGES_DE_LETTRE)
+        }
+      }
+      await awardFinished(admin, row)
+      return json(200, reponseDeLettre(row, jugement, demande, user.id))
+    }
+    // Pas d'indice ni de relance en chaîne, dans cette première version : le chevalet
+    // se renouvelle à chaque lettre, et un indice mêlerait ses règles à la série.
+    if (row.state.chaine && (action === 'hint' || action === 'reroll')) return json(409, { error: 'Pas d’indice ni de relance dans une partie en chaîne.' })
     if (action === 'turn' && row.state.lastTurn?.playerId === user.id && row.state.lastTurn.turnNumber === Number(body.turnNumber)) {
       return json(200, { match: await view(admin, row, user.id, grid), result: row.state.lastTurn })
     }
     const mutatesMatch = action === 'turn' || action === 'hint' || action === 'reroll' || action === 'forfeit'
-    if (mutatesMatch && typeof body.knownUpdatedAt === 'string' && body.knownUpdatedAt !== row.updated_at) {
+    // En chaîne, celui qui attend ne suit pas chaque écriture et n'a pas besoin de ce
+    // garde-fou : un abandon, un « Passer » valent quelle que soit la dernière lettre vue.
+    if (mutatesMatch && !row.state.chaine && typeof body.knownUpdatedAt === 'string' && body.knownUpdatedAt !== row.updated_at) {
       return matchConflictResponse(admin, row, user.id, grid, json)
     }
     if (row.status !== 'active') return json(200, { match: await view(admin, row, user.id, grid) })
@@ -780,8 +820,17 @@ Deno.serve(async request => {
       return json(200, { match: await view(admin, row, user.id, grid) })
     }
     if (action === 'forfeit') {
-      finish(row.state, row, row.state.playerIds.find(id => id !== user.id)!, 'forfeit')
-      row = await persist(admin, row); await awardFinished(admin, row)
+      const abandonner = () => finish(row.state, row, row.state.playerIds.find(id => id !== user.id)!, 'forfeit')
+      abandonner()
+      try {
+        row = await persist(admin, row)
+      } catch (erreur) {
+        // En chaîne, une lettre de l'autre a pu passer entre-temps : l'abandon vaut toujours.
+        if (!(erreur instanceof MatchStateConflictError) || !erreur.latest.state.chaine) throw erreur
+        row = erreur.latest
+        if (row.status === 'active') { abandonner(); row = await persist(admin, row) }
+      }
+      await awardFinished(admin, row)
       return json(200, { match: await view(admin, row, user.id, grid) })
     }
     if (row.current_player_id !== user.id) return json(409, { error: 'Ce n’est pas ton tour.', match: await view(admin, row, user.id, grid) })
@@ -797,7 +846,7 @@ Deno.serve(async request => {
       const automatic = body.automatic === true
       const submissionGrace = automatic ? AUTOMATIC_SUBMIT_GRACE_MS : MANUAL_SUBMIT_GRACE_MS
       const turnEndsAt = new Date(row.turn_ends_at).getTime()
-      if (automatic && valid.length === 0 && Date.now() < turnEndsAt) {
+      if (!row.state.chaine && automatic && valid.length === 0 && Date.now() < turnEndsAt) {
         return json(409, {
           error: 'Le tour est toujours en cours.',
           code: 'TURN_STILL_ACTIVE',
@@ -808,7 +857,7 @@ Deno.serve(async request => {
       // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
       // Le carnet du propriétaire se lit AVANT le coup : `applyTurn` réécrit le
       // numéro et le début du tour.
-      if (accessProfile?.role === 'admin') carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
+      if (accessProfile?.role === 'admin' && !row.state.chaine) carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
       // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu
       // pendant le tour, s'il y en a, plutôt qu'un tour manqué (matchDrafts.ts).
       //
@@ -821,7 +870,13 @@ Deno.serve(async request => {
       // aurait été perdue. En temps illimité, il n'y a même pas de brouillon.
       // Entre une triche qui demande de réécrire l'appli et des lettres perdues
       // pour des joueurs honnêtes, on garde les lettres.
-      if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) {
+      if (row.state.chaine) {
+        // « Passer », ou l'envoi de 00:00 : les lettres ont déjà été jugées une à une.
+        if (automatic && Date.now() < turnEndsAt) {
+          return json(409, { error: 'Le tour est toujours en cours.', code: 'TURN_STILL_ACTIVE', match: await view(admin, row, user.id, grid) })
+        }
+        fermerTourDeChaine(row, { echu: automatic || recuA >= turnEndsAt + MANUAL_SUBMIT_GRACE_MS, absence: automatic })
+      } else if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) {
         closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic })
       } else applyTurn(row, grid, user.id, valid)
     } else if (action === 'hint') {

@@ -185,7 +185,7 @@ begin
 
   if pg_catalog.has_function_privilege(
     'anon',
-    'public.server_matchmake_atomic(uuid,text,uuid,uuid,text,jsonb,timestamptz,timestamptz)',
+    'public.server_matchmake_atomic(uuid,text,uuid,uuid,text,jsonb,timestamptz,timestamptz,text)',
     'execute'
   ) or pg_catalog.has_function_privilege(
     'authenticated',

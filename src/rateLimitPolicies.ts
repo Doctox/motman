@@ -52,6 +52,10 @@ export function actionRateLimits(
   if (api === 'match' && action === 'draft') {
     return [{ bucket: 'match:draft', maxRequests: 90, windowSeconds: 60 }]
   }
+  // Le duel en chaîne : un appel par lettre posée, relances comprises. Même largeur.
+  if (api === 'match' && action === 'lettre') {
+    return [{ bucket: 'match:lettre', maxRequests: 90, windowSeconds: 60 }]
+  }
   if (api === 'match' && action === 'ranked-leaderboard') {
     return [{ bucket: 'match:ranked-leaderboard', maxRequests: 30, windowSeconds: 60 }]
   }
