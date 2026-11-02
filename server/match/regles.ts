@@ -20,17 +20,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { botTurnDelayMs } from '../../supabase/functions/match-api/botDelay.ts'
+import { avancerChaineDuBot, jugerLettre, reponseDeLettre, type DemandeDeLettre } from '../../supabase/functions/match-api/matchChaine.ts'
 import { brouillonRecevable, lettresDuBrouillon } from '../../supabase/functions/match-api/matchDrafts.ts'
 import { ensureFinalSprintRacks, ensureSharedLetterBag, neededLetters, publicGrid, refill, ruleGrid } from '../../supabase/functions/match-api/matchGrid.ts'
 import type { MatchRow } from '../../supabase/functions/match-api/matchModel.ts'
 import { initialMatchState } from '../../supabase/functions/match-api/matchSetup.ts'
 import {
   absentSansTemoin, acknowledgePresence, applyTurn, botPlacements, closeExpiredTurn, currentPresenceDeadline,
-  dureeDuTour, finish, forfeitAbsentPlayer, presenceExpired, sanitizePlacements, vainqueurAuxPoints, type Cadence,
+  dureeDuTour, fermerTourDeChaine, finish, forfeitAbsentPlayer, presenceExpired, sanitizePlacements, vainqueurAuxPoints, type Cadence,
 } from '../../supabase/functions/match-api/matchTurns.ts'
-import { CADENCE_LOCALE, FIRST_TURN_READING_MS, TURN_READY_DURATION_MS, TURN_SUBMIT_GRACE_MS } from './config'
+import { AUTOMATIC_TURN_SUBMIT_GRACE_MS, CADENCE_LOCALE, FIRST_TURN_READING_MS, TURN_READY_DURATION_MS, TURN_SUBMIT_GRACE_MS } from './config'
 import { gridById } from './gridCatalog'
-import type { BotProfile, CatalogGrid, MatchMode, MatchPace, StoredDraft, StoredMatch, StoredTurn } from './types'
+import type { BotProfile, CatalogGrid, MatchMode, MatchPace, MatchVariante, StoredDraft, StoredMatch, StoredTurn } from './types'
 
 /** Grille finie : le meilleur score, ou personne à égalité (`vainqueurAuxPoints`). */
 export { vainqueurAuxPoints }
@@ -43,7 +44,7 @@ type Placement = { cellIndex: number; letter: string }
  */
 export function cadenceDe(match: Pick<StoredMatch, 'turnMs'>): Cadence {
   if (!match.turnMs) return CADENCE_LOCALE
-  return { ...CADENCE_LOCALE, tourLimiteMs: match.turnMs, tourIllimiteMs: match.turnMs }
+  return { ...CADENCE_LOCALE, tourLimiteMs: match.turnMs, tourIllimiteMs: match.turnMs, tourChaineMs: match.turnMs }
 }
 
 export function grilleDe(match: Pick<StoredMatch, 'gridId'>): CatalogGrid {
@@ -65,6 +66,7 @@ function versLigne(match: StoredMatch): MatchRow {
       productiveTurns: match.productiveTurns, inactivity: match.inactivity, presenceAck: match.presenceAck,
       rackCompletions: match.rackCompletions ?? {}, wordsCompleted: match.wordsCompleted, imageWordsCompleted: match.imageWordsCompleted,
       hint: match.hint, hintUsed: match.hintUsed, rerollUsed: match.rerollUsed, lastTurn: match.lastTurn,
+      chaine: match.chaine,
     },
   }
 }
@@ -94,6 +96,7 @@ function depuisLigne(row: MatchRow, match: StoredMatch): void {
   match.hintUsed = state.hintUsed
   match.rerollUsed = state.rerollUsed
   match.lastTurn = state.lastTurn
+  match.chaine = state.chaine
 }
 
 /** Applique une règle de match-api à la partie. `ecrit` : la règle a changé la partie, son `updatedAt` bouge. */
@@ -115,6 +118,26 @@ export function jouerCoup(match: StoredMatch, playerId: string, placements: Plac
   return selonMatchApi(match, row => applyTurn(row, grilleDe(match), playerId, placements, cadenceDe(match)))
 }
 
+/** Une lettre de duel en chaîne : `jugerLettre` de match-api, puis sa réponse. */
+export function poserLettre(match: StoredMatch, playerId: string, demande: DemandeDeLettre, recuA: number) {
+  const marges = { mainMs: TURN_SUBMIT_GRACE_MS, envoiMs: AUTOMATIC_TURN_SUBMIT_GRACE_MS }
+  const jugement = selonMatchApi(match, row => jugerLettre(row, grilleDe(match), playerId, demande, recuA, marges, cadenceDe(match)), { ecrit: false })
+  if (jugement.ecrit) match.updatedAt = new Date().toISOString()
+  return reponseDeLettre(versLigne(match), jugement, demande, playerId, cadenceDe(match))
+}
+
+/** « Passer », ou l'envoi de 00:00 d'un tour de chaîne : `fermerTourDeChaine` de match-api. */
+export function fermerChaine(match: StoredMatch, options: { echu: boolean; absence: boolean }): void {
+  selonMatchApi(match, row => fermerTourDeChaine(row, { ...options, cadence: cadenceDe(match) }))
+}
+
+/** Les lettres dues de l'adversaire automatique, en chaîne : vrai si la partie a changé. */
+export function chaineDuBot(match: StoredMatch, now: number): boolean {
+  const change = selonMatchApi(match, row => avancerChaineDuBot(row, grilleDe(match), now, cadenceDe(match)), { ecrit: false })
+  if (change) match.updatedAt = new Date().toISOString()
+  return change
+}
+
 /** Le tour échu : les lettres du brouillon s'il y en a, sinon un tour manqué (`closeExpiredTurn`). */
 export function cloreTourEchu(match: StoredMatch, { absence = true }: { absence?: boolean } = {}): void {
   selonMatchApi(match, row => {
@@ -130,7 +153,7 @@ function versBrouillon(brouillon: StoredDraft | undefined) {
 
 /** Les lettres de l'autre pour celui qui attend (`lettresEnDirect` de match-api, sans adversaire automatique ici). */
 export function enDirectPour(match: StoredMatch, lecteurId: string) {
-  if (match.pace !== 'realtime' || match.status !== 'active' || match.currentPlayerId === lecteurId || match.currentPlayerId === match.bot?.playerId) return null
+  if (match.chaine || match.pace !== 'realtime' || match.status !== 'active' || match.currentPlayerId === lecteurId || match.currentPlayerId === match.bot?.playerId) return null
   const brouillon = match.brouillons?.[match.currentPlayerId]
   return {
     turnNumber: match.turnNumber,
@@ -226,19 +249,21 @@ export function grilleDeRegles(match: StoredMatch) {
  */
 export function nouvellePartie(input: {
   id: string; hostId: string; guestId: string; mode: MatchMode; pace: MatchPace; grid: CatalogGrid
-  invitationId: string | null; bot: BotProfile | null; turnMs?: number; now: Date
+  invitationId: string | null; bot: BotProfile | null; turnMs?: number; now: Date; variante?: MatchVariante
 }): StoredMatch {
-  const { id, hostId, guestId, mode, pace, grid, invitationId, bot, turnMs, now } = input
-  const state = initialMatchState(grid, hostId, guestId, invitationId, bot)
+  const { id, hostId, guestId, mode, pace, grid, invitationId, bot, turnMs, now, variante } = input
+  const state = initialMatchState(grid, hostId, guestId, invitationId, bot, variante)
+  const cadence = cadenceDe({ turnMs })
   const debut = new Date(now.getTime() + (pace === 'realtime' ? FIRST_TURN_READING_MS : TURN_READY_DURATION_MS))
   return {
     id, invitationId, mode, pace, gridId: grid.id, difficulty: state.difficulty, turnMs,
     playerIds: state.playerIds, bot, currentPlayerId: hostId, turnNumber: 1,
     turnStartedAt: debut.toISOString(),
-    turnEndsAt: new Date(debut.getTime() + dureeDuTour(pace, cadenceDe({ turnMs }))).toISOString(),
+    turnEndsAt: new Date(debut.getTime() + (state.chaine ? cadence.tourChaineMs : dureeDuTour(pace, cadence))).toISOString(),
     board: state.board, racks: state.racks, letterBag: state.letterBag, scores: state.scores,
     productiveTurns: state.productiveTurns, inactivity: state.inactivity, rackCompletions: state.rackCompletions,
     hint: null, hintUsed: {}, rerollUsed: {}, lastTurn: null, status: 'active', winnerId: null, finishReason: null,
+    ...(state.chaine ? { chaine: state.chaine } : {}),
     resultAcknowledgedBy: [], resultFeedbackBy: [],
     createdAt: now.toISOString(), updatedAt: now.toISOString(),
   }

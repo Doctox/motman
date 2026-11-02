@@ -19,11 +19,11 @@ import {
 import { gridIds, grids } from './match/gridCatalog'
 import { sendJson } from './match/http'
 import {
-  absentDeLaPartie, cloreTourEchu, coupDuBot, echeancePresence, forfaitDeLAbsent, grillePublique,
+  absentDeLaPartie, chaineDuBot, cloreTourEchu, coupDuBot, echeancePresence, forfaitDeLAbsent, grillePublique,
   heureDuCoupDuBot, jouerCoup, nouvellePartie, preparerChevalets, presenceEchue,
 } from './match/regles'
 import { handleMatchRequest } from './match/requestHandler'
-import type { BotProfile, CatalogGrid, MatchDatabase, MatchInvitation, MatchMode, MatchPace, StoredMatch } from './match/types'
+import type { BotProfile, CatalogGrid, MatchDatabase, MatchInvitation, MatchMode, MatchPace, MatchVariante, StoredMatch } from './match/types'
 
 // Les RÈGLES d'une partie — coup, tour échu, absence, bot, chevalets, grille
 // publique — viennent de match-api par `./match/regles` (22/10/2026, K1). Ce
@@ -154,6 +154,7 @@ function resoudrePartie(match: StoredMatch, now: number): boolean {
   const absent = absentDeLaPartie(match, now)
   if (absent) { forfaitDeLAbsent(match, absent); return true }
   if (match.bot?.playerId === match.currentPlayerId) {
+    if (match.chaine) return chaineDuBot(match, now) || chevalets
     if (now < heureDuCoupDuBot(match)) return chevalets
     jouerCoup(match, match.bot.playerId, coupDuBot(match))
     return true
@@ -190,13 +191,13 @@ function resolveBotFallback(playerId: string): void {
   if (!search) return
   const delay = search.pace === 'realtime' ? REALTIME_BOT_MATCH_DELAY_MS : ASYNC_BOT_MATCH_DELAY_MS
   if (Date.now() - new Date(search.createdAt).getTime() < delay) return
-  const humanCandidate = database.searches.some(candidate => candidate.id !== search.id && candidate.pace === search.pace)
+  const humanCandidate = database.searches.some(candidate => candidate.id !== search.id && candidate.pace === search.pace && (candidate.variante ?? 'classique') === (search.variante ?? 'classique'))
   if (humanCandidate) return
   if (search.pace === 'realtime' && activeMatches(playerId, 'realtime').length) return
   // Même règle que la production : le bot qui remplace un humain absent joue au
   // niveau du joueur (src/botOpponents.ts).
   const bot = createBotProfile(search.id, botSkillForLevel(niveauJoueur(playerId)))
-  const match = createMatch(playerId, bot.playerId, 'normal', search.pace, search.id, null, bot)
+  const match = createMatch(playerId, bot.playerId, 'normal', search.pace, search.id, null, bot, undefined, search.variante)
   database.matches.push(match)
   database.searches = database.searches.filter(candidate => candidate.id !== search.id)
   saveDatabase()
@@ -213,7 +214,7 @@ function lobbyState(playerId: string) {
   const incoming = database.invitations.filter(invitation => invitation.guestId === playerId && invitation.status === 'pending').map(invitationView)
   const outgoing = database.invitations.filter(invitation => invitation.hostId === playerId && invitation.status === 'pending').map(invitationView)
   const active = database.matches.filter(match => match.status === 'active' && match.playerIds.includes(playerId)).map(publicMatch)
-  const searches = database.searches.filter(search => search.playerId === playerId).map(({ id, pace, createdAt }) => ({ id, pace, createdAt }))
+  const searches = database.searches.filter(search => search.playerId === playerId).map(({ id, pace, variante, createdAt }) => ({ id, pace, variante: variante ?? 'classique', createdAt }))
   const historyEntry = (match: StoredMatch) => {
     const opponentId = match.playerIds.find(id => id !== playerId) ?? ''
     const interrupted = match.finishReason === 'forfeit' || match.finishReason === 'timeout'
@@ -270,10 +271,10 @@ function selectGridForPlayers(hostId: string, guestId: string, sourceId: string,
  * production écrit `maintenant + READY_MS` : les e2e ne voyaient donc jamais la
  * fenêtre que tout joueur traverse. Ils testent désormais le vrai chemin.
  */
-function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId: string | null = null, bot: BotProfile | null = null, turnMs?: number): StoredMatch {
+function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId: string | null = null, bot: BotProfile | null = null, turnMs?: number, variante?: MatchVariante): StoredMatch {
   const now = new Date()
   const grid = selectGridForPlayers(hostId, guestId, sourceId, now)
-  return nouvellePartie({ id: randomUUID(), hostId, guestId, mode, pace, grid, invitationId, bot, turnMs, now })
+  return nouvellePartie({ id: randomUUID(), hostId, guestId, mode, pace, grid, invitationId, bot, turnMs, now, variante })
 }
 
 const requestContext = {

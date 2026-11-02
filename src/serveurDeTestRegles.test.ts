@@ -41,6 +41,7 @@ describe('le serveur de test importe les règles de match-api', () => {
   const reglesDeMatchApi = [
     ...fonctionsExportees('supabase/functions/match-api/matchTurns.ts'),
     ...fonctionsExportees('supabase/functions/match-api/matchGrid.ts'),
+    ...fonctionsExportees('supabase/functions/match-api/matchChaine.ts'),
     'brouillonRecevable', 'lettresDuBrouillon', 'botTurnDelayMs', 'initialMatchState',
     'applyPlayedTurn', 'startNextTurn', 'replenishRack', 'jouerLeBrouillon', 'gridSolution', 'resolveReadyBots',
   ]
@@ -57,7 +58,7 @@ describe('le serveur de test importe les règles de match-api', () => {
 
   it('le pont vers match-api importe bel et bien ses fonctions', () => {
     const pont = readFileSync('server/match/regles.ts', 'utf8')
-    for (const module of ['matchTurns', 'matchGrid', 'matchDrafts', 'matchSetup', 'botDelay']) {
+    for (const module of ['matchTurns', 'matchGrid', 'matchChaine', 'matchDrafts', 'matchSetup', 'botDelay']) {
       expect(pont).toContain(`from '../../supabase/functions/match-api/${module}.ts'`)
     }
   })

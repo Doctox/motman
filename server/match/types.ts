@@ -1,11 +1,12 @@
 import type { BotSkill } from '../../src/botOpponents'
-import type { Turn } from '../../supabase/functions/match-api/matchModel.ts'
+import type { Chaine, Turn, Variante } from '../../supabase/functions/match-api/matchModel.ts'
 
 // La grille et le tour ont la forme de ceux de match-api (22/10/2026, K1) : ce
 // serveur leur applique les fonctions de la production (server/match/regles.ts).
 export type { CatalogGrid, CatalogWord } from '../../supabase/functions/match-api/matchModel.ts'
 
 export type MatchPace = 'realtime' | 'async'
+export type MatchVariante = Variante
 export type MatchMode = 'friend' | 'normal'
 
 export type MatchInvitation = {
@@ -13,6 +14,7 @@ export type MatchInvitation = {
   hostId: string
   guestId: string
   pace: MatchPace
+  variante?: MatchVariante
   createdAt: string
   expiresAt: string
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired'
@@ -23,6 +25,7 @@ export type MatchSearch = {
   id: string
   playerId: string
   pace: MatchPace
+  variante?: MatchVariante
   createdAt: string
   updatedAt: string
 }
@@ -86,6 +89,8 @@ export type StoredMatch = {
   hintUsed: Record<string, boolean | number>
   rerollUsed: Record<string, boolean | number>
   lastTurn: StoredTurn | null
+  /** Un duel en chaîne : le tour en cours, comme `state.chaine` de match-api. */
+  chaine?: Chaine
   /** Le dernier brouillon de chaque joueur, par identifiant (16/10/2026). */
   brouillons?: Record<string, StoredDraft>
   status: 'active' | 'finished'

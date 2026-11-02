@@ -62,6 +62,7 @@ export const RECENT_GRID_HISTORY_LIMIT = 5
 export const CADENCE_LOCALE: Cadence = {
   tourLimiteMs: REALTIME_TURN_DURATION_MS,
   tourIllimiteMs: ASYNC_TURN_DURATION_MS,
+  tourChaineMs: numericEnvironment('MOTMAN_CHAIN_TURN_DURATION_MS', CADENCE_PRODUCTION.tourChaineMs, 250),
   pasDeRevelationMs: REVEAL_STEP_MS,
   revelationMinimaleMs: MIN_REVEAL_DURATION_MS,
   souffleMs: SOUFFLE_MS,

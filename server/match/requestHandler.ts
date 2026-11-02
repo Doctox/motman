@@ -6,12 +6,13 @@ import {
   ASYNC_INVITATION_DURATION_MS, AUTOMATIC_TURN_SUBMIT_GRACE_MS, INVITATION_DURATION_MS,
   REALTIME_SEARCH_STALE_MS, TURN_SUBMIT_GRACE_MS,
 } from './config'
+import { lireDemandeDeLettre, lireVariante } from '../../supabase/functions/match-api/matchChaine.ts'
 import { readBody, sendJson, sendNoContent } from './http'
 import {
-  brouillonAccepte, cloreTourEchu, confirmerPresence, enDirectPour, filtrerCoup, grilleDeRegles, jouerCoup,
-  lettresRestantes, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
+  brouillonAccepte, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
+  lettresRestantes, poserLettre, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
 } from './regles'
-import type { BotProfile, MatchDatabase, MatchMode, MatchPace, StoredMatch } from './types'
+import type { BotProfile, MatchDatabase, MatchMode, MatchPace, MatchVariante, StoredMatch } from './types'
 
 type PublicPlayer = { displayName: string; online: boolean }
 
@@ -25,7 +26,7 @@ export type MatchRequestContext = {
   lobbyState(playerId: string): unknown
   publicMatch(match: StoredMatch): unknown
   saveDatabase(): void
-  createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId?: string | null, bot?: BotProfile | null, turnMs?: number): StoredMatch
+  createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId?: string | null, bot?: BotProfile | null, turnMs?: number, variante?: MatchVariante): StoredMatch
 }
 
 export async function handleMatchRequest(request: IncomingMessage, response: ServerResponse, context: MatchRequestContext): Promise<void> {
@@ -110,7 +111,8 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   if (route === 'create') {
     resolveExpired()
     const targetId = cleanPlayerId(body.targetId)
-    const pace: MatchPace | '' = body.pace === 'realtime' ? 'realtime' : body.pace === 'async' ? 'async' : ''
+    const variante = lireVariante(body.variante)
+    const pace: MatchPace | '' = variante === 'chaine' || body.pace === 'realtime' ? 'realtime' : body.pace === 'async' ? 'async' : ''
     if (!pace) return sendJson(response, 400, { error: 'Rythme de partie invalide.' })
     const target = publicUser(targetId)
     if (!target || !areFriends(playerId, targetId)) return sendJson(response, 404, { error: 'Cet ami est introuvable.' })
@@ -121,9 +123,9 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     // son invitation — une seule partie pour les deux. Même règle que match-api
     // (supabase/functions/match-api/matchInvitations.ts), relevée le 18/09/2026.
     const croisee = database.invitations.find(invitation => invitation.status === 'pending' &&
-      invitation.hostId === targetId && invitation.guestId === playerId && invitation.pace === pace)
+      invitation.hostId === targetId && invitation.guestId === playerId && invitation.pace === pace && (invitation.variante ?? 'classique') === variante)
     if (croisee) {
-      const match = createMatch(croisee.hostId, croisee.guestId, 'friend', croisee.pace, croisee.id, croisee.id)
+      const match = createMatch(croisee.hostId, croisee.guestId, 'friend', croisee.pace, croisee.id, croisee.id, null, undefined, variante)
       database.matches.push(match)
       croisee.status = 'accepted'
       croisee.matchId = match.id
@@ -135,7 +137,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     if (!existing) {
       const createdAt = new Date()
       const invitationDuration = pace === 'async' ? ASYNC_INVITATION_DURATION_MS : INVITATION_DURATION_MS
-      database.invitations.push({ id: randomUUID(), hostId: playerId, guestId: targetId, pace, createdAt: createdAt.toISOString(), expiresAt: new Date(createdAt.getTime() + invitationDuration).toISOString(), status: 'pending' })
+      database.invitations.push({ id: randomUUID(), hostId: playerId, guestId: targetId, pace, variante, createdAt: createdAt.toISOString(), expiresAt: new Date(createdAt.getTime() + invitationDuration).toISOString(), status: 'pending' })
       saveDatabase()
     }
     return sendJson(response, 200, lobbyState(playerId))
@@ -151,7 +153,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     else {
       if (invitation.pace === 'realtime' && (activeMatches(invitation.hostId, 'realtime').length || activeMatches(invitation.guestId, 'realtime').length))
         return sendJson(response, 409, { error: 'Un des joueurs est déjà en partie.' })
-      const match = createMatch(invitation.hostId, invitation.guestId, 'friend', invitation.pace, invitation.id, invitation.id)
+      const match = createMatch(invitation.hostId, invitation.guestId, 'friend', invitation.pace, invitation.id, invitation.id, null, undefined, invitation.variante)
       database.matches.push(match)
       invitation.status = 'accepted'
       invitation.matchId = match.id
@@ -171,7 +173,8 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
 
   if (route === 'search' || route === 'search/cancel') {
     resolveExpired()
-    const pace: MatchPace | '' = body.pace === 'realtime' ? 'realtime' : body.pace === 'async' ? 'async' : ''
+    const variante = lireVariante(body.variante)
+    const pace: MatchPace | '' = variante === 'chaine' || body.pace === 'realtime' ? 'realtime' : body.pace === 'async' ? 'async' : ''
     if (!pace) return sendJson(response, 400, { error: 'Rythme de partie invalide.' })
     if (route === 'search/cancel') {
       database.searches = database.searches.filter(search => search.playerId !== playerId || search.pace !== pace)
@@ -183,7 +186,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     // Pas de plafond de parties illimitées : la production n'en a pas
     // (server_matchmake_atomic). Ce serveur en refusait une quatrième.
     const candidate = [...database.searches]
-      .filter(search => search.playerId !== playerId && search.pace === pace)
+      .filter(search => search.playerId !== playerId && search.pace === pace && (search.variante ?? 'classique') === variante)
       .filter(search => pace === 'async'
         || (Date.now() - new Date(search.updatedAt).getTime() < REALTIME_SEARCH_STALE_MS && activeMatches(search.playerId, 'realtime').length === 0))
       .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())[0]
@@ -196,7 +199,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       const turnMs = Number.isFinite(surMesure) && surMesure > 0
         ? Math.min(Math.max(surMesure, 1_000), 10 * 60_000)
         : undefined
-      const match = createMatch(candidate.playerId, playerId, 'normal', pace, candidate.id, null, null, turnMs)
+      const match = createMatch(candidate.playerId, playerId, 'normal', pace, candidate.id, null, null, turnMs, variante)
       database.matches.push(match)
       database.searches = database.searches.filter(search => search.id !== candidate.id && !(search.playerId === playerId && search.pace === pace))
       saveDatabase()
@@ -205,8 +208,11 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     const existing = database.searches.find(search => search.playerId === playerId && search.pace === pace)
     if (!existing) {
       const createdAt = new Date().toISOString()
-      database.searches.push({ id: randomUUID(), playerId, pace, createdAt, updatedAt: createdAt })
-    } else existing.updatedAt = new Date().toISOString()
+      database.searches.push({ id: randomUUID(), playerId, pace, variante, createdAt, updatedAt: createdAt })
+    } else {
+      existing.updatedAt = new Date().toISOString()
+      existing.variante = variante
+    }
     saveDatabase()
     return sendJson(response, 200, { lobby: lobbyState(playerId), matchId: null })
   }
@@ -245,6 +251,16 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     return sendJson(response, 200, { ok: true })
   }
 
+  // Le duel en chaîne : `jugerLettre` de match-api. Avant le contrôle du tour : une
+  // lettre renvoyée après la fin du tour reçoit encore son verdict.
+  if (route === 'lettre') {
+    const demande = lireDemandeDeLettre(body)
+    if (!demande) return sendJson(response, 400, { error: 'Lettre invalide.' })
+    const reponse = poserLettre(match, playerId, demande, recuA)
+    saveDatabase()
+    return sendJson(response, 200, reponse)
+  }
+
   if (route === 'turn' && match.lastTurn?.playerId === playerId && match.lastTurn.turnNumber === requestedTurnNumber) {
     return sendJson(response, 200, { match: publicMatch(match), result: match.lastTurn })
   }
@@ -266,6 +282,8 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   if (!hasTurnStarted(Date.now(), new Date(match.turnStartedAt).getTime())) {
     return sendJson(response, 409, { error: 'Le prochain tour commence après les résultats.', match: publicMatch(match) })
   }
+
+  if (match.chaine && (route === 'hint' || route === 'reroll')) return sendJson(response, 409, { error: 'Pas d’indice ni de relance dans une partie en chaîne.' })
 
   // L'indice et le mélange vivent EN LIGNE dans `index.ts` de match-api, qui ne
   // s'importe pas (il démarre `Deno.serve`). Ils sont donc suivis pas à pas, avec
@@ -314,7 +332,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   const automatic = body.automatic === true
   const submissionGrace = automatic ? AUTOMATIC_TURN_SUBMIT_GRACE_MS : TURN_SUBMIT_GRACE_MS
   const turnEndsAt = new Date(match.turnEndsAt).getTime()
-  if (automatic && valid.length === 0 && Date.now() < turnEndsAt) {
+  if ((automatic && valid.length === 0 || match.chaine && automatic) && Date.now() < turnEndsAt) {
     return sendJson(response, 409, {
       error: 'Le tour est toujours en cours.',
       code: 'TURN_STILL_ACTIVE',
@@ -324,7 +342,8 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu pendant
   // le tour, s'il y en a, plutôt qu'un tour manqué. Un coup ENVOYÉ À LA MAIN
   // trop tard coûte le tour sans compter comme une absence (`absence: automatic`).
-  if (recuA >= turnEndsAt + submissionGrace || (automatic && valid.length === 0 && !hasPlacedHint)) {
+  if (match.chaine) fermerChaine(match, { echu: automatic || recuA >= turnEndsAt + TURN_SUBMIT_GRACE_MS, absence: automatic })
+  else if (recuA >= turnEndsAt + submissionGrace || (automatic && valid.length === 0 && !hasPlacedHint)) {
     cloreTourEchu(match, { absence: automatic })
   } else jouerCoup(match, playerId, valid)
   saveDatabase()
