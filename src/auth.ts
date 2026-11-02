@@ -1,3 +1,4 @@
+import { isAuthRetryableFetchError } from '@supabase/supabase-js'
 import { savePlayerCosmetics, type CosmeticKind, type CosmeticReward, type PlayerCosmetics } from './cosmetics'
 import {
   loadDailyChallengeState, reconcileServerDailyStreak, saveDailyChallengeState, type ServerDailyStreak,
@@ -135,7 +136,16 @@ export async function bootstrapPlayerSession(): Promise<GuestIdentity> {
     return store(payload).identity
   }
   if (!supabaseConfigured) throw new Error('MotMan ne trouve pas sa configuration Supabase.')
-  let { data: sessionData } = await supabase.auth.getSession()
+  const lecture = await supabase.auth.getSession()
+  // UNE PANNE RÉSEAU N'EST PAS UNE ABSENCE DE SESSION (02/11/2026). Le
+  // renouvellement a échoué faute de réseau : la bibliothèque répond « pas de
+  // session » mais la garde en stockage. Créer un invité ici l'écrasait, et le
+  // joueur repartait du niveau 1 sans un mot. Une session refusée par le serveur
+  // (jeton révoqué, compte supprimé) passe toujours par la création d'un invité.
+  if (isAuthRetryableFetchError(lecture.error)) {
+    throw new Error('La connexion n’aboutit pas. Ton profil ne risque rien : réessaie quand le réseau revient.')
+  }
+  let sessionData = lecture.data
   if (!sessionData.session) {
     const captchaToken = await getCaptchaToken()
     const { data, error } = await supabase.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined)
