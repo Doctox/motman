@@ -60,6 +60,21 @@ async function ouvrir(isDaily: boolean) {
 }
 const bouton = (texte: string) => [...hote.querySelectorAll('button')].find(candidat => candidat.textContent?.includes(texte))
 
+describe('le timbre du jour', () => {
+  it('à la fin d’un défi, le jour joué est déjà dans le carnet', async () => {
+    natif.permission = null
+    await ouvrir(true)
+    expect(hote.textContent).toContain('Un timbre de plus')
+    expect(hote.textContent).toContain('1 timbre dans ton carnet')
+  })
+
+  it('jamais après une partie normale', async () => {
+    natif.permission = null
+    await ouvrir(false)
+    expect(hote.textContent).not.toContain('Un timbre de plus')
+  })
+})
+
 describe('la carte du rappel', () => {
   it('à la fin d’un défi, pose la question, sans parler des tours si Android accepte déjà', async () => {
     await ouvrir(true)
