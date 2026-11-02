@@ -357,5 +357,11 @@
     "titre": "Tu vois les lettres de l’autre arriver",
     "texte": "En temps limité, les lettres de ton adversaire apparaissent pendant qu’il les pose, avant même qu’il valide.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-11-03T00:35",
+    "titre": "Nouveau mode : En chaîne",
+    "texte": "30 secondes pour poser le plus de lettres : chaque lettre juste t’en donne une nouvelle, une erreur et ça passe à l’autre. À essayer depuis la page Jouer, ou entre amis.",
+    "genre": "jeu"
   }
 ]
