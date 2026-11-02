@@ -301,6 +301,8 @@ html[data-motion="off"] .mm-basket-burst{display:none}
 .mm-profile-editor .mm-owned-avatar-grid .mm-portrait,
 .mm-profile-editor .mm-owned-frame-grid .mm-portrait,
 .mm-profile-editor .mm-owned-animation-grid .mm-portrait { margin-inline: auto; }
+/* Un décor posé sous le portrait (rubans du Cachet de cire) dépasse de 10 px : le nom reste dessous. */
+.mm-profile-editor .mm-owned-frame-grid span { margin-top: 4px; }
 .mm-profile-editor .mm-guest-preview { flex-direction: column; --mm-ecart: 8px; gap: var(--mm-ecart); text-align: center; }
 .mm-profile-editor .mm-guest-preview > span { align-items: center; }
 

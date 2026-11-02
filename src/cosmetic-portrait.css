@@ -46,16 +46,19 @@
 .cosmetic-frame[data-frame="cadre-constellation"]{--frame-art-scale:1.39;--avatar-inset:16%;--avatar-decale-y:8.7%}
 .cosmetic-frame[data-frame="cadre-dragon-dore"]{--frame-art-scale:1.46;--avatar-inset:17%;--avatar-decale-y:5.3%}
 .cosmetic-frame[data-frame="cadre-jardin-des-songes"]{--frame-art-scale:1.47;--avatar-inset:18%;--avatar-decale-y:-1.0%}
+.cosmetic-frame[data-frame="cadre-dentelure"]{--frame-art-scale:1.37;--avatar-inset:9.4%}
+.cosmetic-frame[data-frame="cadre-cachet-de-cire"]{--frame-art-scale:1.44;--avatar-inset:9.4%}
+.cosmetic-frame[data-frame="cadre-quatre-saisons"]{--frame-art-scale:1.29;--avatar-inset:12.6%}
 .cosmetic-frame[data-frame="cadre-rosee"]>.cosmetic-frame-art{--mm-cadre-duree:7.5s;animation:mmFrameRosee var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-coquelicot"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-porcelaine"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-paquerettes"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-tricot"]>.cosmetic-frame-art{--mm-cadre-duree:8.2s;animation:mmFrameSingular var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-herbier"]>.cosmetic-frame-art{--mm-cadre-duree:8.5s;animation:mmFrameHerbier var(--mm-cadre-duree) ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-maree"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-bibliotheque"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-salon-the"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-ruche"]>.cosmetic-frame-art{--mm-cadre-duree:7.2s;animation:mmFrameRare var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-maree"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-bibliotheque"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-salon-the"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-ruche"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-dentelure"]>.cosmetic-frame-art{--mm-cadre-duree:7.2s;animation:mmFrameRare var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-braise"]>.cosmetic-frame-art{--mm-cadre-duree:3.6s;animation:mmFrameBraise var(--mm-cadre-duree) ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-royal"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-encrier"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-sous-bois"]>.cosmetic-frame-art{--mm-cadre-duree:5.2s;animation:mmFramePrecious var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-royal"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-encrier"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-sous-bois"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-cachet-de-cire"]>.cosmetic-frame-art{--mm-cadre-duree:5.2s;animation:mmFramePrecious var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-clair-de-lune"]>.cosmetic-frame-art{--mm-cadre-duree:5.6s;animation:mmFrameMoon var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-givre"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-aurore"]>.cosmetic-frame-art{--mm-cadre-duree:5.8s;animation:mmFrameExceptional var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame[data-frame="cadre-constellation"]>.cosmetic-frame-art{--mm-cadre-duree:4.8s;animation:mmFrameStars var(--mm-cadre-duree) ease-in-out infinite}
-.cosmetic-frame[data-frame="cadre-dragon-dore"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-jardin-des-songes"]>.cosmetic-frame-art{--mm-cadre-duree:4.6s;animation:mmFrameLegendary var(--mm-cadre-duree) ease-in-out infinite}
+.cosmetic-frame[data-frame="cadre-dragon-dore"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-jardin-des-songes"]>.cosmetic-frame-art,.cosmetic-frame[data-frame="cadre-quatre-saisons"]>.cosmetic-frame-art{--mm-cadre-duree:4.6s;animation:mmFrameLegendary var(--mm-cadre-duree) ease-in-out infinite}
 .cosmetic-frame:not(.is-cosmetic-visible)>.cosmetic-frame-art{animation-play-state:paused!important}
 /* Citrouilles : l'art se balance à peine ; sa lueur (même box, posée dessus)
    suit le même balancement et vacille comme une bougie. Pas de filtre animé

@@ -5,7 +5,9 @@
 --      la table des seuils ;
 --   2. LE SEUIL ATTEINT VERSE LE TITRE, à l'insertion du jour joué, et jamais avant ;
 --   3. UN JOUR MANQUÉ N'ENLÈVE RIEN, et rejouer le versement ne double rien ;
---   4. ON NE BLOQUE JAMAIS LE DÉFI : une panne du versement laisse le jour s'écrire.
+--   4. ON NE BLOQUE JAMAIS LE DÉFI : une panne du versement laisse le jour s'écrire ;
+--   5. LES TROIS CADRES SE MÉRITENT (migration 20261102200000) : le seuil les verse,
+--      l'achat les refuse.
 
 begin;
 
@@ -61,6 +63,34 @@ begin
   perform private.verser_le_carnet(joueur);
   if not exists (select 1 from public.player_titles where user_id = joueur and title_id = 'carnet-25') then
     raise exception 'Dix jours joués et quinze jours gagnés font 25 timbres';
+  end if;
+
+  -- ── 5. Les trois cadres : gagnés à leur seuil, jamais achetés ───────────────
+  if (select count(*) from public.stamp_book_frames cadre
+      join public.server_cosmetic_catalog objet on objet.kind = cadre.kind and objet.item_id = cadre.item_id
+      where objet.active and objet.availability = 'easter-egg' and objet.price_feathers = 0
+        and (cadre.seuil, cadre.item_id) in ((50, 'cadre-dentelure'), (100, 'cadre-cachet-de-cire'), (365, 'cadre-quatre-saisons'))) <> 3 then
+    raise exception 'Trois cadres de carnet attendus, hors vente';
+  end if;
+  begin
+    perform public.server_purchase_cosmetic(joueur, 'frame', 'cadre-dentelure', 'client:carnet-essai');
+    raise exception 'ACHAT_ACCEPTE';
+  exception when others then
+    if sqlerrm = 'ACHAT_ACCEPTE' then raise exception 'Un cadre du carnet ne doit pas pouvoir s''acheter'; end if;
+  end;
+  insert into public.daily_wins (user_id, day)
+  select joueur, jour_base + 4000 + rang from pg_catalog.generate_series(0, 23) as rang;
+  perform private.verser_le_carnet(joueur);
+  if exists (select 1 from public.player_inventory where user_id = joueur and kind = 'frame' and item_id = 'cadre-dentelure') then
+    raise exception 'À 49 timbres, le cadre des 50 n''est pas encore mérité';
+  end if;
+  insert into public.daily_wins (user_id, day) values (joueur, jour_base + 5000);
+  perform private.verser_le_carnet(joueur);
+  if not exists (select 1 from public.player_inventory where user_id = joueur and kind = 'frame' and item_id = 'cadre-dentelure' and source = 'carnet') then
+    raise exception 'Le 50e timbre doit verser la Dentelure';
+  end if;
+  if exists (select 1 from public.player_inventory where user_id = joueur and kind = 'frame' and item_id = 'cadre-cachet-de-cire') then
+    raise exception 'Le cadre des 100 ne doit pas venir à 50 timbres';
   end if;
 
   -- Un cadre posé par Cosmétiques se verse au prochain passage, sans autre code.

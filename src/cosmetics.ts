@@ -122,6 +122,9 @@ export const FRAMES: FrameDefinition[] = [
   { id: 'cadre-citrouilles', name: 'Citrouilles', description: 'Citrouilles qui s’illuminent, lune d’or et chauves-souris.', asset: '/assets/frames/cadre-citrouilles.webp', glow: '/assets/frames/cadre-citrouilles-lueur.webp', pricePlumes: 8_000, rarity: 'legendaire', availability: 'epicerie' },
   { id: 'cadre-dragon-dore', name: 'Dragon doré', description: 'Gardien d’or serti d’émeraudes.', asset: '/assets/frames/cadre-dragon-dore.webp', pricePlumes: 8_400, rarity: 'legendaire', availability: 'epicerie' },
   { id: 'cadre-jardin-des-songes', name: 'Jardin des songes', description: 'Fleurs lumineuses et papillons de nuit.', asset: '/assets/frames/cadre-jardin-des-songes.webp', pricePlumes: 9_000, rarity: 'legendaire', availability: 'epicerie' },
+  { id: 'cadre-dentelure', name: 'Dentelure', description: 'Papier ivoire dentelé, timbres et cachet postal.', asset: '/assets/frames/cadre-dentelure.webp', pricePlumes: 0, rarity: 'rare', availability: 'easter-egg', carnet: 50 },
+  { id: 'cadre-cachet-de-cire', name: 'Cachet de cire', description: 'Éventail de timbres et sceau à la plume.', asset: '/assets/frames/cadre-cachet-de-cire.webp', pricePlumes: 0, rarity: 'precieux', availability: 'easter-egg', carnet: 100 },
+  { id: 'cadre-quatre-saisons', name: 'Quatre saisons', description: 'Une année de timbres, quatre sceaux et une loupe.', asset: '/assets/frames/cadre-quatre-saisons.webp', pricePlumes: 0, rarity: 'legendaire', availability: 'easter-egg', carnet: 365 },
 ]
 
 export const NO_ANIMATION_ID = 'animation-none'

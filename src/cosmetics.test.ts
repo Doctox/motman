@@ -24,7 +24,7 @@ describe('tarifs de l’Épicerie', () => {
     const basketPrice = BASKETS[0].pricePlumes
     const directPrices = [
       ...AVATARS.filter(item => item.availability !== 'starter').map(item => item.pricePlumes),
-      ...FRAMES.filter(item => item.availability !== 'starter').map(item => item.pricePlumes),
+      ...FRAMES.filter(item => item.availability === 'epicerie').map(item => item.pricePlumes),
       ...ANIMATIONS.filter(item => item.availability !== 'starter').map(item => item.pricePlumes),
     ]
 
@@ -64,6 +64,41 @@ describe('catalogue du serveur', () => {
     ]
     expect(serveur.items.map(({ kind, id, rarity, pricePlumes, availability }) => ({ kind, id, rarity, pricePlumes, availability }))).toEqual(appli)
     expect(serveur.baskets.map(({ id, pricePlumes }) => ({ id, pricePlumes }))).toEqual(BASKETS.map(({ id, pricePlumes }) => ({ id, pricePlumes })))
+  })
+})
+
+describe('cadres du carnet de timbres', () => {
+  const duCarnet = FRAMES.filter(cadre => cadre.carnet)
+
+  it('se méritent : ni prix, ni Épicerie, ni panier', () => {
+    expect(duCarnet.map(cadre => cadre.carnet)).toEqual([50, 100, 365])
+    for (const cadre of duCarnet) {
+      expect(cadre.availability).toBe('easter-egg')
+      expect(cadre.pricePlumes).toBe(0)
+    }
+    expect(FRAMES.filter(cadre => cadre.availability === 'easter-egg')).toEqual(duCarnet)
+  })
+
+  it('tiennent les mêmes seuils côté appli et côté serveur', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs')
+    const dossier = 'supabase/migrations'
+    // La DERNIÈRE migration qui remplit la table fait foi.
+    const derniere = readdirSync(dossier).sort().reverse()
+      .map(nom => readFileSync(`${dossier}/${nom}`, 'utf8'))
+      .find(sql => sql.includes('insert into public.stamp_book_frames'))!
+    const lignes = [...derniere.matchAll(/\((\d+),\s*'(cadre-[a-z-]+)'\)/g)].map(([, seuil, id]) => ({ seuil: Number(seuil), id }))
+    expect(lignes).toEqual(duCarnet.map(cadre => ({ seuil: cadre.carnet, id: cadre.id })))
+  })
+
+  it('ont un réglage de portrait et l’animation de leur rareté', async () => {
+    const { readFileSync } = await import('node:fs')
+    const css = readFileSync('src/cosmetic-portrait.css', 'utf8')
+    const animations = { rare: 'mmFrameRare', precieux: 'mmFramePrecious', legendaire: 'mmFrameLegendary' }
+    for (const cadre of duCarnet) {
+      expect(css).toContain(`.cosmetic-frame[data-frame="${cadre.id}"]{--frame-art-scale:`)
+      const regle = css.split(/\r?\n/).find(ligne => ligne.includes(`[data-frame="${cadre.id}"]>.cosmetic-frame-art`))
+      expect(regle).toContain(animations[cadre.rarity as keyof typeof animations])
+    }
   })
 })
 

@@ -146,6 +146,6 @@ describe('l’écran de fin du défi', () => {
     titresDuCompte()
     await monter(createElement(TimbreDuJour, { playerId: MOI, jour: '2026-11-06', gagne: true }))
     expect(texte(hote)).toContain('Tu gagnes le titre « Premières pages »')
-    expect(texte(hote)).toContain('10 timbres dans ton carnet · encore 40 pour le titre « Un peu timbré »')
+    expect(texte(hote)).toContain('10 timbres dans ton carnet · encore 40 pour le cadre Dentelure')
   })
 })

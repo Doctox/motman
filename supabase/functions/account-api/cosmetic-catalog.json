@@ -713,6 +713,33 @@
       "asset": "/assets/frames/cadre-jardin-des-songes.webp"
     },
     {
+      "kind": "frame",
+      "id": "cadre-dentelure",
+      "name": "Dentelure",
+      "rarity": "rare",
+      "pricePlumes": 0,
+      "availability": "easter-egg",
+      "asset": "/assets/frames/cadre-dentelure.webp"
+    },
+    {
+      "kind": "frame",
+      "id": "cadre-cachet-de-cire",
+      "name": "Cachet de cire",
+      "rarity": "precieux",
+      "pricePlumes": 0,
+      "availability": "easter-egg",
+      "asset": "/assets/frames/cadre-cachet-de-cire.webp"
+    },
+    {
+      "kind": "frame",
+      "id": "cadre-quatre-saisons",
+      "name": "Quatre saisons",
+      "rarity": "legendaire",
+      "pricePlumes": 0,
+      "availability": "easter-egg",
+      "asset": "/assets/frames/cadre-quatre-saisons.webp"
+    },
+    {
       "kind": "animation",
       "id": "animation-none",
       "name": "Sans animation",
