@@ -4,7 +4,7 @@ import { LEVEL_TITLE_REWARDS, type FeatherRewardBreakdown } from './progressionR
 // function `account-api` puisse l'importer sans embarquer ce module-ci — qui
 // tire `progressionRewards` et lit le `localStorage`. Réexporté ici pour ne rien
 // casser des appelants existants.
-export { MAX_PLAYER_LEVEL, experienceGoalForLevel } from './experienceCurve'
+export { MAX_PLAYER_LEVEL, XP_PAR_ETOILE, etoileSuivante, etoilesDuJoueur, experienceGoalForLevel, nombreDEtoiles } from './experienceCurve'
 // `export … from` ne crée AUCUNE liaison locale : sans cet import, les usages
 // plus bas dans CE fichier ne sont pas dans la portée du module et `tsc -b`
 // échoue — alors que `vite dev` et `vitest`, tous deux sur esbuild, passent.
@@ -41,6 +41,8 @@ export type ExperienceAward = {
   dailyBonusPlumes?: number
   unlockedTitles?: PlayerTitle[]
   createdAt: string
+  /** L'XP totale du joueur à la lecture de cette récompense, pour les étoiles (matchRewardPrefetch.ts). */
+  xpTotale?: number
 }
 
 export type PlayerTitle = {

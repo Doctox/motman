@@ -34,6 +34,42 @@ describe('la barre d’XP de l’écran de fin', () => {
     expect(hote.querySelector('.experience-level-up')?.textContent).toContain('Niveau 4 atteint')
   })
 
+  describe('au niveau 50, la barre vise l’étoile suivante', () => {
+    const auMax = (xpTotale: number | undefined, total = 100, levelBefore = 50) =>
+      ({ ...recompense(0, 0, total, levelBefore, 50), xpTotale }) as ExperienceAward
+    const texte = (hote: HTMLElement) => hote.textContent?.replace(/\s/g, ' ') ?? ''
+
+    it('dit les étoiles et ce qu’il reste, et montre le gain', () => {
+      const hote = afficher(auMax(22_540 + 4_000 + 340))
+      expect(hote.querySelector('.experience-level span')?.textContent).toBe('2 étoiles')
+      expect(texte(hote)).toContain('Encore 1 660 XP avant la 3e étoile')
+      const barre = hote.querySelector<HTMLElement>('.experience-progress')!
+      expect(barre.style.getPropertyValue('--apres')).toBe(String(340 / 2_000))
+      expect(barre.style.getPropertyValue('--avant')).toBe(String(240 / 2_000))
+      expect(hote.querySelector('.experience-level-up')).toBeNull()
+    })
+
+    it('annonce une étoile gagnée, et la barre repart de zéro', () => {
+      const hote = afficher(auMax(22_540 + 2_000 + 30))
+      expect(hote.querySelector('.experience-level-up')?.textContent).toContain('Ta première étoile')
+      expect(hote.querySelector<HTMLElement>('.experience-progress')!.style.getPropertyValue('--avant')).toBe('0')
+      expect(afficher(auMax(22_540 + 6_000 + 30)).querySelector('.experience-level-up')?.textContent).toContain('Ta 3e étoile')
+    })
+
+    it('fête le passage au niveau 50, et vise la 1re étoile', () => {
+      const hote = afficher(auMax(22_540 + 30, 200, 49))
+      expect(hote.querySelector('.experience-level-up')?.textContent).toContain('Niveau 50 atteint')
+      expect(texte(hote)).toContain('Encore 1 970 XP avant la 1re étoile')
+      expect(hote.querySelector<HTMLElement>('.experience-progress')!.style.getPropertyValue('--avant')).toBe('0')
+    })
+
+    it('sans le total, garde la barre pleine plutôt que d’inventer un chiffre', () => {
+      const hote = afficher(auMax(undefined))
+      expect(texte(hote)).toContain('Niveau maximum')
+      expect(hote.querySelector<HTMLElement>('.experience-progress')!.style.getPropertyValue('--apres')).toBe('1')
+    })
+  })
+
   it('ne montre rien pour une partie qui n’a rien rapporté', () => {
     expect(afficher(recompense(30, 100, 0)).querySelector('.experience-reward')).toBeNull()
   })

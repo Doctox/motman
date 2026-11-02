@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { ExperienceAward, ExperienceOutcome } from './playerProgress'
-import { MAX_PLAYER_LEVEL } from './playerProgress'
+import { MAX_PLAYER_LEVEL, XP_PAR_ETOILE, etoileSuivante, etoilesDuJoueur, nombreDEtoiles } from './playerProgress'
 import { Feather, Flame, Sparkles } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,6 +17,8 @@ import { Feather, Flame, Sparkles } from 'lucide-react'
 // Un niveau gagné s'annonce en grand : c'est un jalon, pas une note de bas de
 // cadre.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const nombreXp = new Intl.NumberFormat('fr-FR')
 
 /** Le mot du résultat, selon l'issue de la partie : « Résultat » ne disait rien. */
 export function motDuResultat(outcome: ExperienceOutcome): string {
@@ -44,8 +46,13 @@ export function ExperienceReward({ award }: { award: ExperienceAward }) {
   // « +0 XP · 0 tour » n'apprend rien (F4).
   if (award.breakdown.total <= 0 && plumesTotal <= 0) return null
   const goal = Math.max(1, award.xpGoalAfter)
-  const avant = reachedMax ? 1 : Math.min(1, departDuGain(award) / goal)
-  const apres = reachedMax ? 1 : Math.min(1, award.xpAfter / goal)
+  // Au niveau 50, la barre suit l'étoile suivante (experienceCurve.ts). Sans le
+  // total, qu'on n'a pas toujours, elle reste pleine.
+  const etoiles = reachedMax && award.xpTotale !== undefined ? etoilesDuJoueur(award.xpTotale) : null
+  const etoilesAvant = reachedMax && award.xpTotale !== undefined ? etoilesDuJoueur(award.xpTotale - award.breakdown.total) : null
+  const nouvelleEtoile = Boolean(etoiles && etoilesAvant && etoiles.etoiles > etoilesAvant.etoiles)
+  const avant = etoiles && etoilesAvant ? (nouvelleEtoile ? 0 : etoilesAvant.xp / XP_PAR_ETOILE) : reachedMax ? 1 : Math.min(1, departDuGain(award) / goal)
+  const apres = etoiles ? etoiles.xp / XP_PAR_ETOILE : reachedMax ? 1 : Math.min(1, award.xpAfter / goal)
   const resultat = motDuResultat(award.outcome)
   const featherDetails = [
     [resultat, award.featherBreakdown?.base],
@@ -68,11 +75,15 @@ export function ExperienceReward({ award }: { award: ExperienceAward }) {
       </div>
     </div>
     {dailyBonus ? <div className="experience-daily-bonus" aria-label={`Bonus du défi du jour : ${dailyBonus} plumes`}><Flame aria-hidden="true" /><span>Défi du jour réussi</span><b>+{dailyBonus} plumes</b></div> : null}
-    {levelUp && !reachedMax ? <p className="experience-level-up">Niveau {award.levelAfter} atteint&nbsp;!</p> : null}
-    <div className="experience-level">
+    {levelUp ? <p className="experience-level-up">Niveau {award.levelAfter} atteint&nbsp;!</p> : null}
+    {nouvelleEtoile && etoiles ? <p className="experience-level-up">{etoiles.etoiles === 1 ? 'Ta première étoile' : `Ta ${etoiles.etoiles}e étoile`}&nbsp;!</p> : null}
+    {etoiles ? <div className="experience-level">
+      <span>{etoiles.etoiles ? nombreDEtoiles(etoiles.etoiles) : `Niveau ${award.levelAfter}`}</span>
+      <small>Encore {nombreXp.format(XP_PAR_ETOILE - etoiles.xp)} XP avant la {etoileSuivante(etoiles.etoiles)}</small>
+    </div> : <div className="experience-level">
       <span>{reachedMax ? 'Niveau maximum' : `Niveau ${award.levelAfter}`}</span>
       {reachedMax ? <strong>50</strong> : <small>{resteAvantNiveau > 0 ? `Encore ${resteAvantNiveau} XP avant le niveau ${award.levelAfter + 1}` : `${award.xpAfter} / ${award.xpGoalAfter}`}</small>}
-    </div>
+    </div>}
     <i className="experience-progress" style={{ '--avant': avant, '--apres': apres } as CSSProperties}><b className="experience-progress-avant" /><b className="experience-progress-gain" /></i>
     {featherDetails.length || xpDetails.length ? <details className="experience-details">
       <summary>Voir le détail</summary>

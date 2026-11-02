@@ -5,7 +5,7 @@ import { ChiffresQuiRoulent } from '../ChiffresQuiRoulent'
 import type { PlayerCosmetics } from '../cosmetics'
 import type { MatchLobbyState, MatchState } from '../matches'
 import { friendCodeOf, playerInitials, type GuestIdentity } from '../playerIdentity'
-import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
+import { etoilesDuJoueur, experienceGoalForLevel, MAX_PLAYER_LEVEL, nombreDEtoiles, XP_PAR_ETOILE, type PlayerProgress } from '../playerProgress'
 import { nomDuTitre } from '../titleNames'
 import { rankImage, rankedDivision } from '../ranked'
 import type { SocialState, SocialUser } from '../social'
@@ -73,7 +73,9 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, j
   // ici : un écran large en montre plus, sans qu'on ait à le prévoir.
   const visibleFriends = [...social.friends].sort((left, right) => presenceWeight[right.activity] - presenceWeight[left.activity])
   const xpGoal = experienceGoalForLevel(progress.level)
-  const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
+  // Au niveau 50, la barre repart vers l'étoile suivante (experienceCurve.ts).
+  const etoiles = progress.level >= MAX_PLAYER_LEVEL ? etoilesDuJoueur(progress.lifetimeXp) : null
+  const xpPercent = etoiles ? etoiles.xp / XP_PAR_ETOILE * 100 : Math.min(100, progress.xp / xpGoal * 100)
   const currentRank = rankedDivision(progress.rankedPoints, progress.rankedMatches)
   // UN JOUEUR NEUF (22/10/2026, N2) : aucune partie finie, aucune en cours. Le
   // gros bouton terracotta du défi l'envoyait vers la seule partie qui ne se
@@ -108,7 +110,7 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, j
           {/* Des zéros qui disent quoi faire (N9) : « 0 / 100 XP » avant la
               première partie, « Non classé » pour un invité qui ne peut pas
               jouer en classé sans compte. */}
-          <small>Niveau {progress.level}{progress.level >= MAX_PLAYER_LEVEL ? '' : progress.lifetimeXp === 0 ? ' · joue pour monter' : ` · ${progress.xp} / ${xpGoal} XP`}</small>
+          <small>Niveau {progress.level}{etoiles ? etoiles.etoiles ? ` · ${nombreDEtoiles(etoiles.etoiles)}` : '' : progress.lifetimeXp === 0 ? ' · joue pour monter' : ` · ${progress.xp} / ${xpGoal} XP`}</small>
           {identity.accountType === 'account' || currentRank.id !== 'unranked' ? <strong className="mm-home-rank"><img src={rankImage(currentRank)} alt="" />{currentRank.label}</strong> : null}
         </div>
       </div>

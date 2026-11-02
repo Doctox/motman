@@ -39,7 +39,7 @@ export async function recompenseDuMatch(matchId: string): Promise<ExperienceAwar
   // était rouvert (relevé le 20/09/2026). On oublie, la prochaine lecture
   // redemandera.
   if (!recompense) demandes.delete(matchId)
-  return recompense
+  return recompense && { ...recompense, xpTotale: compte.progress?.lifetimeXp }
 }
 
 /** Pour les bancs d'essai : repartir d'un cache vide. */

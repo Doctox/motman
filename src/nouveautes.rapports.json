@@ -331,5 +331,10 @@
     "ajoute": "2026-11-02T14:19",
     "titre": "Un rappel pour le défi, si tu le veux",
     "texte": "Sur l’appli Android, à la fin du défi, MotMan peut te prévenir le lendemain. C’est toi qui choisis, et ça se coupe dans les paramètres."
+  },
+  {
+    "ajoute": "2026-11-02T14:23",
+    "titre": "Après le niveau 50, les étoiles",
+    "texte": "La barre ne s’arrête plus : passé le niveau 50, chaque 2 000 XP te donne une étoile, sur ton profil et à l’accueil."
   }
 ]

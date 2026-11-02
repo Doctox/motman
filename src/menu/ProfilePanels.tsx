@@ -4,7 +4,7 @@ import { CosmeticPortrait } from '../CosmeticPortrait'
 import { getAnimation, getAvatar, getFrame, type PlayerCosmetics } from '../cosmetics'
 import { PLAYER_NAME_MAX_LENGTH, validatePlayerName } from '../playerNamePolicy'
 import { friendCodeOf, type GuestIdentity } from '../playerIdentity'
-import { experienceGoalForLevel, MAX_PLAYER_LEVEL, type PlayerProgress } from '../playerProgress'
+import { etoileSuivante, etoilesDuJoueur, experienceGoalForLevel, MAX_PLAYER_LEVEL, nombreDEtoiles, XP_PAR_ETOILE, type PlayerProgress } from '../playerProgress'
 import { rankImage, rankedDivision } from '../ranked'
 import { EMPTY_PLAYER_STATS, loadPlayerStats, type PlayerStats } from '../playerStats'
 import { loadRankedLeaderboard, type RankedLeaderboard, type RankedMatchmakingState } from '../rankedMatchmaking'
@@ -175,11 +175,13 @@ function PlayerStatsPanel({ jouer }: { jouer?: () => void }) {
 
 export function ProfilePage({ identity, progress, cosmetics, edit, openAccount, jouerPremierePartie }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openAccount: () => void; jouerPremierePartie?: () => void }) {
   const xpGoal = experienceGoalForLevel(progress.level)
-  const xpPercent = progress.level >= MAX_PLAYER_LEVEL ? 100 : Math.min(100, progress.xp / xpGoal * 100)
+  // Au niveau 50, la barre repart vers l'étoile suivante (experienceCurve.ts).
+  const etoiles = progress.level >= MAX_PLAYER_LEVEL ? etoilesDuJoueur(progress.lifetimeXp) : null
+  const xpPercent = etoiles ? etoiles.xp / XP_PAR_ETOILE * 100 : Math.min(100, progress.xp / xpGoal * 100)
   const equippedTitle = progress.titles.find(title => title.id === progress.equippedTitleId)
   return <div className="mm-page mm-profile-page">
     <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
-    <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{progress.level >= MAX_PLAYER_LEVEL ? 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{progress.level >= MAX_PLAYER_LEVEL ? <strong>Niveau maximum atteint</strong> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
+    <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{etoiles ? etoiles.etoiles ? nombreDEtoiles(etoiles.etoiles) : 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{etoiles ? <><strong>{frenchNumber.format(etoiles.xp)}</strong> / {frenchNumber.format(XP_PAR_ETOILE)} XP vers la {etoileSuivante(etoiles.etoiles)}</> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
     <PlayerStatsPanel jouer={jouerPremierePartie} />
     {/* La bourse, et plus l'entrée de l'Épicerie : celle-ci a son onglet depuis
         qu'elle est dans la barre du bas. Le solde reste ici parce qu'il n'a rien
