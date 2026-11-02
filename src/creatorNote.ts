@@ -14,6 +14,7 @@ export const INSTAGRAM_STUDIO = 'https://www.instagram.com/studiodoctox/'
 export const TIKTOK_STUDIO = 'https://www.tiktok.com/@studiodoctox'
 
 const CLE = 'motman:mot-du-createur'
+const CLE_SUIVI = 'motman:mot-du-createur-suivi'
 
 type Stockage = Pick<Storage, 'getItem' | 'setItem'>
 
@@ -25,9 +26,14 @@ function stockageLocal(): Stockage | null {
   }
 }
 
-/** Le message n'a pas encore été montré ce jour-là (clé `AAAA-MM-JJ`, Paris). */
+/**
+ * Le message n'a pas encore été montré ce jour-là (clé `AAAA-MM-JJ`, Paris), et le
+ * joueur n'a pas déjà touché un des deux comptes. Le jeu ne peut pas voir s'il est
+ * abonné ; toucher le lien est ce qui s'en rapproche le plus (propriétaire, 02/11/2026).
+ */
 export function motDuCreateurAMontrer(jour: string, stockage: Stockage | null = stockageLocal()): boolean {
   try {
+    if (stockage?.getItem(CLE_SUIVI)) return false
     return stockage?.getItem(CLE) !== jour
   } catch {
     return true
@@ -39,5 +45,14 @@ export function motDuCreateurMontre(jour: string, stockage: Stockage | null = st
     stockage?.setItem(CLE, jour)
   } catch {
     // Rien à faire : au pire, il reparaîtra au prochain lancement.
+  }
+}
+
+/** Le joueur a touché Instagram ou TikTok : le message ne lui redemandera plus. */
+export function suiviDuStudioNote(stockage: Stockage | null = stockageLocal()): void {
+  try {
+    stockage?.setItem(CLE_SUIVI, '1')
+  } catch {
+    // Rien à faire : au pire, le message reparaîtra demain.
   }
 }

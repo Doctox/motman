@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { HeartHandshake, Sparkles } from 'lucide-react'
-import { INSTAGRAM_STUDIO, TIKTOK_STUDIO } from '../creatorNote'
+import { INSTAGRAM_STUDIO, suiviDuStudioNote, TIKTOK_STUDIO } from '../creatorNote'
 import { marquerNouveauteLue, nouveautesDesDernieres24h, useNouveautes, type Nouveaute } from '../nouveautes'
 import { RapportsDeNouveautes } from './Nouveautes'
 import { useDialogFocus } from '../useDialogFocus'
@@ -68,8 +68,8 @@ export function CreatorNote({ close, recentes: recentesImposees }: { close: () =
             <p>Salut ! Je développe MotMan tout seul, et je paie le jeu et ses serveurs de ma poche.</p>
             <p>Pour qu’il continue de grandir, il a besoin d’être connu. Un abonnement aux comptes du Studio Doctox m’aide énormément :</p>
             <div className="mm-createur-liens">
-              <a className="is-instagram" href={INSTAGRAM_STUDIO} target="_blank" rel="noreferrer"><LogoInstagram /><span>Instagram<small>@studiodoctox</small></span></a>
-              <a className="is-tiktok" href={TIKTOK_STUDIO} target="_blank" rel="noreferrer"><LogoTikTok /><span>TikTok<small>@studiodoctox</small></span></a>
+              <a className="is-instagram" href={INSTAGRAM_STUDIO} target="_blank" rel="noreferrer" onClick={() => suiviDuStudioNote()}><LogoInstagram /><span>Instagram<small>@studiodoctox</small></span></a>
+              <a className="is-tiktok" href={TIKTOK_STUDIO} target="_blank" rel="noreferrer" onClick={() => suiviDuStudioNote()}><LogoTikTok /><span>TikTok<small>@studiodoctox</small></span></a>
             </div>
             <p className="mm-createur-signature">Merci, et bonne partie ! — DocTox</p>
           </div>

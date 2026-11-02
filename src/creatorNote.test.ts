@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INSTAGRAM_STUDIO, motDuCreateurAMontrer, motDuCreateurMontre, TIKTOK_STUDIO } from './creatorNote'
+import { INSTAGRAM_STUDIO, motDuCreateurAMontrer, motDuCreateurMontre, suiviDuStudioNote, TIKTOK_STUDIO } from './creatorNote'
 
 function stockage() {
   const valeurs = new Map<string, string>()
@@ -16,6 +16,14 @@ describe('le mot du créateur, une fois par jour', () => {
     motDuCreateurMontre('2026-10-11', memoire)
     expect(motDuCreateurAMontrer('2026-10-11', memoire)).toBe(false)
     expect(motDuCreateurAMontrer('2026-10-12', memoire)).toBe(true)
+  })
+
+  it('ne revient plus une fois qu’on a touché Instagram ou TikTok (02/11/2026)', () => {
+    const memoire = stockage()
+    motDuCreateurMontre('2026-11-02', memoire)
+    suiviDuStudioNote(memoire)
+    expect(motDuCreateurAMontrer('2026-11-03', memoire)).toBe(false)
+    expect(motDuCreateurAMontrer('2026-12-25', memoire)).toBe(false)
   })
 
   it('sans stockage, ou avec un stockage qui refuse, il paraît sans planter', () => {
