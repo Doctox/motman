@@ -220,6 +220,13 @@ html[data-motion="off"] .game-result-sous-score .duel-friend{animation:none!impo
 [data-theme="dark"] .result-quetes p+p{color:#a5b4ae}
 [data-theme="dark"] .result-premier-panier{color:#edd48a}
 html[data-motion="off"] .result-quetes,html[data-motion="off"] .result-premier-panier{animation:none!important}
+/* Le panier offert se prend d'ici (02/11/2026) : la phrase et son bouton, sur la
+   même hauteur, parce que l'écran de fin déborde déjà à 540 px. */
+.result-premier-panier{display:flex;align-items:center;gap:10px}
+.result-premier-panier>span{flex:1;min-width:0}
+.result-premier-panier>button{flex:0 0 auto;min-height:32px;padding:0 14px;border:1px solid #06483b;border-radius:999px;background:linear-gradient(180deg,#0d6755,#075044);color:#fffaf0;font:600 .875rem/1 'Playfair Display',serif;cursor:pointer}
+.result-premier-panier>button:disabled{opacity:.6;cursor:default}
+
 
 /* Un résultat illimité relu depuis le menu (Menu.tsx, `pending-result-shell`) n'a
    pas l'en-tête de la partie : les 100 px qu'on lui réservait laissaient le

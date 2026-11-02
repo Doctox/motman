@@ -79,6 +79,23 @@ export function ligneDeSource(source: { semaine: number; mois: number }): string
 }
 
 /** « signalement » ou « signalements » : zéro reste au singulier. */
+const NOMS_DES_PAS: ReadonlyArray<readonly [string, string]> = [
+  ['menu', 'Arrivés au menu'],
+  ['essai_fini', 'Essai fini'],
+  ['essai_passe', 'Essai passé'],
+  ['choix_defi', 'Puis le défi'],
+  ['choix_partie', 'Puis une partie'],
+  ['choix_plus_tard', 'Puis « Plus tard »'],
+]
+
+/** Les étapes dans l'ordre du parcours : le serveur les trie par nombre. */
+export function lignesDesPremiersPas(pas: ReadonlyArray<{ canal: string; semaine: number; mois: number }>): Array<{ etape: string; nom: string; semaine: number; mois: number }> {
+  return NOMS_DES_PAS.flatMap(([etape, nom]) => {
+    const ligne = pas.find(candidate => candidate.canal === etape)
+    return ligne ? [{ etape, nom, semaine: ligne.semaine, mois: ligne.mois }] : []
+  })
+}
+
 export function libelleSignalements(nombre: number): string {
   return nombre > 1 ? 'signalements' : 'signalement'
 }
@@ -275,6 +292,12 @@ function GamePulseDialog({ pouls, fermer, rafraichir, ouvrirModeration, ouvrirEn
         {pouls.sources?.length
           ? <dl>{pouls.sources.map(source => <div key={source.canal}><dt>{nomDuCanal(source.canal)}</dt><dd className="mm-pulse-ombre">{ligneDeSource(source)}</dd></div>)}</dl>
           : <p className="mm-pulse-note">Aucune arrivée comptée pour l’instant : le décompte a commencé le 17/10.</p>}
+
+        {/* Où partent les nouveaux (02/11/2026), comptés sans savoir qui. */}
+        <h3>Les premiers pas des nouveaux</h3>
+        {pouls.premiersPas?.length
+          ? <dl>{lignesDesPremiersPas(pouls.premiersPas).map(ligne => <div key={ligne.etape}><dt>{ligne.nom}</dt><dd className="mm-pulse-ombre">{ligneDeSource(ligne)}</dd></div>)}</dl>
+          : <p className="mm-pulse-note">Aucun premier pas compté pour l’instant.</p>}
 
         <h3>Joueurs de l’ombre</h3>
         <InterrupteurOmbres allumeAuDepart={pouls.fantome !== false} />

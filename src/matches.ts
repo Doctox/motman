@@ -325,6 +325,8 @@ export type GamePulse = {
   ombres?: Array<{ nom: string; arrivee: string; points: number; parties: number }>
   /** D'où viennent les nouveaux joueurs (17/10/2026) : par canal, 7 et 30 derniers jours. */
   sources?: Array<{ canal: string; semaine: number; mois: number }>
+  /** Les premiers pas des nouveaux, par étape (02/11/2026, premiersPas.ts). `canal` porte le nom de l'étape. */
+  premiersPas?: Array<{ canal: string; semaine: number; mois: number }>
 }
 
 export async function loadGamePulse(): Promise<GamePulse> {

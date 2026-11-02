@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { BellRing, Check, Gamepad2, Hourglass, House, RotateCcw, UserPlus, X } from 'lucide-react'
 import { CosmeticPortrait } from '../CosmeticPortrait'
+import { isFirstBasketFree, loadPlayerCosmetics } from '../cosmetics'
 import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyResultForMatch, recordDailyResult, type DailyAdvanceEffects } from '../dailyChallenge'
 import { GameResultScreen } from '../GameResultScreen'
@@ -106,12 +107,19 @@ export type Revanche = {
   annuler: () => void
 }
 
-export function ResultPanel({ match, playerId, opponentName, onExit, onHome, revanche, rejouer, rejouerClassee }: {
+/** Le joueur n'a encore ouvert aucun panier : le premier reste offert. */
+function premierPanierDisponible(playerId: string): boolean {
+  try { return isFirstBasketFree(loadPlayerCosmetics(playerId)) } catch { return false }
+}
+
+export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onEpicerie, revanche, rejouer, rejouerClassee }: {
   match: MatchState
   playerId: string
   opponentName: string
   onExit: () => void
   onHome: () => void
+  /** « Ouvrir » le panier offert, à l'Épicerie (02/11/2026). */
+  onEpicerie?: () => void
   revanche?: Revanche
   /** « Rejouer » : la même recherche, au même rythme (N3, 22/10/2026). */
   rejouer?: (pace: MatchPace) => void
@@ -228,15 +236,20 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
   }, [match.dailyDate, match.finishReason, match.gridId, match.id, match.isDaily, match.winnerId, playerId])
   const opponentId = match.playerIds.find(id => id !== playerId) ?? ''
   const quetes = useQuestBoard()
-  // Le premier panier, offert, devient la récompense de la PREMIÈRE partie (N7) :
-  // avant d'avoir joué, un avatar ne voulait encore rien dire.
-  const premierePartie = Boolean(experienceAward && experienceAward.levelBefore === 1 && experienceAward.xpAfter - experienceAward.breakdown.total <= 0)
+  // Le premier panier, offert, devient la récompense de la première partie (N7) :
+  // avant d'avoir joué, un avatar ne voulait encore rien dire. Lu sur le panier et
+  // non sur l'XP (02/11/2026) : un abandon avec une lettre posée rapporte déjà de
+  // l'XP, et la phrase ne paraissait plus jamais ensuite.
+  const panierOffert = Boolean(experienceAward) && premierPanierDisponible(playerId)
+  // La première partie se joue sans chrono, elle seule (Menu.tsx, 02/11/2026). La
+  // suivante repart en temps limité : le bouton le dit, pour que rien ne surprenne.
+  const premiereSansChrono = match.pace === 'async' && Boolean(experienceAward && experienceAward.levelBefore === 1 && experienceAward.xpAfter - experienceAward.breakdown.total <= 0)
   const actionPrincipale = match.mode === 'ranked' && rejouerClassee
     ? <button type="button" className="new-game is-ranked" disabled={leaving} onClick={() => void leaveResult(rejouerClassee)}><RotateCcw aria-hidden="true" />Rejouer en classée</button>
     : match.isDaily
       ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Jouer une partie</button>
       : rejouer && (match.mode === 'normal' || match.mode === 'solo')
-        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(match.pace))}><RotateCcw aria-hidden="true" />Rejouer</button>
+        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(premiereSansChrono ? 'realtime' : match.pace))}><RotateCcw aria-hidden="true" />{premiereSansChrono ? 'Rejouer · 45 s par tour' : 'Rejouer'}</button>
         : <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Nouvelle partie</button>
   return <GameResultScreen
     outcome={draw ? 'draw' : won ? 'win' : 'loss'}
@@ -252,7 +265,10 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, rev
     {dailyEffects ? <DailyStreakReward effects={dailyEffects} /> : null}
     {dailyShare ? <DailyShareButton text={dailyShare} /> : null}
     {experienceAward && quetes ? <QuetesDeLaFin quetes={quetes} /> : null}
-    {premierePartie ? <p className="result-premier-panier">Ton premier panier est offert : il t’attend à l’Épicerie.</p> : null}
+    {panierOffert ? <p className="result-premier-panier">
+      <span>Ton premier panier est offert{onEpicerie ? '.' : ' : il t’attend à l’Épicerie.'}</span>
+      {onEpicerie ? <button type="button" disabled={leaving} onClick={() => void leaveResult(onEpicerie)}>Ouvrir</button> : null}
+    </p> : null}
     {experienceAward ? <CarteNotifications /> : null}
     <div className="end-game-actions">
       {revanche

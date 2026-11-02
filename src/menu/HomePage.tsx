@@ -13,6 +13,8 @@ import { ApercuFlottant, useAppuiLong } from './ApercuFlottant'
 import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { Avatar, SocialPortrait, presenceLabel } from './MenuChrome'
 import { DailyChallengeHero } from './DailyChallenge'
+import { ARecuperer } from './ARecuperer'
+import { CarteCompte } from './CarteCompte'
 import { RankedSeekerBanner } from './RankedSeekerBanner'
 import { ChronoRecherche } from './ChronoRecherche'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
@@ -41,7 +43,7 @@ function activeMatchLabel(match: MatchState): string {
   return 'Match normal'
 }
 
-export function HomePage({ identity, progress, cosmetics, social, lobby, play, jouerPremierePartie, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, resumeMatch, ranked, voirRechercheClassee }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; jouerPremierePartie?: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; resumeMatch: (matchId: string) => void; ranked?: RankedMatchmakingState; voirRechercheClassee?: () => void }) {
+export function HomePage({ identity, progress, cosmetics, social, lobby, play, jouerPremierePartie, playWithFriends, playDaily, playRanked, openAccount, openFriends, openRanking, ouvrirEpicerie, resumeMatch, ranked, voirRechercheClassee }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; social: SocialState; lobby: MatchLobbyState; play: () => void; jouerPremierePartie?: () => void; playWithFriends: () => void; playDaily: () => void; playRanked: () => void; openAccount: () => void; openFriends: () => void; openRanking: () => void; ouvrirEpicerie: () => void; resumeMatch: (matchId: string) => void; ranked?: RankedMatchmakingState; voirRechercheClassee?: () => void }) {
   // MA RECHERCHE CLASSÉE SE VOIT AUSSI ICI (22/10/2026, code C3). Lancée, puis
   // l'accueil : plus rien ne disait qu'elle tournait, et une attente qu'on ne
   // voit plus ressemble à une panne. Le bandeau « des joueurs cherchent » me
@@ -121,10 +123,12 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, j
       {neuf ? <>
         <header className="mm-attention-heading"><h2>Partie</h2></header>
         <button type="button" className="mm-home-new-match mm-home-first-game" onClick={jouerPremierePartie}>
-          <Gamepad2 aria-hidden="true" /><span><strong>Jouer ma première partie</strong><small>Un adversaire en quelques secondes · une dizaine de minutes</small></span><ChevronRight aria-hidden="true" />
+          <Gamepad2 aria-hidden="true" /><span><strong>Jouer ma première partie</strong><small>Un adversaire en quelques secondes · sans chrono</small></span><ChevronRight aria-hidden="true" />
         </button>
       </> : null}
       <DailyChallengeHero onPlay={playDaily} onOpenRanking={openRanking} discret={neuf} />
+      <ARecuperer cosmetics={cosmetics} aDejaJoue={progress.lifetimeXp > 0} ouvrirEpicerie={ouvrirEpicerie} />
+      <CarteCompte estInvite={identity.accountType !== 'account'} xpTotale={progress.lifetimeXp} plumes={cosmetics.plumes} niveau={progress.level} creerCompte={openAccount} />
       {/* Réservé au propriétaire : le serveur revérifie le rôle et refuse tout
           autre compte. Placé en haut, c'est la première chose qu'il regarde. */}
       {identity.admin ? <GamePulse /> : null}

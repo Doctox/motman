@@ -96,7 +96,7 @@ Deno.serve(async request => {
     }
 
     // Coup du bot en retard, tour dépassé : voir matchResolve.ts, partagé avec la tâche des rappels.
-    const resolveRow = (row: MatchRow, chargerGrille?: GridLoader) => resolveMatchRow(admin, row, chargerGrille, recuA)
+    const resolveRow = (row: MatchRow, chargerGrille?: GridLoader) => resolveMatchRow(admin, row, chargerGrille, recuA, user.id)
 
     if (action === 'ranked-state' || action === 'ranked-search') {
       if (action === 'ranked-search' && user.is_anonymous === true) {
@@ -416,7 +416,11 @@ Deno.serve(async request => {
       const { data: lignesSources } = await admin.from('player_source_daily')
         .select('jour,canal,joueurs').gte('jour', jourAvant(aujourdhui, 29))
       const sources = bilanDesSources((lignesSources ?? []).map(ligne => ({ jour: String(ligne.jour), canal: String(ligne.canal), joueurs: Number(ligne.joueurs) })), aujourdhui)
-      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), ombres: listeOmbres, sources } })
+      // Les premiers pas des nouveaux (02/11/2026, premiersPas.ts) : même compte, par étape.
+      const { data: lignesPas } = await admin.from('first_steps_daily')
+        .select('jour,etape,nombre').gte('jour', jourAvant(aujourdhui, 29))
+      const premiersPas = bilanDesSources((lignesPas ?? []).map(ligne => ({ jour: String(ligne.jour), canal: String(ligne.etape), joueurs: Number(ligne.nombre) })), aujourdhui)
+      return json(200, { pulse: { ...(pouls as Record<string, unknown>), fantome: await fantomeAllume(admin), ombres: listeOmbres, sources, premiersPas } })
     }
 
     // QUI EST EN LIGNE ET CE QU'IL FAIT (11/10/2026), derrière « En ligne » dans

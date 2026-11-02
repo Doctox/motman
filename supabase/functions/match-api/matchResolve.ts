@@ -38,8 +38,12 @@ export function turnExpired(row: Pick<MatchRow, 'turn_ends_at'>, now = Date.now(
  * requête sur vingt arrivait « en retard » depuis un réseau parfait.
  *
  * La tâche des rappels n'en passe pas : elle n'a pas de joueur qui attend.
+ *
+ * `lecteur` : le joueur dont la requête a fait avancer la partie. S'il vient de
+ * recevoir la main, il est déjà dans l'appli : « C'est à toi » tombait en pleine
+ * partie, à chaque coup de l'adversaire automatique (02/11/2026).
  */
-export async function resolveMatchRow(admin: AdminClient, row: MatchRow, chargerGrille?: GridLoader, recuA = Date.now()): Promise<MatchRow> {
+export async function resolveMatchRow(admin: AdminClient, row: MatchRow, chargerGrille?: GridLoader, recuA = Date.now(), lecteur?: string): Promise<MatchRow> {
   try {
     if (row.status !== 'active') return row
     if (row.paused_at) return row
@@ -81,7 +85,7 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
       closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)))
       row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
     } else if (initializedBag || initializedFinale) row = await persist(admin, row)
-    if (turnAdvanced && row.current_player_id !== previousPlayerId) notifyCurrentTurn(admin, row)
+    if (turnAdvanced && row.current_player_id !== previousPlayerId && row.current_player_id !== lecteur) notifyCurrentTurn(admin, row)
     return row
   } catch (error) {
     // Polling, Realtime and a simultaneous action can all notice the same

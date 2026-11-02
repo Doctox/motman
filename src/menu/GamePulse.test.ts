@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
-import { InterrupteurOmbres, libelleEnLigne, libelleSignalements, ligneDeSource, ligneDOmbre, nomDuCanal } from './GamePulse'
+import { InterrupteurOmbres, libelleEnLigne, libelleSignalements, ligneDeSource, ligneDOmbre, lignesDesPremiersPas, nomDuCanal } from './GamePulse'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -92,5 +92,17 @@ describe('d’où viennent les nouveaux', () => {
 
   it('dit la semaine et les trente jours', () => {
     expect(ligneDeSource({ semaine: 3, mois: 7 })).toBe('3 cette semaine · 7 sur 30 jours')
+  })
+})
+
+// 02/11/2026 : savoir à quel écran partent les nouveaux, sans savoir qui.
+describe('les premiers pas des nouveaux', () => {
+  it('suit l’ordre du parcours, pas celui des nombres, et saute ce qui n’est pas compté', () => {
+    const lignes = lignesDesPremiersPas([
+      { canal: 'choix_defi', semaine: 1, mois: 2 },
+      { canal: 'menu', semaine: 3, mois: 9 },
+      { canal: 'inconnu', semaine: 8, mois: 8 },
+    ])
+    expect(lignes.map(ligne => ligne.nom)).toEqual(['Arrivés au menu', 'Puis le défi'])
   })
 })

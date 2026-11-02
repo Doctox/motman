@@ -23,6 +23,7 @@ import { EMPTY_SOCIAL_STATE, loadSocialState, registerSocialProfile, setSocialPr
 import { AccountPanel } from './menu/AccountPanel'
 import { AppHeader, BottomNav } from './menu/MenuChrome'
 import { PartieDEssai } from './menu/PartieDEssai'
+import { noterPremierPas } from './premiersPas'
 import { useDailyChallenge } from './menu/DailyChallenge'
 import { FriendsPanel } from './menu/FriendsPanel'
 import { HomePage } from './menu/HomePage'
@@ -97,6 +98,7 @@ export function MenuApp({
   // du guide court, l'Épicerie et les Quêtes s'expliqueront une fois à leur
   // première visite (src/premiersPassages.ts). Pas l'habitué qui le revoit.
   const premiereOuverture = useRef(completedTutorialVersion() === 0)
+  useEffect(() => { if (premiereOuverture.current) noterPremierPas('menu') }, [])
   // Le défi du jour, que la fin de la partie d'essai propose en premier quand
   // il est encore jouable sur cet appareil (propriétaire, 23/10/2026).
   const defiDuJour = useDailyChallenge()
@@ -409,7 +411,7 @@ export function MenuApp({
   })
 
   // La fin de la partie d'essai (22/10/2026). « Jouer ma première partie »
-  // lance tout de suite une recherche normale en temps limité (N1) : le guide
+  // lance tout de suite une recherche normale (N1) : le guide
   // finissait sur « Choisir un mode », trois onglets et deux rythmes posés à
   // quelqu'un qui ne savait pas encore ce qu'ils voulaient dire. Depuis le
   // 23/10/2026, le défi du jour à thème passe devant quand il est jouable.
@@ -425,10 +427,13 @@ export function MenuApp({
     if (suite === 'defi') void playDailyChallenge()
   }
   // Tant qu'aucune partie n'est finie, « Jouer ma première partie » lance la
-  // recherche au lieu d'ouvrir l'écran des choix (N1, N2).
+  // recherche au lieu d'ouvrir l'écran des choix (N1, N2). EN ILLIMITÉ depuis le
+  // 02/11/2026, avec l'accord du propriétaire : 6 premières parties sur 7
+  // finissaient abandonnées, et à 45 s par tour le seul moyen de quitter l'écran
+  // était de perdre. Pour cette partie seulement : « Rejouer » repart en temps limité.
   const jouerPremierePartie = () => {
     navigate('play')
-    void beginNormalSearch('realtime')
+    void beginNormalSearch('async', true)
   }
 
   const saveGuestProfile = async (displayName: string, avatarId: string, frameId: string, animationId: string, titleId: string | null) => {
@@ -474,7 +479,7 @@ export function MenuApp({
     finally { setMatchBusy(false) }
   }
 
-  const beginNormalSearch = async (pace: MatchPace) => {
+  const beginNormalSearch = async (pace: MatchPace, premierePartie = false) => {
     partiesAvantRecherche.current = new Set(matchLobby.active.map(match => match.id))
     rechercheEnregistree.current = false
     setPendingSearch(pace)
@@ -486,7 +491,7 @@ export function MenuApp({
         setPendingSearch(null)
         openingMatch.current = result.matchId
         onStartMatch(result.matchId)
-      } else notify(pace === 'realtime' ? 'Recherche lancée' : 'Recherche en temps illimité enregistrée')
+      } else notify(pace === 'realtime' || premierePartie ? 'Recherche lancée' : 'Recherche en temps illimité enregistrée')
     } catch (reason) {
       setPendingSearch(null)
       notify(reason instanceof Error ? reason.message : 'Recherche impossible')
@@ -571,7 +576,7 @@ export function MenuApp({
 
   return <main ref={setCoquille} className="mm-shell">
     <AppHeader onSettings={() => setSettings(true)} />
-    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} jouerPremierePartie={progress.lifetimeXp === 0 ? jouerPremierePartie : undefined} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} resumeMatch={onStartMatch} ranked={ranked} voirRechercheClassee={() => navigate('play', 'ranked')} /> : null}
+    {page === 'home' ? <HomePage identity={identity} progress={progress} cosmetics={cosmetics} social={social} lobby={matchLobby} play={() => navigate('play')} jouerPremierePartie={progress.lifetimeXp === 0 ? jouerPremierePartie : undefined} playWithFriends={() => navigate('play', 'friends')} playDaily={playDailyChallenge} playRanked={() => { navigate('play', 'ranked'); void startRanked() }} openAccount={() => setAccountOpen(true)} openFriends={() => setFriendsOpen(true)} openRanking={() => navigate('ranking', undefined, 'daily')} ouvrirEpicerie={() => navigate('shop')} resumeMatch={onStartMatch} ranked={ranked} voirRechercheClassee={() => navigate('play', 'ranked')} /> : null}
     {page === 'play' ? <PlayPage identity={identity} social={social} lobby={matchLobby} invite={inviteFriend} cancelInvite={cancelInvitation} searchMatch={beginNormalSearch} cancelSearch={stopNormalSearch} nouveau={progress.lifetimeXp === 0} openAccount={() => setAccountOpen(true)} resumeMatch={onStartMatch} openFriends={() => setFriendsOpen(true)} ranked={ranked} rankedBusy={rankedBusy} rankedTimedOut={rankedTimedOut} rankedError={rankedError} startRanked={startRanked} cancelRanked={cancelRanked} initialTab={ongletJouer} /> : null}
     {page === 'ranking' ? <RankingPage identity={identity} progress={progress} cosmetics={cosmetics} epreuveInitiale={epreuveClassement ?? (identity.accountType === 'account' ? undefined : 'daily')} openAccount={() => setAccountOpen(true)} ranked={ranked} rankedBusy={rankedBusy} startRanked={startRanked} cancelRanked={cancelRanked} /> : null}
     {page === 'profile' ? <ProfilePage identity={identity} progress={progress} cosmetics={cosmetics} edit={() => setEditingGuest(true)} openAccount={() => setAccountOpen(true)} jouerPremierePartie={progress.lifetimeXp === 0 ? jouerPremierePartie : undefined} /> : null}

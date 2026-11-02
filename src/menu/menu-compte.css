@@ -1,0 +1,36 @@
+/* La carte qui propose le compte, à l'accueil (02/11/2026). */
+.mm-carte-compte {
+  margin: 12px 0 0;
+  padding: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--mm-line);
+  border-radius: 14px;
+  background: var(--mm-surface);
+  color: var(--mm-ink);
+}
+.mm-carte-compte > svg { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 1px; color: var(--mm-gold); }
+.mm-carte-compte > div { flex: 1; min-width: 0; }
+.mm-carte-compte strong { display: block; font: 600 1rem/1.2 'Playfair Display', serif; }
+.mm-carte-compte p { margin: 4px 0 10px; color: var(--mm-ink-soft); font: 500 .8125rem/1.35 'DM Sans', sans-serif; }
+.mm-carte-compte-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mm-shell .mm-carte-compte-actions button {
+  width: auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mm-ink-soft);
+  font: 600 .8125rem/1 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+.mm-shell .mm-carte-compte-actions button.principal {
+  padding: 0 14px;
+  border-color: var(--mm-button-primary-border);
+  background: linear-gradient(180deg, var(--mm-button-primary-top), var(--mm-button-primary-bottom));
+  color: var(--mm-on-fill);
+  font: 600 .875rem/1 'Playfair Display', serif;
+}
+.mm-carte-compte-actions button:focus-visible { outline: 2px solid color-mix(in srgb, var(--mm-gold) 80%, var(--mm-ink)); outline-offset: 2px; }

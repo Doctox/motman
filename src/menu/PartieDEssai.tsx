@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSPrope
 import { BookOpen, Check, Clock, Gamepad2, Grid2x2Check, Lightbulb } from 'lucide-react'
 import { motionReduced } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
+import { noterPremierPas, type PremierPas } from '../premiersPas'
 import { COUP_ADVERSE, ESSAI_COLONNES, ESSAI_GRILLE, ESSAI_RANGEES, etatInitial, jouerEssai, MOT_DU_JOUEUR, type EtatEssai } from './essaiRegles'
 import './menu-essai.css'
 
@@ -77,6 +78,12 @@ export function PartieDEssai({ premiere, jouer, defi = null, fermer }: {
   fermer: () => void
 }) {
   const [etat, envoyer] = useReducer(jouerEssai, undefined, etatInitial)
+  // Les premiers pas se comptent, sans savoir qui (premiersPas.ts). Pas quand on
+  // rouvre l'essai depuis les paramètres.
+  const pas = (etape: PremierPas) => { if (premiere) noterPremierPas(etape) }
+  useEffect(() => {
+    if (premiere && etat.etape === 'conseils') noterPremierPas('essai_fini')
+  }, [premiere, etat.etape])
   const coucheRef = useDialogFocus<HTMLDivElement>(fermer)
   const [fenetres, setFenetres] = useState<Fenetre[]>([])
   const [montrees, setMontrees] = useState(0)
@@ -131,7 +138,7 @@ export function PartieDEssai({ premiere, jouer, defi = null, fermer }: {
     <div className="essai-shell">
       <header className="essai-header">
         <span><Gamepad2 aria-hidden="true" />Partie d’essai</span>
-        {etat.etape !== 'conseils' ? <button type="button" className="essai-passer" onClick={fermer}>Passer</button> : null}
+        {etat.etape !== 'conseils' ? <button type="button" className="essai-passer" onClick={() => { pas('essai_passe'); fermer() }}>Passer</button> : null}
       </header>
 
       <div className="essai-scores">
@@ -187,8 +194,15 @@ export function PartieDEssai({ premiere, jouer, defi = null, fermer }: {
       <small>Avant de commencer</small>
       <h2 id="essai-fin-titre">Prends ton temps</h2>
       <ul>
-        <li><Clock aria-hidden="true" />Une partie dure une dizaine de minutes.</li>
-        <li><BookOpen aria-hidden="true" />Avant ton premier tour, tu as 30 secondes pour lire la grille.</li>
+        {/* La première partie se joue en illimité (02/11/2026, voir Menu.tsx) : on
+            le dit, et le défi garde son rythme, qu'il faut connaître avant de le lancer. */}
+        {premiere ? <>
+          <li><Clock aria-hidden="true" />Ta première partie se joue sans chrono : quitte-la quand tu veux, elle t’attend 24 h.</li>
+          {defi ? <li><BookOpen aria-hidden="true" />Le défi du jour, lui, se joue à 45 secondes par tour, après 30 secondes pour lire la grille.</li> : null}
+        </> : <>
+          <li><Clock aria-hidden="true" />Une partie dure une dizaine de minutes.</li>
+          <li><BookOpen aria-hidden="true" />Avant ton premier tour, tu as 30 secondes pour lire la grille.</li>
+        </>}
         <li><Check aria-hidden="true" />Une lettre fausse ne coûte aucun point.</li>
         <li><Lightbulb aria-hidden="true" />Bloqué ? L’indice pose une lettre juste, sans point.</li>
       </ul>
@@ -200,13 +214,13 @@ export function PartieDEssai({ premiere, jouer, defi = null, fermer }: {
             {defi.theme ? <>Aujourd’hui, le défi du jour a pour thème <b>{defi.theme}</b>.</> : 'Aujourd’hui, tout le monde joue la même grille du jour.'}
             {' '}Une seule tentative{' '}: gagnée, perdue ou abandonnée, elle compte pour le classement du jour.
           </p>
-          <button type="button" className="essai-fin-jouer essai-fin-relever" data-dialog-autofocus onClick={defi.jouer}><Grid2x2Check aria-hidden="true" />Relever le défi du jour</button>
-          <button type="button" className="essai-fin-normale" onClick={jouer}><Gamepad2 aria-hidden="true" />Une partie normale</button>
-          <button type="button" className="essai-fin-plus-tard" onClick={fermer}>Plus tard</button>
+          <button type="button" className="essai-fin-jouer essai-fin-relever" data-dialog-autofocus onClick={() => { pas('choix_defi'); defi.jouer() }}><Grid2x2Check aria-hidden="true" />Relever le défi du jour</button>
+          <button type="button" className="essai-fin-normale" onClick={() => { pas('choix_partie'); jouer() }}><Gamepad2 aria-hidden="true" />Une partie normale</button>
+          <button type="button" className="essai-fin-plus-tard" onClick={() => { pas('choix_plus_tard'); fermer() }}>Plus tard</button>
         </>
         : premiere ? <>
-          <button type="button" className="essai-fin-jouer" data-dialog-autofocus onClick={jouer}><Gamepad2 aria-hidden="true" />Jouer ma première partie</button>
-          <button type="button" className="essai-fin-plus-tard" onClick={fermer}>Plus tard</button>
+          <button type="button" className="essai-fin-jouer" data-dialog-autofocus onClick={() => { pas('choix_partie'); jouer() }}><Gamepad2 aria-hidden="true" />Jouer ma première partie</button>
+          <button type="button" className="essai-fin-plus-tard" onClick={() => { pas('choix_plus_tard'); fermer() }}>Plus tard</button>
         </>
         : <button type="button" className="essai-fin-jouer" data-dialog-autofocus onClick={fermer}>C’est compris</button>}
     </section> : null}

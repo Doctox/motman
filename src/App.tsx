@@ -263,6 +263,7 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
         onExit={exitMatch}
         onOuvrirPartie={openMatch}
         onHome={returnHome}
+        onEpicerie={() => { history.replaceState(null, '', '#epicerie'); sortirDeLaPartie(() => setMatchId(null)) }}
         onPaceChange={setOpenMatchPace}
         // « Rejoindre » depuis la fenêtre en jeu : on retourne au menu ET on se
         // met en file. La partie quittée n'est close qu'au moment où l'arène

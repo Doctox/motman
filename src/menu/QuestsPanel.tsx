@@ -61,7 +61,7 @@ export function QuestsChip() {
   </>
 }
 
-function QuestsPanel({ close }: { close: () => void }) {
+export function QuestsPanel({ close }: { close: () => void }) {
   const board = useQuestBoard()
   const dialogRef = useDialogFocus<HTMLElement>(close)
   // Fermer en tirant la fenêtre vers le bas par son en-tête (G2, 15/10/2026).
