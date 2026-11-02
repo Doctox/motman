@@ -51,6 +51,8 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
   const rankedRef = useRef(ranked)
   const rankedPollingRef = useRef<ReturnType<typeof startAdaptivePolling> | null>(null)
   rankedRef.current = ranked
+  const matchIdRef = useRef(matchId)
+  matchIdRef.current = matchId
 
   // Rythme de la partie ouverte à l'écran, remonté par l'écran de jeu — `App` ne
   // connaît sinon que son identifiant.
@@ -88,6 +90,21 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
     history.replaceState(null, '', '#accueil')
     sortirDeLaPartie(() => setMatchId(null))
   }, [])
+  // Le toucher d'une notification, appli déjà à l'écran (nativePushNotifications.ts).
+  // Sans partie à ouvrir, c'est le menu qui change de page : voir MenuApp.
+  useEffect(() => {
+    const allerA = (event: Event) => {
+      const route = String((event as CustomEvent<string>).detail)
+      const partie = route.match(/^#partie=([^&]+)$/)
+      rankedPollingRef.current?.wake()
+      if (partie) {
+        const cible = decodeURIComponent(partie[1])
+        if (cible !== matchIdRef.current) openMatch(cible)
+      } else if (matchIdRef.current) exitMatch()
+    }
+    window.addEventListener('motman:notification-touchee', allerA)
+    return () => window.removeEventListener('motman:notification-touchee', allerA)
+  }, [exitMatch, openMatch])
   // Entrée dans un match classé : on solde la partie sacrifiée.
   // Sans ça elle restait `active` et mourait par timeout trois tours plus tard —
   // le joueur voyait une défaite surgir sans comprendre d'où elle venait. Le

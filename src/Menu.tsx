@@ -345,6 +345,20 @@ export function MenuApp({
     history.replaceState(null, '', `#${hash}`)
   }
 
+  // Le toucher d'une invitation ou d'un match classé, menu déjà à l'écran
+  // (nativePushNotifications.ts) : on montre Jouer, et on relit tout de suite.
+  useEffect(() => {
+    const allerA = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== '#jouer') return
+      setOngletJouer(undefined)
+      setEpreuveClassement(undefined)
+      setPage('play')
+      lobbyPolling.current?.wake()
+    }
+    window.addEventListener('motman:notification-touchee', allerA)
+    return () => window.removeEventListener('motman:notification-touchee', allerA)
+  }, [])
+
   // Défi du jour : le SERVEUR dérive la dateKey (horloge serveur), choisit la grille
   // (calendrier du jour), le niveau du bot (player_progress.level) et le rythme —
   // temps limité, toujours. Le client n'envoie rien.

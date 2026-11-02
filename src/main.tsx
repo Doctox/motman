@@ -154,6 +154,11 @@ function proposerMiseAJour(liveUpdate: typeof import('./liveUpdate'), manifeste:
 
 void (async () => {
   if (nativeRuntime) {
+    // Tout de suite : le toucher d'une notification qui a ouvert l'appli doit
+    // arriver avant le premier écran, pas après (nativePushNotifications.ts).
+    void import('./nativePushNotifications')
+      .then(module => module.ecouterLesNotificationsTouchees())
+      .catch(error => console.error('Écoute des notifications impossible', error))
     avancer('mises-a-jour')
     const liveUpdate = await import('./liveUpdate')
     const manifeste = await liveUpdate.findLiveUpdate(UPDATE_CHECK_LIMIT_MS).catch(() => null)

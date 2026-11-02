@@ -4,6 +4,7 @@ import { isNativeRuntime } from './nativeRuntime'
 
 const TOKEN_STORAGE_KEY = 'motman-push-token-v1'
 let initialization: Promise<void> | null = null
+let touchers: Promise<void> | null = null
 
 export function pushNotificationRoute(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null
@@ -65,6 +66,33 @@ export async function detachStoredPushDevice(): Promise<void> {
   await invokeSupabaseFunction('account-api', { action: 'unregister-push-device', token }).catch(() => undefined)
 }
 
+/**
+ * TOUCHER UNE NOTIFICATION NE RELANCE PLUS LE JEU (02/11/2026).
+ *
+ * L'écoute n'était posée qu'une fois l'accueil affiché, et finissait par
+ * `location.reload()`. Appli fermée, le module natif garde le toucher jusqu'à la
+ * première écoute : le jeu se lançait donc une fois, montrait l'accueil, puis se
+ * relançait. Sur « Match classé trouvé », cela mangeait les 30 s pour accepter.
+ *
+ * Elle se pose maintenant dès le démarrage (main.tsx). Si l'écran n'existe pas
+ * encore, l'adresse suffit : App et Menu la lisent en arrivant. S'il est là,
+ * l'événement le fait changer de place sans rien recharger.
+ */
+export function ecouterLesNotificationsTouchees(): Promise<void> {
+  if (touchers) return touchers
+  touchers = (async () => {
+    if (!isNativeRuntime()) return
+    const { PushNotifications } = await import('@capacitor/push-notifications')
+    await PushNotifications.addListener('pushNotificationActionPerformed', action => {
+      const route = pushNotificationRoute(action.notification.data)
+      if (!route) return
+      history.replaceState(null, '', route)
+      window.dispatchEvent(new CustomEvent('motman:notification-touchee', { detail: route }))
+    })
+  })()
+  return touchers
+}
+
 export function initializeNativePushNotifications(): Promise<void> {
   if (initialization) return initialization
   initialization = (async () => {
@@ -77,12 +105,7 @@ export function initializeNativePushNotifications(): Promise<void> {
     await PushNotifications.addListener('registrationError', error => {
       console.error('Inscription native aux notifications impossible', error.error)
     })
-    await PushNotifications.addListener('pushNotificationActionPerformed', action => {
-      const route = pushNotificationRoute(action.notification.data)
-      if (!route) return
-      history.replaceState(null, '', route)
-      location.reload()
-    })
+    await ecouterLesNotificationsTouchees()
 
     if (Capacitor.getPlatform() === 'android') {
       await PushNotifications.createChannel({
