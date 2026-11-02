@@ -11,8 +11,9 @@ import type { MatchRow } from '../match-api/matchModel.ts'
 import { isHumanAsyncMatch, planReminders, reminderKey, reminderMessage } from '../match-api/matchReminders.ts'
 import { resolveMatchRow, turnExpired } from '../match-api/matchResolve.ts'
 import { absentSansTemoin } from '../match-api/matchTurns.ts'
+import { rappelerLeDefi } from './rappelDuDefi.ts'
 
-export type Bilan = { parties: number; toursClos: number; rappels: number; absencesCloses: number }
+export type Bilan = { parties: number; toursClos: number; rappels: number; absencesCloses: number; rappelsDuDefi: number }
 
 /**
  * LES PARTIES EN TEMPS LIMITÉ QUE PLUS PERSONNE NE LIT (22/10/2026, code S5).
@@ -48,6 +49,10 @@ export async function tourDeGarde(admin: AdminClient, now: number): Promise<Bila
     logServerError('match-rappels:absences', erreur)
     return 0
   })
+  const rappelsDuDefi = await rappelerLeDefi(admin, now).catch(erreur => {
+    logServerError('match-rappels:defi', erreur)
+    return 0
+  })
   // Par pages : passé 1 000 parties lentes en cours, Supabase aurait coupé la
   // liste sans le dire (lectures.ts).
   const toutes = await toutesLesLignes<MatchRow>((de, a) => admin.from('server_matches').select('*')
@@ -72,7 +77,7 @@ export async function tourDeGarde(admin: AdminClient, now: number): Promise<Bila
 
   // 2. Les rappels, sur l'état à jour.
   const actives = apres.filter(isHumanAsyncMatch)
-  if (!actives.length) return { parties: parties.length, toursClos, rappels: 0, absencesCloses }
+  if (!actives.length) return { parties: parties.length, toursClos, rappels: 0, absencesCloses, rappelsDuDefi }
 
   // Par tranches : la liste des parties part dans l'adresse de la requête.
   const traites = await parTranches(actives.map(row => row.id), tranche => admin.from('server_match_turn_reminders')
@@ -81,7 +86,7 @@ export async function tourDeGarde(admin: AdminClient, now: number): Promise<Bila
     .map(ligne => [reminderKey(ligne.match_id, ligne.turn_number), ligne.marks_sent]))
 
   const plan = planReminders(actives, dejaEnvoyes, now)
-  if (!plan.claims.length) return { parties: parties.length, toursClos, rappels: 0, absencesCloses }
+  if (!plan.claims.length) return { parties: parties.length, toursClos, rappels: 0, absencesCloses, rappelsDuDefi }
 
   // Noté AVANT l'envoi : un rappel perdu vaut mieux qu'un rappel envoyé deux fois.
   const envoyeLe = new Date(now).toISOString()
@@ -98,5 +103,5 @@ export async function tourDeGarde(admin: AdminClient, now: number): Promise<Bila
   for (const envoi of envois) {
     if (envoi.status === 'rejected') logServerError('match-rappels', envoi.reason)
   }
-  return { parties: parties.length, toursClos, rappels: plan.byPlayer.size, absencesCloses }
+  return { parties: parties.length, toursClos, rappels: plan.byPlayer.size, absencesCloses, rappelsDuDefi }
 }

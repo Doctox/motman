@@ -4,7 +4,8 @@
 // `pg_cron` lance `private.appeler_rappels_tours()` (migration 20260915210000),
 // qui poste ici avec l'en-tête `x-motman-cron`. À chaque passage :
 //   1. les tours en temps illimité dépassés sont clos (voir match-api/matchResolve.ts) ;
-//   2. les rappels dus partent (voir match-api/matchReminders.ts).
+//   2. les rappels dus partent (voir match-api/matchReminders.ts) ;
+//   3. le rappel du défi, pour qui l'a demandé (voir rappelDuDefi.ts).
 //
 // ⚠️ DÉPLOIEMENT : `npx supabase functions deploy match-rappels --no-verify-jwt`.
 // La base n'a pas de session à présenter : c'est le secret qui protège la porte.

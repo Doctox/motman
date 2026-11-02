@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, BookOpen, ChevronRight, FileText, LogIn, Mail, Moon, SlidersHorizontal, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
+import { ArrowLeft, BellRing, BookOpen, ChevronRight, FileText, LogIn, Mail, Moon, SlidersHorizontal, Sparkles, Sun, UserPlus, Vibrate, Volume2, X } from 'lucide-react'
 import { appVersion, appVersionDisplay, settingsRevisionLabel } from '../appVersion'
 import { liveUpdateStatusLabel, readLiveUpdateStatus } from '../liveUpdate'
 import { isNativeRuntime } from '../nativeRuntime'
 import type { GuestIdentity } from '../playerIdentity'
+import { activerRappelDuDefi, arreterRappelDuDefi, lireReponseRappel, rappelDuDefiActif } from '../rappelDuDefi'
 import { readCachedServerAppVersion, refreshServerAppVersion } from '../serverAppVersion'
 import { haptic, motionReduced, useSensoryPreferences } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
@@ -16,6 +17,43 @@ import type { Theme } from './types'
 
 function ToggleRow({ icon, label, checked, setChecked }: { icon: ReactNode; label: string; checked: boolean; setChecked: (value: boolean) => void }) {
   return <label className="mm-setting-row"><span>{icon}{label}</span><input type="checkbox" checked={checked} onChange={event => setChecked(event.target.checked)} /><i /></label>
+}
+
+/**
+ * Arrêter ou demander le rappel du défi (02/11/2026), dans l'appli seulement. La
+ * case suit le souvenir local à l'ouverture, puis ce que dit le serveur.
+ */
+function LigneRappelDuDefi({ playerId }: { playerId: string }) {
+  const [actif, setActif] = useState(() => lireReponseRappel(playerId)?.reponse === 'oui')
+  const [probleme, setProbleme] = useState('')
+  useEffect(() => {
+    let vivant = true
+    void rappelDuDefiActif().then(valeur => { if (vivant && valeur !== null) setActif(valeur) })
+    return () => { vivant = false }
+  }, [])
+  const changer = (valeur: boolean) => {
+    setActif(valeur)
+    setProbleme('')
+    if (valeur) {
+      void activerRappelDuDefi(playerId).then(accepte => {
+        if (accepte) return
+        setActif(false)
+        setProbleme('Pas possible pour l’instant. Vérifie que les notifications de MotMan sont permises dans les réglages d’Android.')
+      })
+      return
+    }
+    // La case ne dit « arrêté » que si le serveur l'a entendu : sinon le rappel
+    // viendrait encore demain, contre ce qu'elle affiche.
+    void arreterRappelDuDefi(playerId).then(arrete => {
+      if (arrete) return
+      setActif(true)
+      setProbleme('Le rappel n’a pas pu être arrêté. Réessaie quand le réseau revient.')
+    })
+  }
+  return <>
+    <ToggleRow icon={<BellRing />} label="Rappel du défi" checked={actif} setChecked={changer} />
+    {probleme ? <p className="mm-setting-note" role="status">{probleme}</p> : null}
+  </>
 }
 
 export function SettingsPanel({ identity, close, openAccount, openFriends, openLegal, openTutorial, theme, setTheme }: { identity: GuestIdentity; close: () => void; openAccount: () => void; openFriends: () => void; openLegal: () => void; openTutorial: () => void; theme: Theme; setTheme: (theme: Theme) => void }) {
@@ -90,6 +128,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
             le réglage de l'appareil, et un joueur qui avait coupé les animations
             dans Windows ne pouvait plus les rallumer dans le jeu. */}
         <ToggleRow icon={<Sparkles />} label="Animations" checked={preferences.animations} setChecked={value => setPreference('animations', value)} />
+        {isNativeRuntime() ? <LigneRappelDuDefi playerId={identity.playerId} /> : null}
       </> : <>
       <header>
         <button type="button" className="mm-nouveautes-bouton" onClick={() => setNouveautesOuvertes(true)} aria-label={nouveauteEnAttente ? 'Nouveautés · il y a du nouveau' : 'Nouveautés'}>
@@ -99,7 +138,7 @@ export function SettingsPanel({ identity, close, openAccount, openFriends, openL
         <button type="button" onClick={close} aria-label="Fermer"><X /></button>
       </header>
       <div className="mm-theme-choice" role="group" aria-label="Thème"><button type="button" className={theme === 'light' ? 'active' : ''} aria-pressed={theme === 'light'} onClick={() => setTheme('light')}><Sun />Clair</button><button type="button" className={theme === 'dark' ? 'active' : ''} aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}><Moon />Sombre</button></div>
-      <button className="mm-settings-link" type="button" onClick={() => setReglagesOuverts(true)}><SlidersHorizontal /><span>Paramètres<small>Sons · vibrations · animations</small></span><ChevronRight /></button>
+      <button className="mm-settings-link" type="button" onClick={() => setReglagesOuverts(true)}><SlidersHorizontal /><span>Paramètres<small>Sons · vibrations · animations{isNativeRuntime() ? ' · rappel' : ''}</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openTutorial}><BookOpen /><span>Revoir le tutoriel<small>Une petite partie guidée, en une minute</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openFriends}><UserPlus /><span>Amis<small>Ajouter · retirer · bloquer</small></span><ChevronRight /></button>
       <button className="mm-settings-link" type="button" onClick={openAccount}><LogIn /><span>{identity.accountType === 'account' ? 'Compte connecté' : 'Créer ou retrouver un compte'}<small>{identity.accountType === 'account' ? identity.displayName : 'Sauvegarder ta progression'}</small></span><ChevronRight /></button>

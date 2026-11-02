@@ -20,6 +20,7 @@ import { nextRankedDivision, rankImage, rankedDivision, rankedPlacementLabel, RA
 import { raisonSansPoints } from '../menu/classementEnClair'
 import { useQuestBoard, type QuestBoard } from '../questBoardState'
 import { carteDeNotificationsAMontrer, lireReponseCarte, noterReponseCarte } from '../demandeNotifications'
+import { activerRappelDuDefi, carteDuRappelAMontrer, lireReponseRappel, noterReponseRappel } from '../rappelDuDefi'
 import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { useCountUp } from './countUp'
@@ -269,7 +270,7 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
       <span>Ton premier panier est offert{onEpicerie ? '.' : ' : il t’attend à l’Épicerie.'}</span>
       {onEpicerie ? <button type="button" disabled={leaving} onClick={() => void leaveResult(onEpicerie)}>Ouvrir</button> : null}
     </p> : null}
-    {experienceAward ? <CarteNotifications /> : null}
+    {experienceAward ? match.isDaily ? <CarteRappelDuDefi playerId={playerId} /> : <CarteNotifications /> : null}
     <div className="end-game-actions">
       {revanche
         // Contre un ami, « Rejouer » prend la place de « Nouvelle partie » : deux
@@ -349,6 +350,39 @@ function CarteNotifications() {
     <div>
       <button type="button" onClick={() => repondre(true)}>Oui, préviens-moi</button>
       <button type="button" className="secondaire" onClick={() => repondre(false)}>Pas maintenant</button>
+    </div>
+  </div>
+}
+
+/**
+ * « On te prévient demain pour le prochain défi ? » (02/11/2026, voir
+ * rappelDuDefi.ts). À la fin d'un défi, elle prend la place de la carte du dessus :
+ * si Android n'a jamais posé la question, le oui ouvre aussi sa fenêtre, et la
+ * phrase le dit.
+ */
+function CarteRappelDuDefi({ playerId }: { playerId: string }) {
+  const [permission, setPermission] = useState<string | null>(null)
+  useEffect(() => {
+    let vivant = true
+    void import('../nativePushNotifications')
+      .then(module => module.etatDesNotifications())
+      .then(etat => { if (vivant && carteDuRappelAMontrer(etat, lireReponseRappel(playerId))) setPermission(etat) })
+      .catch(() => undefined)
+    return () => { vivant = false }
+  }, [playerId])
+  if (!permission) return null
+  const repondre = (oui: boolean) => {
+    setPermission(null)
+    if (!oui) { noterReponseRappel(playerId, 'non'); return }
+    noterReponseCarte('oui')
+    void activerRappelDuDefi(playerId)
+  }
+  return <div className="result-notifications" role="group" aria-labelledby="result-rappel-titre">
+    <BellRing aria-hidden="true" />
+    <p><strong id="result-rappel-titre">On te prévient demain pour le prochain défi ?</strong><span>Une fois par jour, jamais si tu as déjà joué.{permission === 'granted' ? '' : ' Tes tours et tes invitations aussi.'}</span></p>
+    <div>
+      <button type="button" onClick={() => repondre(true)}>Oui, préviens-moi</button>
+      <button type="button" className="secondaire" onClick={() => repondre(false)}>Non merci</button>
     </div>
   </div>
 }

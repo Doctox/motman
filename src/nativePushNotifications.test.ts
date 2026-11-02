@@ -22,6 +22,8 @@ describe('navigation depuis une notification native', () => {
 
   it('ouvre Jouer pour une invitation sans partie créée', () => {
     expect(pushNotificationRoute({ type: 'friend_invitation', invitationId: 'invite-1' })).toBe('#jouer')
+    // Le rappel du défi s'arrête à l'accueil : la grille ne démarre jamais toute seule.
+    expect(pushNotificationRoute({ type: 'daily_reminder' })).toBe('#accueil')
   })
 
   it('ouvre Jouer lorsqu’un adversaire classé est prêt', () => {

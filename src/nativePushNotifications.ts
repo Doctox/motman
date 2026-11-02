@@ -16,6 +16,9 @@ export function pushNotificationRoute(data: unknown): string | null {
   // Recherche classée ouverte (alerte du propriétaire) : il vient en prendre une.
   if (payload.type === 'ranked_search') return '#jouer'
   if (payload.type === 'friend_invitation') return '#jouer'
+  // Le rappel du défi mène à l'accueil, là où est sa carte : jamais droit dans la
+  // grille, où 30 secondes de lecture et une seule tentative commenceraient seules.
+  if (payload.type === 'daily_reminder') return '#accueil'
   return null
 }
 
@@ -112,6 +115,12 @@ export function initializeNativePushNotifications(): Promise<void> {
         id: 'motman_turns', name: 'Tours et invitations',
         description: 'Prévient lorsqu’un duel MotMan demande ton attention.',
         importance: 4, visibility: 1, vibration: true, lights: true, lightColor: '#0B5A49',
+      })
+      // À part : on peut couper le rappel dans Android sans perdre ses tours.
+      await PushNotifications.createChannel({
+        id: 'motman_defi', name: 'Rappel du défi',
+        description: 'Le rappel du défi du jour, si tu l’as demandé.',
+        importance: 3, visibility: 1, vibration: true, lights: true, lightColor: '#0B5A49',
       })
     }
 

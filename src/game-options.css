@@ -39,6 +39,7 @@
 [data-theme="dark"] .mm-setting-row>i{background:#3d5048}
 .mm-setting-row input:checked+i{background:var(--mm-fill-strong)}.mm-setting-row input:checked+i:after{translate:16px 0}
 .mm-setting-row input:focus-visible+i{outline:2px solid var(--mm-gold);outline-offset:3px}
+.mm-setting-note{margin:8px 0 4px;color:var(--mm-muted);font-size:0.875rem;line-height:1.35}
 .mm-settings-link{
   width:100%;min-height:58px;padding:0;border:0;border-bottom:1px solid var(--mm-line);background:transparent;
   display:grid;grid-template-columns:25px 1fr 20px;align-items:center;text-align:left;color:var(--mm-ink);cursor:pointer;

@@ -100,7 +100,8 @@ export function App({ initialRequiredUpdate = null }: { initialRequiredUpdate?: 
       if (partie) {
         const cible = decodeURIComponent(partie[1])
         if (cible !== matchIdRef.current) openMatch(cible)
-      } else if (matchIdRef.current) exitMatch()
+      // Le rappel du défi ne sort personne d'une partie en cours.
+      } else if (route !== '#accueil' && matchIdRef.current) exitMatch()
     }
     window.addEventListener('motman:notification-touchee', allerA)
     return () => window.removeEventListener('motman:notification-touchee', allerA)

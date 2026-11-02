@@ -326,5 +326,10 @@
     "ajoute": "2026-11-02T12:01",
     "titre": "Tes récompenses t’attendent à l’accueil",
     "texte": "Quêtes finies et panier offert s’affichent maintenant sous le défi du jour : un toucher et tu vas les chercher."
+  },
+  {
+    "ajoute": "2026-11-02T14:19",
+    "titre": "Un rappel pour le défi, si tu le veux",
+    "texte": "Sur l’appli Android, à la fin du défi, MotMan peut te prévenir le lendemain. C’est toi qui choisis, et ça se coupe dans les paramètres."
   }
 ]

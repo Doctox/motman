@@ -5,6 +5,8 @@ export type PushMessage = {
   body: string
   data: Record<string, string>
   tag?: string
+  /** Le canal Android. Sans lui : `motman_turns`, celui des tours et des invitations. */
+  channel?: string
 }
 
 type FirebaseServiceAccount = {
@@ -121,7 +123,7 @@ async function sendToDevice(account: FirebaseServiceAccount, accessToken: string
         android: {
           priority: 'high',
           notification: {
-            channel_id: 'motman_turns',
+            channel_id: message.channel ?? 'motman_turns',
             icon: 'ic_stat_motman',
             color: '#0B5A49',
             sound: 'default',

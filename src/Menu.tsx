@@ -351,7 +351,9 @@ export function MenuApp({
   // (nativePushNotifications.ts) : on montre Jouer, et on relit tout de suite.
   useEffect(() => {
     const allerA = (event: Event) => {
-      if ((event as CustomEvent<string>).detail !== '#jouer') return
+      const route = (event as CustomEvent<string>).detail
+      if (route === '#accueil') setPage('home')
+      if (route !== '#jouer') return
       setOngletJouer(undefined)
       setEpreuveClassement(undefined)
       setPage('play')
