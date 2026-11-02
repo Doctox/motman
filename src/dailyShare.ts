@@ -118,7 +118,8 @@ const partageNatif: NativeShare = {
   // suivants). Sur un APK plus ancien mis à jour par le code embarqué, il est
   // absent : on retombe sur le presse-papiers, sans rien casser.
   available: () => Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Share'),
-  share: async text => { await Share.share({ text, dialogTitle: 'Partager mon résultat' }) },
+  // Sans « mon résultat » : le code ami passe aussi par ici (02/11/2026).
+  share: async text => { await Share.share({ text, dialogTitle: 'Partager' }) },
 }
 
 /**

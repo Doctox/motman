@@ -17,7 +17,7 @@ import { RankedSeekerBanner } from './RankedSeekerBanner'
 import { ChronoRecherche } from './ChronoRecherche'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import { GamePulse } from './GamePulse'
-import { MOTMAN_INVITE_URL } from '../dailyShare'
+import { MOTMAN_INVITE_URL, shareText } from '../dailyShare'
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
@@ -55,20 +55,12 @@ export function HomePage({ identity, progress, cosmetics, social, lobby, play, j
   const [codePartage, setCodePartage] = useState<string | null>(null)
   const partagerCode = async () => {
     // Avec le lien, marqué : le message disait le code sans dire où jouer (23/10/2026).
-    const texte = `Rejoins-moi sur MotMan ! Mon code ami : ${codeAmi}\n${MOTMAN_INVITE_URL}`
-    try {
-      if (navigator.share) { await navigator.share({ text: texte }); return }
-      await navigator.clipboard.writeText(codeAmi)
-      setCodePartage('Code ami copié')
-    } catch (raison) {
-      // FERMER LA FEUILLE DE PARTAGE N'EST PAS UNE ERREUR. Sur Android,
-      // `navigator.share` rejette avec `AbortError` quand le joueur renonce —
-      // le cas de loin le plus fréquent ici. On ne dit donc rien.
-      if (raison instanceof Error && raison.name === 'AbortError') return
-      // Et en cas d'échec réel, inutile de réafficher le code : le bouton
-      // juste au-dessus le montre déjà. C'était une répétition pure.
-      setCodePartage('Copie impossible — le code est sur le bouton')
-    }
+    // `shareText` et non `navigator.share` (02/11/2026) : le WebView Android ne
+    // propose pas le partage web, et l'appli ne copiait que le code, sans le lien.
+    const issue = await shareText(`Rejoins-moi sur MotMan ! Mon code ami : ${codeAmi}\n${MOTMAN_INVITE_URL}`)
+    if (issue === 'copied') setCodePartage('Invitation copiée, avec ton code et le lien')
+    // Inutile de réafficher le code : le bouton juste au-dessus le montre déjà.
+    if (issue === 'failed') setCodePartage('Copie impossible — le code est sur le bouton')
   }
   const presenceWeight = { offline: 0, online: 1, playing: 2 }
   // Tous les amis, déconnectés compris (demande du propriétaire, 17/09/2026) :
