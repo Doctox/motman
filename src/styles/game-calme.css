@@ -152,6 +152,10 @@ html[data-motion="off"] .validate,html[data-motion="off"] .validate::before,html
 }
 .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.player-effect{color:#073f36!important;-webkit-text-fill-color:#073f36!important}
 .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.opponent-effect{color:#a13c1d!important;-webkit-text-fill-color:#a13c1d!important}
+/* Les lettres que l'adversaire pose, pas encore validées (02/11/2026) : sa couleur, en plus léger. Un seul petit mouvement à l'arrivée, rien en continu. */
+.multiplayer-shell .confirmed-board-layer .confirmed-board-letter.en-direct-effect{color:#a13c1d!important;-webkit-text-fill-color:#a13c1d!important;opacity:.6;animation:enDirectArrive .18s ease-out}
+@keyframes enDirectArrive{from{opacity:0;transform:scale(.82)}to{opacity:.6;transform:scale(1)}}
+html[data-motion="off"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.en-direct-effect{animation:none}
 .multiplayer-shell .board .cell.slot.pending:not(.correct):not(.wrong):not(.bot-play):not(.drop-target):not(.word-reward-cell):not(.clue-focus){
   background-color:#fffaf0!important;background-image:none!important;
   box-shadow:inset 0 0 0 1.5px #b9a37c,inset 0 -4px 0 #d9c6a0,inset 0 2px 0 #fff!important;
@@ -166,6 +170,7 @@ html[data-motion="off"] .validate,html[data-motion="off"] .validate::before,html
 }
 [data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.player-effect{color:#8fdcb8!important;-webkit-text-fill-color:#8fdcb8!important}
 [data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.opponent-effect{color:#ff9b7a!important;-webkit-text-fill-color:#ff9b7a!important}
+[data-theme="dark"] .multiplayer-shell .confirmed-board-layer .confirmed-board-letter.en-direct-effect{color:#ff9b7a!important;-webkit-text-fill-color:#ff9b7a!important}
 [data-theme="dark"] .multiplayer-shell .board .cell.slot.pending:not(.correct):not(.wrong):not(.bot-play):not(.drop-target):not(.word-reward-cell):not(.clue-focus){
   background-color:#24342e!important;background-image:linear-gradient(145deg,#263730,#1c2925)!important;
   box-shadow:inset 0 0 0 1.5px #50635a,inset 0 -4px 0 #0b1512,inset 0 1px 0 #ffffff1a!important;

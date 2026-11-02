@@ -5,9 +5,9 @@ import { attenteAvantEnvoi, brouillonAEnvoyer, cleDuBrouillon, placementsDuBroui
 
 /**
  * LE BROUILLON DE LETTRES (16/10/2026, voir brouillonDuTour.ts) : les lettres
- * posées partent au serveur au fil du tour, sans que l'adversaire les voie. Si
- * l'envoi de fin de tour se perd en route, c'est elles que le serveur joue, au
- * lieu de compter un tour manqué.
+ * posées partent au serveur au fil du tour. Si l'envoi de fin de tour se perd en
+ * route, c'est elles que le serveur joue, au lieu de compter un tour manqué.
+ * L'adversaire les voit arriver depuis le 02/11/2026 (lettresEnDirect.ts).
  *
  * Sorti de MultiplayerGame.tsx le 22/10/2026 (code K3 du grand tour) : c'est un
  * métier à part, qui a déjà causé un incident, et il se teste mieux seul.

@@ -30,7 +30,7 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 // ce fichier démarre un serveur à l'import.
 import { ensureFinalSprintRacks, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
 import { acknowledgePresence, applyTurn, closeExpiredTurn, finish, sanitizePlacements, vainqueurAuxPoints } from './matchTurns.ts'
-import { brouillonRecevable, lettresDuBrouillon, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
+import { brouillonRecevable, lettresDuBrouillon, lettresEnDirect, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
 import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
@@ -708,8 +708,12 @@ Deno.serve(async request => {
       // bookkeeping finishes, the first participant who reloads the result
       // repairs the idempotent history/rating records here.
       if (row.status === 'finished') await awardFinished(admin, row)
-      if (body.knownUpdatedAt === row.updated_at) return json(200, { unchanged: true })
-      return json(200, { match: await view(admin, row, user.id, grid) })
+      // Un brouillon ne touche pas la partie : les lettres de l'autre partent même
+      // quand rien d'autre n'a changé (matchDrafts.ts).
+      const enDirect = await lettresEnDirect(admin, row, user.id)
+      const direct = enDirect ? { enDirect } : {}
+      if (body.knownUpdatedAt === row.updated_at) return json(200, { unchanged: true, ...direct })
+      return json(200, { match: await view(admin, row, user.id, grid), ...direct })
     }
     // LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026, matchDrafts.ts). Vérifiées
     // comme un coup, rangées à part, et la réponse ne dit RIEN de leur justesse.

@@ -14,6 +14,7 @@ declare
   grille  text;
   partie  uuid;
   ligne   record;
+  envois  bigint;
 begin
   -- ── Fermée à tous ─────────────────────────────────────────────────────────
   if pg_catalog.has_table_privilege('anon', 'public.server_match_drafts', 'select')
@@ -51,6 +52,25 @@ begin
   select * into ligne from public.server_match_drafts where match_id = partie and user_id = joueur;
   if ligne.placements -> 0 ->> 'letter' <> 'A' then
     raise exception 'Un brouillon plus ancien a remplacé le plus récent : %', ligne.placements;
+  end if;
+
+  -- ── Les lettres en direct (02/11/2026) ────────────────────────────────────
+  -- Seul le brouillon écrit part sur le canal privé : l'envoi plus ancien, ignoré
+  -- ci-dessus, ne doit rien faire réapparaître chez l'adversaire.
+  select count(*) into envois from realtime.messages
+  where topic = 'match:' || partie::text and event = 'lettres' and private;
+  if envois <> 1 then
+    raise exception 'Une seule diffusion attendue pour un seul brouillon écrit, % trouvée(s)', envois;
+  end if;
+  if exists (
+    select 1 from realtime.messages
+    where topic = 'match:' || partie::text and event = 'lettres'
+      and (payload ->> 'turnNumber')::integer = 2 and payload -> 'placements' -> 0 ->> 'letter' <> 'A'
+  ) then
+    raise exception 'La diffusion doit porter les lettres du brouillon écrit';
+  end if;
+  if exists (select 1 from realtime.messages where topic = 'match:' || partie::text and event = 'lettres' and payload ? 'version') then
+    raise exception 'La diffusion n''a pas à dire le numéro de version du téléphone';
   end if;
 
   -- Des lettres reprises : le plateau vidé remplace bien le précédent.

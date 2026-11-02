@@ -18,9 +18,16 @@
 //     envoyé à la main), il ne compte pas ;
 //   - remplacer l'envoi final : un coup reçu à temps est toujours celui qui
 //     compte. Le brouillon ne sert qu'à la place d'un tour manqué.
+//
+// LES LETTRES EN DIRECT (02/11/2026, demande du propriétaire). L'adversaire voit
+// désormais ces lettres arriver avant que le joueur valide : diffusées par
+// `server_save_match_draft` sur le canal privé de la partie, et relues ici à
+// chaque sondage quand le temps réel décroche. Toujours sans dire si elles sont
+// justes. La table, elle, reste fermée.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { logServerError } from '../_shared/http.ts'
+import { botTurnDelayMs } from './botDelay.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import type { MatchRow } from './matchModel.ts'
 
@@ -67,6 +74,40 @@ export function lettresDuBrouillon(row: Pick<MatchRow, 'pace' | 'turn_number' | 
   if (!brouillonPossible(row) || !brouillon || brouillon.turnNumber !== row.turn_number) return []
   if (!(Date.parse(brouillon.receivedAt) < Date.parse(row.turn_ends_at) + margeMs)) return []
   return Array.isArray(brouillon.placements) ? brouillon.placements : []
+}
+
+/** Ce que l'adversaire voit du tour en cours. La même forme pour tout adversaire. */
+export type EnDirect = { turnNumber: number; placements: Placement[]; recuA: string }
+
+/**
+ * Les lettres du coup préparé déjà « posées » à cet instant, réparties sur la
+ * réflexion de l'adversaire automatique. Le serveur ne donne que celles qui sont
+ * dues : aucune réponse ne dit à l'avance ce qu'il va jouer. Pur.
+ */
+export function lettresDuCoupPrepare(row: Pick<MatchRow, 'turn_number' | 'turn_started_at' | 'state'>, maintenant: number, reflexionMs: number): Placement[] {
+  const prepare = row.state.coupPrepare
+  if (!prepare || prepare.turnNumber !== row.turn_number || reflexionMs <= 0) return []
+  const ecoule = maintenant - Date.parse(row.turn_started_at)
+  if (ecoule <= 0) return []
+  return prepare.placements.slice(0, Math.floor((prepare.placements.length + 1) * ecoule / reflexionMs))
+}
+
+/** Les lettres de l'autre pour celui qui attend, ou null s'il n'y a rien à lui montrer. */
+export async function lettresEnDirect(admin: AdminClient, row: MatchRow, lecteurId: string, maintenant = Date.now()): Promise<EnDirect | null> {
+  if (!brouillonPossible(row) || row.status !== 'active' || row.paused_at || !row.current_player_id || row.current_player_id === lecteurId) return null
+  if (row.state.bot?.playerId === row.current_player_id) {
+    const reflexionMs = botTurnDelayMs(row)
+    const placements = lettresDuCoupPrepare(row, maintenant, reflexionMs)
+    // L'heure de sa dernière lettre, comme pour une personne : la réponse ne doit
+    // pas dire à qui la lit que personne n'a rien envoyé (voir `nextCheckAt`, S6).
+    const total = row.state.coupPrepare?.placements.length ?? 0
+    const recuA = placements.length
+      ? new Date(Date.parse(row.turn_started_at) + Math.ceil(placements.length * reflexionMs / (total + 1))).toISOString()
+      : row.turn_started_at
+    return { turnNumber: row.turn_number, placements, recuA }
+  }
+  const brouillon = await lireBrouillon(admin, row)
+  return { turnNumber: row.turn_number, placements: lettresDuBrouillon(row, brouillon), recuA: brouillon?.receivedAt ?? row.turn_started_at }
 }
 
 export async function noterBrouillon(admin: AdminClient, row: MatchRow, userId: string, version: number, placements: Placement[], recuA: number): Promise<void> {

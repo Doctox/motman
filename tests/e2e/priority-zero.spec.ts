@@ -171,8 +171,11 @@ function playablePlacements(match: MatchState): Array<{ cellIndex: number; lette
 async function submitTurn(request: APIRequestContext, match: MatchState, placements: Array<{ cellIndex: number; letter: string }>, automatic = false) {
   const waitForStart = new Date(match.turnStartedAt).getTime() + 10 - Date.now()
   if (waitForStart > 0) await new Promise(resolvePromise => setTimeout(resolvePromise, waitForStart))
+  // La fenêtre de lecture laisse la connexion au repos plus longtemps que le serveur
+  // de test ne la garde ouverte : `read ECONNRESET`, jamais vu du côté du jeu.
   const response = await request.post('/api/matches/turn', {
     data: { playerId: match.currentPlayerId, matchId: match.id, turnNumber: match.turnNumber, placements, automatic },
+    maxRetries: 2,
   })
   expect(response.ok()).toBe(true)
   return response.json() as Promise<{ match: MatchState; result: NonNullable<MatchState['lastTurn']> }>
@@ -848,6 +851,51 @@ test('à l’écran, une lettre posée survit à un envoi de fin de tour bloqué
     expect(apres.inactivity[actor.playerId] ?? 0).toBe(0)
   } finally {
     await context.close()
+  }
+})
+
+// Demande du propriétaire, 02/11/2026 : voir les lettres de l'autre arriver pendant
+// qu'il les pose. Deux vrais écrans : l'un pose, reprend et valide, l'autre regarde.
+test('pendant le tour de l’autre, ses lettres arrivent sous tes yeux, avant qu’il valide', async ({ browser, request }) => {
+  test.setTimeout(120_000)
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'En direct', 40_000)
+  const initial = await loadMatch(request, first.playerId, matchId)
+  const spectateur = initial.currentPlayerId === first.playerId ? first : second
+  const joueur = spectateur === first ? second : first
+  const deJoueur = await openGame(browser, joueur, matchId, { width: 390, height: 844 })
+  const deSpectateur = await openGame(browser, spectateur, matchId, { width: 390, height: 844 })
+  try {
+    // Le spectateur passe : c'est au joueur de poser, sous les yeux de l'autre.
+    await submitTurn(request, initial, [], false)
+    const aJouer = await loadMatch(request, joueur.playerId, matchId)
+    expect(aJouer.currentPlayerId).toBe(joueur.playerId)
+    const placement = playablePlacements(aJouer)[0]
+    expect(placement).toBeTruthy()
+    const lettre = deJoueur.page.getByRole('button', { name: `Lettre ${placement.letter}` }).first()
+    await attendreTourJouable(deJoueur.page, lettre)
+    await lettre.click({ force: true })
+    const caseVisee = deJoueur.page.locator(`[data-cell="${placement.cellIndex}"]`)
+    await caseVisee.click({ force: true })
+    await expect(caseVisee).toContainText(placement.letter)
+
+    const enDirect = deSpectateur.page.locator('.confirmed-board-letter.en-direct-effect')
+    await expect(enDirect).toHaveText(placement.letter, { timeout: 10_000 })
+    await expect(deSpectateur.page.locator(`[data-cell="${placement.cellIndex}"]`)).toHaveAttribute('data-confirmed', 'false')
+
+    // Il la reprend : elle repart aussi de chez l'autre.
+    await caseVisee.click({ force: true })
+    await expect(enDirect).toHaveCount(0, { timeout: 10_000 })
+
+    // Il la repose et valide : elle devient une lettre ordinaire, sans doublon.
+    await lettre.click({ force: true })
+    await caseVisee.click({ force: true })
+    await expect(enDirect).toHaveText(placement.letter, { timeout: 10_000 })
+    await deJoueur.page.getByRole('button', { name: 'Valider' }).click({ force: true })
+    await expect(deSpectateur.page.locator(`[data-cell="${placement.cellIndex}"]`)).toHaveAttribute('data-confirmed', 'true', { timeout: 15_000 })
+    await expect(enDirect).toHaveCount(0)
+  } finally {
+    await deJoueur.context.close()
+    await deSpectateur.context.close()
   }
 })
 

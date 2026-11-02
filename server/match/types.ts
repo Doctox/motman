@@ -39,7 +39,7 @@ export type BotProfile = {
 /** Le tour de match-api, tel quel. */
 export type StoredTurn = Turn
 
-/** Les lettres posées, reçues au fil du tour : jamais montrées au client (publicMatch les retire). */
+/** Les lettres posées, reçues au fil du tour : publicMatch les retire, l'adversaire n'en voit que les lettres (`enDirectPour`). */
 export type StoredDraft = { turnNumber: number; version: number; placements: Array<{ cellIndex: number; letter: string }>; receivedAt: number }
 
 export type StoredMatch = {

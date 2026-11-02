@@ -51,6 +51,12 @@ export type State = {
   // serveur : elle sert de clé d'idempotence au bonus de 250 plumes et de jour
   // de référence à la série côté client.
   isDaily?: boolean; dailyDate?: string;
+  /**
+   * Le coup de l'adversaire automatique à ce tour, préparé quand la main lui
+   * passe : ses lettres arrivent au fil de sa réflexion, comme celles d'une
+   * personne (matchDrafts.ts). `view` ne le renvoie jamais tel quel.
+   */
+  coupPrepare?: { turnNumber: number; placements: Array<{ cellIndex: number; letter: string }> };
 }
 export type MatchRow = {
   id: string; mode: Mode; pace: Pace; grid_id: string; state: State; status: 'pending' | 'active' | 'finished'; current_player_id: string;

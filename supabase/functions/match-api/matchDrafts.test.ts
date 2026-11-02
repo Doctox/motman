@@ -1,5 +1,5 @@
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
-import { BROUILLON_MARGE_MS, brouillonRecevable, lettresDuBrouillon } from './matchDrafts.ts'
+import { BROUILLON_MARGE_MS, brouillonRecevable, lettresDuBrouillon, lettresDuCoupPrepare, lettresEnDirect } from './matchDrafts.ts'
 import { closeExpiredTurn } from './matchTurns.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,4 +127,45 @@ Deno.test('le brouillon passe la même frontière qu’un coup', () => {
   const vide = partie({ racks: { [JOUEUR]: ['Z'], [ADVERSAIRE]: [] } })
   closeExpiredTurn(vide, GRILLE, poses)
   egal(vide.state.lastTurn?.kind, 'timeout', 'aucune lettre valable')
+})
+
+// ── Les lettres en direct (02/11/2026) ──────────────────────────────────────
+
+Deno.test('un adversaire automatique pose ses lettres au fil de sa réflexion', () => {
+  const ligne = partie({ coupPrepare: { turnNumber: 2, placements: poses } })
+  const reflexion = 8_000
+  egal(lettresDuCoupPrepare(ligne, DEBUT - 1, reflexion), [], 'rien avant le début de son tour')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 1_000, reflexion), [], 'rien tout de suite : il lit la grille')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 2_000, reflexion), poses.slice(0, 1), 'la première lettre')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 4_000, reflexion), poses.slice(0, 2), 'la deuxième')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 6_000, reflexion), poses, 'toutes, avant la fin de sa réflexion')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 60_000, reflexion), poses, 'jamais plus que son coup')
+})
+
+Deno.test('une seule lettre apparaît elle aussi avant que le coup tombe', () => {
+  const ligne = partie({ coupPrepare: { turnNumber: 2, placements: poses.slice(0, 1) } })
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 4_000, 8_000), poses.slice(0, 1), 'à la moitié de sa réflexion')
+})
+
+Deno.test('le coup préparé d’un autre tour ne se montre pas', () => {
+  const ligne = partie({ coupPrepare: { turnNumber: 1, placements: poses } })
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 6_000, 8_000), [], 'un coup périmé')
+  egal(lettresDuCoupPrepare(partie(), DEBUT + 6_000, 8_000), [], 'aucun coup préparé')
+})
+
+Deno.test('ce que voit celui qui attend : la forme d’un envoi ordinaire, jamais le coup à venir', async () => {
+  const adversaire = { playerId: ADVERSAIRE } as State['bot']
+  const ligne = partie({ bot: adversaire, coupPrepare: { turnNumber: 2, placements: poses } }, { current_player_id: ADVERSAIRE })
+  const sansBase = null as never
+
+  const avant = await lettresEnDirect(sansBase, ligne, JOUEUR, DEBUT - 1)
+  egal(avant, { turnNumber: 2, placements: [], recuA: ligne.turn_started_at }, 'rien de dû : l’heure du début du tour')
+
+  const apres = await lettresEnDirect(sansBase, ligne, JOUEUR, DEBUT + 60_000)
+  egal(apres?.placements, poses, 'tout est dû')
+  if (!apres || Date.parse(apres.recuA) >= DEBUT + 60_000) throw new Error(`L’heure doit être celle de sa dernière lettre, pas celle de la lecture : ${apres?.recuA}`)
+
+  egal(await lettresEnDirect(sansBase, ligne, ADVERSAIRE, DEBUT + 60_000), null, 'pas pour celui dont c’est le tour')
+  const illimitee = partie({ bot: adversaire, coupPrepare: { turnNumber: 2, placements: poses } }, { current_player_id: ADVERSAIRE, pace: 'async' })
+  egal(await lettresEnDirect(sansBase, illimitee, JOUEUR, DEBUT + 60_000), null, 'pas en temps illimité')
 })

@@ -1,6 +1,7 @@
 import { ruleGrid } from './matchGrid.ts'
+import { createBot } from './matchSetup.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
-import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, CADENCE_PRODUCTION, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn, vainqueurAuxPoints, type Cadence } from './matchTurns.ts'
+import { ABSENCE_SANS_TEMOIN_MS, absentSansTemoin, acknowledgePresence, applyTurn, botPlacements, closeExpiredTurn, coupDuBotAJouer, preparerCoupDuBot, CADENCE_PRODUCTION, currentPresenceDeadline, forfeitAbsentPlayer, PRESENCE_GRACE_MS, presenceExpired, revealDuration, sanitizePlacements, timeoutTurn, vainqueurAuxPoints, type Cadence } from './matchTurns.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MÉCANIQUE D'UN TOUR — et surtout, la frontière anti-triche.
@@ -349,4 +350,50 @@ Deno.test('une partie suivie ne déclenche jamais la règle', () => {
   egal(absentSansTemoin(match({}, { updated_at: ilYa(80_000), turn_ends_at: new Date(Date.now() + 40_000).toISOString() })), null, 'tour en cours')
   egal(absentSansTemoin(match({}, { pace: 'async', turn_ends_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'l’illimité a sa règle de 24 h')
   egal(absentSansTemoin(match({}, { paused_at: nowIso(), turn_ends_at: ilYa(10 * ABSENCE_SANS_TEMOIN_MS) })), null, 'une partie en pause attend')
+})
+
+// ── Le coup préparé de l'adversaire automatique (02/11/2026) ────────────────
+
+function partieContreUnBot() {
+  const bot = createBot('graine-du-test')
+  return { bot, ligne: match({
+    bot, playerIds: [JOUEUR, bot.playerId],
+    racks: { [JOUEUR]: ['M', 'O', 'T', 'I', 'F'], [bot.playerId]: ['S', 'A', 'B', 'C', 'D'] },
+    scores: { [JOUEUR]: 0, [bot.playerId]: 0 },
+  }) }
+}
+
+Deno.test('quand la main passe à l’adversaire automatique, son coup est préparé', () => {
+  const { bot, ligne } = partieContreUnBot()
+  applyTurn(ligne, GRILLE, JOUEUR, [placer(0, 'M')])
+  egal(ligne.current_player_id, bot.playerId, 'la main lui est passée')
+  egal(ligne.state.coupPrepare?.turnNumber, ligne.turn_number, 'préparé pour ce tour-là')
+  egal(ligne.state.coupPrepare?.placements, botPlacements(ligne, GRILLE), 'le coup qu’il aurait joué de toute façon')
+  egal(coupDuBotAJouer(ligne, GRILLE), ligne.state.coupPrepare?.placements, 'c’est lui qui sera joué')
+})
+
+Deno.test('le coup préparé disparaît une fois joué, et n’existe pas entre personnes', () => {
+  const { bot, ligne } = partieContreUnBot()
+  applyTurn(ligne, GRILLE, JOUEUR, [placer(0, 'M')])
+  applyTurn(ligne, GRILLE, bot.playerId, coupDuBotAJouer(ligne, GRILLE))
+  egal(ligne.state.coupPrepare, undefined, 'plus rien à montrer pendant mon tour')
+  const entrePersonnes = match()
+  applyTurn(entrePersonnes, GRILLE, JOUEUR, [placer(0, 'M')])
+  egal(entrePersonnes.state.coupPrepare, undefined, 'une personne n’a pas de coup préparé')
+})
+
+Deno.test('un tour manqué qui rend la main à l’adversaire automatique prépare aussi son coup', () => {
+  const { bot, ligne } = partieContreUnBot()
+  closeExpiredTurn(ligne, GRILLE, [])
+  egal(ligne.current_player_id, bot.playerId, 'la main lui est passée')
+  egal(ligne.state.coupPrepare?.turnNumber, ligne.turn_number, 'son coup est prêt')
+})
+
+Deno.test('en temps illimité, rien n’est préparé : personne ne regarde en direct', () => {
+  const { ligne } = partieContreUnBot()
+  ligne.pace = 'async'
+  applyTurn(ligne, GRILLE, JOUEUR, [placer(0, 'M')])
+  egal(ligne.state.coupPrepare, undefined, 'pas de coup préparé')
+  preparerCoupDuBot(ligne, GRILLE)
+  egal(ligne.state.coupPrepare, undefined, 'même en le demandant')
 })

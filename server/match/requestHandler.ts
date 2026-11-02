@@ -8,7 +8,7 @@ import {
 } from './config'
 import { readBody, sendJson, sendNoContent } from './http'
 import {
-  brouillonAccepte, cloreTourEchu, confirmerPresence, filtrerCoup, grilleDeRegles, jouerCoup,
+  brouillonAccepte, cloreTourEchu, confirmerPresence, enDirectPour, filtrerCoup, grilleDeRegles, jouerCoup,
   lettresRestantes, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
 } from './regles'
 import type { BotProfile, MatchDatabase, MatchMode, MatchPace, StoredMatch } from './types'
@@ -57,8 +57,9 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       match.updatedAt = new Date().toISOString()
       saveDatabase()
     }
-    if (url.searchParams.get('since') === match.updatedAt) return sendNoContent(response)
-    return sendJson(response, 200, publicMatch(match))
+    const enDirect = enDirectPour(match, playerId)
+    if (url.searchParams.get('since') === match.updatedAt) return enDirect ? sendJson(response, 200, { unchanged: true, enDirect }) : sendNoContent(response)
+    return sendJson(response, 200, { ...publicMatch(match) as Record<string, unknown>, ...(enDirect ? { enDirect } : {}) })
   }
 
   if (request.method !== 'POST') return sendJson(response, 405, { error: 'Méthode non autorisée.' })
@@ -226,7 +227,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
 
   const requestedTurnNumber = Number(body.turnNumber)
   // Les lettres posées au fil du tour (16/10/2026) : `brouillonRecevable` de
-  // match-api (matchDrafts.ts). Rangées à part, jamais renvoyées au client.
+  // match-api (matchDrafts.ts). Rangées à part ; l'adversaire n'en reçoit que les lettres (`enDirectPour`).
   if (route === 'draft') {
     const version = Number(body.version)
     if (!Number.isSafeInteger(version) || version <= 0) return sendJson(response, 400, { error: 'Brouillon invalide.' })

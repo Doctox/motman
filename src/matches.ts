@@ -2,6 +2,7 @@ import type { SocialUser } from './social'
 import type { GeneratedGrid } from './generator'
 import { hasSupabaseSession } from './supabaseClient'
 import { FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, RELANCES_FIN_DE_TOUR, type Relances } from './supabaseFunctions'
+import type { EnDirect } from './game/lettresEnDirect'
 import type { BoardSnapshot } from './matchBoardSnapshot'
 import type { MatchHistoryOutcome } from './matchHistory'
 
@@ -236,13 +237,16 @@ export function isDailyClosedError(reason: unknown): boolean {
   return (reason as { payload?: { code?: unknown } } | null)?.payload?.code === 'DAILY_CLOSED'
 }
 
-export async function loadMatch(playerId: string, matchId: string, knownUpdatedAt?: string): Promise<MatchState | null> {
+export async function loadMatch(playerId: string, matchId: string, knownUpdatedAt?: string, surEnDirect?: (enDirect: EnDirect) => void): Promise<MatchState | null> {
   if (localTestServer) {
     const query = new URLSearchParams({ playerId, ...(knownUpdatedAt ? { since: knownUpdatedAt } : {}) })
-    return localMatch(`match/${encodeURIComponent(matchId)}?${query}`)
+    const local = await localMatch<(MatchState & { enDirect?: EnDirect; unchanged?: boolean }) | null>(`match/${encodeURIComponent(matchId)}?${query}`)
+    if (local?.enDirect) surEnDirect?.(local.enDirect)
+    return local?.unchanged ? null : local
   }
   void playerId
-  const remote = await supabaseMatch<{ match?: MatchState; unchanged?: boolean }>('match', { matchId, knownUpdatedAt })
+  const remote = await supabaseMatch<{ match?: MatchState; unchanged?: boolean; enDirect?: EnDirect }>('match', { matchId, knownUpdatedAt })
+  if (remote.enDirect) surEnDirect?.(remote.enDirect)
   return remote.unchanged ? null : remote.match ?? null
 }
 
@@ -257,8 +261,8 @@ const BROUILLON_DELAI_MS = 4_000
 
 /**
  * LES LETTRES POSÉES, AU FIL DU TOUR (16/10/2026). Le joueur pose ses lettres ;
- * le téléphone les envoie au serveur au fur et à mesure, sans rien en montrer à
- * l'adversaire. Si l'envoi de fin de tour n'arrive pas à temps (réseau bloqué),
+ * le téléphone les envoie au serveur au fur et à mesure, et l'adversaire les voit
+ * arriver sans savoir si elles sont justes (02/11/2026). Si l'envoi de fin de tour n'arrive pas à temps (réseau bloqué),
  * le serveur joue ces lettres-là au lieu de compter un tour manqué. En temps
  * limité seulement : en illimité, 24 h sans jouer reste un abandon.
  *

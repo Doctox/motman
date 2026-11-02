@@ -128,6 +128,17 @@ function versBrouillon(brouillon: StoredDraft | undefined) {
   return brouillon ? { turnNumber: brouillon.turnNumber, placements: brouillon.placements, receivedAt: new Date(brouillon.receivedAt).toISOString() } : null
 }
 
+/** Les lettres de l'autre pour celui qui attend (`lettresEnDirect` de match-api, sans adversaire automatique ici). */
+export function enDirectPour(match: StoredMatch, lecteurId: string) {
+  if (match.pace !== 'realtime' || match.status !== 'active' || match.currentPlayerId === lecteurId || match.currentPlayerId === match.bot?.playerId) return null
+  const brouillon = match.brouillons?.[match.currentPlayerId]
+  return {
+    turnNumber: match.turnNumber,
+    placements: lettresDuBrouillon(versLigne(match), versBrouillon(brouillon), TURN_SUBMIT_GRACE_MS),
+    recuA: brouillon ? new Date(brouillon.receivedAt).toISOString() : match.turnStartedAt,
+  }
+}
+
 /** Le brouillon reçu à `recuA` compte-t-il ? (`brouillonRecevable`) */
 export function brouillonAccepte(match: StoredMatch, playerId: string, turnNumber: number, recuA: number): boolean {
   return brouillonRecevable(versLigne(match), playerId, turnNumber, recuA, TURN_SUBMIT_GRACE_MS)

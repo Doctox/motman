@@ -12,6 +12,7 @@ export const StableBoardLetters = memo(function StableBoardLetters({
   playerId,
   hiddenCell,
   draggedTileId,
+  enDirect,
 }: {
   cellCount: number
   board: MatchState['board']
@@ -20,6 +21,8 @@ export const StableBoardLetters = memo(function StableBoardLetters({
   playerId: string
   hiddenCell: number | null
   draggedTileId: string | null
+  /** Les lettres que l'adversaire pose en ce moment (lettresEnDirect.ts). */
+  enDirect?: Readonly<Record<number, string>>
 }) {
   return <div className="confirmed-board-layer" aria-hidden="true">
     {Array.from({ length: cellCount }, (_, index) => {
@@ -34,6 +37,9 @@ export const StableBoardLetters = memo(function StableBoardLetters({
       }
       if (!confirmed && pending && pending.id !== draggedTileId) {
         return <span className="confirmed-board-letter provisional-effect" key={index}>{pending.letter}</span>
+      }
+      if (!confirmed && !pending && enDirect?.[index]) {
+        return <span className="confirmed-board-letter en-direct-effect" key={index}>{enDirect[index]}</span>
       }
       return <span className="confirmed-board-letter-spacer" key={index} />
     })}

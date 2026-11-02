@@ -146,6 +146,7 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
     row.current_player_id = opponent; row.turn_number += 1; row.turn_started_at = nextStart.toISOString()
     row.turn_ends_at = new Date(nextStart.getTime() + dureeDuTour(row.pace, cadence)).toISOString()
   }
+  preparerCoupDuBot(row, grid)
   return turn
 }
 
@@ -171,7 +172,7 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
  */
 export function closeExpiredTurn(row: MatchRow, grid: CatalogGrid, brouillon: Array<{ cellIndex: number; letter: string }>, { absence = true, cadence = CADENCE_PRODUCTION }: { absence?: boolean; cadence?: Cadence } = {}): void {
   const valides = sanitizePlacements(row, grid, row.current_player_id, brouillon).sanitized
-  if (!valides.length) { timeoutTurn(row, { absence, cadence }); return }
+  if (!valides.length) { timeoutTurn(row, { absence, cadence }); preparerCoupDuBot(row, grid); return }
   const tour = applyTurn(row, grid, row.current_player_id, valides, cadence)
   tour.fromDraft = true
 }
@@ -270,4 +271,23 @@ export function botPlacements(row: MatchRow, grid: CatalogGrid) {
     seed: `${row.id}:${row.turn_number}:${rack.join('')}`,
     scoreGap: bestOpponentScore - botScore,
   }).attempts.map(attempt => ({ cellIndex: attempt.cellIndex, letter: attempt.letter }))
+}
+
+/**
+ * LE COUP PRÉPARÉ (02/11/2026). Les lettres d'une personne arrivent en direct :
+ * celles d'un adversaire automatique doivent arriver aussi, sinon on le repère
+ * à coup sûr. Le coup est décidé quand la main lui passe, là où la grille est déjà
+ * en mémoire : pendant sa réflexion, chaque sondage le lit dans l'état de la
+ * partie, sans relire six kilo-octets de grille (matchDrafts.ts).
+ */
+export function preparerCoupDuBot(row: MatchRow, grid: CatalogGrid): void {
+  if (row.status === 'active' && row.pace === 'realtime' && row.state.bot?.playerId === row.current_player_id) {
+    row.state.coupPrepare = { turnNumber: row.turn_number, placements: botPlacements(row, grid) }
+  } else delete row.state.coupPrepare
+}
+
+/** Le coup que l'adversaire automatique joue : celui qu'on a montré, s'il a été préparé. */
+export function coupDuBotAJouer(row: MatchRow, grid: CatalogGrid): Array<{ cellIndex: number; letter: string }> {
+  const prepare = row.state.coupPrepare
+  return prepare?.turnNumber === row.turn_number ? prepare.placements : botPlacements(row, grid)
 }

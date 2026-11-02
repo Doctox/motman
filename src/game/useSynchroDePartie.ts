@@ -3,6 +3,7 @@ import { startAdaptivePolling, type AdaptivePollingController } from '../adaptiv
 import { loadMatch, type MatchState } from '../matches'
 import { subscribeToMatchUpdates } from '../matchRealtime'
 import { erreurDeSynchroAffichee, matchPollDelay } from '../matchSyncPolicy'
+import type { EnDirect } from './lettresEnDirect'
 
 /**
  * La partie n'existe plus (404). Le serveur distant le dit par son statut, le
@@ -23,7 +24,7 @@ export function partieIntrouvable(reason: unknown): boolean {
  * qu'en e2e. `marquerAJour` remet les compteurs à zéro quand une version de la
  * partie arrive par un autre chemin (un coup validé, un conflit récupéré).
  */
-export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, recupererConflit, partieDisparue, setError }: {
+export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, recupererConflit, partieDisparue, recevoirEnDirect, setError }: {
   matchId: string
   playerId: string
   /** La partie connue, pour ne demander que ce qui a changé. */
@@ -34,6 +35,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   recupererConflit: (raison: unknown) => boolean
   /** La partie n'existe plus et rien n'est à l'écran : rentrer à l'accueil. */
   partieDisparue: () => void
+  /** Les lettres de l'adversaire, par le sondage comme par le temps réel. */
+  recevoirEnDirect?: (enDirect: EnDirect) => void
   setError: Dispatch<SetStateAction<string | null>>
 }): { pollingRef: RefObject<AdaptivePollingController | null>; marquerAJour: () => void } {
   const pollingRef = useRef<AdaptivePollingController | null>(null)
@@ -42,8 +45,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   const echecs = useRef(0)
   const erreurAffichee = useRef<string | null>(null)
   // Les rappels changent à chaque rendu ; le sondage, lui, vit tant que l'écran.
-  const rappels = useRef({ appliquer, recupererConflit, partieDisparue, setError })
-  rappels.current = { appliquer, recupererConflit, partieDisparue, setError }
+  const rappels = useRef({ appliquer, recupererConflit, partieDisparue, recevoirEnDirect, setError })
+  rappels.current = { appliquer, recupererConflit, partieDisparue, recevoirEnDirect, setError }
 
   const marquerAJour = useCallback(() => {
     sondagesInchanges.current = 0
@@ -55,7 +58,7 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
     let vivant = true
     const sync = async () => {
       try {
-        const next = await loadMatch(playerId, matchId, partieRef.current?.updatedAt)
+        const next = await loadMatch(playerId, matchId, partieRef.current?.updatedAt, enDirect => { if (vivant) rappels.current.recevoirEnDirect?.(enDirect) })
         if (!vivant) return
         if (!next) {
           sondagesInchanges.current += 1
@@ -103,7 +106,7 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
     }, status => {
       tempsReelConnecte.current = status === 'connected'
       if (status === 'connected') polling.wake()
-    })
+    }, enDirect => rappels.current.recevoirEnDirect?.(enDirect))
     return () => {
       vivant = false
       pollingRef.current = null

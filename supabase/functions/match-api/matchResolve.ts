@@ -19,7 +19,7 @@ import type { MatchRow } from './matchModel.ts'
 import { notifyCurrentTurn } from './matchNotifications.ts'
 import { MatchStateConflictError, persist } from './matchSetup.ts'
 import { lettresDuBrouillon, lireBrouillon } from './matchDrafts.ts'
-import { absentSansTemoin, applyTurn, botPlacements, closeExpiredTurn, forfeitAbsentPlayer, presenceExpired } from './matchTurns.ts'
+import { absentSansTemoin, applyTurn, closeExpiredTurn, coupDuBotAJouer, forfeitAbsentPlayer, presenceExpired } from './matchTurns.ts'
 import { gridLoader, type GridLoader } from './matchView.ts'
 
 /** Délai après la fin officielle du tour avant de le déclarer passé : laisse arriver un envoi automatique en retard. */
@@ -80,7 +80,7 @@ export async function resolveMatchRow(admin: AdminClient, row: MatchRow, charger
     } else if (row.state.bot?.playerId === row.current_player_id) {
       const delay = botTurnDelayMs(row)
       if (Date.now() >= new Date(row.turn_started_at).getTime() + delay) {
-        applyTurn(row, grid, row.current_player_id, botPlacements(row, grid)); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
+        applyTurn(row, grid, row.current_player_id, coupDuBotAJouer(row, grid)); row = await persist(admin, row); turnAdvanced = true; await awardFinished(admin, row)
       }
     } else if (presenceExpired(row, recuA)) {
       // Temps limité : 30 s sans « Je suis là » ni coup après un tour manqué.

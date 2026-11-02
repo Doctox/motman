@@ -111,7 +111,7 @@ function publicMatch(match: StoredMatch) {
     letterBag: _privateLetterBag,
     resultAcknowledgedBy: _resultAcknowledgedBy,
     resultFeedbackBy: _resultFeedbackBy,
-    // Les lettres posées au fil du tour ne sortent jamais vers un client.
+    // Le brouillon brut ne sort jamais : l'adversaire n'en voit que les lettres (`enDirectPour`).
     brouillons: _brouillons,
     // Les comptes des quêtes restent au serveur, comme dans `view` de match-api.
     rackCompletions: _rackCompletions,

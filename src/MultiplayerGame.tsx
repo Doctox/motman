@@ -45,6 +45,7 @@ import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } f
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
 import { StableBoardLetters } from './game/StableBoardLetters'
+import { enDirectLePlusRecent, lettresDeLAdversaire, type EnDirect } from './game/lettresEnDirect'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
 import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
 import { StillThereDialog } from './game/StillThereDialog'
@@ -138,6 +139,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   }, [onPaceChange, pace])
   const fitBoardRef = useClueAutoFit()
   const [provisional, setProvisional] = useState<Record<number, Tile>>({})
+  const [enDirect, setEnDirect] = useState<EnDirect | null>(null)
   const [selected, setSelected] = useState<Tile | null>(null)
   // `x0`/`y0` : le point de contact brut ; `glisse` : le doigt a dépassé
   // SEUIL_GLISSER_PX. Avant, c'est un toucher, et le clic fait le reste.
@@ -485,7 +487,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     appliquer: acceptRemoteSnapshot,
     recupererConflit: reason => recoverConcurrentUpdate(reason),
     partieDisparue: () => { if (alive.current) onHome() },
+    recevoirEnDirect: recu => setEnDirect(actuel => enDirectLePlusRecent(actuel, recu)),
   })
+  // Les lettres de l'autre pendant son tour (game/lettresEnDirect.ts).
+  const lettresEnDirect = useMemo(() => lettresDeLAdversaire(enDirect, match, playerId), [enDirect, match, playerId])
   const pollingRef = synchro.pollingRef
 
   // La récompense XP / plumes est écrite par le serveur avec le dernier coup :
@@ -1146,11 +1151,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
         const letter = confirmed && !confirmedHintHidden ? confirmed.letter : !failedLetter && !confirmed ? localTile?.letter : undefined
         const wordRewardClass = wordHighlight?.cells.has(index) ? `word-reward-cell word-reward-cell--${wordHighlight.owner}` : ''
         const ownershipClass = confirmed ? confirmed.playerId === playerId ? 'confirmed-player' : 'confirmed-opponent' : ''
-        return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : ''}`} className={`cell slot ${ownershipClass} ${localTile && !confirmed && !failedLetter && !(drag?.glisse && drag.tile.id === localTile.id) ? 'pending' : ''} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? reprendreAuToucher(index, localTile) : selected && poserAuToucher(selected, index)}>
+        return <button type="button" key={index} data-cell={index} data-confirmed={confirmed ? 'true' : 'false'} aria-disabled={Boolean(confirmed || (!canAct && !localTile))} tabIndex={confirmed ? -1 : canAct || localTile ? 0 : -1} aria-label={`Case ${index + 1}${confirmed ? ` · ${confirmed.letter} validée` : lettresEnDirect[index] ? ` · ${lettresEnDirect[index]} posée par ${opponentName}` : ''}`} className={`cell slot ${ownershipClass} ${localTile && !confirmed && !failedLetter && !(drag?.glisse && drag.tile.id === localTile.id) ? 'pending' : ''} ${wordRewardClass} ${focusedWordCells.has(index) ? 'clue-focus' : ''} ${hintFlight?.cellIndex === index ? 'hint-awaiting' : ''} ${autoHintCell === index ? 'hint-auto-placed' : ''} ${dropTarget === index ? 'drop-target' : ''} ${greenCells.has(index) ? 'correct' : ''} ${orangeCells.has(index) ? 'bot-play' : ''} ${wrongCells.has(index) ? 'wrong' : ''}`} onClick={() => confirmed ? undefined : localTile ? reprendreAuToucher(index, localTile) : selected && poserAuToucher(selected, index)}>
           {letter ? <span className={`letter-only ${confirmed ? 'locked confirmed-letter' : localTile && !failedLetter ? 'stable-provisional-letter' : ''} ${confirmed?.playerId === playerId ? 'owned-by-player' : confirmed ? 'owned-by-opponent' : ''} ${failedLetter ? 'failed-reveal-letter' : ''} ${drag?.glisse && drag.tile.id === localTile?.id ? 'drag-source' : ''}`} onPointerDown={event => localTile && !confirmed && !failedLetter && pointerDown(event, localTile, index)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{letter}</span> : null}
         </button>
       })}
-      <StableBoardLetters cellCount={grid.cells.length} board={match.board} provisional={provisional} failed={revealedWrong} playerId={playerId} hiddenCell={hiddenStableLetterCell} draggedTileId={drag?.glisse ? drag.tile.id : null} />
+      <StableBoardLetters cellCount={grid.cells.length} board={match.board} provisional={provisional} failed={revealedWrong} playerId={playerId} hiddenCell={hiddenStableLetterCell} draggedTileId={drag?.glisse ? drag.tile.id : null} enDirect={lettresEnDirect} />
       <BoardWordHighlight highlight={wordHighlight} columns={grid.columns} rows={grid.rows} />
       <BoardScoreEffects effects={scoreEffects} columns={grid.columns} rows={grid.rows} />
     </div></section> : null}

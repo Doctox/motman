@@ -351,5 +351,11 @@
     "ajoute": "2026-11-02T17:57",
     "titre": "Ton pseudo en entier pendant la partie",
     "texte": "Les pseudos longs ne se coupent plus en haut de la partie : ils restent en entier, quitte à passer sur deux lignes."
+  },
+  {
+    "ajoute": "2026-11-02T23:07",
+    "titre": "Tu vois les lettres de l’autre arriver",
+    "texte": "En temps limité, les lettres de ton adversaire apparaissent pendant qu’il les pose, avant même qu’il valide.",
+    "genre": "jeu"
   }
 ]
