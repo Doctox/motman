@@ -62,6 +62,9 @@
 .mm-carnet-pile .mm-timbre:last-child:not(:first-child) { left: 9px; rotate: 5deg; }
 .mm-carnet-pile .mm-carnet-vide { position: absolute; top: 2px; left: 6px; width: 50px; height: 62px; }
 .mm-carnet-copie { min-width: 0; }
+/* Les derniers matchs (HistoriqueDesParties.tsx) : la même ligne, avec une icône à la place des timbres. */
+.mm-parties-icone { display: grid; place-items: center; width: 46px; height: 46px; margin-inline: auto; border-radius: 50%; background: var(--mm-sage); color: var(--mm-ink); }
+.mm-parties-icone svg { width: 20px; height: 20px; }
 .mm-carnet-copie strong { display: block; font: 600 1.125rem/1.2 'Playfair Display', Georgia, serif; }
 .mm-carnet-copie small { display: block; margin-top: 2px; color: var(--mm-muted); font: 500 .8125rem/1.35 'DM Sans', sans-serif; }
 

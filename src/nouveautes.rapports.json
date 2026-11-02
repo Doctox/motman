@@ -357,5 +357,11 @@
     "titre": "Tu vois les lettres de l’autre arriver",
     "texte": "En temps limité, les lettres de ton adversaire apparaissent pendant qu’il les pose, avant même qu’il valide.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-11-02T23:46",
+    "titre": "Tes derniers matchs sont dans ton profil",
+    "texte": "Ils quittent la page Jouer pour laisser la place aux modes de jeu. Une ligne dans ton profil les ouvre, et tu peux toujours y revoir une partie.",
+    "genre": "affichage"
   }
 ]

@@ -9,6 +9,8 @@ import { rankImage, rankedDivision } from '../ranked'
 import { EMPTY_PLAYER_STATS, loadPlayerStats, type PlayerStats } from '../playerStats'
 import { loadRankedLeaderboard, type RankedLeaderboard, type RankedMatchmakingState } from '../rankedMatchmaking'
 import { LigneDuCarnet } from './Carnet'
+import { LigneDesParties } from './HistoriqueDesParties'
+import type { MatchHistoryEntry } from '../matches'
 import { ChronoRecherche } from './ChronoRecherche'
 import { useDialogFocus } from '../useDialogFocus'
 import { DailyLeaderboardPanel } from './DailyChallenge'
@@ -174,7 +176,7 @@ function PlayerStatsPanel({ jouer }: { jouer?: () => void }) {
   </section>
 }
 
-export function ProfilePage({ identity, progress, cosmetics, edit, openAccount, jouerPremierePartie }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; edit: () => void; openAccount: () => void; jouerPremierePartie?: () => void }) {
+export function ProfilePage({ identity, progress, cosmetics, parties = [], edit, openAccount, jouerPremierePartie }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; parties?: readonly MatchHistoryEntry[]; edit: () => void; openAccount: () => void; jouerPremierePartie?: () => void }) {
   const xpGoal = experienceGoalForLevel(progress.level)
   // Au niveau 50, la barre repart vers l'étoile suivante (experienceCurve.ts).
   const etoiles = progress.level >= MAX_PLAYER_LEVEL ? etoilesDuJoueur(progress.lifetimeXp) : null
@@ -185,6 +187,7 @@ export function ProfilePage({ identity, progress, cosmetics, edit, openAccount, 
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{etoiles ? etoiles.etoiles ? nombreDEtoiles(etoiles.etoiles) : 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{etoiles ? <><strong>{frenchNumber.format(etoiles.xp)}</strong> / {frenchNumber.format(XP_PAR_ETOILE)} XP vers la {etoileSuivante(etoiles.etoiles)}</> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
     <LigneDuCarnet titres={progress.titles} />
     <PlayerStatsPanel jouer={jouerPremierePartie} />
+    <LigneDesParties parties={parties} />
     {/* La bourse, et plus l'entrée de l'Épicerie : celle-ci a son onglet depuis
         qu'elle est dans la barre du bas. Le solde reste ici parce qu'il n'a rien
         d'une navigation — c'est ce que le joueur possède, à sa place sur son
