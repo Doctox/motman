@@ -145,7 +145,7 @@ export function ligneDeChaine(lettres: number, monTour: boolean, avis: AvisDeLet
  * Ce que l'étiquette du chrono dit d'un tour qui se ferme. Ces phrases restent visibles
  * (isRoutineTurnStatus), et courtes : l'étiquette ne dépasse pas 132 px.
  */
-export function statutDeFinDeTour(tour: Pick<MatchTurn, 'kind' | 'wrongPlacements' | 'correct'>, moi: boolean, adversaire: string): string {
+export function statutDeFinDeTour(tour: Pick<MatchTurn, 'kind' | 'wrongPlacements'>, moi: boolean, adversaire: string): string {
   if (tour.wrongPlacements.length) return 'Erreur · ça passe'
   if (tour.kind === 'timeout') return moi ? 'Tour terminé' : `${adversaire} n’a pas joué`
   return moi ? 'Tour passé' : `${adversaire} passe`

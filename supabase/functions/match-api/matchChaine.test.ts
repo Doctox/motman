@@ -414,6 +414,18 @@ Deno.test('sans lettre à poser, sa chaîne s’arrête', () => {
   egal(row.current_player_id, JOUEUR, 'à l’autre')
 })
 
+Deno.test('une lettre refusée ne le fait pas tourner sans fin : il passe', () => {
+  const row = partie(true)
+  fermerTourDeChaine(row)
+  const bot = row.state.bot!
+  // Une lettre que `sanitizePlacements` écarte, et qui correspond pourtant à une case.
+  const grille: CatalogGrid = { ...GRILLE, words: [{ ...GRILLE.words[0], answer: 'ÉTAPES' }, ...GRILLE.words.slice(1)] }
+  row.state.racks[bot.playerId] = ['É']
+  row.state.board = {}
+  verifie(avancerChaineDuBot(row, grille, heureDeLaLettreDuBot(row)), 'la partie change')
+  egal(row.current_player_id, JOUEUR, 'la main passe')
+})
+
 Deno.test('un duel en chaîne n’a pas de brouillon, une partie ordinaire le garde', () => {
   verifie(!brouillonPossible(partie()), 'en chaîne, chaque lettre est déjà jugée')
   verifie(brouillonPossible({ pace: 'realtime', state: {} }), 'en temps limité, il reste')

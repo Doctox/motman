@@ -183,8 +183,13 @@ export function avancerChaineDuBot(row: MatchRow, grid: CatalogGrid, maintenant 
       return true
     }
     // `heure` plutôt que maintenant : sa lettre est partie à temps, même lue en retard.
-    jugerLettre(row, grid, bot.playerId, { turnNumber: tour, numero: chaine.lettres.length + 1, cellIndex: coup.cellIndex, letter: coup.letter }, heure, { mainMs: 0, envoiMs: 0 }, cadence)
+    const jugement = jugerLettre(row, grid, bot.playerId, { turnNumber: tour, numero: chaine.lettres.length + 1, cellIndex: coup.cellIndex, letter: coup.letter }, heure, { mainMs: 0, envoiMs: 0 }, cadence)
     change = true
+    // Elle ne devrait jamais être refusée : si ça arrive, il passe, plutôt que de boucler ici.
+    if (jugement.statut === 'refusee') {
+      fermerTourDeChaine(row, { cadence })
+      return true
+    }
   }
   return change
 }

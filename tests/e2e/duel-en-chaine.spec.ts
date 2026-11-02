@@ -286,6 +286,47 @@ test('le temps : un tour avec des lettres est joué, un tour muet est manqué, e
     partie = await lire(apiX, adverse, matchId)
     expect(partie.winnerId).toBe(joueur.playerId)
     expect(partie.finishReason).toBe('timeout')
+    // Celui dont le téléphone a clos la partie arrive bien sur l'écran de fin.
+    await expect(ecranAutre.page.locator('.game-result-screen')).toBeVisible({ timeout: 15_000 })
+    await expect(ecran.page.locator('.game-result-screen')).toBeVisible({ timeout: 15_000 })
+  } finally {
+    await ecran.context.close()
+    await ecranAutre.context.close()
+    await apiA.dispose()
+    await apiB.dispose()
+  }
+})
+
+test('une grille entière d’une seule chaîne : les points de la règle, jusqu’à l’écran de fin', async ({ browser }) => {
+  test.setTimeout(180_000)
+  const a = identite('Fin A')
+  const b = identite('Fin B')
+  const [apiA, apiB] = await Promise.all([session(a), session(b)])
+  const matchId = await apparier(a, apiA, b, apiB, 150_000)
+  const initiale = await lire(apiA, a, matchId)
+  const [joueur, api, adverse] = initiale.currentPlayerId === a.playerId ? [a, apiA, b] as const : [b, apiB, a] as const
+  const ecran = await ouvrir(browser, joueur, `/#partie=${encodeURIComponent(matchId)}`)
+  const ecranAutre = await ouvrir(browser, adverse, `/#partie=${encodeURIComponent(matchId)}`)
+  try {
+    await aSonTour(ecran.page)
+    await eclairPasse(ecran.page)
+    const grille = catalogue.grids.find(candidate => candidate.id === initiale.gridId)!
+    const cases = solution(initiale.gridId).size
+    for (let pose = 1; pose <= cases; pose += 1) {
+      const coup = coupJuste(await lire(api, joueur, matchId), joueur)
+      await poser(ecran.page, coup)
+      if (pose < cases) await expect(ecran.page.locator('.rack-heading')).toContainText(`Chaîne de ${pose}`)
+    }
+    await expect(ecran.page.locator('.game-result-screen')).toBeVisible({ timeout: 15_000 })
+    await expect(ecranAutre.page.locator('.game-result-screen')).toBeVisible({ timeout: 15_000 })
+    const partie = await lire(api, joueur, matchId)
+    expect(partie.status).toBe('finished')
+    expect(partie.finishReason).toBe('completed')
+    expect(partie.winnerId).toBe(joueur.playerId)
+    // 1 par lettre, chaque mot à celui qui pose sa dernière lettre, +5 toutes les 5 lettres.
+    const mots = grille.words.reduce((total, mot) => total + mot.answer.length, 0)
+    expect(partie.scores[joueur.playerId]).toBe(cases + mots + Math.floor(cases / 5) * 5)
+    expect(partie.scores[adverse.playerId]).toBe(0)
   } finally {
     await ecran.context.close()
     await ecranAutre.context.close()

@@ -846,7 +846,7 @@ Deno.serve(async request => {
       const automatic = body.automatic === true
       const submissionGrace = automatic ? AUTOMATIC_SUBMIT_GRACE_MS : MANUAL_SUBMIT_GRACE_MS
       const turnEndsAt = new Date(row.turn_ends_at).getTime()
-      if (!row.state.chaine && automatic && valid.length === 0 && Date.now() < turnEndsAt) {
+      if (automatic && valid.length === 0 && Date.now() < turnEndsAt) {
         return json(409, {
           error: 'Le tour est toujours en cours.',
           code: 'TURN_STILL_ACTIVE',
@@ -872,9 +872,6 @@ Deno.serve(async request => {
       // pour des joueurs honnêtes, on garde les lettres.
       if (row.state.chaine) {
         // « Passer », ou l'envoi de 00:00 : les lettres ont déjà été jugées une à une.
-        if (automatic && Date.now() < turnEndsAt) {
-          return json(409, { error: 'Le tour est toujours en cours.', code: 'TURN_STILL_ACTIVE', match: await view(admin, row, user.id, grid) })
-        }
         fermerTourDeChaine(row, { echu: automatic || recuA >= turnEndsAt + MANUAL_SUBMIT_GRACE_MS, absence: automatic })
       } else if (recuA >= turnEndsAt + submissionGrace || automatic && valid.length === 0 && !hasPlacedHint) {
         closeExpiredTurn(row, grid, lettresDuBrouillon(row, await lireBrouillon(admin, row)), { absence: automatic })

@@ -332,7 +332,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   const automatic = body.automatic === true
   const submissionGrace = automatic ? AUTOMATIC_TURN_SUBMIT_GRACE_MS : TURN_SUBMIT_GRACE_MS
   const turnEndsAt = new Date(match.turnEndsAt).getTime()
-  if ((automatic && valid.length === 0 || match.chaine && automatic) && Date.now() < turnEndsAt) {
+  if (automatic && valid.length === 0 && Date.now() < turnEndsAt) {
     return sendJson(response, 409, {
       error: 'Le tour est toujours en cours.',
       code: 'TURN_STILL_ACTIVE',

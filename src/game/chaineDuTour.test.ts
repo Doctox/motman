@@ -170,9 +170,9 @@ describe('ce que dit l’écran', () => {
   })
 
   it('la fin d’un tour reste visible sous le chrono', () => {
-    const faux = { kind: 'played' as const, wrongPlacements: [{ cellIndex: 1, letter: 'E' }], correct: [] }
-    const passe = { kind: 'played' as const, wrongPlacements: [], correct: [] }
-    const temps = { kind: 'timeout' as const, wrongPlacements: [], correct: [] }
+    const faux = { kind: 'played' as const, wrongPlacements: [{ cellIndex: 1, letter: 'E' }] }
+    const passe = { kind: 'played' as const, wrongPlacements: [] }
+    const temps = { kind: 'timeout' as const, wrongPlacements: [] }
     for (const [tour, moi] of [[faux, true], [faux, false], [passe, true], [passe, false], [temps, true], [temps, false]] as const) {
       expect(isRoutineTurnStatus(statutDeFinDeTour(tour, moi, 'Léa'))).toBe(false)
     }

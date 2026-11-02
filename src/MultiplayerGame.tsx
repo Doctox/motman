@@ -379,7 +379,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
    * La lettre fausse reste lisible pendant le temps mort, puis le tour suivant part.
    */
   const finirLeTourDeChaine = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null) => {
-    provisionalRef.current = {}; setProvisional({})
+    // Un sondage peut apprendre le tour d'avant alors que ma lettre est déjà en route.
+    if (!lettreEnRoute.current) { provisionalRef.current = {}; setProvisional({}) }
     // Seulement un tour qu'on suivait : à l'ouverture de la partie, rien ne se rejoue.
     if (chaineVue.current?.tour === turn.turnNumber) montrerLaChaine(tourClos(turn), owner)
     setDisplayedScores(finalScores)
@@ -697,6 +698,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     setProvisional({})
     const partie = matchRef.current
     if (!partie) return
+    // Une réponse dépassée par une lecture plus récente : celle-ci a déjà tout dit, et
+    // rejouer son ancien `lastTurn` ferait repasser le tour d'avant à l'écran.
+    if (Date.parse(reponse.partie.updatedAt) < Date.parse(partie.updatedAt)) return
     acceptRemoteSnapshot(fusionnerReponseDeLettre(partie, reponse, playerId))
     if (reponse.lettre.raison === 'trop-tard') setStatus('Tour terminé')
     // Refusée sans coûter le tour : le chevalet a changé, ou un autre écran a joué.
@@ -885,6 +889,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       window.clearTimeout(lenteur)
       applyMatchState(response.match)
       annoncerQuetes(response.result)
+      // Le silence peut clore la partie sans tour neuf à montrer (« Je suis là », matchTurns.ts) :
+      // l'écran de fin ne doit pas attendre une révélation qui n'existe pas.
+      if (response.match.chaine) { resolvingRef.current = false; setResolving(false) }
       if (seenTurn.current !== response.result.id) {
         seenTurn.current = response.result.id
         animateTurn(response.result, 'player', response.match.scores, response.match.status === 'active' ? new Date(response.match.turnStartedAt).getTime() : null, true)
