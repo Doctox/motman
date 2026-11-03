@@ -1,18 +1,17 @@
-# Publier MotMan sur Google Play — version 1.1.1
+# Publier MotMan sur Google Play — version 1.1.2
 
-Version de production : **1.1.0, `versionCode 11`**, publiée le 20/09/2026 en
-France, Belgique, Suisse, Luxembourg et Monaco. Le plus petit APK encore servi
-en ligne est la **1.0.8 (`versionCode 9`)**.
+Version de production : **1.1.1, `versionCode 12`**, obligatoire depuis le
+11/10/2026 (Capacitor 7.6.9, Android 7 minimum), en France, Belgique, Suisse,
+Luxembourg et Monaco.
 
-**En préparation : 1.1.1, `versionCode 12`, OBLIGATOIRE (11/10/2026).** Elle ne
-change qu'une chose : Capacitor 7.6.8 → 7.6.9, qui corrige une faille critique
-d'Android et d'iOS (GHSA-rvm3-566m-v7fv : du contenu distant pouvait se charger
-à l'origine de l'application par le relais HTTP interne). Le natif seul porte
-la correction : la mise à jour embarquée ne l'apporte pas. Elle passe aussi à
-**Android 7 minimum** (`minSdkVersion 24`) : la protection automatique de Play
-refuse désormais un app bundle en SDK 23. Une fois la 1.1.1
-téléchargeable partout, le minimum passe à 12 (voir « Publier, puis basculer le
-serveur »).
+**En préparation : 1.1.2, `versionCode 13` (03/11/2026), NON obligatoire.** Elle
+active R8, l'optimisation du code : Google exige au moins 25 % à partir de
+février 2027, sous peine de moins de visibilité et de publications limitées, et
+l'indique dans la console à chaque app bundle envoyé. Elle embarque aussi le site
+du jour, duel en chaîne compris, pour que la version examinée contienne le mode.
+R8 peut casser un module natif : **l'essai sur téléphone de la section « Tester
+avant la production » est obligatoire**, notifications et mise à jour embarquée
+comprises.
 
 Les corrections du site (JS, CSS, images) n'ont pas besoin de ce document :
 elles arrivent sur les téléphones par les mises à jour embarquées
@@ -84,8 +83,8 @@ QUE cette variable : `GITHUB_REPOSITORY` ferait construire le site pour
 ```powershell
 npm run audit:play     # doit finir sur « 0 blocage(s) »
 New-Item -ItemType Directory -Force "$HOME\MotMan-versions" | Out-Null
-Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.1-code12.aab"
-Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.1-code12.aab" -Algorithm SHA256
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.2-code13.aab"
+Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.2-code13.aab" -Algorithm SHA256
 ```
 
 `audit:play` contrôle la configuration Android, Firebase, les pages légales et
@@ -102,7 +101,9 @@ elle reste hors du dépôt, comme ses mots de passe.
 
 ## Tester avant la production
 
-Installer l'AAB archivé depuis la piste de test interne, puis sur un téléphone :
+Installer l'AAB archivé depuis la piste de test interne, puis sur un téléphone.
+Avec R8, une erreur ne se voit qu'ici : l'application se construit très bien même
+quand un module natif est cassé.
 
 1. premier lancement : en bas des paramètres, « Application à jour » (si
    `GITHUB_RUN_NUMBER` était posé) et le numéro `#N` attendu ;
@@ -115,37 +116,28 @@ Installer l'AAB archivé depuis la piste de test interne, puis sur un téléphon
 
 ## Publier, puis basculer le serveur
 
-1. Envoyer `MotMan-1.1.1-code12.aab` sur la piste **Production**, pays France,
+1. Envoyer `MotMan-1.1.2-code13.aab` sur la piste **Production**, pays France,
    Belgique, Suisse, Luxembourg et Monaco.
 2. Attendre que la version soit **réellement téléchargeable** dans les cinq pays
-   (examen de Google terminé, fiche Play Store qui propose la 1.1.1).
+   (examen de Google terminé, fiche Play Store qui propose la 1.1.2).
 3. Alors seulement, déclarer la nouvelle version au serveur :
 
 ```sql
 update public.server_app_config
-set android_version_code = 12,
-    android_version_name = '1.1.1',
+set android_version_code = 13,
+    android_version_name = '1.1.2',
     updated_at = now()
 where id = 'motman';
 ```
 
-**Pour la 1.1.1, obligatoire**, la même requête relève aussi le minimum — la
-contrainte `minimum ≤ version` se vérifie sur la ligne entière, une seule
-requête suffit :
-
-```sql
-update public.server_app_config
-set android_version_code = 12,
-    android_version_name = '1.1.1',
-    minimum_android_version_code = 12,
-    updated_at = now()
-where id = 'motman';
-```
+Pour rendre une version obligatoire, la même requête relève aussi
+`minimum_android_version_code` : la contrainte `minimum ≤ version` se vérifie sur
+la ligne entière, une seule requête suffit. Ce n'est pas prévu pour la 1.1.2.
 
 C'est une donnée, pas un schéma : l'éditeur SQL du tableau de bord convient.
 Les fonctions relisent ce réglage toutes les 30 secondes.
 
-`minimum_android_version_code` **reste à 9** sauf décision contraire. Les trois
+`minimum_android_version_code` **reste à 12** sauf décision contraire. Les trois
 valeurs se lisent ainsi :
 
 - `android_version_code` / `android_version_name` : la dernière version publiée,

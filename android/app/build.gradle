@@ -33,8 +33,8 @@ android {
         applicationId "com.motman.game"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 12
-        versionName "1.1.1"
+        versionCode 13
+        versionName "1.1.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -62,11 +62,14 @@ android {
             }
         }
         release {
-            minifyEnabled false
+            // Google exige au moins 25 % d'optimisation du code a partir de fevrier 2027
+            // (docs/GOOGLE_PLAY.md). `proguard-android.txt` l'interdirait : il pose
+            // -dontoptimize. Les modules Capacitor gardent leurs regles (consumerProguardFiles).
+            minifyEnabled true
             if (motmanReleaseSigningReady) {
                 signingConfig signingConfigs.release
             }
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
