@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { EtatDeChaine, MatchState, ReponseDeLettre } from '../matches'
 import { isRoutineTurnStatus } from '../MultiplayerGame'
 import {
-  appliquerEvenementDeChaine, chevaletStable, evenementDeChaineValide, fusionnerReponseDeLettre, libelleDuRythme, ligneDeChaine, nouveautesDeChaine,
-  numeroSuivant, paceDuRythme, rythmeDeLaPartie, rythmeDeLInvitation, statutDeFinDeTour, tourClos, tourEnCours,
+  appliquerEvenementDeChaine, chevaletStable, etapesDeChaine, evenementDeChaineValide, fusionnerReponseDeLettre, libelleDuRythme, ligneDeChaine, nouveautesDeChaine,
+  numeroSuivant, paceDuRythme, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, rythmeDeLaPartie, rythmeDeLInvitation, statutDeFinDeTour, tourClos, tourEnCours,
 } from './chaineDuTour'
 
 const MOI = 'moi'
@@ -178,5 +178,59 @@ describe('ce que dit l’écran', () => {
     }
     expect(statutDeFinDeTour(faux, true, 'Léa')).toBe('Erreur · ça passe')
     expect(statutDeFinDeTour(faux, false, 'Léa')).toBe('Erreur · ça passe')
+  })
+})
+
+describe('les lettres de l’autre, une à une', () => {
+  const de = (cases: number[], rang = 0, mots: EtatDeChaine['wordBonuses'] = [], bonus = 0) => ({ cases, rang, mots, bonus })
+
+  it('chaque lettre a son étape, dans l’ordre où elle a été posée', () => {
+    expect(etapesDeChaine(de([4, 9, 2])).map(etape => etape.kind === 'correct' && etape.cellIndex)).toEqual([4, 9, 2])
+  })
+
+  it('le mot vient juste après la lettre qui le termine, pas à la fin du lot', () => {
+    const mot = { cells: [4, 9], points: 2, direction: 'across' as const }
+    expect(etapesDeChaine(de([4, 9, 2], 0, [mot])).map(etape => etape.kind)).toEqual(['correct', 'correct', 'word', 'correct'])
+  })
+
+  it('un mot dont la dernière case était déjà vue ne se perd pas', () => {
+    const mot = { cells: [1, 4], points: 2, direction: 'down' as const }
+    expect(etapesDeChaine(de([4], 0, [mot])).map(etape => etape.kind)).toEqual(['correct', 'word'])
+    expect(etapesDeChaine(de([], 0, [mot])).map(etape => etape.kind)).toEqual(['word'])
+  })
+
+  it('le +5 tombe à la cinquième lettre du tour, même au milieu d’un lot', () => {
+    const etapes = etapesDeChaine(de([1, 2, 3], 3, [], 5))
+    expect(etapes.map(etape => etape.kind)).toEqual(['correct', 'correct', 'rack', 'correct'])
+    expect(etapes[2].points).toBe(5)
+  })
+
+  it('tous les points du lot y sont, ni plus ni moins', () => {
+    const mot = { cells: [1, 2], points: 3, direction: 'across' as const }
+    const etapes = etapesDeChaine(de([1, 2, 3, 4, 5, 6], 0, [mot], 5))
+    expect(etapes.reduce((somme, etape) => somme + etape.points, 0)).toBe(6 + 3 + 5)
+  })
+
+  it('un bonus qui ne tombe sur aucune lettre passe à la fin', () => {
+    expect(etapesDeChaine(de([], 0, [], 5))).toEqual([{ kind: 'rack', points: 5 }])
+  })
+
+  it('le pas répartit le lot sur l’intervalle entre deux lots', () => {
+    expect(pasDeLaChaine(4, 2_000)).toBe(500)
+    expect(pasDeLaChaine(2, 8_000), 'jamais assez lent pour traîner').toBe(650)
+    expect(pasDeLaChaine(6, 8_000), 'un gros lot passe en moins de 2,5 s').toBeCloseTo(2_500 / 6)
+  })
+
+  it('jamais si court que l’œil ne suit plus', () => {
+    expect(pasDeLaChaine(5, 300)).toBe(PAS_LE_PLUS_COURT_MS)
+    expect(pasDeLaChaine(25, 5_000)).toBe(PAS_LE_PLUS_COURT_MS)
+  })
+
+  it('sauf si le tour suivant va partir : tout passe avant lui', () => {
+    expect(pasAvantLeTourSuivant(180, 12, 1_200)).toBe(100)
+    expect(pasAvantLeTourSuivant(650, 3, 1_500)).toBe(500)
+    expect(pasAvantLeTourSuivant(180, 2, 1_500), 'pas plus lent qu’avant').toBe(180)
+    expect(pasAvantLeTourSuivant(180, 3, -40), 'déjà parti : vite, mais encore l’une après l’autre').toBe(100)
+    expect(pasAvantLeTourSuivant(180, 0, 1_000), 'plus rien en file').toBe(180)
   })
 })

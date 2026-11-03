@@ -63,9 +63,9 @@ async function lire(api: APIRequestContext, joueur: Identite, matchId: string): 
 }
 
 /** Une partie en chaîne entre deux joueurs, par l'API : pour ce qui ne concerne pas l'entrée. */
-async function apparier(a: Identite, apiA: APIRequestContext, b: Identite, apiB: APIRequestContext, turnMs?: number): Promise<string> {
+async function apparier(a: Identite, apiA: APIRequestContext, b: Identite, apiB: APIRequestContext, turnMs?: number, souffleMs?: number): Promise<string> {
   expect((await apiA.post('/api/matches/search', { data: { playerId: a.playerId, variante: 'chaine' } })).ok()).toBe(true)
-  const reponse = await apiB.post('/api/matches/search', { data: { playerId: b.playerId, variante: 'chaine', turnMs } })
+  const reponse = await apiB.post('/api/matches/search', { data: { playerId: b.playerId, variante: 'chaine', turnMs, souffleMs } })
   expect(reponse.ok()).toBe(true)
   const { matchId } = await reponse.json() as { matchId: string | null }
   expect(matchId).toBeTruthy()
@@ -194,6 +194,71 @@ test('deux écrans : l’un enchaîne au doigt et se trompe, le tour passe, l’
   } finally {
     await ecranA.context.close()
     await ecranB.context.close()
+    await apiA.dispose()
+    await apiB.dispose()
+  }
+})
+
+test('celui qui attend voit les lettres une à une, même quand le sondage les apporte ensemble', async ({ browser }) => {
+  // Vu par le propriétaire sur la vidéo, 03/11/2026 : 8 lettres posées en 5 s arrivaient
+  // 5 puis 3. Le test du dessus ne pouvait pas le voir : il attend chaque lettre avant la suivante.
+  test.setTimeout(120_000)
+  const a = identite('File A')
+  const b = identite('File B')
+  const [apiA, apiB] = await Promise.all([session(a), session(b)])
+  // Le temps mort de la production : sans lui, un sondage un peu tard tombe sur un tour
+  // déjà parti depuis 2,5 s, et la lettre fausse ne se montre plus (à raison).
+  const matchId = await apparier(a, apiA, b, apiB, undefined, 1_500)
+  let partie = await lire(apiA, a, matchId)
+  const [joueur, apiJ, adverse] = partie.currentPlayerId === a.playerId ? [a, apiA, b] as const : [b, apiB, a] as const
+  const ecranJ = await ouvrir(browser, joueur, `/#partie=${encodeURIComponent(matchId)}`)
+  const ecranX = await ouvrir(browser, adverse, `/#partie=${encodeURIComponent(matchId)}`)
+  try {
+    await aSonTour(ecranJ.page)
+    await eclairPasse(ecranJ.page)
+    // À chaque image : combien de lettres à l'écran, et ce que dit la ligne du chevalet.
+    await ecranX.page.evaluate(() => {
+      const fenetre = window as unknown as { arrivees: Array<{ t: number; plus: number; ligne: string; fausse: boolean }> }
+      fenetre.arrivees = []
+      const compte = () => document.querySelectorAll('.confirmed-board-letter:not(.provisional-effect):not(.failed-board-letter)').length
+      let avant = compte()
+      let fausseVue = false
+      const regarde = () => {
+        const maintenant = compte()
+        const fausse = Boolean(document.querySelector('.failed-board-letter'))
+        if (maintenant !== avant || fausse !== fausseVue) {
+          fenetre.arrivees.push({ t: performance.now(), plus: maintenant - avant, ligne: document.querySelector('.rack-heading')?.textContent ?? '', fausse })
+          avant = maintenant
+          fausseVue = fausse
+        }
+        requestAnimationFrame(regarde)
+      }
+      regarde()
+    })
+    const poses = 6
+    for (let rang = 0; rang < poses; rang += 1) {
+      partie = await lire(apiJ, joueur, matchId)
+      const coup = coupJuste(partie, joueur)
+      await poser(ecranJ.page, coup)
+      await expect(caseDe(ecranJ.page, coup.cellIndex)).toHaveAttribute('data-confirmed', 'true')
+    }
+    partie = await lire(apiJ, joueur, matchId)
+    const score = partie.scores[joueur.playerId]
+    await poser(ecranJ.page, coupFaux(partie, joueur))
+    await aSonTour(ecranX.page)
+    await expect(ecranX.page.locator('.scoreboard .player:not(.player-you)')).toContainText(String(score), { timeout: 10_000 })
+
+    const vues = await ecranX.page.evaluate(() => (window as unknown as { arrivees: Array<{ t: number; plus: number; ligne: string; fausse: boolean }> }).arrivees)
+    const lettres = vues.filter(vue => vue.plus > 0)
+    expect(lettres.map(vue => vue.plus), 'une seule lettre à la fois').toEqual(Array.from({ length: poses }, () => 1))
+    lettres.slice(1).forEach((vue, rang) => expect(vue.t - lettres[rang].t, 'assez d’écart pour que l’œil suive').toBeGreaterThanOrEqual(80))
+    lettres.forEach((vue, rang) => expect(vue.ligne, 'la ligne suit ce qui est à l’écran').toContain(`Chaîne de ${rang + 1}`))
+    const fausse = vues.find(vue => vue.fausse)
+    expect(fausse, 'la lettre fausse se voit').toBeTruthy()
+    expect(fausse!.t, 'et seulement après la dernière lettre juste').toBeGreaterThan(lettres[poses - 1].t)
+  } finally {
+    await ecranJ.context.close()
+    await ecranX.context.close()
     await apiA.dispose()
     await apiB.dispose()
   }

@@ -200,6 +200,8 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
         ? Math.min(Math.max(surMesure, 1_000), 10 * 60_000)
         : undefined
       const match = createMatch(candidate.playerId, playerId, 'normal', pace, candidate.id, null, null, turnMs, variante)
+      const souffle = Number(body.souffleMs)
+      if (Number.isFinite(souffle) && souffle > 0) match.souffleMs = Math.min(souffle, 10_000)
       database.matches.push(match)
       database.searches = database.searches.filter(search => search.id !== candidate.id && !(search.playerId === playerId && search.pace === pace))
       saveDatabase()

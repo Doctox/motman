@@ -69,6 +69,8 @@ export type StoredMatch = {
    * pour le réglage global.
    */
   turnMs?: number
+  /** Le temps mort entre deux tours, sur mesure (e2e seulement) : celui du serveur est à zéro. */
+  souffleMs?: number
   board: Record<string, { letter: string; playerId: string }>
   racks: Record<string, string[]>
   letterBag?: string[]

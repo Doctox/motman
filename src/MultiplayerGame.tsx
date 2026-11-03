@@ -43,8 +43,8 @@ import { useSynchroDePartie } from './game/useSynchroDePartie'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
-import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, wordRewardCell, type TurnStep } from './game/turnChoreography'
-import { appliquerEvenementDeChaine, chevaletStable, fusionnerReponseDeLettre, ligneDeChaine, nouveautesDeChaine, numeroSuivant, REGLE_DE_LA_CHAINE, rythmeDeLaPartie, SECONDES_DU_TOUR_DE_CHAINE, statutDeFinDeTour, tourClos, tourEnCours, type AvisDeLettre, type EvenementDeChaine, type VuDeLaChaine } from './game/chaineDuTour'
+import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
+import { appliquerEvenementDeChaine, chevaletStable, etapesDeChaine, fusionnerReponseDeLettre, ligneDeChaine, nouveautesDeChaine, numeroSuivant, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, REGLE_DE_LA_CHAINE, rythmeDeLaPartie, SECONDES_DU_TOUR_DE_CHAINE, statutDeFinDeTour, tourClos, tourEnCours, type AvisDeLettre, type EvenementDeChaine, type VuDeLaChaine } from './game/chaineDuTour'
 import { StableBoardLetters } from './game/StableBoardLetters'
 import { enDirectLePlusRecent, lettresDeLAdversaire, type EnDirect } from './game/lettresEnDirect'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
@@ -147,6 +147,15 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   const [lettreEnVol, setLettreEnVol] = useState(false)
   const [avisDeLettre, setAvisDeLettre] = useState<AvisDeLettre>(null)
   const chaineVue = useRef<VuDeLaChaine | null>(null)
+  // Les lettres de l'autre qui attendent leur tour à l'écran (montrerLaFile).
+  const [lettresRetenues, setLettresRetenues] = useState<ReadonlySet<number>>(() => new Set())
+  // Sa chaîne, à ce que l'écran en a montré : tant que la file tourne, `match` a de l'avance.
+  const [chaineDeLaFile, setChaineDeLaFile] = useState<number | null>(null)
+  const fileDeLaChaine = useRef<Array<{ etape: TurnStep; hauteur: number; lettres: number }>>([])
+  const minuteurDeLaFile = useRef<number | null>(null)
+  const pasDeLaFile = useRef(PAS_LE_PLUS_COURT_MS)
+  const dernierLotDeLaChaine = useRef<number | null>(null)
+  const apresLaFile = useRef<(() => void) | null>(null)
   const chevaletDeChaine = useRef<Tile[]>([])
   const [selected, setSelected] = useState<Tile | null>(null)
   // `x0`/`y0` : le point de contact brut ; `glisse` : le doigt a dépassé
@@ -357,21 +366,80 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     }
   }
 
-  /** Ce qui reste à montrer d'un tour de chaîne : ce sont des lettres posées à l'instant, une à une. */
-  const montrerLaChaine = (duTour: Parameters<typeof nouveautesDeChaine>[1], owner: 'player' | 'bot') => {
-    const neuf = nouveautesDeChaine(chaineVue.current, duTour)
-    chaineVue.current = neuf.vu
-    if (!neuf.cases.length && !neuf.mots.length && !neuf.bonus) return
-    stopAnimationTimer()
-    const lettres = neuf.rang + neuf.cases.length
-    const hauteur = ladderFor(Array.from({ length: Math.max(1, lettres) }, () => 'correct' as const))[Math.max(0, lettres - 1)] ?? 0
-    neuf.cases.forEach(cellIndex => peindreEtape({ kind: 'correct', points: 1, cellIndex, aided: false }, owner, hauteur))
-    neuf.mots.forEach(mot => peindreEtape({ kind: 'word', points: mot.points, cells: mot.cells, direction: mot.direction, cellIndex: wordRewardCell(mot.cells, mot.direction) }, owner, hauteur))
-    if (neuf.bonus) peindreEtape({ kind: 'rack', points: neuf.bonus }, owner, hauteur)
+  const effacerLaChaineDansUnInstant = () => {
     animationTimer.current = window.setTimeout(() => {
       setGreenCells(new Set()); setOrangeCells(new Set()); setWordHighlight(null)
       animationTimer.current = null
     }, 800)
+  }
+
+  const terminerLaFile = () => {
+    const partie = matchRef.current
+    if (partie) setDisplayedScores(current => sameNumberRecord(current, partie.scores) ? current : partie.scores)
+    setChaineDeLaFile(null)
+    const apres = apresLaFile.current
+    apresLaFile.current = null
+    apres?.()
+  }
+
+  /**
+   * LES LETTRES DE L'AUTRE ARRIVENT UNE À UNE, même quand le réseau les apporte ensemble
+   * (game/chaineDuTour.ts). `match` reste la vérité : seul l'écran les retient un instant.
+   */
+  const montrerLaFile = () => {
+    minuteurDeLaFile.current = null
+    const suivante = fileDeLaChaine.current.shift()
+    if (!suivante) { terminerLaFile(); return }
+    const { etape, hauteur, lettres } = suivante
+    stopAnimationTimer()
+    peindreEtape(etape, 'bot', hauteur)
+    setChaineDeLaFile(lettres)
+    if (etape.kind === 'correct') setLettresRetenues(avant => { const reste = new Set(avant); reste.delete(etape.cellIndex); return reste })
+    const adversaire = matchRef.current?.playerIds.find(id => id !== playerId)
+    if (adversaire) setDisplayedScores(current => ({ ...current, [adversaire]: (current[adversaire] ?? 0) + etape.points }))
+    effacerLaChaineDansUnInstant()
+    minuteurDeLaFile.current = window.setTimeout(montrerLaFile, fileDeLaChaine.current.length ? pasDeLaFile.current : PAS_LE_PLUS_COURT_MS)
+  }
+
+  const viderLaFile = () => {
+    if (minuteurDeLaFile.current !== null) window.clearTimeout(minuteurDeLaFile.current)
+    minuteurDeLaFile.current = null
+    fileDeLaChaine.current = []
+    setLettresRetenues(avant => avant.size ? new Set() : avant)
+    terminerLaFile()
+  }
+
+  const hauteurDeLaChaine = (lettres: number) => ladderFor(Array.from({ length: Math.max(1, lettres) }, () => 'correct' as const))[Math.max(0, lettres - 1)] ?? 0
+
+  /**
+   * Ce qui reste à montrer d'un tour de chaîne : ce sont des lettres posées à l'instant.
+   * `finDeFenetre` : l'heure où le tour suivant part, quand celui-ci vient de se fermer.
+   */
+  const montrerLaChaine = (duTour: Parameters<typeof nouveautesDeChaine>[1], owner: 'player' | 'bot', finDeFenetre: number | null = null) => {
+    const neuf = nouveautesDeChaine(chaineVue.current, duTour)
+    chaineVue.current = neuf.vu
+    const etapes = etapesDeChaine(neuf)
+    if (!etapes.length) return
+    let lettres = neuf.rang
+    const aMontrer = etapes.map(etape => {
+      if (etape.kind === 'correct') lettres += 1
+      return { etape, hauteur: hauteurDeLaChaine(lettres), lettres }
+    })
+    if (owner === 'bot' && (finDeFenetre === null || serverNow() < finDeFenetre + EMPTY_TURN_NOTICE_MS)) {
+      const maintenant = Date.now()
+      const depuis = neuf.rang === 0 || dernierLotDeLaChaine.current === null ? 2_000 : maintenant - dernierLotDeLaChaine.current
+      dernierLotDeLaChaine.current = maintenant
+      fileDeLaChaine.current.push(...aMontrer)
+      pasDeLaFile.current = pasDeLaChaine(fileDeLaChaine.current.length, depuis)
+      setLettresRetenues(avant => new Set([...avant, ...neuf.cases]))
+      if (minuteurDeLaFile.current === null) montrerLaFile()
+      return
+    }
+    // Mes lettres, déjà jugées ; ou un tour clos depuis trop longtemps pour être rejoué.
+    if (minuteurDeLaFile.current !== null) viderLaFile()
+    stopAnimationTimer()
+    aMontrer.forEach(({ etape, hauteur }) => peindreEtape(etape, owner, hauteur))
+    effacerLaChaineDansUnInstant()
   }
 
   /**
@@ -381,8 +449,22 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   const finirLeTourDeChaine = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null) => {
     // Un sondage peut apprendre le tour d'avant alors que ma lettre est déjà en route.
     if (!lettreEnRoute.current) { provisionalRef.current = {}; setProvisional({}) }
+    // Un tour clos depuis longtemps (appli rouverte) n'a plus rien à montrer. Décidé à
+    // son arrivée : le temps que passe la file ne doit pas faire disparaître la lettre fausse.
+    const tropTard = revealEndsAt !== null && serverNow() > revealEndsAt + EMPTY_TURN_NOTICE_MS
     // Seulement un tour qu'on suivait : à l'ouverture de la partie, rien ne se rejoue.
-    if (chaineVue.current?.tour === turn.turnNumber) montrerLaChaine(tourClos(turn), owner)
+    if (chaineVue.current?.tour === turn.turnNumber) montrerLaChaine(tourClos(turn), owner, revealEndsAt)
+    // Ses dernières lettres d'abord : la lettre fausse et le temps mort viennent après.
+    if (minuteurDeLaFile.current !== null) {
+      if (revealEndsAt !== null) pasDeLaFile.current = pasAvantLeTourSuivant(pasDeLaFile.current, fileDeLaChaine.current.length, revealEndsAt - serverNow())
+      resolvingRef.current = true; setResolving(true); setRevealingPlayerId(turn.playerId)
+      apresLaFile.current = () => conclureLeTourDeChaine(turn, owner, finalScores, tropTard)
+      return
+    }
+    conclureLeTourDeChaine(turn, owner, finalScores, tropTard)
+  }
+
+  const conclureLeTourDeChaine = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, tropTard: boolean) => {
     setDisplayedScores(finalScores)
     resolvingRef.current = false; setResolving(false); setRevealingPlayerId(null)
     const apres = matchRef.current
@@ -397,8 +479,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       }, FINAL_GRID_COMPLETION_HOLD_MS)
       return
     }
-    // Un tour clos depuis longtemps (appli rouverte) n'a plus rien à montrer.
-    if (revealEndsAt !== null && serverNow() > revealEndsAt + EMPTY_TURN_NOTICE_MS) return
+    if (tropTard) return
     const faux = turn.wrongPlacements[0]
     emptyTurnNoticeUntil.current = Date.now() + EMPTY_TURN_NOTICE_MS
     setStatus(statutDeFinDeTour(turn, owner === 'player', opponentNameRef.current))
@@ -525,7 +606,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       const envoi = derniereValidation.current
       const frais = next.lastTurn.playerId === playerId && envoi !== null && envoi.tour === next.lastTurn.turnNumber && performance.now() - envoi.a < 15_000
       animateTurn(next.lastTurn, next.lastTurn.playerId === playerId ? 'player' : 'bot', next.scores, next.status === 'active' ? new Date(next.turnStartedAt).getTime() : null, frais)
-    } else if (!resolvingRef.current) {
+    } else if (!resolvingRef.current && minuteurDeLaFile.current === null) {
       setDisplayedScores(current => sameNumberRecord(current, next.scores) ? current : next.scores)
     }
   }
@@ -554,6 +635,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       if (turnAlertTimer.current !== null) window.clearTimeout(turnAlertTimer.current)
       if (rerollTimer.current !== null) window.clearTimeout(rerollTimer.current)
       if (rackBonusTimer.current !== null) window.clearTimeout(rackBonusTimer.current)
+      if (minuteurDeLaFile.current !== null) window.clearTimeout(minuteurDeLaFile.current)
     }
     // The match identity is fixed for the lifetime of this screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -572,6 +654,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   })
   // Les lettres de l'autre pendant son tour (game/lettresEnDirect.ts).
   const lettresEnDirect = useMemo(() => lettresDeLAdversaire(enDirect, match, playerId), [enDirect, match, playerId])
+  const plateauAffiche = useMemo(() => {
+    const plateau = match?.board ?? {}
+    return lettresRetenues.size ? Object.fromEntries(Object.entries(plateau).filter(([cellIndex]) => !lettresRetenues.has(Number(cellIndex)))) : plateau
+  }, [match?.board, lettresRetenues])
   const pollingRef = synchro.pollingRef
 
   // La récompense XP / plumes est écrite par le serveur avec le dernier coup :
@@ -1301,7 +1387,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
           const column = index % grid.columns
           return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={event => { noterActivite(); setOrigineDefinition(event.currentTarget.getBoundingClientRect()); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : <span className="clue-text">{compactClue(entry.text)}</span>}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
         }
-        const confirmed = match.board[index]
+        const confirmed = plateauAffiche[index]
         const localTile = provisional[index]
         const failedLetter = revealedWrong[index]
         const confirmedHintHidden = Boolean(confirmed && (hintFlight?.cellIndex === index || hintRequesting && match.hint?.playerId === playerId && match.hint.cellIndex === index))
@@ -1312,13 +1398,13 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
           {letter ? <span className={`letter-only ${confirmed ? 'locked confirmed-letter' : localTile && !failedLetter ? 'stable-provisional-letter' : ''} ${confirmed?.playerId === playerId ? 'owned-by-player' : confirmed ? 'owned-by-opponent' : ''} ${failedLetter ? 'failed-reveal-letter' : ''} ${drag?.glisse && drag.tile.id === localTile?.id ? 'drag-source' : ''}`} onPointerDown={event => localTile && !confirmed && !failedLetter && pointerDown(event, localTile, index)} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{letter}</span> : null}
         </button>
       })}
-      <StableBoardLetters cellCount={grid.cells.length} board={match.board} provisional={provisional} failed={revealedWrong} playerId={playerId} hiddenCell={hiddenStableLetterCell} draggedTileId={drag?.glisse ? drag.tile.id : null} enDirect={lettresEnDirect} />
+      <StableBoardLetters cellCount={grid.cells.length} board={plateauAffiche} provisional={provisional} failed={revealedWrong} playerId={playerId} hiddenCell={hiddenStableLetterCell} draggedTileId={drag?.glisse ? drag.tile.id : null} enDirect={lettresEnDirect} />
       <BoardWordHighlight highlight={wordHighlight} columns={grid.columns} rows={grid.rows} />
       <BoardScoreEffects effects={scoreEffects} columns={grid.columns} rows={grid.rows} />
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn && lectureRestante === null ? 'duel-rack-waiting' : ''}`}>
-        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{isMyTurn ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0, isMyTurn, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''} ${lettreEnVol ? 'is-en-vol' : ''}`} data-rack="true" aria-label="Lettres disponibles">
+        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{isMyTurn && chaineDeLaFile === null ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn && chaineDeLaFile === null ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(chaineDeLaFile ?? (match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0), isMyTurn && chaineDeLaFile === null, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''} ${lettreEnVol ? 'is-en-vol' : ''}`} data-rack="true" aria-label="Lettres disponibles">
         {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.glisse && drag.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         {match.chaine ? null : <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>}

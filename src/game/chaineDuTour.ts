@@ -5,9 +5,10 @@
 // sous le doigt pendant qu'on enchaîne.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { CHAINE_TOUR_MS, RACK_SIZE } from '../gameRules'
+import { CHAINE_TOUR_MS, RACK_COMPLETION_BONUS, RACK_SIZE } from '../gameRules'
 import type { EtatDeChaine, MatchInvitation, MatchPace, MatchState, MatchTurn, ReponseDeLettre, RythmeChoisi } from '../matches'
 import type { RackTile } from '../rackTiles'
+import { wordRewardCell, type TurnStep } from './turnChoreography'
 
 export const SECONDES_DU_TOUR_DE_CHAINE = Math.round(CHAINE_TOUR_MS / 1_000)
 
@@ -126,6 +127,53 @@ export function nouveautesDeChaine(vu: VuDeLaChaine | null, tour: DuTour): { cas
     rang: deja.lettres,
     vu: { tour: tour.tour, lettres: Math.max(deja.lettres, tour.cases.length), mots: Math.max(deja.mots, tour.mots.length), bonus: Math.max(deja.bonus, tour.bonus) },
   }
+}
+
+/**
+ * LES LETTRES DE L'AUTRE, UNE À UNE (03/11/2026, vu par le propriétaire sur la vidéo).
+ * Un sondage en apporte plusieurs d'un coup : 8 lettres posées en 5 s arrivaient 5 puis
+ * 3 sur l'autre écran. Ici, l'ordre où les montrer : chaque lettre, puis le mot qu'elle
+ * termine, puis le +5 qu'elle rapporte.
+ */
+export function etapesDeChaine({ cases, mots, bonus, rang }: Pick<ReturnType<typeof nouveautesDeChaine>, 'cases' | 'mots' | 'bonus' | 'rang'>): TurnStep[] {
+  const etapes: TurnStep[] = []
+  const etapeDuMot = (mot: EtatDeChaine['wordBonuses'][number]): TurnStep => ({ kind: 'word', points: mot.points, cells: mot.cells, direction: mot.direction, cellIndex: wordRewardCell(mot.cells, mot.direction) })
+  let motsRestants = mots
+  let bonusRestant = bonus
+  cases.forEach((cellIndex, place) => {
+    etapes.push({ kind: 'correct', points: 1, cellIndex, aided: false })
+    const aVenir = new Set(cases.slice(place + 1))
+    const termine = (mot: EtatDeChaine['wordBonuses'][number]) => mot.cells.every(cellule => !aVenir.has(cellule))
+    etapes.push(...motsRestants.filter(termine).map(etapeDuMot))
+    motsRestants = motsRestants.filter(mot => !termine(mot))
+    if (bonusRestant >= RACK_COMPLETION_BONUS && (rang + place + 1) % RACK_SIZE === 0) {
+      etapes.push({ kind: 'rack', points: RACK_COMPLETION_BONUS })
+      bonusRestant -= RACK_COMPLETION_BONUS
+    }
+  })
+  // Rien n'est jamais perdu : un mot ou un bonus sans lettre neuve passe à la fin.
+  etapes.push(...motsRestants.map(etapeDuMot))
+  if (bonusRestant > 0) etapes.push({ kind: 'rack', points: bonusRestant })
+  return etapes
+}
+
+/** En dessous, l'œil ne suit plus (le même seuil que turnChoreography.ts). */
+export const PAS_LE_PLUS_COURT_MS = 180
+const PAS_LE_PLUS_LONG_MS = 650
+const LOT_LE_PLUS_LONG_MS = 2_500
+const PAS_POUR_FINIR_MS = 100
+
+/**
+ * Le temps entre deux étapes : réparties sur l'intervalle entre deux lots, elles
+ * s'enchaînent sans trou au rythme où l'autre joue.
+ */
+export function pasDeLaChaine(etapes: number, depuisLeLotPrecedentMs: number): number {
+  return Math.max(PAS_LE_PLUS_COURT_MS, Math.min(PAS_LE_PLUS_LONG_MS, depuisLeLotPrecedentMs / etapes, LOT_LE_PLUS_LONG_MS / etapes))
+}
+
+/** Le tour vient de se fermer : ce qui reste passe avant le suivant, plus vite, mais toujours l'une après l'autre. */
+export function pasAvantLeTourSuivant(pas: number, etapes: number, fenetreMs: number): number {
+  return Math.min(pas, Math.max(PAS_POUR_FINIR_MS, fenetreMs / Math.max(1, etapes)))
 }
 
 export type AvisDeLettre = 'lente' | 'patience' | null

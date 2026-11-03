@@ -39,12 +39,13 @@ export { vainqueurAuxPoints }
 type Placement = { cellIndex: number; letter: string }
 
 /**
- * La cadence d'UNE partie : celle du serveur, sauf le tour sur mesure qu'un e2e
- * qui joue à l'écran peut demander (`StoredMatch.turnMs`).
+ * La cadence d'UNE partie : celle du serveur, sauf ce qu'un e2e qui joue à l'écran
+ * peut demander (`StoredMatch.turnMs`, `StoredMatch.souffleMs`).
  */
-export function cadenceDe(match: Pick<StoredMatch, 'turnMs'>): Cadence {
-  if (!match.turnMs) return CADENCE_LOCALE
-  return { ...CADENCE_LOCALE, tourLimiteMs: match.turnMs, tourIllimiteMs: match.turnMs, tourChaineMs: match.turnMs }
+export function cadenceDe(match: Pick<StoredMatch, 'turnMs' | 'souffleMs'>): Cadence {
+  const cadence = match.souffleMs === undefined ? CADENCE_LOCALE : { ...CADENCE_LOCALE, souffleMs: match.souffleMs }
+  if (!match.turnMs) return cadence
+  return { ...cadence, tourLimiteMs: match.turnMs, tourIllimiteMs: match.turnMs, tourChaineMs: match.turnMs }
 }
 
 export function grilleDe(match: Pick<StoredMatch, 'gridId'>): CatalogGrid {
