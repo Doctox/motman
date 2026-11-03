@@ -373,6 +373,11 @@
   {
     "ajoute": "2026-11-03T13:24",
     "titre": "En chaîne : tu enchaînes sans attendre",
-    "texte": "Tes lettres se posent tout de suite, même si le réseau traîne, et le +5 ne cache plus ton chevalet."
+    "texte": "Tes lettres se posent tout de suite, même si le réseau traîne."
+  },
+  {
+    "ajoute": "2026-11-03T15:59",
+    "titre": "Des points qui sautent aux yeux",
+    "texte": "Dans tous les modes, tes points jaillissent à l’écran, et le +5 ne cache plus tes lettres."
   }
 ]

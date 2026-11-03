@@ -30,13 +30,14 @@
 .app-shell.is-resolving .board{
   box-shadow:0 5px 17px #3c352322,0 0 0 2px #c8a65f24;
 }
-.app-shell.is-resolving .rack-area{opacity:.82;transition:opacity .24s ease}
+.app-shell.is-resolving .rack-area>:not(.rack-bonus-pop){opacity:.82;transition:opacity .24s ease}
+.app-shell.is-resolving .duel-rack-waiting>.rack{opacity:.57}
 .app-shell.is-finished .board{box-shadow:0 7px 22px #1f5a432b,0 0 0 2px #74a88b35}
 [data-theme="dark"] .board.has-clue-focus .slot.clue-focus{
   background:#493f24!important;box-shadow:inset 0 0 0 2px #d1ad59,0 0 12px #d1ad5933;
 }
 [data-theme="dark"] .board.has-clue-focus .slot.clue-focus .letter-only{color:#f2e5b7}
-html[data-motion="off"] .board.has-clue-focus .slot,html[data-motion="off"] .app-shell.is-resolving .rack-area{transition:none!important}
+html[data-motion="off"] .board.has-clue-focus .slot,html[data-motion="off"] .app-shell.is-resolving .rack-area>:not(.rack-bonus-pop){transition:none!important}
 html[data-motion="off"] .drag-ghost{rotate:0deg!important;transition:none!important}
 
 /* Mobile scroll remains available when a gesture starts on the board. */

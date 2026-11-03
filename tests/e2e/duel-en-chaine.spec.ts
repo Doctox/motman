@@ -336,7 +336,7 @@ test('on enchaîne sans attendre le serveur, et une erreur renvoie au chevalet c
   }
 })
 
-test('le +5 d’une chaîne laisse le chevalet visible', async ({ browser }) => {
+test('le +5 d’une chaîne se lit seul et laisse le chevalet visible', async ({ browser }) => {
   test.setTimeout(120_000)
   const a = identite('Cinq A')
   const b = identite('Cinq B')
@@ -353,9 +353,20 @@ test('le +5 d’une chaîne laisse le chevalet visible', async ({ browser }) => 
       await poser(page, coup)
       await expect(caseDe(page, coup.cellIndex)).toHaveAttribute('data-confirmed', 'true')
     }
-    await expect(page.locator('.rack-heading')).toContainText('+5')
-    await expect(page.locator('.rack-completion-reward'), 'plus rien par-dessus les lettres').toHaveCount(0)
+    await expect(page.locator('.rack-bonus-pop')).toHaveText('+5')
+    await expect(page.locator('.rack-heading')).toContainText('Chaîne de 5')
     await expect(page.locator('.rack-letter')).toHaveCount(5)
+    // Même au plus gros de son saut, le +5 reste au-dessus des lettres.
+    const { basDuPlus, hautDesLettres } = await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        if ((animation.effect as KeyframeEffect | null)?.target?.classList.contains('rack-bonus-pop')) { animation.pause(); animation.currentTime = 154 }
+      }
+      return {
+        basDuPlus: document.querySelector('.rack-bonus-pop')!.getBoundingClientRect().bottom,
+        hautDesLettres: Math.min(...[...document.querySelectorAll('.rack-letter')].map(lettre => lettre.getBoundingClientRect().top)),
+      }
+    })
+    expect(basDuPlus).toBeLessThanOrEqual(hautDesLettres)
     // Le doigt touche bien une lettre, à toutes les places du chevalet.
     const touchees = await page.locator('.rack-letter').evaluateAll(lettres => lettres.map(lettre => {
       const { left, top, width, height } = lettre.getBoundingClientRect()
@@ -371,6 +382,29 @@ test('le +5 d’une chaîne laisse le chevalet visible', async ({ browser }) => 
     await context.close()
     await apiA.dispose()
     await apiB.dispose()
+  }
+})
+
+test('en partie normale aussi : les points sautent, et le +5 se lit seul', async ({ browser }) => {
+  test.setTimeout(120_000)
+  const a = identite('Normal A')
+  const b = identite('Normal B')
+  const [apiA, apiB] = await Promise.all([session(a), session(b)])
+  expect((await apiA.post('/api/matches/search', { data: { playerId: a.playerId, pace: 'realtime' } })).ok()).toBe(true)
+  const reponse = await apiB.post('/api/matches/search', { data: { playerId: b.playerId, pace: 'realtime', turnMs: 90_000 } })
+  const matchId = String((await reponse.json() as { matchId: string | null }).matchId)
+  const initiale = await lire(apiA, a, matchId)
+  const joueur = initiale.currentPlayerId === a.playerId ? a : b
+  const { context, page } = await ouvrir(browser, joueur, `/#partie=${encodeURIComponent(matchId)}`)
+  try {
+    await aSonTour(page)
+    await eclairPasse(page)
+    for (const coup of coupsJustes(initiale, joueur, 5)) await poser(page, coup)
+    await page.locator('.validate').tap()
+    await expect(page.locator('.board-effects-layer .reward-bubble').first()).toHaveText(/^\+\d+$/)
+    await expect(page.locator('.rack-bonus-pop')).toHaveText('+5')
+  } finally {
+    await context.close()
   }
 })
 
