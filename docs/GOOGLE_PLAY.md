@@ -1,17 +1,20 @@
-# Publier MotMan sur Google Play — version 1.1.2
+# Publier MotMan sur Google Play — version 1.1.3
 
 Version de production : **1.1.1, `versionCode 12`**, obligatoire depuis le
 11/10/2026 (Capacitor 7.6.9, Android 7 minimum), en France, Belgique, Suisse,
 Luxembourg et Monaco.
 
-**En préparation : 1.1.2, `versionCode 13` (03/11/2026), NON obligatoire.** Elle
-active R8, l'optimisation du code : Google exige au moins 25 % à partir de
+**En préparation : 1.1.3, `versionCode 14` (03/11/2026), NON obligatoire.** La
+1.1.2 (code 13) n'a servi qu'en test interne : elle se fermait à la connexion à
+partir d'Android 13. Elle active R8, l'optimisation du code : Google exige au moins 25 % à partir de
 février 2027, sous peine de moins de visibilité et de publications limitées, et
 l'indique dans la console à chaque app bundle envoyé. Elle embarque aussi le site
 du jour, duel en chaîne compris, pour que la version examinée contienne le mode.
 R8 peut casser un module natif : **l'essai sur téléphone de la section « Tester
 avant la production » est obligatoire**, notifications et mise à jour embarquée
-comprises.
+comprises, et **sur un Android 13 ou plus récent** : le module de notifications y
+suit un autre chemin, qu'un téléphone plus ancien n'emprunte jamais. Sans téléphone
+récent sous la main : l'émulateur `Pixel_3a_API_34`, lancé avec `-gpu host`.
 
 Les corrections du site (JS, CSS, images) n'ont pas besoin de ce document :
 elles arrivent sur les téléphones par les mises à jour embarquées
@@ -83,8 +86,8 @@ QUE cette variable : `GITHUB_REPOSITORY` ferait construire le site pour
 ```powershell
 npm run audit:play     # doit finir sur « 0 blocage(s) »
 New-Item -ItemType Directory -Force "$HOME\MotMan-versions" | Out-Null
-Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.2-code13.aab"
-Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.2-code13.aab" -Algorithm SHA256
+Copy-Item android\app\build\outputs\bundle\release\app-release.aab "$HOME\MotMan-versions\MotMan-1.1.3-code14.aab"
+Get-FileHash "$HOME\MotMan-versions\MotMan-1.1.3-code14.aab" -Algorithm SHA256
 ```
 
 `audit:play` contrôle la configuration Android, Firebase, les pages légales et
@@ -116,23 +119,23 @@ quand un module natif est cassé.
 
 ## Publier, puis basculer le serveur
 
-1. Envoyer `MotMan-1.1.2-code13.aab` sur la piste **Production**, pays France,
+1. Envoyer `MotMan-1.1.3-code14.aab` sur la piste **Production**, pays France,
    Belgique, Suisse, Luxembourg et Monaco.
 2. Attendre que la version soit **réellement téléchargeable** dans les cinq pays
-   (examen de Google terminé, fiche Play Store qui propose la 1.1.2).
+   (examen de Google terminé, fiche Play Store qui propose la 1.1.3).
 3. Alors seulement, déclarer la nouvelle version au serveur :
 
 ```sql
 update public.server_app_config
-set android_version_code = 13,
-    android_version_name = '1.1.2',
+set android_version_code = 14,
+    android_version_name = '1.1.3',
     updated_at = now()
 where id = 'motman';
 ```
 
 Pour rendre une version obligatoire, la même requête relève aussi
 `minimum_android_version_code` : la contrainte `minimum ≤ version` se vérifie sur
-la ligne entière, une seule requête suffit. Ce n'est pas prévu pour la 1.1.2.
+la ligne entière, une seule requête suffit. Ce n'est pas prévu pour la 1.1.3.
 
 C'est une donnée, pas un schéma : l'éditeur SQL du tableau de bord convient.
 Les fonctions relisent ce réglage toutes les 30 secondes.
