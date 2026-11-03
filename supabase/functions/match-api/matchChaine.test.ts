@@ -332,7 +332,7 @@ Deno.test('la réponse ne dit que le verdict, le chevalet du joueur et le score'
   const faux = coupFaux(row)
   const demFausse = demande(row, faux)
   const passe = reponseDeLettre(row, jugerLettre(row, GRILLE, JOUEUR, demFausse, Date.now(), MARGES), demFausse, JOUEUR)
-  egal(passe.lettre.juste, false, 'faux')
+  egal('juste' in passe.lettre && passe.lettre.juste, false, 'faux')
   verifie(Boolean(passe.partie.board), 'le plateau accompagne la fin du tour')
   egal(passe.partie.currentPlayerId, AUTRE, 'la main a passé')
 })
