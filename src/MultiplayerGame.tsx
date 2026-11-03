@@ -44,7 +44,7 @@ import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
 import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, revelationDepassee, turnStepDelayMs, type TurnStep } from './game/turnChoreography'
-import { appliquerEvenementDeChaine, chevaletStable, etapesDeChaine, fusionnerReponseDeLettre, ligneDeChaine, nouveautesDeChaine, numeroSuivant, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, REGLE_DE_LA_CHAINE, rythmeDeLaPartie, SECONDES_DU_TOUR_DE_CHAINE, statutDeFinDeTour, tourClos, tourEnCours, type AvisDeLettre, type EvenementDeChaine, type VuDeLaChaine } from './game/chaineDuTour'
+import { appliquerEvenementDeChaine, chevaletStable, etapesDeChaine, fusionnerReponseDeLettre, ligneDeChaine, nouveautesDeChaine, numeroSuivant, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, placeLiberee, REGLE_DE_LA_CHAINE, rythmeDeLaPartie, SECONDES_DU_TOUR_DE_CHAINE, statutDeFinDeTour, tourClos, tourEnCours, type AvisDeLettre, type EvenementDeChaine, type VuDeLaChaine } from './game/chaineDuTour'
 import { StableBoardLetters } from './game/StableBoardLetters'
 import { enDirectLePlusRecent, lettresDeLAdversaire, type EnDirect } from './game/lettresEnDirect'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
@@ -144,6 +144,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   // DUEL EN CHAÎNE (02/11/2026, game/chaineDuTour.ts). Une lettre à la fois : elle
   // reste posée, en attente, jusqu'au verdict du serveur, et l'écran le dit si ça traîne.
   const lettreEnRoute = useRef(false)
+  // Les lettres posées qui attendent leur verdict, dans l'ordre. La première est en route.
+  const lettresEnAttente = useRef<Array<{ tile: Tile; cellIndex: number; partieA: number }>>([])
   const [lettreEnVol, setLettreEnVol] = useState(false)
   const [avisDeLettre, setAvisDeLettre] = useState<AvisDeLettre>(null)
   const chaineVue = useRef<VuDeLaChaine | null>(null)
@@ -447,8 +449,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
    * La lettre fausse reste lisible pendant le temps mort, puis le tour suivant part.
    */
   const finirLeTourDeChaine = (turn: MatchTurn, owner: 'player' | 'bot', finalScores: Record<string, number>, revealEndsAt: number | null) => {
-    // Un sondage peut apprendre le tour d'avant alors que ma lettre est déjà en route.
-    if (!lettreEnRoute.current) { provisionalRef.current = {}; setProvisional({}) }
+    // Mon tour vient de se fermer : seule la lettre déjà partie attend encore sa réponse.
+    // Un sondage peut aussi apprendre le tour d'avant, qui ne change rien à mes lettres.
+    if (turn.playerId === playerId) lettresEnAttente.current = lettresEnAttente.current.slice(0, lettreEnRoute.current ? 1 : 0)
+    peindreLesLettresEnAttente()
     // Un tour clos depuis longtemps (appli rouverte) n'a plus rien à montrer. Décidé à
     // son arrivée : le temps que passe la file ne doit pas faire disparaître la lettre fausse.
     const tropTard = revealEndsAt !== null && serverNow() > revealEndsAt + EMPTY_TURN_NOTICE_MS
@@ -743,45 +747,68 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     else if (evenement.turnNumber > partie.turnNumber) pollingRef.current?.wake()
   }
 
-  /** La lettre part au serveur : une à la fois, et elle reste à l'écran jusqu'au verdict. */
+  const peindreLesLettresEnAttente = () => {
+    const posees: Record<number, Tile> = Object.fromEntries(lettresEnAttente.current.map(lettre => [lettre.cellIndex, lettre.tile]))
+    provisionalRef.current = posees
+    setProvisional(posees)
+  }
+
+  /**
+   * ON ENCHAÎNE SANS ATTENDRE LE SERVEUR (03/11/2026, retour du propriétaire : « ça pause
+   * tout sauf le temps »). La lettre est à l'écran au toucher, le joueur pose déjà la
+   * suivante, et le serveur les juge derrière, une à la fois et dans l'ordre : le numéro
+   * de chacune dépend du verdict de la précédente. Sa vitesse n'est donc limitée que par
+   * les lettres qui restent au chevalet.
+   */
   const envoyerLettre = (tile: Tile, cellIndex: number) => {
-    const partie = matchRef.current
-    if (!partie?.chaine) return
-    if (lettreEnRoute.current) { setAvisDeLettre(avis => avis ?? 'patience'); return }
-    lettreEnRoute.current = true
-    setLettreEnVol(true)
-    provisionalRef.current = { [cellIndex]: tile }
-    setProvisional({ [cellIndex]: tile })
+    if (!matchRef.current?.chaine || provisionalRef.current[cellIndex] || lettresEnAttente.current.some(lettre => lettre.tile.id === tile.id)) return
+    lettresEnAttente.current.push({ tile, cellIndex, partieA: serverNow() })
+    peindreLesLettresEnAttente()
     setSelected(null); setError(null); haptic(10); playEffect('place'); noterActivite()
-    const lenteur = window.setTimeout(() => setAvisDeLettre('lente'), 2_500)
-    const finDeLaLettre = () => {
-      window.clearTimeout(lenteur)
+    if (!lettreEnRoute.current) envoyerLaSuivante()
+  }
+
+  const envoyerLaSuivante = () => {
+    const partie = matchRef.current
+    const lettre = lettresEnAttente.current[0]
+    if (!partie?.chaine || !lettre) {
       lettreEnRoute.current = false
       setLettreEnVol(false)
-      setAvisDeLettre(null)
+      return
     }
-    poserLettreDeChaine(playerId, partie.id, { turnNumber: partie.turnNumber, numero: numeroSuivant(partie), cellIndex, letter: tile.letter, partieA: serverNow() })
+    lettreEnRoute.current = true
+    setLettreEnVol(true)
+    const lenteur = window.setTimeout(() => setAvisDeLettre('lente'), 2_500)
+    poserLettreDeChaine(playerId, partie.id, { turnNumber: partie.turnNumber, numero: numeroSuivant(partie), cellIndex: lettre.cellIndex, letter: lettre.tile.letter, partieA: lettre.partieA })
       .then(reponse => {
         if (!alive.current) return
         recevoirVerdict(reponse)
       })
       .catch(raison => {
         if (!alive.current) return
-        provisionalRef.current = {}
-        setProvisional({})
-        // Rien de perdu : la lettre revient au chevalet, et la relecture dit où en est le serveur.
+        // Rien de perdu : les lettres reviennent au chevalet, et la relecture dit où en est le serveur.
+        lettresEnAttente.current = []
+        peindreLesLettresEnAttente()
         if (recoverConcurrentUpdate(raison)) return
         const payload = (raison as { payload?: { match?: MatchState } })?.payload
         if (payload?.match) applyMatchState(payload.match)
         setError(raison instanceof Error ? raison.message : 'Ta lettre n’est pas arrivée. Réessaie.')
         pollingRef.current?.wake()
       })
-      .finally(finDeLaLettre)
+      .finally(() => {
+        window.clearTimeout(lenteur)
+        setAvisDeLettre(null)
+        if (alive.current) envoyerLaSuivante()
+      })
   }
 
   const recevoirVerdict = (reponse: ReponseDeLettre) => {
-    provisionalRef.current = {}
-    setProvisional({})
+    const jugee = lettresEnAttente.current.shift()
+    const juste = 'juste' in reponse.lettre && reponse.lettre.juste === true
+    if (jugee && juste) chevaletDeChaine.current = placeLiberee(chevaletDeChaine.current, jugee.tile.id)
+    // Fausse, refusée ou tour fermé : celles qui suivaient ne partiront pas, elles reviennent au chevalet.
+    if (!juste || reponse.partie.currentPlayerId !== playerId) lettresEnAttente.current = []
+    peindreLesLettresEnAttente()
     const partie = matchRef.current
     if (!partie) return
     // Une réponse dépassée par une lecture plus récente : celle-ci a déjà tout dit, et
@@ -1404,11 +1431,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn && lectureRestante === null ? 'duel-rack-waiting' : ''}`}>
-        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{isMyTurn && chaineDeLaFile === null ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn && chaineDeLaFile === null ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(chaineDeLaFile ?? (match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0), isMyTurn && chaineDeLaFile === null, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''} ${lettreEnVol ? 'is-en-vol' : ''}`} data-rack="true" aria-label="Lettres disponibles">
+        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{isMyTurn && chaineDeLaFile === null ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn && chaineDeLaFile === null ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span className={match.chaine && rackBonusEffect ? 'is-bonus-chaine' : undefined} aria-live={match.chaine && rackBonusEffect ? 'polite' : undefined}>{match.chaine && rackBonusEffect ? `+${rackBonusEffect.points} · Belle chaîne` : match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(chaineDeLaFile ?? (match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0), isMyTurn && chaineDeLaFile === null, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''}`} data-rack="true" aria-label="Lettres disponibles">
         {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.glisse && drag.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         {match.chaine ? null : <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>}
-      </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>{match.chaine ? 'Belle chaîne' : 'Chevalet complet'}</strong><small>{match.chaine ? '5 lettres de suite' : '5 lettres correctes'}</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
+      </div>{rackBonusEffect && !match.chaine ? <div key={rackBonusEffect.id} className={`rack-completion-reward rack-completion-reward--${rackBonusEffect.owner}`} role="status" aria-live="polite"><Sparkles /><span><strong>Chevalet complet</strong><small>5 lettres correctes</small></span><b>+{rackBonusEffect.points}</b></div> : null}</section>
       <div className={`turn-actions ${match.chaine ? 'is-chaine' : ''}`}>{match.chaine ? null : <button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button>}<button className={`validate ${isMyTurn && !resolving && rienAValider ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving || lettreEnVol} title={isMyTurn && rienAValider && !match.chaine ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : rienAValider ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button></div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}

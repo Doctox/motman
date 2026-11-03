@@ -264,7 +264,117 @@ test('celui qui attend voit les lettres une à une, même quand le sondage les a
   }
 })
 
-test('réseau lent : une lettre à la fois, l’écran le dit, et un renvoi ne compte pas deux fois', async ({ browser }) => {
+/** Plusieurs coups justes de ce chevalet, chacun avec sa lettre et sa case. */
+function coupsJustes(partie: Partie, joueur: Identite, combien: number): Coup[] {
+  const cases = solution(partie.gridId)
+  const prises = new Set<number>()
+  const coups: Coup[] = []
+  for (const letter of partie.racks[joueur.playerId]) {
+    for (const [cellIndex, attendue] of cases) {
+      if (attendue === letter && !partie.board[cellIndex] && !prises.has(cellIndex)) {
+        prises.add(cellIndex)
+        coups.push({ cellIndex, letter })
+        break
+      }
+    }
+    if (coups.length === combien) return coups
+  }
+  throw new Error(`Pas ${combien} lettres jouables`)
+}
+
+test('on enchaîne sans attendre le serveur, et une erreur renvoie au chevalet ce qui suivait', async ({ browser }) => {
+  // Retour du propriétaire, 03/11/2026 : « ça pause tout sauf le temps ».
+  test.setTimeout(120_000)
+  const a = identite('Suite A')
+  const b = identite('Suite B')
+  const [apiA, apiB] = await Promise.all([session(a), session(b)])
+  // Un tour assez long pour que seule l'attente du serveur soit mesurée.
+  const matchId = await apparier(a, apiA, b, apiB, 90_000)
+  const initiale = await lire(apiA, a, matchId)
+  const [joueur, api] = initiale.currentPlayerId === a.playerId ? [a, apiA] as const : [b, apiB] as const
+  const { context, page } = await ouvrir(browser, joueur, `/#partie=${encodeURIComponent(matchId)}`)
+  try {
+    await aSonTour(page)
+    await eclairPasse(page)
+    // Chaque lettre met 1,2 s à revenir : on ne peut enchaîner que sans l'attendre.
+    await page.route('**/api/matches/lettre', async route => {
+      await new Promise(fini => setTimeout(fini, 1_200))
+      await route.continue()
+    })
+    let partie = await lire(api, joueur, matchId)
+    const [premier, deuxieme, troisieme] = coupsJustes(partie, joueur, 3)
+    for (const coup of [premier, deuxieme, troisieme]) {
+      await poser(page, coup)
+      await expect(caseDe(page, coup.cellIndex), 'la lettre est à l’écran tout de suite').toContainText(coup.letter, { timeout: 800 })
+    }
+    await expect(page.locator('.rack-heading')).not.toContainText('ta lettre arrive')
+    // Toutes arrivent, dans l'ordre, sans qu'aucune ait été refusée.
+    await expect(caseDe(page, troisieme.cellIndex)).toHaveAttribute('data-confirmed', 'true', { timeout: 10_000 })
+    await expect(page.locator('.rack-heading')).toContainText('Chaîne de 3')
+    await expect(page.locator('.rack-letter')).toHaveCount(5)
+    partie = await lire(api, joueur, matchId)
+    expect(partie.chaine?.lettres.map(lettre => (lettre as Coup).cellIndex)).toEqual([premier.cellIndex, deuxieme.cellIndex, troisieme.cellIndex])
+
+    // Juste, fausse, juste : la fausse ferme le tour, et la dernière n'est jamais jugée.
+    const faux = coupFaux(partie, joueur)
+    const [juste, ...reste] = coupsJustes(partie, joueur, 5).filter(coup => coup.letter !== faux.letter && coup.cellIndex !== faux.cellIndex)
+    const apres = reste[0]
+    await poser(page, juste)
+    await poser(page, faux)
+    await poser(page, apres)
+    await expect.poll(async () => (await lire(api, joueur, matchId)).currentPlayerId, { timeout: 15_000 }).not.toBe(joueur.playerId)
+    await expect(caseDe(page, apres.cellIndex), 'elle ne reste pas sur la grille').not.toContainText(apres.letter, { timeout: 10_000 })
+    partie = await lire(api, joueur, matchId)
+    expect(partie.lastTurn?.correct).toHaveLength(4)
+    expect(partie.lastTurn?.wrongPlacements).toHaveLength(1)
+    expect(partie.board[apres.cellIndex]).toBeUndefined()
+    expect(partie.racks[joueur.playerId], 'elle est de retour au chevalet').toContain(apres.letter)
+  } finally {
+    await context.close()
+    await apiA.dispose()
+    await apiB.dispose()
+  }
+})
+
+test('le +5 d’une chaîne laisse le chevalet visible', async ({ browser }) => {
+  test.setTimeout(120_000)
+  const a = identite('Cinq A')
+  const b = identite('Cinq B')
+  const [apiA, apiB] = await Promise.all([session(a), session(b)])
+  const matchId = await apparier(a, apiA, b, apiB, 90_000)
+  const initiale = await lire(apiA, a, matchId)
+  const [joueur, api] = initiale.currentPlayerId === a.playerId ? [a, apiA] as const : [b, apiB] as const
+  const { context, page } = await ouvrir(browser, joueur, `/#partie=${encodeURIComponent(matchId)}`)
+  try {
+    await aSonTour(page)
+    await eclairPasse(page)
+    for (let rang = 1; rang <= 5; rang += 1) {
+      const coup = coupJuste(await lire(api, joueur, matchId), joueur)
+      await poser(page, coup)
+      await expect(caseDe(page, coup.cellIndex)).toHaveAttribute('data-confirmed', 'true')
+    }
+    await expect(page.locator('.rack-heading')).toContainText('+5')
+    await expect(page.locator('.rack-completion-reward'), 'plus rien par-dessus les lettres').toHaveCount(0)
+    await expect(page.locator('.rack-letter')).toHaveCount(5)
+    // Le doigt touche bien une lettre, à toutes les places du chevalet.
+    const touchees = await page.locator('.rack-letter').evaluateAll(lettres => lettres.map(lettre => {
+      const { left, top, width, height } = lettre.getBoundingClientRect()
+      return document.elementFromPoint(left + width / 2, top + height / 2)?.closest('.rack-letter') === lettre
+    }))
+    expect(touchees).toEqual([true, true, true, true, true])
+    await page.screenshot({ path: `output/quality/chaine-plus-cinq-${test.info().project.name}.png`, fullPage: false })
+    // Et on enchaîne aussitôt, pendant que le +5 est affiché.
+    const suivante = coupJuste(await lire(api, joueur, matchId), joueur)
+    await poser(page, suivante)
+    await expect(caseDe(page, suivante.cellIndex)).toHaveAttribute('data-confirmed', 'true')
+  } finally {
+    await context.close()
+    await apiA.dispose()
+    await apiB.dispose()
+  }
+})
+
+test('réseau lent : l’écran le dit, et un renvoi ne compte pas deux fois', async ({ browser }) => {
   test.setTimeout(120_000)
   const a = identite('Lent A')
   const b = identite('Lent B')

@@ -369,5 +369,10 @@
     "titre": "Nouveau mode : En chaîne",
     "texte": "30 secondes pour poser le plus de lettres : chaque lettre juste t’en donne une nouvelle, une erreur et ça passe à l’autre. À essayer depuis la page Jouer, ou entre amis.",
     "genre": "jeu"
+  },
+  {
+    "ajoute": "2026-11-03T13:24",
+    "titre": "En chaîne : tu enchaînes sans attendre",
+    "texte": "Tes lettres se posent tout de suite, même si le réseau traîne, et le +5 ne cache plus ton chevalet."
   }
 ]

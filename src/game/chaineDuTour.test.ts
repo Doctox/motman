@@ -3,7 +3,7 @@ import type { EtatDeChaine, MatchState, ReponseDeLettre } from '../matches'
 import { isRoutineTurnStatus } from '../MultiplayerGame'
 import {
   appliquerEvenementDeChaine, chevaletStable, etapesDeChaine, evenementDeChaineValide, fusionnerReponseDeLettre, libelleDuRythme, ligneDeChaine, nouveautesDeChaine,
-  numeroSuivant, paceDuRythme, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, rythmeDeLaPartie, rythmeDeLInvitation, statutDeFinDeTour, tourClos, tourEnCours,
+  numeroSuivant, paceDuRythme, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, placeLiberee, rythmeDeLaPartie, rythmeDeLInvitation, statutDeFinDeTour, tourClos, tourEnCours,
 } from './chaineDuTour'
 
 const MOI = 'moi'
@@ -52,6 +52,14 @@ describe('le chevalet ne bouge pas sous le doigt', () => {
     expect(apres[2].id).toBe(avant[2].id)
     expect(apres[4].id).toBe(avant[4].id)
     expect(apres[1].id).not.toBe(avant[1].id)
+  })
+
+  it('avec deux fois la même lettre, celle qui attend son verdict garde son identité', () => {
+    const avant = tuiles('AABCD')
+    // La première A est jugée juste, la seconde est encore en route.
+    const apres = chevaletStable(placeLiberee(avant, avant[0].id), ['A', 'B', 'C', 'D', 'X'])
+    expect(apres.map(tuile => tuile.letter).join('')).toBe('XABCD')
+    expect(apres[1].id, 'sans cela, elle réapparaîtrait au chevalet').toBe(avant[1].id)
   })
 
   it('tient les lettres en double et un chevalet qui rétrécit', () => {
@@ -158,7 +166,6 @@ describe('rien n’est montré deux fois', () => {
 describe('ce que dit l’écran', () => {
   it('jamais muet quand ça traîne', () => {
     expect(ligneDeChaine(2, true, 'lente')).toContain('Connexion lente')
-    expect(ligneDeChaine(2, true, 'patience')).toContain('ta lettre arrive')
   })
 
   it('la chaîne en cours, et combien pour +5', () => {

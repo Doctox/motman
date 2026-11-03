@@ -186,4 +186,10 @@ html[data-motion="off"] .multiplayer-shell .confirmed-board-layer .confirmed-boa
    -------------------------------------------------------------------------- */
 .multiplayer-shell .rack.is-chaine{grid-template-columns:repeat(5,minmax(0,1fr))}
 .multiplayer-shell .turn-actions.is-chaine{grid-template-columns:minmax(0,1fr)}
-.multiplayer-shell .rack.is-en-vol .rack-letter{opacity:.72}
+/* En chaîne, le verdict ne se voit pas : une lettre posée a déjà sa couleur définitive. */
+[data-theme="dark"] .multiplayer-shell:has(.rack.is-chaine) .confirmed-board-layer .confirmed-board-letter.provisional-effect{color:#8fdcb8!important;-webkit-text-fill-color:#8fdcb8!important}
+/* Le +5 d'une chaîne reste dans la ligne : par-dessus le chevalet, il cachait les lettres à poser (03/11/2026). */
+.multiplayer-shell .rack-heading>span.is-bonus-chaine{color:#b64f2c;font-size:0.8125rem;font-weight:800;animation:bonusChaine .35s var(--motion) both}
+[data-theme="dark"] .multiplayer-shell .rack-heading>span.is-bonus-chaine{color:#f0b58f}
+@keyframes bonusChaine{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:none}}
+html[data-motion="off"] .multiplayer-shell .rack-heading>span.is-bonus-chaine{animation:none}

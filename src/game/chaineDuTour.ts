@@ -117,6 +117,15 @@ export function tourClos(tour: Pick<MatchTurn, 'turnNumber' | 'correct' | 'wordB
   return { tour: tour.turnNumber, cases: tour.correct, mots: tour.wordBonuses, bonus: tour.rackBonus }
 }
 
+/**
+ * La lettre jugée juste libère sa place. Sans cela, avec deux fois la même lettre, celle
+ * qui reste prendrait la première place : son identité changerait, alors qu'elle attend
+ * peut-être elle aussi son verdict, et elle réapparaîtrait au chevalet.
+ */
+export function placeLiberee(chevalet: readonly RackTile[], tuileId: string): RackTile[] {
+  return chevalet.map(tuile => tuile.id === tuileId ? { ...tuile, letter: '' } : tuile)
+}
+
 /** Les lettres, les mots et le bonus pas encore montrés, plus ce qui sera vu ensuite. */
 export function nouveautesDeChaine(vu: VuDeLaChaine | null, tour: DuTour): { cases: number[]; mots: EtatDeChaine['wordBonuses']; bonus: number; rang: number; vu: VuDeLaChaine } {
   const deja = vu?.tour === tour.tour ? vu : { tour: tour.tour, lettres: 0, mots: 0, bonus: 0 }
@@ -176,7 +185,7 @@ export function pasAvantLeTourSuivant(pas: number, etapes: number, fenetreMs: nu
   return Math.min(pas, Math.max(PAS_POUR_FINIR_MS, fenetreMs / Math.max(1, etapes)))
 }
 
-export type AvisDeLettre = 'lente' | 'patience' | null
+export type AvisDeLettre = 'lente' | null
 
 /**
  * La ligne au-dessus du chevalet : où en est la chaîne, et jamais un écran muet quand
@@ -184,7 +193,6 @@ export type AvisDeLettre = 'lente' | 'patience' | null
  */
 export function ligneDeChaine(lettres: number, monTour: boolean, avis: AvisDeLettre): string {
   if (avis === 'lente') return 'Connexion lente · ta lettre arrive…'
-  if (avis === 'patience') return 'Un instant, ta lettre arrive…'
   if (lettres > 0) return monTour ? `Chaîne de ${lettres} · encore ${RACK_SIZE - lettres % RACK_SIZE} pour +5` : `Chaîne de ${lettres}`
   return monTour ? 'Une erreur, et ça passe' : 'Prépare ton prochain coup'
 }
