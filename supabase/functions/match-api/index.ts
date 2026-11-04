@@ -31,6 +31,7 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 import { ensureFinalSprintRacks, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
 import { acknowledgePresence, applyTurn, closeExpiredTurn, fermerTourDeChaine, finish, sanitizePlacements, vainqueurAuxPoints } from './matchTurns.ts'
 import { jugerLettre, lireDemandeDeLettre, lireVariante, reponseDeLettre } from './matchChaine.ts'
+import { ligneDeBoiteNoire } from './boiteNoire.ts'
 import { brouillonRecevable, lettresDuBrouillon, lettresEnDirect, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
@@ -844,6 +845,9 @@ Deno.serve(async request => {
       const valid = sanitizePlacements(row, grid, user.id, placements).sanitized
       const hasPlacedHint = row.state.hint?.playerId === user.id && row.state.hint.turnNumber === row.turn_number
       const automatic = body.automatic === true
+      // Un tour perdu sans lettre : ce que seul le téléphone a vu (boiteNoire.ts).
+      const boiteNoire = automatic && accessProfile?.role === 'admin' ? ligneDeBoiteNoire(body.boiteNoire, user.id, row.id, row.turn_number) : null
+      if (boiteNoire) console.log(boiteNoire)
       const submissionGrace = automatic ? AUTOMATIC_SUBMIT_GRACE_MS : MANUAL_SUBMIT_GRACE_MS
       const turnEndsAt = new Date(row.turn_ends_at).getTime()
       if (automatic && valid.length === 0 && Date.now() < turnEndsAt) {
