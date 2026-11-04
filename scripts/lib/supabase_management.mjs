@@ -75,16 +75,29 @@ export async function jetonAcces() {
   ].join('\n'))
 }
 
+const ESSAIS_SI_TROP_VITE = 8
+const ATTENTE_SI_TROP_VITE_S = 30
+
 export async function requete(jeton, sql) {
-  const reponse = await fetch(`${MANAGEMENT_API}/v1/projects/${PROJECT_REF}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }),
-  })
-  if (!reponse.ok) {
-    throw new Error(`Supabase a refusé la requête (HTTP ${reponse.status}) : ${(await reponse.text()).slice(0, 300)}`)
+  // L'API de gestion limite le débit (429) : elle a coupé la publication de la v43 à
+  // 160 lots sur 262, le 04/11/2026. Ce n'est pas une erreur, il suffit d'attendre.
+  for (let essai = 1; ; essai += 1) {
+    const reponse = await fetch(`${MANAGEMENT_API}/v1/projects/${PROJECT_REF}/database/query`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: sql }),
+    })
+    if (reponse.status === 429 && essai <= ESSAIS_SI_TROP_VITE) {
+      const secondes = Number(reponse.headers.get('retry-after')) || ATTENTE_SI_TROP_VITE_S
+      console.log(`  Supabase demande de ralentir : reprise dans ${secondes} s…`)
+      await new Promise(reprendre => setTimeout(reprendre, secondes * 1_000))
+      continue
+    }
+    if (!reponse.ok) {
+      throw new Error(`Supabase a refusé la requête (HTTP ${reponse.status}) : ${(await reponse.text()).slice(0, 300)}`)
+    }
+    return reponse.json()
   }
-  return reponse.json()
 }
 
 /**
