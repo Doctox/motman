@@ -195,6 +195,10 @@ begin
     raise exception 'Atomic match RPCs must remain service-role only';
   end if;
 
+  -- Une partie à temps limité à la fois (20261104120000) : ces joueurs sortent de leurs parties.
+  update public.server_matches set status = 'finished', finish_reason = 'completed'
+  where id in (select match_id from public.match_participants where user_id in (first_user, second_user));
+
   -- ── Fraîcheur de la file normale (20260914090000) ─────────────────────────
 
   -- Le battement ressuscite une recherche muette : un joueur revenu au premier

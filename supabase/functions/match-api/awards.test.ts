@@ -185,6 +185,14 @@ Deno.test('partie interrompue pour un match classé : historique oui, récompens
   verifie(tables.some(appel => appel.table === 'grid_player_history'), 'l’historique est tout de même écrit')
 })
 
+Deno.test('une partie automatique qui cède sa place pendant la lecture : ni versement, ni historique', async () => {
+  // Personne n'y a joué : l'humain a pris le dessus (20261104120000).
+  const { client, rpcs, tables } = clientFactice()
+  await awardFinished(client, match({ finish_reason: 'human_takeover', winner_id: null }))
+  egal(rpcs.length, 0, 'aucun versement')
+  verifie(!tables.some(appel => appel.table === 'grid_player_history'), 'rien dans l’historique')
+})
+
 Deno.test('défi du jour gagné : 250 plumes sous la clé du jour', async () => {
   const jour = parisDateKey()
   const { client, rpcs } = clientFactice({

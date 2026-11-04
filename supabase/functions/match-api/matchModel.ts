@@ -83,10 +83,12 @@ export type State = {
   coupPrepare?: { turnNumber: number; placements: Array<{ cellIndex: number; letter: string }> };
   /** Présent : c'est un duel en chaîne (matchChaine.ts). Rien d'autre ne marque ce mode dans la partie. */
   chaine?: Chaine;
+  /** Cette partie automatique a cédé la place à une partie entre humains : celle-ci (20261104120000). */
+  remplaceePar?: string;
 }
 export type MatchRow = {
   id: string; mode: Mode; pace: Pace; grid_id: string; state: State; status: 'pending' | 'active' | 'finished'; current_player_id: string;
-  turn_number: number; turn_started_at: string; turn_ends_at: string; winner_id: string | null; finish_reason: 'completed' | 'timeout' | 'forfeit' | 'ranked_transfer' | 'ready_declined' | 'ready_expired' | null;
+  turn_number: number; turn_started_at: string; turn_ends_at: string; winner_id: string | null; finish_reason: 'completed' | 'timeout' | 'forfeit' | 'ranked_transfer' | 'ready_declined' | 'ready_expired' | 'human_takeover' | null;
   paused_at: string | null; pause_reason: 'ranked_ready' | null; paused_remaining_ms: number | null; ranked_ready_session_id: string | null;
   created_at: string; updated_at: string
 }

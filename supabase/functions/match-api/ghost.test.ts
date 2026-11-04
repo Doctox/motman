@@ -78,6 +78,17 @@ Deno.test('le fantôme porte l’identité et les réglages du propriétaire', (
   assertEquals(fantome.skill, 'regular')
 })
 
+Deno.test('une partie qui a cédé sa place dit où aller ; les autres n’en disent rien', async () => {
+  // Une partie entre humains a pris le dessus pendant la lecture (20261104120000).
+  const cedee = partie(fantome)
+  cedee.status = 'finished'
+  cedee.finish_reason = 'human_takeover'
+  cedee.state.remplaceePar = 'partie-entre-humains'
+  const vue = await view(base(), cedee, JOUEUR) as Record<string, unknown>
+  assertEquals(vue.remplaceePar, 'partie-entre-humains')
+  assertEquals('remplaceePar' in (await view(base(), partie(fantome), JOUEUR) as Record<string, unknown>), false)
+})
+
 Deno.test('le joueur voit le vrai profil du propriétaire, en partie, et jamais « bot »', async () => {
   const vue = await view(base(), partie(fantome), JOUEUR)
   assertEquals(vue.bot, null)

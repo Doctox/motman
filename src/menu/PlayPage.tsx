@@ -102,7 +102,7 @@ function SearchingCard({ titre, detail, annuler, disabled }: { titre: string; de
   </section>
 }
 
-export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab }: {
+export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, rechercheEnvoyee = false, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab }: {
   identity: GuestIdentity
   social: SocialState
   lobby: MatchLobbyState
@@ -110,6 +110,8 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   cancelInvite: (invitationId: string) => Promise<void>
   searchMatch: (rythme: RythmeChoisi) => Promise<void>
   cancelSearch: (pace: MatchPace) => Promise<void>
+  /** Une recherche est partie, y compris depuis « Rejouer », qui ne passe pas par les boutons d'ici. */
+  rechercheEnvoyee?: boolean
   /** Aucune partie finie : la carte Normal lui parle de durée, pas de classement (N1). */
   nouveau?: boolean
   /** Un invité touche Classé : « Créer mon compte » au lieu d'un refus (N4). */
@@ -131,6 +133,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   const [friendPace, setFriendPace] = useState<RythmeChoisi>('realtime')
   const [matchBusy, setMatchBusy] = useState<string | null>(null)
   const [searchBusy, setSearchBusy] = useState<MatchPace | null>(null)
+  const lancementEnCours = searchBusy !== null || rechercheEnvoyee
 
   // `find` et non `some` : la carte affiche le temps d'attente, il lui faut donc
   // la recherche elle-même et pas seulement son existence.
@@ -156,9 +159,9 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
 
   // Une recherche lancée depuis un autre écran ramène le joueur sur son mode.
   useEffect(() => {
-    if (normalSearching) setOnglet('normal')
+    if (normalSearching || rechercheEnvoyee) setOnglet('normal')
     else if (rankedSearching) setOnglet('ranked')
-  }, [normalSearching, rankedSearching])
+  }, [normalSearching, rechercheEnvoyee, rankedSearching])
 
   const choisirOnglet = (id: PlayTabId) => setOnglet(id)
 
@@ -215,7 +218,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
               <span><h2>Normal</h2><small>{nouveau ? 'Un adversaire en quelques secondes · une dizaine de minutes' : 'Adversaire au hasard · sans classement'}</small></span>
             </header>
             <PaceChoice pace={normalPace} setPace={rythme => { if (rythme !== 'chaine') setNormalPace(rythme) }} label="Choisir le rythme de la partie" />
-            <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale()}>
+            <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={lancementEnCours} onClick={() => void lancerRechercheNormale()}>
               Jouer <ChevronRight />
             </button>
           </section>
@@ -226,7 +229,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
               <span className="mm-play-card-icon" aria-hidden="true"><Link2 /></span>
               <span><h2>En chaîne</h2><small>{SECONDES_DU_TOUR_DE_CHAINE} s pour poser le plus de lettres · une erreur et ça passe</small></span>
             </header>
-            <button type="button" className="mm-play-cta" aria-label="Jouer une partie en chaîne" disabled={searchBusy !== null} onClick={() => void lancerRechercheNormale('chaine')}>
+            <button type="button" className="mm-play-cta" aria-label="Jouer une partie en chaîne" disabled={lancementEnCours} onClick={() => void lancerRechercheNormale('chaine')}>
               Jouer <ChevronRight />
             </button>
           </section>
