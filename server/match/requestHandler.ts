@@ -10,7 +10,7 @@ import { lireDemandeDeLettre, lireVariante } from '../../supabase/functions/matc
 import { readBody, sendJson, sendNoContent } from './http'
 import {
   brouillonAccepte, cederLaPlace, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
-  lettresRestantes, partieAutoEnLecture, poserLettre, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
+  lettresRestantes, partieAuto, partieAutoEnLecture, poserLettre, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
 } from './regles'
 import type { BotProfile, MatchDatabase, MatchMode, MatchPace, MatchVariante, StoredMatch } from './types'
 
@@ -151,9 +151,13 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     if (!invitation || !decision) return sendJson(response, 404, { error: 'Cette invitation n’est plus disponible.' })
     if (decision === 'decline') invitation.status = 'declined'
     else {
-      if (invitation.pace === 'realtime' && (activeMatches(invitation.hostId, 'realtime').length || activeMatches(invitation.guestId, 'realtime').length))
+      // Deux amis se sont choisis : leurs parties contre l'automate cèdent, même lancées.
+      // Une partie contre quelqu'un ne cède pas, et l'invitation attend.
+      const enCours = invitation.pace === 'realtime' ? [...activeMatches(invitation.hostId, 'realtime'), ...activeMatches(invitation.guestId, 'realtime')] : []
+      if (enCours.some(partie => !partieAuto(partie)))
         return sendJson(response, 409, { error: 'Un des joueurs est déjà en partie.' })
       const match = createMatch(invitation.hostId, invitation.guestId, 'friend', invitation.pace, invitation.id, invitation.id, null, undefined, invitation.variante)
+      enCours.forEach(partie => cederLaPlace(partie, match.id))
       database.matches.push(match)
       invitation.status = 'accepted'
       invitation.matchId = match.id

@@ -16,16 +16,22 @@
 -- en cours, laisse tombé. » Une partie entre humains ne cède jamais. Le défi du jour non
 -- plus (20261019100000), ni l'illimité.
 --
+-- « On met en avant les parties joueur entre joueurs » : une invitation acceptée va plus
+-- loin. Deux amis se sont choisis, leurs parties contre l'automate cèdent, même lancées.
+-- Celui qui joue contre quelqu'un, sa classée ou son défi du jour n'en sort pas.
+--
 -- CE QUI CHANGE, ET RIEN D'AUTRE :
 --   1. `search` rend la partie en cours au lieu de remettre le joueur en file ;
 --   2. personne n'a de ligne en file pendant une partie, quelle que soit sa porte
 --      d'entrée : la classée n'effaçait pas la recherche normale ;
 --   3. `server_create_bot_match_atomic` ne donne jamais une seconde partie ;
---   4. personne en file : un joueur qui lit sa grille contre l'automate est proposé.
+--   4. personne en file : un joueur qui lit sa grille contre l'automate est proposé ;
+--   5. une invitation acceptée ne donne jamais une seconde partie.
 --
--- `server_matchmake_atomic` est recopiée de 20261102220000 et
--- `server_create_bot_match_atomic` de 20260914090000 : seules s'ajoutent les lignes
--- datées du 04/11/2026 et leurs variables.
+-- `server_matchmake_atomic` est recopiée de 20261102220000,
+-- `server_create_bot_match_atomic` de 20260914090000 et
+-- `server_respond_match_invitation_atomic` de 20260729201946 : seules s'ajoutent les
+-- lignes datées du 04/11/2026 et leurs variables.
 --
 -- Garde : supabase/tests/une_partie_limitee_a_la_fois.sql.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -87,6 +93,55 @@ $$;
 
 revoke all on function private.partie_auto_en_lecture(uuid) from public, anon, authenticated;
 grant execute on function private.partie_auto_en_lecture(uuid) to service_role;
+
+-- Sa partie normale à temps limité contre l'automate. Une classée peut aussi avoir un
+-- adversaire automatique : elle ne se quitte pas par ce chemin.
+create or replace function private.partie_auto_du_joueur(p_user_id uuid)
+returns uuid
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select partie.id
+  from public.server_matches as partie
+  join public.match_participants as participant
+    on participant.match_id = partie.id
+   and participant.user_id = p_user_id
+  where partie.status = 'active'
+    and partie.mode = 'normal'
+    and partie.pace = 'realtime'
+    and pg_catalog.jsonb_typeof(partie.state -> 'bot') = 'object'
+  order by partie.created_at desc, partie.id
+  limit 1;
+$$;
+
+revoke all on function private.partie_auto_du_joueur(uuid) from public, anon, authenticated;
+grant execute on function private.partie_auto_du_joueur(uuid) to service_role;
+
+-- La partie automatique cède la place : elle ne rapporte ni ne coûte rien (`human_takeover`
+-- n'est pas une fin récompensée) et dit à l'écran du joueur où aller.
+create or replace function private.ceder_la_place(p_match_id uuid, p_remplacante uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  update public.server_matches
+  set status = 'finished',
+      current_player_id = null,
+      winner_id = null,
+      finish_reason = 'human_takeover',
+      turn_started_at = pg_catalog.clock_timestamp(),
+      turn_ends_at = pg_catalog.clock_timestamp(),
+      state = state || pg_catalog.jsonb_build_object('remplaceePar', p_remplacante),
+      updated_at = pg_catalog.clock_timestamp()
+  where id = p_match_id
+    and status = 'active';
+$$;
+
+revoke all on function private.ceder_la_place(uuid, uuid) from public, anon, authenticated;
+grant execute on function private.ceder_la_place(uuid, uuid) to service_role;
 
 -- Toute partie à temps limité qui commence emporte la recherche normale de ses joueurs,
 -- quelle que soit sa porte d'entrée. Une classée naît en `pending`, le temps de la
@@ -277,21 +332,7 @@ begin
       )
       returning * into created_match;
 
-      -- La partie automatique cède la place : elle ne rapporte ni ne coûte rien, et
-      -- dit à l'écran du joueur où aller. Elle est close avant l'arrivée des participants.
-      if partie_cedee is not null then
-        update public.server_matches
-        set status = 'finished',
-            current_player_id = null,
-            winner_id = null,
-            finish_reason = 'human_takeover',
-            turn_started_at = pg_catalog.clock_timestamp(),
-            turn_ends_at = pg_catalog.clock_timestamp(),
-            state = state || jsonb_build_object('remplaceePar', created_match.id),
-            updated_at = pg_catalog.clock_timestamp()
-        where id = partie_cedee
-          and status = 'active';
-      end if;
+      perform private.ceder_la_place(partie_cedee, created_match.id);
 
       insert into public.match_participants(match_id, user_id, opponent_id)
       values
@@ -572,6 +613,165 @@ begin
 
   delete from public.server_match_searches
   where id = locked_search.id;
+
+  return jsonb_build_object(
+    'status', 'matched',
+    'created', true,
+    'matchId', created_match.id,
+    'match', to_jsonb(created_match)
+  );
+end;
+$$;
+
+create or replace function public.server_respond_match_invitation_atomic(
+  p_invitation_id uuid,
+  p_guest_id uuid,
+  p_decision text,
+  p_grid_id text,
+  p_state jsonb,
+  p_turn_started_at timestamptz,
+  p_turn_ends_at timestamptz
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  locked_invitation public.server_match_invitations%rowtype;
+  existing_match public.server_matches%rowtype;
+  created_match public.server_matches%rowtype;
+begin
+  if p_decision not in ('accept', 'decline') then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+
+  select invitation.*
+  into locked_invitation
+  from public.server_match_invitations as invitation
+  where invitation.id = p_invitation_id
+    and invitation.guest_id = p_guest_id
+  for update;
+
+  if not found then
+    return jsonb_build_object('status', 'unavailable');
+  end if;
+
+  if locked_invitation.status = 'accepted' and locked_invitation.match_id is not null then
+    select *
+    into existing_match
+    from public.server_matches
+    where id = locked_invitation.match_id;
+
+    return jsonb_build_object(
+      'status', 'matched',
+      'created', false,
+      'matchId', locked_invitation.match_id,
+      'match', to_jsonb(existing_match)
+    );
+  end if;
+
+  if locked_invitation.status <> 'pending' then
+    return jsonb_build_object('status', 'unavailable');
+  end if;
+
+  if locked_invitation.expires_at <= pg_catalog.clock_timestamp() then
+    update public.server_match_invitations
+    set status = 'expired'
+    where id = locked_invitation.id;
+    return jsonb_build_object('status', 'expired');
+  end if;
+
+  if p_decision = 'decline' then
+    update public.server_match_invitations
+    set status = 'declined'
+    where id = locked_invitation.id;
+    return jsonb_build_object('status', 'declined');
+  end if;
+
+  if p_grid_id is null
+    or p_state is null
+    or p_turn_started_at is null
+    or p_turn_ends_at is null
+    or p_turn_ends_at <= p_turn_started_at
+    or p_state -> 'playerIds' is distinct from jsonb_build_array(locked_invitation.host_id, p_guest_id)
+    or p_state ->> 'invitationId' is distinct from locked_invitation.id::text
+    or not exists (
+      select 1
+      from public.server_grid_catalog as grid
+      where grid.id = p_grid_id
+        and grid.active is true
+    )
+    or not exists (
+      select 1
+      from public.friendships as friendship
+      where friendship.left_user_id = least(locked_invitation.host_id, p_guest_id)
+        and friendship.right_user_id = greatest(locked_invitation.host_id, p_guest_id)
+    )
+    or exists (
+      select 1
+      from public.blocks as block
+      where (block.owner_id = locked_invitation.host_id and block.blocked_id = p_guest_id)
+         or (block.owner_id = p_guest_id and block.blocked_id = locked_invitation.host_id)
+    )
+  then
+    return jsonb_build_object('status', 'forbidden');
+  end if;
+
+  -- UNE PARTIE À LA FOIS (04/11/2026). En plein défi du jour, en partie contre quelqu'un
+  -- ou en classée, on n'en sort pas : l'invitation attend, le temps qu'elle vit.
+  if locked_invitation.pace = 'realtime' and (
+    private.en_plein_defi(locked_invitation.host_id)
+    or private.en_plein_defi(p_guest_id)
+    or private.en_partie_limitee(locked_invitation.host_id) is distinct from private.partie_auto_du_joueur(locked_invitation.host_id)
+    or private.en_partie_limitee(p_guest_id) is distinct from private.partie_auto_du_joueur(p_guest_id)
+  ) then
+    return jsonb_build_object('status', 'occupied');
+  end if;
+
+  insert into public.server_matches (
+    mode,
+    pace,
+    grid_id,
+    state,
+    status,
+    current_player_id,
+    turn_number,
+    turn_started_at,
+    turn_ends_at
+  )
+  values (
+    'friend',
+    locked_invitation.pace,
+    p_grid_id,
+    p_state,
+    'active',
+    locked_invitation.host_id,
+    1,
+    p_turn_started_at,
+    p_turn_ends_at
+  )
+  returning * into created_match;
+
+  -- LES JOUEURS D'ABORD (04/11/2026). Deux amis se sont choisis : leurs parties contre
+  -- l'automate cèdent la place, même lancées.
+  if locked_invitation.pace = 'realtime' then
+    perform private.ceder_la_place(private.partie_auto_du_joueur(locked_invitation.host_id), created_match.id);
+    perform private.ceder_la_place(private.partie_auto_du_joueur(p_guest_id), created_match.id);
+  end if;
+
+  insert into public.match_participants(match_id, user_id, opponent_id)
+  values
+    (created_match.id, locked_invitation.host_id, p_guest_id),
+    (created_match.id, p_guest_id, locked_invitation.host_id);
+
+  update public.server_match_invitations
+  set status = 'accepted',
+      match_id = created_match.id
+  where id = locked_invitation.id;
+
+  delete from public.server_match_searches
+  where user_id in (locked_invitation.host_id, p_guest_id);
 
   return jsonb_build_object(
     'status', 'matched',
