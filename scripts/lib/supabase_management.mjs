@@ -75,21 +75,26 @@ export async function jetonAcces() {
   ].join('\n'))
 }
 
-const ESSAIS_SI_TROP_VITE = 8
-const ATTENTE_SI_TROP_VITE_S = 30
+const ESSAIS_SI_PASSAGER = 8
+const ATTENTE_SI_PASSAGER_S = 30
 
 export async function requete(jeton, sql) {
-  // L'API de gestion limite le débit (429) : elle a coupé la publication de la v43 à
-  // 160 lots sur 262, le 04/11/2026. Ce n'est pas une erreur, il suffit d'attendre.
+  // L'API de gestion limite le débit (429) et coupe parfois une connexion (503) : la
+  // publication de la v43 s'est arrêtée deux fois le 04/11/2026, à 160 puis 200 lots
+  // sur 262, la base étant saine. Il suffit d'attendre. Ces requêtes se rejouent sans
+  // risque : les lots du catalogue sont réécrits à l'identique, et les bancs annulent.
   for (let essai = 1; ; essai += 1) {
     const reponse = await fetch(`${MANAGEMENT_API}/v1/projects/${PROJECT_REF}/database/query`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: sql }),
+    }).catch(erreur => {
+      if (essai > ESSAIS_SI_PASSAGER) throw erreur
+      return null
     })
-    if (reponse.status === 429 && essai <= ESSAIS_SI_TROP_VITE) {
-      const secondes = Number(reponse.headers.get('retry-after')) || ATTENTE_SI_TROP_VITE_S
-      console.log(`  Supabase demande de ralentir : reprise dans ${secondes} s…`)
+    if ((!reponse || [429, 502, 503, 504].includes(reponse.status)) && essai <= ESSAIS_SI_PASSAGER) {
+      const secondes = Number(reponse?.headers.get('retry-after')) || ATTENTE_SI_PASSAGER_S
+      console.log(`  Supabase ne suit pas (${reponse?.status ?? 'réseau'}) : reprise dans ${secondes} s…`)
       await new Promise(reprendre => setTimeout(reprendre, secondes * 1_000))
       continue
     }
