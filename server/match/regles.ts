@@ -177,11 +177,15 @@ export function terminer(match: StoredMatch, winnerId: string | null, reason: No
 
 /** Seule une partie automatique encore à la lecture cède la place : `private.partie_auto_en_lecture`. */
 export function partieAutoEnLecture(match: StoredMatch, now: number): boolean {
-  return match.status === 'active' && match.mode === 'normal' && match.pace === 'realtime' && Boolean(match.bot)
-    && match.turnNumber === 1 && new Date(match.turnStartedAt).getTime() > now
+  return partieAuto(match) && match.turnNumber === 1 && new Date(match.turnStartedAt).getTime() > now
 }
 
-/** Elle ne rapporte ni ne coûte rien, et dit à l'écran du joueur où aller : `server_matchmake_atomic`. */
+/** Une partie normale contre l'automate : elle cède devant une invitation acceptée, même lancée. */
+export function partieAuto(match: StoredMatch): boolean {
+  return match.status === 'active' && match.mode === 'normal' && match.pace === 'realtime' && Boolean(match.bot)
+}
+
+/** Elle ne rapporte ni ne coûte rien, et dit à l'écran du joueur où aller : `private.ceder_la_place`. */
 export function cederLaPlace(match: StoredMatch, nouvelleId: string): void {
   terminer(match, null, 'human_takeover')
   match.remplaceePar = nouvelleId

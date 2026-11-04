@@ -16,6 +16,10 @@
 -- jamais deux parties à la fois. Une partie entre humains ne cède jamais, le défi du
 -- jour non plus : rien n'en fait sortir (daily_not_interrupted.sql).
 --
+-- Une invitation acceptée va plus loin : deux amis se sont choisis, et l'objectif reste
+-- de faire jouer les joueurs entre eux. Leurs parties contre l'automate cèdent, même
+-- lancées. Celui qui joue contre quelqu'un, ou son défi du jour, n'en sort pas.
+--
 -- Le serveur local des e2e refuse déjà la mise en file (server/match/requestHandler.ts) :
 -- ils ne pouvaient pas voir le défaut.
 --
@@ -98,6 +102,35 @@ begin
   insert into public.match_participants(match_id, user_id, opponent_id)
   select partie, joueur, null from pg_catalog.unnest(joueurs) as joueur;
   return partie;
+end;
+$$;
+
+-- Par le vrai RPC : `hote` invite `ami`, qui accepte.
+create function pg_temp.accepter_invitation(hote uuid, ami uuid, rythme text)
+returns jsonb
+language plpgsql
+as $$
+declare
+  invitation uuid;
+  debut timestamptz := pg_catalog.clock_timestamp() + interval '30 seconds';
+begin
+  insert into public.friendships(left_user_id, right_user_id)
+  values (least(hote, ami), greatest(hote, ami))
+  on conflict do nothing;
+  insert into public.server_match_invitations(host_id, guest_id, pace, expires_at)
+  values (hote, ami, rythme, pg_catalog.clock_timestamp() + interval '2 minutes')
+  returning id into invitation;
+  return public.server_respond_match_invitation_atomic(
+    invitation, ami, 'accept',
+    (select grid.id from public.server_grid_catalog as grid where grid.active is true order by grid.id limit 1),
+    pg_catalog.jsonb_build_object(
+      'playerIds', pg_catalog.jsonb_build_array(hote, ami),
+      'invitationId', invitation,
+      'bot', null,
+      'scores', pg_catalog.jsonb_build_object()
+    ),
+    debut, debut + interval '45 seconds'
+  );
 end;
 $$;
 
@@ -260,6 +293,60 @@ begin
   update public.server_matches set status = 'active' where id = partie;
   if exists (select 1 from public.server_match_searches where user_id = c) then
     defauts := defauts || '6. Une classée qui commence laisse la recherche normale du joueur en file'::text;
+  end if;
+  perform pg_temp.tourner_la_page(tous);
+
+  -- ── 7. Une invitation acceptée passe avant l'automate, même lancé ─────────
+  partie_auto := pg_temp.partie_auto(a, 'classique', false);
+  partie := pg_temp.partie_auto(b, 'classique', true);
+  resultat := pg_temp.accepter_invitation(a, b, 'realtime');
+  if resultat ->> 'status' is distinct from 'matched' then
+    defauts := defauts || ('7. L''invitation doit donner une partie : ' || resultat::text);
+  end if;
+  if pg_temp.parties_en_cours(a) <> 1 or pg_temp.parties_en_cours(b) <> 1 then
+    defauts := defauts || ('7. L''invitation laisse ' || pg_temp.parties_en_cours(a)::text || ' et ' || pg_temp.parties_en_cours(b)::text || ' parties aux deux amis');
+  end if;
+  if (select status from public.server_matches where id = partie_auto) = 'active' or (select status from public.server_matches where id = partie) = 'active' then
+    defauts := defauts || '7. Les parties contre l''automate doivent céder la place à la partie entre amis'::text;
+  end if;
+  if (select state ->> 'remplaceePar' from public.server_matches where id = partie_auto) is distinct from resultat ->> 'matchId' then
+    defauts := defauts || '7. La partie qui cède doit dire où aller'::text;
+  end if;
+  perform pg_temp.tourner_la_page(tous);
+
+  -- L'hôte ou l'invité joue contre quelqu'un : on ne l'en sort pas, l'invitation attend.
+  partie := pg_temp.partie_ecrite('normal', 'realtime', array[a, b], pg_catalog.jsonb_build_object());
+  resultat := pg_temp.accepter_invitation(a, c, 'realtime');
+  if resultat ->> 'status' is distinct from 'occupied' or pg_temp.parties_en_cours(c) <> 0 then
+    defauts := defauts || ('7. L''hôte joue contre un humain : pas de seconde partie : ' || (resultat ->> 'status'));
+  end if;
+  resultat := pg_temp.accepter_invitation(c, b, 'realtime');
+  if resultat ->> 'status' is distinct from 'occupied' or pg_temp.parties_en_cours(c) <> 0 then
+    defauts := defauts || ('7. L''invité joue contre un humain : pas de seconde partie : ' || (resultat ->> 'status'));
+  end if;
+  perform pg_temp.tourner_la_page(tous);
+
+  -- Une classée contre un adversaire automatique ne se quitte pas par ce chemin.
+  partie := pg_temp.partie_ecrite('ranked', 'realtime', array[a], avec_automate);
+  resultat := pg_temp.accepter_invitation(a, c, 'realtime');
+  if resultat ->> 'status' is distinct from 'occupied' or (select status from public.server_matches where id = partie) <> 'active' then
+    defauts := defauts || ('7. Une classée ne cède pas à une invitation : ' || (resultat ->> 'status'));
+  end if;
+  perform pg_temp.tourner_la_page(tous);
+
+  -- Le défi du jour non plus : rien n'en fait sortir.
+  partie := pg_temp.partie_ecrite('solo', 'realtime', array[a], avec_automate || pg_catalog.jsonb_build_object('isDaily', true));
+  resultat := pg_temp.accepter_invitation(a, c, 'realtime');
+  if resultat ->> 'status' is distinct from 'occupied' or (select status from public.server_matches where id = partie) <> 'active' then
+    defauts := defauts || ('7. Le défi du jour ne cède pas à une invitation : ' || (resultat ->> 'status'));
+  end if;
+  perform pg_temp.tourner_la_page(tous);
+
+  -- Une invitation en illimité n'interrompt rien.
+  partie_auto := pg_temp.partie_auto(a, 'classique', false);
+  resultat := pg_temp.accepter_invitation(a, c, 'async');
+  if resultat ->> 'status' is distinct from 'matched' or (select status from public.server_matches where id = partie_auto) <> 'active' then
+    defauts := defauts || ('Témoin : une invitation en illimité n''interrompt rien : ' || (resultat ->> 'status'));
   end if;
   perform pg_temp.tourner_la_page(tous);
 

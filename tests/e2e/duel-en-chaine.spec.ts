@@ -738,15 +738,23 @@ test('un humain arrive pendant la lecture : on part dans sa partie, sans écran 
   }
 })
 
-test('la partie contre l’adversaire automatique est lancée : on laisse tomber, l’autre attend', async ({ browserName }) => {
+test('une partie automatique lancée : un inconnu attend, mais un ami qui accepte passe devant', async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'la règle est tenue par la suite SQL, ce test vérifie le serveur de test')
   test.setTimeout(120_000)
   const joueur = identite('Lancé')
   const arrivant = identite('En attente')
+  const ami = identite('Ami choisi')
   const api = await session(joueur)
   const apiArrivant = await session(arrivant)
+  const apiAmi = await session(ami)
   const etat = `/api/matches/state?playerId=${encodeURIComponent(joueur.playerId)}`
   try {
+    expect((await api.post('/api/social/request', { data: { targetId: ami.playerId } })).ok()).toBe(true)
+    expect((await apiAmi.post('/api/social/request', { data: { targetId: joueur.playerId } })).ok()).toBe(true)
+    const invitee = await api.post('/api/matches/create', { data: { playerId: joueur.playerId, targetId: ami.playerId, pace: 'realtime' } })
+    expect(invitee.ok(), await invitee.text()).toBe(true)
+    const invitationId = (await invitee.json() as { outgoing: Array<{ id: string }> }).outgoing[0].id
+
     expect((await api.post('/api/matches/search', { data: { playerId: joueur.playerId, variante: 'chaine' } })).ok()).toBe(true)
     let partieAuto = ''
     await expect.poll(async () => {
@@ -763,9 +771,18 @@ test('la partie contre l’adversaire automatique est lancée : on laisse tomber
     expect(lobby.searches, 'il reste en file').toHaveLength(1)
     expect((await lire(api, joueur, partieAuto)).status).toBe('active')
     await apiArrivant.post('/api/matches/search/cancel', { data: { playerId: arrivant.playerId, pace: 'realtime' } })
+
+    // Deux amis se sont choisis : la partie automatique cède, même lancée.
+    const reponseAmi = await apiAmi.post('/api/matches/respond', { data: { playerId: ami.playerId, invitationId, decision: 'accept' } })
+    expect(reponseAmi.ok(), await reponseAmi.text()).toBe(true)
+    const salon = await (await api.get(etat)).json() as { active: Array<{ id: string; invitationId: string | null }> }
+    expect(salon.active.map(partie => partie.invitationId), 'une seule partie, celle de l’invitation').toEqual([invitationId])
+    const cedee = await lire(api, joueur, partieAuto) as Partie & { remplaceePar?: string }
+    expect([cedee.status, cedee.finishReason, cedee.remplaceePar]).toEqual(['finished', 'human_takeover', salon.active[0].id])
   } finally {
     await api.dispose()
     await apiArrivant.dispose()
+    await apiAmi.dispose()
   }
 })
 

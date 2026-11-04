@@ -571,6 +571,7 @@ Deno.serve(async request => {
         if (result.created) notifyInvitationAccepted(admin, invitation.host_id, result.match.id, guest?.displayName ?? 'Ton ami')
       } else if (result.status !== 'declined') {
         if (result.status === 'forbidden') return json(409, { error: 'Cette invitation ne peut plus être acceptée.' })
+        if (result.status === 'occupied') return json(409, { error: 'Un des joueurs est déjà en partie.' })
         if (result.status === 'invalid') throw new Error('Données de partie invalides.')
         return json(404, { error: 'Invitation expirée.' })
       }
