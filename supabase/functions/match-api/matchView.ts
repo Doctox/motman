@@ -123,6 +123,8 @@ export async function view(
     ...(state.isDaily ? { isDaily: true, dailyDate: state.dailyDate } : {}),
     // Un duel en chaîne : le tour en cours, déjà public (matchChaine.ts).
     ...(state.chaine ? { chaine: state.chaine } : {}),
+    // Cette partie a cédé la place : l'écran saute à celle-ci, sans écran de fin (20261104120000).
+    ...(state.remplaceePar ? { remplaceePar: state.remplaceePar } : {}),
     // PAS DE GRILLE PENDANT LA CONFIRMATION (22/10/2026, code S3). Pendant les
     // 30 s où les deux joueurs acceptent, la grille partait déjà : un joueur
     // averti la lisait avant l'autre, et refusait sans frais si elle ne lui

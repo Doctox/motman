@@ -175,6 +175,19 @@ export function terminer(match: StoredMatch, winnerId: string | null, reason: No
   match.resultFeedbackBy ??= []
 }
 
+/** Seule une partie automatique encore à la lecture cède la place : `private.partie_auto_en_lecture`. */
+export function partieAutoEnLecture(match: StoredMatch, now: number): boolean {
+  return match.status === 'active' && match.mode === 'normal' && match.pace === 'realtime' && Boolean(match.bot)
+    && match.turnNumber === 1 && new Date(match.turnStartedAt).getTime() > now
+}
+
+/** Elle ne rapporte ni ne coûte rien, et dit à l'écran du joueur où aller : `server_matchmake_atomic`. */
+export function cederLaPlace(match: StoredMatch, nouvelleId: string): void {
+  terminer(match, null, 'human_takeover')
+  match.remplaceePar = nouvelleId
+  match.updatedAt = new Date().toISOString()
+}
+
 /** Perdue pour l'absent (par défaut, celui dont c'est le tour) : `forfeitAbsentPlayer`. */
 export function forfaitDeLAbsent(match: StoredMatch, absent?: string): void {
   selonMatchApi(match, row => forfeitAbsentPlayer(row, absent))

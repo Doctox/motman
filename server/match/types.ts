@@ -97,7 +97,9 @@ export type StoredMatch = {
   brouillons?: Record<string, StoredDraft>
   status: 'active' | 'finished'
   winnerId: string | null
-  finishReason: 'completed' | 'timeout' | 'forfeit' | null
+  finishReason: 'completed' | 'timeout' | 'forfeit' | 'human_takeover' | null
+  /** Cette partie automatique a cédé la place à une partie entre humains : celle-ci. */
+  remplaceePar?: string
   resultAcknowledgedBy?: string[]
   resultFeedbackBy?: string[]
   createdAt: string

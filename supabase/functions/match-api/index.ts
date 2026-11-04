@@ -650,6 +650,17 @@ Deno.serve(async request => {
         }))
 
         if (discovery.status === 'waiting') break
+        // DÉJÀ EN PARTIE (20261104120000) : « Rejouer » arrive après sa naissance, on la
+        // rend. Une partie dont le tour est échu sans témoin se clôt ici, et on recherche.
+        if (discovery.status === 'en-partie' && discovery.matchId) {
+          const { data: enCours } = await admin.from('server_matches').select('*').eq('id', discovery.matchId).maybeSingle()
+          const partie = enCours ? await resolveRow(enCours as MatchRow) : null
+          if (partie?.status === 'active') {
+            matchId = partie.id
+            break
+          }
+          continue
+        }
         if (discovery.status !== 'candidate' || !discovery.opponentId || !discovery.claimToken) {
           if (discovery.status === 'invalid') throw new Error('Recherche de partie invalide.')
           continue

@@ -283,7 +283,21 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   }, [expandedClue, grid])
   // La fiche se pose en bas, sauf si le mot touche les deux dernières rangées (P1).
   const ficheEnHaut = Boolean(grid && [...focusedWordCells].some(index => Math.floor(index / grid.columns) >= grid.rows - 2))
+  // UNE PARTIE ENTRE HUMAINS PREND LE DESSUS (20261104120000). Celle-ci en était à la
+  // lecture de la grille, personne n'y a joué : on part dans l'autre sans écran de fin,
+  // et sans un mot. Un sondage peut arriver pendant le changement d'écran, d'où le `ref`.
+  const partieQuittee = useRef(false)
+  const partirSiRemplacee = (next: MatchState): boolean => {
+    if (!next.remplaceePar) return false
+    if (!partieQuittee.current) {
+      partieQuittee.current = true
+      onOuvrirPartie?.(next.remplaceePar)
+    }
+    return true
+  }
+
   const applyMatchState = (next: MatchState) => {
+    if (partirSiRemplacee(next)) return
     noteServerTime(next.serverTime)
     const current = matchRef.current
     if (openingTurn.current?.matchId !== next.id) openingTurn.current = { matchId: next.id, turnNumber: next.turnNumber }
@@ -583,6 +597,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
 
   const acceptRemoteSnapshot = (next: MatchState) => {
     if (!alive.current) return
+    if (partirSiRemplacee(next)) return
     // A new grid must arrive with its geometry. If the authoritative snapshot is
     // missing it, do NOT record this version — otherwise the next poll reports
     // "already known", the grid never reloads, and the loading screen freezes.

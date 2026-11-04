@@ -9,8 +9,8 @@ import {
 import { lireDemandeDeLettre, lireVariante } from '../../supabase/functions/match-api/matchChaine.ts'
 import { readBody, sendJson, sendNoContent } from './http'
 import {
-  brouillonAccepte, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
-  lettresRestantes, poserLettre, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
+  brouillonAccepte, cederLaPlace, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
+  lettresRestantes, partieAutoEnLecture, poserLettre, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
 } from './regles'
 import type { BotProfile, MatchDatabase, MatchMode, MatchPace, MatchVariante, StoredMatch } from './types'
 
@@ -181,8 +181,9 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       saveDatabase()
       return sendJson(response, 200, lobbyState(playerId))
     }
-    if (pace === 'realtime' && activeMatches(playerId, 'realtime').length)
-      return sendJson(response, 409, { error: 'Tu as déjà une partie en temps réel.' })
+    // Déjà en partie : « Rejouer » arrive après sa naissance, on la rend (20261104120000).
+    const enCours = pace === 'realtime' ? activeMatches(playerId, 'realtime')[0] : undefined
+    if (enCours) return sendJson(response, 200, { lobby: lobbyState(playerId), matchId: enCours.id })
     // Pas de plafond de parties illimitées : la production n'en a pas
     // (server_matchmake_atomic). Ce serveur en refusait une quatrième.
     const candidate = [...database.searches]
@@ -190,7 +191,13 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       .filter(search => pace === 'async'
         || (Date.now() - new Date(search.updatedAt).getTime() < REALTIME_SEARCH_STALE_MS && activeMatches(search.playerId, 'realtime').length === 0))
       .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())[0]
-    if (candidate) {
+    // Les humains d'abord : personne en file, mais quelqu'un lit sa grille contre l'automate.
+    const cedee = candidate || pace !== 'realtime' ? undefined : [...database.matches]
+      .filter(match => partieAutoEnLecture(match, Date.now()) && (match.chaine ? 'chaine' : 'classique') === variante)
+      .sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())[0]
+    const adversaireId = candidate?.playerId ?? cedee?.playerIds.find(id => id !== cedee.bot?.playerId)
+    const origine = candidate ?? cedee
+    if (adversaireId && origine) {
       // Tour sur mesure, demandé par l'appariement (e2e seulement) : un test qui
       // joue à l'écran a besoin que ses gestes tiennent dans le tour, quelle que
       // soit la charge de la machine. Borné pour qu'une valeur folle ne fige pas
@@ -199,11 +206,12 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       const turnMs = Number.isFinite(surMesure) && surMesure > 0
         ? Math.min(Math.max(surMesure, 1_000), 10 * 60_000)
         : undefined
-      const match = createMatch(candidate.playerId, playerId, 'normal', pace, candidate.id, null, null, turnMs, variante)
+      const match = createMatch(adversaireId, playerId, 'normal', pace, origine.id, null, null, turnMs, variante)
       const souffle = Number(body.souffleMs)
       if (Number.isFinite(souffle) && souffle > 0) match.souffleMs = Math.min(souffle, 10_000)
+      if (cedee) cederLaPlace(cedee, match.id)
       database.matches.push(match)
-      database.searches = database.searches.filter(search => search.id !== candidate.id && !(search.playerId === playerId && search.pace === pace))
+      database.searches = database.searches.filter(search => search.id !== candidate?.id && !(search.playerId === playerId && search.pace === pace))
       saveDatabase()
       return sendJson(response, 200, { lobby: lobbyState(playerId), matchId: match.id })
     }

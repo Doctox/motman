@@ -234,7 +234,8 @@ function lobbyState(playerId: string) {
     }
   }
   const finished = database.matches
-    .filter(match => match.status === 'finished' && match.playerIds.includes(playerId))
+    // Une partie qui a cédé sa place n'entre pas dans l'historique, comme en production.
+    .filter(match => match.status === 'finished' && match.finishReason !== 'human_takeover' && match.playerIds.includes(playerId))
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
   const recent = finished
     .slice(0, 5)

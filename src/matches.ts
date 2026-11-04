@@ -134,7 +134,7 @@ export type MatchState = {
   } | null
   status: 'active' | 'finished'
   winnerId: string | null
-  finishReason: 'completed' | 'timeout' | 'forfeit' | 'ranked_transfer' | null
+  finishReason: 'completed' | 'timeout' | 'forfeit' | 'ranked_transfer' | 'human_takeover' | null
   rankedRating?: {
     pointsBefore: number
     pointsAfter: number
@@ -157,6 +157,8 @@ export type MatchState = {
   dailyDate?: string
   /** Présent : c'est un duel en chaîne. */
   chaine?: EtatDeChaine | null
+  /** Cette partie a cédé la place pendant la lecture : l'écran saute à celle-ci, sans écran de fin. */
+  remplaceePar?: string
 }
 
 /**

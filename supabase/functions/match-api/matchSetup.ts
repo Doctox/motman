@@ -29,7 +29,7 @@ import { chaineVierge } from './matchTurns.ts'
 export type ActiveMatchGrid = { id: string; gridId: string; createdAt: string }
 
 export type AtomicMatchResult = {
-  status: 'candidate' | 'waiting' | 'retry' | 'matched' | 'ready' | 'accepted' | 'started' | 'already-playing' | 'pending' | 'cancelled' | 'declined' | 'expired' | 'unavailable' | 'forbidden' | 'invalid'
+  status: 'en-partie' | 'candidate' | 'waiting' | 'retry' | 'matched' | 'ready' | 'accepted' | 'started' | 'already-playing' | 'pending' | 'cancelled' | 'declined' | 'expired' | 'unavailable' | 'forbidden' | 'invalid'
   created?: boolean
   opponentId?: string
   claimToken?: string

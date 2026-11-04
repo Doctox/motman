@@ -754,3 +754,133 @@ test('personne ne vient : l’adversaire joue en chaîne lui aussi, lettre aprè
     await api.dispose()
   }
 })
+
+// ─────────────────────────────────────────────────
+// UNE PARTIE À LA FOIS, ET LES HUMAINS D'ABORD (04/11/2026).
+//
+// Le 03/11, un compte a joué deux parties en même temps, et son adversaire humain a
+// attendu un absent près de deux minutes. Une partie entre humains prend le dessus sur
+// l'adversaire automatique, mais seulement pendant la lecture de la grille. La règle
+// en base est tenue par supabase/tests/une_partie_limitee_a_la_fois.sql.
+// ─────────────────────────────────────────────────
+
+test('un humain arrive pendant la lecture : on part dans sa partie, sans écran de fin', async ({ browser, browserName }) => {
+  // Le serveur de test n'envoie l'adversaire automatique qu'après 60 s : un seul moteur suffit.
+  test.skip(browserName !== 'chromium', 'la règle est tenue par la suite SQL, ce test vérifie le chemin')
+  test.setTimeout(120_000)
+  const lecteur = identite('Lecteur')
+  const arrivant = identite('Arrivant')
+  const api = await session(lecteur)
+  const apiArrivant = await session(arrivant)
+  const { context, page } = await ouvrir(browser, lecteur, '/#jouer')
+  try {
+    await page.evaluate(() => {
+      new MutationObserver(() => {
+        if (document.querySelector('.game-result-screen')) (window as unknown as { ecranDeFinVu: boolean }).ecranDeFinVu = true
+      }).observe(document.documentElement, { childList: true, subtree: true })
+    })
+    await page.getByRole('button', { name: 'Jouer une partie en chaîne' }).tap()
+    await page.waitForURL(/#partie=/, { timeout: 90_000 })
+    const partieAuto = decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))
+
+    const reponse = await apiArrivant.post('/api/matches/search', { data: { playerId: arrivant.playerId, variante: 'chaine' } })
+    expect(reponse.ok()).toBe(true)
+    const { matchId } = await reponse.json() as { matchId: string | null }
+    expect(matchId, 'ils se trouvent pendant la lecture').toBeTruthy()
+
+    await expect.poll(() => decodeURIComponent(new URL(page.url()).hash.replace('#partie=', '')), { timeout: 20_000 }).toBe(matchId)
+    await expect(page.locator('.board')).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('main')).toContainText('Arrivant')
+    expect(await page.evaluate(() => Boolean((window as unknown as { ecranDeFinVu?: boolean }).ecranDeFinVu)), 'aucun écran de fin').toBe(false)
+    expect(await page.locator('main').innerText()).not.toMatch(/\bbots?\b/i)
+
+    const cedee = await lire(api, lecteur, partieAuto)
+    expect(cedee.bot, 'c’était bien une partie automatique').toBeTruthy()
+    expect([cedee.status, cedee.finishReason]).toEqual(['finished', 'human_takeover'])
+    const salon = await (await api.get(`/api/matches/state?playerId=${encodeURIComponent(lecteur.playerId)}`)).json() as { active: Array<{ id: string }>; searches: unknown[]; recent: Array<{ id: string }> }
+    expect(salon.active.map(partie => partie.id), 'une seule partie').toEqual([matchId])
+    expect(salon.searches).toEqual([])
+    expect(salon.recent.map(partie => partie.id), 'rien dans son historique').not.toContain(partieAuto)
+  } finally {
+    await context.close()
+    await api.dispose()
+    await apiArrivant.dispose()
+  }
+})
+
+test('la partie contre l’adversaire automatique est lancée : on laisse tomber, l’autre attend', async ({ browserName }) => {
+  test.skip(browserName !== 'chromium', 'la règle est tenue par la suite SQL, ce test vérifie le serveur de test')
+  test.setTimeout(120_000)
+  const joueur = identite('Lancé')
+  const arrivant = identite('En attente')
+  const api = await session(joueur)
+  const apiArrivant = await session(arrivant)
+  const etat = `/api/matches/state?playerId=${encodeURIComponent(joueur.playerId)}`
+  try {
+    expect((await api.post('/api/matches/search', { data: { playerId: joueur.playerId, variante: 'chaine' } })).ok()).toBe(true)
+    let partieAuto = ''
+    await expect.poll(async () => {
+      const salon = await (await api.get(etat)).json() as { active: Array<{ id: string }> }
+      partieAuto = salon.active[0]?.id ?? ''
+      return partieAuto
+    }, { timeout: 90_000, intervals: [1_000] }).not.toBe('')
+    const debut = new Date((await lire(api, joueur, partieAuto) as Partie & { turnStartedAt: string }).turnStartedAt).getTime()
+    await expect.poll(() => Date.now(), { timeout: 15_000, intervals: [200] }).toBeGreaterThan(debut)
+
+    const reponse = await apiArrivant.post('/api/matches/search', { data: { playerId: arrivant.playerId, variante: 'chaine' } })
+    const { matchId, lobby } = await reponse.json() as { matchId: string | null; lobby: { searches: unknown[] } }
+    expect(matchId, 'pas de partie : celle de l’autre est lancée').toBeNull()
+    expect(lobby.searches, 'il reste en file').toHaveLength(1)
+    expect((await lire(api, joueur, partieAuto)).status).toBe('active')
+    await apiArrivant.post('/api/matches/search/cancel', { data: { playerId: arrivant.playerId, pace: 'realtime' } })
+  } finally {
+    await api.dispose()
+    await apiArrivant.dispose()
+  }
+})
+
+test('une recherche arrivée après la naissance de la partie : le serveur la rend et ne remet personne en file', async () => {
+  const a = identite('Déjà')
+  const b = identite('En partie')
+  const apiA = await session(a)
+  const apiB = await session(b)
+  try {
+    const matchId = await apparier(a, apiA, b, apiB)
+    const reponse = await apiA.post('/api/matches/search', { data: { playerId: a.playerId, variante: 'chaine' } })
+    expect(reponse.ok()).toBe(true)
+    const corps = await reponse.json() as { matchId: string | null; lobby: { searches: unknown[] } }
+    expect(corps.matchId).toBe(matchId)
+    expect(corps.lobby.searches).toEqual([])
+  } finally {
+    await apiA.dispose()
+    await apiB.dispose()
+  }
+})
+
+test('« Rejouer » fait comme le bouton : une seule recherche, et « Jouer » bloqué pendant qu’elle part', async ({ browser }) => {
+  const a = identite('Rejoue')
+  const b = identite('Parti')
+  const apiA = await session(a)
+  const apiB = await session(b)
+  const matchId = await apparier(a, apiA, b, apiB)
+  expect((await apiB.post('/api/matches/forfeit', { data: { playerId: b.playerId, matchId } })).ok()).toBe(true)
+  const { context, page } = await ouvrir(browser, a, `/#partie=${encodeURIComponent(matchId)}`)
+  try {
+    let recherches = 0
+    await page.route('**/api/matches/search', async route => {
+      recherches += 1
+      await new Promise(resolve => setTimeout(resolve, 1_500))
+      await route.continue()
+    })
+    await page.getByRole('button', { name: 'Rejouer', exact: true }).tap()
+    await expect(page.getByRole('button', { name: 'Jouer une partie en chaîne' })).toBeDisabled({ timeout: 10_000 })
+    await expect(page.getByText('On te trouve un adversaire')).toBeVisible({ timeout: 10_000 })
+    expect(recherches).toBe(1)
+    await page.getByRole('button', { name: 'Annuler' }).tap()
+    await expect(page.getByText('On te trouve un adversaire')).toBeHidden({ timeout: 10_000 })
+  } finally {
+    await context.close()
+    await apiA.dispose()
+    await apiB.dispose()
+  }
+})
