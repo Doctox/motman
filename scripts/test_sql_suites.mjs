@@ -90,6 +90,18 @@ function messageLisible(erreur) {
   return (trouve?.[1] ?? brut).replace(/\n/g, ' ').trim().slice(0, 500)
 }
 
+// Ces suites tournent contre la production, où de vrais joueurs jouent. Depuis le
+// 04/11/2026, un joueur qui lit sa grille contre l'adversaire automatique peut être proposé
+// à celui qui cherche (20261104120000) : une suite le prenait pour l'un des siens, et le
+// déploiement n° 247 a échoué parce qu'une partie venait de commencer. Dans la transaction,
+// donc annulé avec elle, personne n'est en lecture au départ.
+const ISOLATION = `
+update public.server_matches
+set turn_started_at = pg_catalog.clock_timestamp() - interval '1 second'
+where status = 'active' and turn_number = 1 and turn_started_at > pg_catalog.clock_timestamp()
+  and pg_catalog.jsonb_typeof(state -> 'bot') = 'object';
+`
+
 async function main() {
   const dossier = path.join(racineDepot(), 'supabase', 'tests')
   const fichiers = (await readdir(dossier)).filter(nom => nom.endsWith('.sql')).sort()
@@ -121,7 +133,7 @@ async function main() {
     // fichier bien écrit — ne se faisait PAS insérer le prélude. En silence :
     // la suite tournait alors contre la version déployée, et son échec
     // ressemblait à un défaut de la migration.
-    const sql = prelude ? insereApres(nom, brut, prelude) : brut
+    const sql = insereApres(nom, brut, `${prelude}${ISOLATION}`)
     const depart = Date.now()
     try {
       await requete(jeton, sql)
