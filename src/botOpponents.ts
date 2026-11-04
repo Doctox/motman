@@ -17,6 +17,8 @@ export type BotPersona = {
   frameId: string
   /** Réglages sur mesure : le fantôme du propriétaire (src/ghostOpponent.ts) joue comme lui. */
   tuning?: BotTuning
+  /** En chaîne : sa force de 0 à 1, qui suit les résultats du joueur (voir plus bas). */
+  force?: number
 }
 
 export type BotTuning = {
@@ -221,43 +223,76 @@ export function planBotMove({
 // ─────────────────────────────────────────────────────────────────────────────
 // EN CHAÎNE (02/11/2026). L'adversaire automatique pose une lettre à la fois, à son
 // rythme, jusqu'à sa première erreur, sa dernière lettre ou la fin du temps. Pas de
-// plafond de lettres : la justesse le remplace, et elle donne en moyenne une chaîne
-// d'environ 3 lettres justes (débutant), 4,5 (normal) et 7 (expert).
+// plafond de lettres : la justesse le remplace.
 //
-// Réglages à essayer, non mesurés sur de vraies parties : ils partent de la maquette
-// validée par le propriétaire (une lettre toutes les 1 à 2,5 s, une erreur sur six).
-// ─────────────────────────────────────────────────────────────────────────────
-export const BOT_CHAINE: Record<BotSkill, { justesse: number; premiereMs: readonly [number, number]; pasMs: readonly [number, number] }> = {
-  beginner: { justesse: 74, premiereMs: [2_500, 5_000], pasMs: [2_400, 4_200] },
-  regular: { justesse: 82, premiereMs: [2_000, 4_000], pasMs: [1_900, 3_300] },
-  expert: { justesse: 88, premiereMs: [1_500, 3_000], pasMs: [1_400, 2_600] },
+// IL S'ADAPTE À CHAQUE JOUEUR (04/11/2026, le propriétaire : « on fait un adversaire qui
+// s'adapte »). Il visait toujours le mot le plus rentable : les joueurs ordinaires
+// gagnaient 24 % de leurs parties contre le niveau normal, 56 % à 45 s. Le niveau ne dit
+// rien de l'écart entre joueurs : à niveau presque égal, l'un gagne un tiers de ses parties
+// et l'autre plus des quatre cinquièmes. Seuls les résultats le disent.
+//
+// La force va de 0 à 1, et elle fixe tout : justesse, rythme, et le nombre de cases parmi
+// lesquelles il choisit, les meilleures d'abord. Elle part du niveau du joueur, puis une
+// victoire la monte de 0,04 et une défaite la baisse de 0,06 : trois victoires et deux
+// défaites s'annulent, chacun se stabilise donc autour de 60 % de victoires. Mesuré par
+// scripts/simulate_chaine.ts. La force de chaque partie reste dans l'historique du joueur
+// (`grid_player_history.force_adversaire`), et le téléphone ne la reçoit jamais.
+// ───────────────────────────────────────────────────────────
+const FORCE_PAR_NIVEAU: Record<BotSkill, number> = { beginner: 0.15, regular: 0.5, expert: 0.72 }
+const PAS_SI_GAGNE = 0.04
+const PAS_SI_PERDU = 0.06
+
+export function forceDeDepart(skill: BotSkill): number {
+  return FORCE_PAR_NIVEAU[skill]
+}
+
+/** Sa force dans cette partie. Une partie sans force (lancée avant le 04/11/2026, serveur de test) suit son niveau. */
+export function forceEnChaine(persona: Pick<BotPersona, 'skill' | 'force'>): number {
+  return persona.force ?? forceDeDepart(persona.skill)
+}
+
+/** Le niveau affiché, pour qu'un adversaire ne se présente pas au niveau 12 en jouant comme un expert. */
+export function niveauDeLaForce(force: number): BotSkill {
+  return force < 0.33 ? 'beginner' : force < 0.66 ? 'regular' : 'expert'
+}
+
+/** D'après l'issue de la partie (`playerOutcome`, match-api) : une partie abandonnée compte comme perdue. */
+export function forceSuivante(force: number, issue: string): number {
+  const pas = issue === 'win' ? PAS_SI_GAGNE : issue === 'loss' || issue === 'abandon' ? -PAS_SI_PERDU : 0
+  return Math.round(Math.min(1, Math.max(0, force + pas)) * 100) / 100
+}
+
+export function reglageDeChaine(force: number) {
+  const selon = (faible: number, fort: number) => Math.round(faible + (fort - faible) * force)
+  return {
+    justesse: selon(56, 95),
+    premiereMs: [selon(5_500, 1_500), selon(9_500, 3_000)] as const,
+    pasMs: [selon(3_800, 1_200), selon(6_500, 2_200)] as const,
+    fenetre: selon(8, 1),
+  }
 }
 
 /** Le temps que prend sa lettre de ce rang, depuis la précédente (ou le début du tour). */
-export function delaiDeLettreDuBot(seed: string, rang: number, skill: BotSkill): number {
-  const { premiereMs, pasMs } = BOT_CHAINE[skill]
+export function delaiDeLettreDuBot(seed: string, rang: number, force: number): number {
+  const { premiereMs, pasMs } = reglageDeChaine(force)
   const [minimum, maximum] = rang === 0 ? premiereMs : pasMs
   return minimum + fnv1a(`${seed}:lettre:${rang}`) % (maximum - minimum + 1)
 }
 
 /** Sa prochaine lettre, ou null s'il n'en a plus aucune à poser. Elle peut être fausse : c'est ce qui l'arrête. */
-export function planBotChainLetter({ grid, occupiedCells, rackLetters, persona, seed, step, scoreGap = 0 }: {
+export function planBotChainLetter({ grid, occupiedCells, rackLetters, persona, seed, step }: {
   grid: GameRuleGrid
   occupiedCells: Iterable<number>
   rackLetters: readonly string[]
   persona: BotPersona
   seed: string
   step: number
-  scoreGap?: number
 }): BotMoveAttempt | null {
-  const tuning = botTuning(persona)
-  const candidates = casesDuBot(grid, new Set(occupiedCells), new Set(), rackLetters, tuning, seed, step)
+  const candidates = casesDuBot(grid, new Set(occupiedCells), new Set(), rackLetters, botTuning(persona), seed, step)
   if (!candidates.length) return null
-  const choiceWindow = persona.skill === 'beginner' ? Math.min(2, candidates.length) : 1
-  const chosen = candidates[fnv1a(`${seed}:choice:${step}`) % choiceWindow]
-  const pressureBoost = scoreGap >= tuning.pressureGap * 2 ? 2 : scoreGap >= tuning.pressureGap ? 1 : 0
-  const justesse = Math.min(97, BOT_CHAINE[persona.skill].justesse + pressureBoost * 3)
-  if (fnv1a(`${seed}:accuracy:${step}:${chosen.cellIndex}`) % 100 < justesse) return { cellIndex: chosen.cellIndex, letter: chosen.letter, correct: true }
+  const reglage = reglageDeChaine(forceEnChaine(persona))
+  const chosen = candidates[fnv1a(`${seed}:choice:${step}`) % Math.min(reglage.fenetre, candidates.length)]
+  if (fnv1a(`${seed}:accuracy:${step}:${chosen.cellIndex}`) % 100 < reglage.justesse) return { cellIndex: chosen.cellIndex, letter: chosen.letter, correct: true }
   const wrong = wrongLetterFor(rackLetters, chosen.letter, `${seed}:wrong:${step}:${chosen.cellIndex}`)
   return wrong ? { cellIndex: chosen.cellIndex, letter: wrong, correct: false } : { cellIndex: chosen.cellIndex, letter: chosen.letter, correct: true }
 }

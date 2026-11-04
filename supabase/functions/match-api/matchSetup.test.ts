@@ -1,5 +1,5 @@
 import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
-import { botSkillForLevel, chooseGrid, createMatch, FIRST_TURN_READING_MS, initialMatchState, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
+import { botSkillForLevel, chooseGrid, createBot, forceDuProchainAdversaire, createMatch, FIRST_TURN_READING_MS, initialMatchState, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { CHAINE_TOUR_MS, REALTIME_TURN_MS, type CatalogGrid, type MatchRow } from './matchModel.ts'
 
@@ -303,4 +303,26 @@ Deno.test('un duel en chaîne : 30 s au premier tour, et une grille de rechange 
   const ordinaire = await prepareAtomicMatch(admin, HOTE, INVITE, 'realtime', null, null)
   verifie(ordinaire.state.chaine === undefined, 'une partie ordinaire n’en porte aucune trace')
   verifie(ordinaire.endsAt.getTime() - ordinaire.startedAt.getTime() === REALTIME_TURN_MS, '45 s, comme avant')
+})
+
+Deno.test('le prochain adversaire en chaîne repart de la dernière partie, ou du niveau', async () => {
+  const lectures: Array<Record<string, unknown>> = []
+  const historique = (ligne: Record<string, unknown> | null) => {
+    const requete = {
+      select: () => requete,
+      eq: (colonne: string, valeur: unknown) => { lectures.push({ [colonne]: valeur }); return requete },
+      not: (colonne: string, operateur: string) => { lectures.push({ [colonne]: operateur }); return requete },
+      order: () => requete,
+      limit: () => requete,
+      maybeSingle: () => Promise.resolve({ data: ligne, error: null }),
+    }
+    return { from: () => requete } as unknown as AdminClient
+  }
+  verifie(await forceDuProchainAdversaire(historique(null), HOTE, 'regular') === 0.5, 'sans partie : la force de son niveau')
+  verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.8, outcome: 'win' }), HOTE, 'regular') === 0.84, 'il a gagné : plus fort')
+  verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.8, outcome: 'loss' }), HOTE, 'regular') === 0.74, 'il a perdu : moins fort')
+  verifie(lectures.some(lecture => lecture.user_id === HOTE), 'la sienne, pas celle d’un autre')
+  verifie(lectures.some(lecture => lecture.force_adversaire === 'is'), 'seulement les parties qui en portent une')
+  verifie(createBot('graine', 'expert', 0.8).force === 0.8, 'le bot la garde')
+  verifie(createBot('graine', 'expert').force === undefined, 'ailleurs, aucune')
 })

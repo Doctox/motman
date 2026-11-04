@@ -1,4 +1,4 @@
-import { BOT_CHAINE, type BotSkill } from '../../../src/botOpponents.ts'
+import { forceDeDepart, forceEnChaine, forceSuivante, niveauDeLaForce, reglageDeChaine, type BotSkill } from '../../../src/botOpponents.ts'
 import { CHAINE_TOUR_MS, RACK_COMPLETION_BONUS, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
 import { heureDeLaLettreDuBot } from './botDelay.ts'
 import { avancerChaineDuBot, jugerLettre, lireDemandeDeLettre, lireVariante, reponseDeLettre, type DemandeDeLettre } from './matchChaine.ts'
@@ -361,7 +361,7 @@ Deno.test('l’adversaire automatique pose à son heure, rien n’est dit à l�
   verifie(!avancerChaineDuBot(row, GRILLE, debut + 100), 'trop tôt pour sa première lettre')
   egal(row.state.chaine?.lettres.length, 0, 'aucune lettre')
   const heure = heureDeLaLettreDuBot(row)
-  const [mini, maxi] = BOT_CHAINE[bot.skill].premiereMs
+  const [mini, maxi] = reglageDeChaine(forceEnChaine(bot)).premiereMs
   verifie(heure - debut >= mini && heure - debut <= maxi, 'sa première lettre arrive à son rythme')
   verifie(!avancerChaineDuBot(row, GRILLE, heure - 1), 'pas une milliseconde avant')
   verifie(avancerChaineDuBot(row, GRILLE, heure), 'à son heure')
@@ -400,9 +400,35 @@ Deno.test('sa chaîne s’arrête sur une erreur ou sur le temps, et sa force su
   verifie(erreurs > 0, 'il se trompe parfois')
   verifie(parLeTemps > 0, 'et le temps l’arrête aussi')
   verifie(moyennes.beginner < moyennes.regular && moyennes.regular < moyennes.expert, `plus il est fort, plus sa chaîne est longue : ${JSON.stringify(moyennes)}`)
-  verifie(moyennes.beginner >= 1.5 && moyennes.beginner <= 5, `débutant : ${moyennes.beginner}`)
-  verifie(moyennes.regular >= 3 && moyennes.regular <= 7.5, `normal : ${moyennes.regular}`)
-  verifie(moyennes.expert >= 4.5 && moyennes.expert <= 11, `expert : ${moyennes.expert}`)
+  verifie(moyennes.beginner >= 1 && moyennes.beginner <= 3, `débutant : ${moyennes.beginner}`)
+  verifie(moyennes.regular >= 2 && moyennes.regular <= 5, `normal : ${moyennes.regular}`)
+  verifie(moyennes.expert >= 3.5 && moyennes.expert <= 8, `expert : ${moyennes.expert}`)
+})
+
+Deno.test('sa force suit les résultats : 3 victoires et 2 défaites s’annulent, et elle reste bornée', () => {
+  egal(forceSuivante(0.5, 'win'), 0.54, 'une victoire le renforce')
+  egal(forceSuivante(0.5, 'loss'), 0.44, 'une défaite l’affaiblit davantage')
+  egal(forceSuivante(0.5, 'abandon'), 0.44, 'un abandon compte comme une défaite')
+  egal(forceSuivante(0.5, 'draw'), 0.5, 'une égalité ne change rien')
+  egal(forceSuivante(1, 'win'), 1, 'plafond')
+  egal(forceSuivante(0, 'loss'), 0, 'plancher')
+  const apres = ['win', 'loss', 'win', 'loss', 'win'].reduce(forceSuivante, 0.5)
+  egal(apres, 0.5, 'six victoires sur dix : il ne bouge plus')
+})
+
+Deno.test('plus il est fort, plus il est juste, rapide et précis dans ses choix', () => {
+  const faible = reglageDeChaine(0)
+  const fort = reglageDeChaine(1)
+  verifie(faible.justesse < reglageDeChaine(0.5).justesse && reglageDeChaine(0.5).justesse < fort.justesse, 'la justesse monte')
+  verifie(fort.pasMs[1] < faible.pasMs[0], 'le plus rapide de faible reste plus lent que le plus lent de fort')
+  egal(fort.fenetre, 1, 'au plus fort, toujours sa meilleure case')
+  egal(fort.justesse, 95, 'et jamais infaillible')
+  for (const force of [0, 0.15, 0.5, 0.72, 1]) {
+    const { premiereMs, pasMs, fenetre } = reglageDeChaine(force)
+    verifie(Number.isInteger(premiereMs[0]) && Number.isInteger(pasMs[1]) && Number.isInteger(fenetre), `des entiers à ${force}`)
+    verifie(premiereMs[0] < premiereMs[1] && pasMs[0] < pasMs[1], `des fourchettes dans le bon sens à ${force}`)
+  }
+  for (const skill of ['beginner', 'regular', 'expert'] as BotSkill[]) egal(niveauDeLaForce(forceDeDepart(skill)), skill, `${skill} se présente à son niveau`)
 })
 
 Deno.test('sans lettre à poser, sa chaîne s’arrête', () => {

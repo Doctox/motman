@@ -1,3 +1,4 @@
+import { niveauDeLaForce } from '../../../src/botOpponents.ts'
 import { canUseHint, canUseReroll, hintCandidates, indicesUtilises } from '../../../src/gameRules.ts'
 import { fnv1a } from '../../../src/hachage.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
@@ -36,7 +37,7 @@ import { brouillonRecevable, lettresDuBrouillon, lettresEnDirect, lireBrouillon,
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
 import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
-import { atomicResult, botSkillForLevel, createBot, createMatch, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
+import { atomicResult, botSkillForLevel, createBot, createMatch, forceDuProchainAdversaire, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
@@ -319,7 +320,9 @@ Deno.serve(async request => {
         .filter(search => !(enDefi && search.pace === 'realtime'))
       const forceBot = aBasculer.length ? botSkillForLevel(await playerLevel(admin, user.id)) : undefined
       for (const search of aBasculer) {
-        const bot = createBot(`${user.id}:${search.id}`, forceBot)
+        // En chaîne, sa force suit les résultats du joueur (src/botOpponents.ts).
+        const force = search.variante === 'chaine' && forceBot ? await forceDuProchainAdversaire(admin, user.id, forceBot) : undefined
+        const bot = createBot(`${user.id}:${search.id}`, force === undefined ? forceBot : niveauDeLaForce(force), force)
         const pace = search.pace as Pace
         const prepared = await prepareAtomicMatch(admin, user.id, bot.playerId, pace, null, bot, search.variante)
         const result = await atomicResult(admin.rpc('server_create_bot_match_atomic', {

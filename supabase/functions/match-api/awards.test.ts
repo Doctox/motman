@@ -368,3 +368,24 @@ for (const fin of ['ready_declined', 'ready_expired'] as const) {
     egal(tables.length, 0, 'aucune écriture')
   })
 }
+
+Deno.test('en chaîne contre l’adversaire automatique, l’historique garde sa force ; ailleurs, rien', async () => {
+  const robot = { playerId: BOT, displayName: 'Bot', level: 3, skill: 'regular' as const, avatarId: 'a', frameId: 'f' }
+  const chaine = { tour: 1, lettres: [], letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0 }
+  const forceEcrite = async (etatDeLaPartie: Partial<State>) => {
+    const { client, tables } = clientFactice()
+    await awardFinished(client, match({}, { playerIds: [HUMAIN_A, BOT], ...etatDeLaPartie }))
+    const ligne = tables.find(appel => appel.table === 'grid_player_history' && appel.operation === 'upsert')
+    verifie(Boolean(ligne), 'l’historique est écrit')
+    return (ligne?.charge as { force_adversaire?: number }).force_adversaire
+  }
+  egal(await forceEcrite({ chaine, bot: { ...robot, force: 0.8 } }), 0.8, 'sa force de cette partie')
+  egal(await forceEcrite({ chaine, bot: robot }), 0.5, 'sans force : celle de son niveau')
+  egal(await forceEcrite({ bot: robot }), undefined, 'pas en partie ordinaire')
+  egal(await forceEcrite({ chaine, bot: { ...robot, ghostOf: HUMAIN_B } }), undefined, 'ni contre un joueur de l’ombre')
+  const { client, tables } = clientFactice()
+  await awardFinished(client, match({}, { chaine }))
+  const entreHumains = tables.filter(appel => appel.table === 'grid_player_history' && appel.operation === 'upsert')
+  verifie(entreHumains.length === 2 && entreHumains.every(appel => (appel.charge as { force_adversaire?: number }).force_adversaire === undefined), 'ni entre humains')
+})
+

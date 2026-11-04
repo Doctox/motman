@@ -5,7 +5,7 @@
 // comme un humain (src/ghostOpponent.ts) : un adversaire présenté comme une
 // personne qui répondrait en quatre secondes se trahirait.
 
-import { botThinkingDelayMs, delaiDeLettreDuBot } from '../../../src/botOpponents.ts'
+import { botThinkingDelayMs, delaiDeLettreDuBot, forceDeDepart, forceEnChaine } from '../../../src/botOpponents.ts'
 import { fantomeReflexionMs } from '../../../src/ghostOpponent.ts'
 import type { MatchRow } from './matchModel.ts'
 
@@ -20,9 +20,9 @@ export function botTurnDelayMs(row: Pick<MatchRow, 'id' | 'turn_number' | 'state
  * son heure plutôt que de sonder en rafale.
  */
 export function heureDeLaLettreDuBot(row: Pick<MatchRow, 'id' | 'turn_number' | 'turn_started_at' | 'state'>): number {
-  const skill = row.state.bot?.skill ?? 'regular'
+  const force = row.state.bot ? forceEnChaine(row.state.bot) : forceDeDepart('regular')
   const seed = `${row.id}:${row.turn_number}`
   let heure = Date.parse(row.turn_started_at)
-  for (let rang = 0; rang <= (row.state.chaine?.lettres.length ?? 0); rang += 1) heure += delaiDeLettreDuBot(seed, rang, skill)
+  for (let rang = 0; rang <= (row.state.chaine?.lettres.length ?? 0); rang += 1) heure += delaiDeLettreDuBot(seed, rang, force)
   return heure
 }

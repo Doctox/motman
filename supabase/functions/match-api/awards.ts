@@ -14,6 +14,7 @@
 // masqué derrière un alias local resté dans `index.ts`.
 
 import { STREAK_REWARD_FREE_BASKETS, streakRewardsEarned } from '../../../src/dailyMilestones.ts'
+import { forceEnChaine } from '../../../src/botOpponents.ts'
 import { encodeBoardSnapshot } from '../../../src/matchBoardSnapshot.ts'
 import { dailyNote } from '../../../src/dailyScore.ts'
 import { calculateFeatherReward } from '../../../src/progressionRewards.ts'
@@ -71,6 +72,8 @@ export async function recordMatchHistory(
     // rester en rotation. La propriété est enregistrée du point de vue de
     // `playerId` — cette ligne lui appartient.
     final_board: encodeBoardSnapshot(row.state.board, playerId),
+    // En chaîne, contre l'adversaire automatique : d'où repart le suivant (botOpponents.ts).
+    ...(row.state.chaine && row.state.bot?.playerId === opponentId && !row.state.bot.ghostOf ? { force_adversaire: forceEnChaine(row.state.bot) } : {}),
     // Défi du jour : de quoi classer la partie. `daily_date` distingue le défi
     // d'une partie solo tombée par hasard sur la même grille, et `turns` sert
     // la note — contrairement à `duration_seconds`, il ne dépend pas du temps

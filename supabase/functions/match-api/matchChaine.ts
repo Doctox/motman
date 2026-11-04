@@ -168,7 +168,6 @@ export function avancerChaineDuBot(row: MatchRow, grid: CatalogGrid, maintenant 
       return true
     }
     if (maintenant < heure) return change
-    const adversaire = row.state.playerIds.find(id => id !== bot.playerId) ?? ''
     const coup = planBotChainLetter({
       grid: rules,
       occupiedCells: Object.keys(row.state.board).map(Number),
@@ -176,7 +175,6 @@ export function avancerChaineDuBot(row: MatchRow, grid: CatalogGrid, maintenant 
       persona: bot,
       seed: `${row.id}:${tour}`,
       step: chaine.lettres.length,
-      scoreGap: (row.state.scores[adversaire] ?? 0) - (row.state.scores[bot.playerId] ?? 0),
     })
     if (!coup) {
       fermerTourDeChaine(row, { cadence })

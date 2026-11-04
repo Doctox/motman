@@ -17,7 +17,7 @@
 // `persist` porte l'autre garde : une écriture conditionnée à `updated_at`, qui
 // refuse plutôt que d'écraser le tour joué entre-temps par l'adversaire.
 
-import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
+import { createBotPersona, forceDeDepart, forceSuivante, type BotSkill } from '../../../src/botOpponents.ts'
 import { toutesLesLignes } from '../_shared/lectures.ts'
 import { normalRotationGrids } from '../../../src/dailyThemes.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
@@ -212,12 +212,22 @@ export async function playerLevel(admin: AdminClient, userId: string): Promise<n
   return Math.min(50, Math.max(1, Number(data?.level ?? 1)))
 }
 
-export function createBot(seed: string, preferredSkill?: BotSkill): Bot {
+/**
+ * En chaîne : la force de son prochain adversaire, d'après sa dernière partie contre lui
+ * dans l'historique, gardée 90 jours. Sans partie, celle de son niveau (`botOpponents.ts`).
+ */
+export async function forceDuProchainAdversaire(admin: AdminClient, userId: string, skill: BotSkill): Promise<number> {
+  const { data } = await admin.from('grid_player_history').select('force_adversaire,outcome').eq('user_id', userId)
+    .not('force_adversaire', 'is', null).order('completed_at', { ascending: false }).limit(1).maybeSingle()
+  return data ? forceSuivante(Number(data.force_adversaire), data.outcome) : forceDeDepart(skill)
+}
+
+export function createBot(seed: string, preferredSkill?: BotSkill, force?: number): Bot {
   const persona = createBotPersona(seed, preferredSkill)
   // server_matches.current_player_id is a UUID foreign-key shaped column.
   // Bot identities stay internal through state.bot, so a regular UUID is both
   // sufficient to distinguish them and safe to persist when their turn starts.
-  return { playerId: crypto.randomUUID(), ...persona }
+  return { playerId: crypto.randomUUID(), ...persona, ...(force === undefined ? {} : { force }) }
 }
 
 export async function playersBlocked(admin: AdminClient, firstId: string, secondId: string): Promise<boolean> {
