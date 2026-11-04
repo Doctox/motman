@@ -379,5 +379,17 @@
     "ajoute": "2026-11-03T15:59",
     "titre": "Des points qui sautent aux yeux",
     "texte": "Dans tous les modes, tes points jaillissent à l’écran, et le +5 ne cache plus tes lettres."
+  },
+  {
+    "ajoute": "2026-11-04T13:25",
+    "titre": "Des grilles plus simples",
+    "texte": "236 définitions deviennent des dessins et 365 autres sont réécrites pour qu’on trouve le mot plus facilement.",
+    "genre": "grilles"
+  },
+  {
+    "ajoute": "2026-11-04T13:25",
+    "titre": "Plus de grilles au défi du jour",
+    "texte": "Cuisine & Boissons, École & Lettres, Émotions & Sentiments, Espace & Sciences, Fêtes & Musique, Histoire & Guerres, Légendes & Frissons et Mer & Marine reçoivent de nouvelles grilles.",
+    "genre": "theme"
   }
 ]

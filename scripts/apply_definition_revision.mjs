@@ -3,6 +3,9 @@
 //
 //   node scripts/apply_definition_revision.mjs "MotMan Grilles prêtes/<lot>"
 //   … --blanc      (rien n'est écrit : le plan seulement)
+//   … --meme-version  (la version ne monte pas : des lots préparés sur la même base
+//                      suivent dans la même livraison, et c'est leur intégration
+//                      qui la montera, une seule fois)
 //
 // POURQUOI CE SCRIPT EXISTE. Les révisions (schéma `motman-catalog-full-revision`)
 // ne créent aucune grille : elles réécrivent des définitions de grilles déjà en
@@ -12,9 +15,9 @@
 //
 // IL REFUSE PLUTÔT QUE DE DEVINER. Lot non approuvé, base qui n'est pas la
 // version du catalogue, grille ou mot introuvable, réponse différente, ANCIENNE
-// définition qui ne correspond pas exactement, nouvelle définition déjà utilisée
-// ailleurs, dessin sans data: URI : chacun arrête le script avant toute
-// écriture. Une ancienne définition qui ne correspond pas veut dire que le lot a
+// définition ou ancien dessin qui ne correspond pas exactement, nouvelle définition
+// déjà utilisée pour une AUTRE réponse, dessin sans data: URI : chacun arrête le
+// script avant toute écriture. Une ancienne définition qui ne correspond pas veut dire que le lot a
 // été préparé sur autre chose que ce catalogue — le remplacer à l'aveugle
 // écraserait un travail fait entre-temps.
 //
@@ -33,6 +36,7 @@ const CATALOGUE = resolve('src/data/grid.catalog.json')
 
 const argumentsLus = process.argv.slice(2)
 const blanc = argumentsLus.includes('--blanc')
+const memeVersion = argumentsLus.includes('--meme-version')
 const [dossier] = argumentsLus.filter(argument => !argument.startsWith('--'))
 if (!dossier) {
   console.error('Usage : node scripts/apply_definition_revision.mjs "<lot>" [--blanc]')
@@ -66,7 +70,9 @@ const revise = structuredClone(catalogue)
 const grilles = new Map(revise.grids.map(grille => [grille.id, grille]))
 const motsTouches = new Set()
 const grillesTouchees = new Set()
-let images = 0
+let dessinsNeufs = 0
+
+const memeDessin = (image, attendu) => image?.alt === attendu?.alt && image?.sourceAsset === attendu?.sourceAsset
 
 for (const [index, changement] of changements.entries()) {
   const ou = `#${index + 1} ${changement.grille} ${changement.answer}`
@@ -91,27 +97,43 @@ for (const [index, changement] of changements.entries()) {
       refus.push(`${ou} : dessin absent de ${DOSSIER_DESSINS}/ — ${image.sourceAsset}`)
       continue
     }
+    // Un échange de dessin dit lequel il remplace : pas à l'aveugle non plus.
+    const remplace = changement.ancien?.ancienneImage
+    if (remplace && !memeDessin(mot.image, remplace)) { refus.push(`${ou} : l'ancien dessin ne correspond pas (« ${mot.image?.alt} »)`); continue }
+    if (!remplace) dessinsNeufs += 1
     mot.clue = changement.nouveau.clue ?? ''
     mot.image = image
-    images += 1
+    mot.clueStyle = 'image'
+  } else if (changement.champ === 'image-vers-definition') {
+    if (!memeDessin(mot.image, changement.ancien)) { refus.push(`${ou} : l'ancien dessin ne correspond pas (« ${mot.image?.alt} »)`); continue }
+    const nouveau = String(changement.nouveau ?? '').trim()
+    if (!nouveau) { refus.push(`${ou} : nouvelle définition vide`); continue }
+    delete mot.image
+    mot.clue = nouveau
+    mot.clueStyle = 'direct'
   } else {
     refus.push(`${ou} : champ inconnu (${changement.champ})`)
     continue
   }
   grillesTouchees.add(grille.id)
 }
+for (const id of grillesTouchees) {
+  const grille = grilles.get(id)
+  grille.imageCount = grille.words.filter(mot => mot.image).length
+}
 
-// Une définition ne sert qu'une fois dans tout le catalogue : une nouvelle qui
-// existe déjà ailleurs ferait deux cases identiques pour deux réponses.
+// Une même définition pour deux réponses DIFFÉRENTES reste une faute. Pour le même
+// mot, elle est permise depuis le 12/10/2026 (propriétaire : « on a bientôt 1000
+// grilles, personne ne le remarquera »).
 const usages = new Map()
 for (const grille of revise.grids) for (const mot of grille.words) {
   const texte = (mot.clue ?? '').trim()
-  if (texte) usages.set(texte, [...(usages.get(texte) ?? []), `${grille.id}/${mot.answer}`])
+  if (texte) usages.set(texte, (usages.get(texte) ?? new Set()).add(mot.answer))
 }
 for (const changement of changements) {
-  if (changement.champ !== 'clue') continue
-  const ou = usages.get(String(changement.nouveau ?? '').trim()) ?? []
-  if (ou.length > 1) refus.push(`« ${changement.nouveau} » servirait ${ou.length} fois : ${ou.join(', ')}`)
+  if (changement.champ !== 'clue' && changement.champ !== 'image-vers-definition') continue
+  const reponses = usages.get(String(changement.nouveau ?? '').trim()) ?? new Set()
+  if (reponses.size > 1) refus.push(`« ${changement.nouveau} » servirait pour ${reponses.size} réponses : ${[...reponses].join(', ')}`)
 }
 
 if (refus.length) {
@@ -120,9 +142,11 @@ if (refus.length) {
 }
 
 const themes = [...grillesTouchees].filter(id => grilles.get(id)?.dailyOnly).length
-revise.version = catalogue.version + 1
+revise.version = memeVersion ? catalogue.version : catalogue.version + 1
+const parChamp = champ => changements.filter(changement => changement.champ === champ).length
+const reecrites = parChamp('clue')
 console.log(`Lot ${lot.lotId} — approuvé le ${lot.ownerApproval.date}`)
-console.log(`  ${changements.length} changements : ${changements.length - images} définitions réécrites, ${images} remplacée(s) par un dessin`)
+console.log(`  ${changements.length} changements : ${reecrites} définitions réécrites, ${dessinsNeufs} remplacée(s) par un dessin, ${parChamp('image') - dessinsNeufs} dessin(s) échangé(s), ${parChamp('image-vers-definition')} dessin(s) remplacé(s) par une définition`)
 console.log(`  ${grillesTouchees.size} grilles touchées${themes ? `, dont ${themes} à thème` : ', aucune à thème'} ; aucune réponse ne change`)
 console.log(`Catalogue : v${catalogue.version} → v${revise.version}`)
 
@@ -139,8 +163,10 @@ console.log('  Ensuite : npm run policy:runtime (projection), puis les contrôle
 const { ajouterRapport } = await import('./lib/rapports.mjs')
 const rapport = {
   genre: 'grilles',
-  titre: 'Des définitions plus simples',
-  texte: `${changements.length} définitions des grilles ont été réécrites pour qu’on trouve le mot plus facilement.`,
+  titre: dessinsNeufs ? 'Des grilles plus simples' : 'Des définitions plus simples',
+  texte: dessinsNeufs
+    ? `${dessinsNeufs} définitions deviennent des dessins et ${reecrites} autres sont réécrites pour qu’on trouve le mot plus facilement.`
+    : `${reecrites} définitions des grilles ont été réécrites pour qu’on trouve le mot plus facilement.`,
 }
 try {
   const { annonce } = await ajouterRapport(rapport)

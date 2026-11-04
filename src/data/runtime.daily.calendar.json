@@ -2,7 +2,7 @@
   "schema": "motman-daily-theme-schedule",
   "version": 1,
   "timezone": "Europe/Paris",
-  "_comment": "Calendrier généré par scripts/build_daily_calendar.mjs (catalogue v42) — rotation de 20 thèmes. Un thème n'est annoncé que sur une grille qui le porte ; une grille à thème (dailyOnly) ne sort jamais sans lui. Un jour sans thème sert une grille générique (theme:null). Le repli générique couvre les dates non listées.",
+  "_comment": "Calendrier généré par scripts/build_daily_calendar.mjs (catalogue v43) — rotation de 20 thèmes. Un thème n'est annoncé que sur une grille qui le porte ; une grille à thème (dailyOnly) ne sort jamais sans lui. Un jour sans thème sert une grille générique (theme:null). Le repli générique couvre les dates non listées.",
   "days": [
     {
       "date": "2026-08-05",
@@ -576,7 +576,7 @@
     },
     {
       "date": "2026-11-08",
-      "gridId": "espace-7x8-792dfa",
+      "gridId": "espace-7x8-0316e2",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
@@ -588,7 +588,7 @@
     },
     {
       "date": "2026-11-10",
-      "gridId": "legendesfrissons-7x8-be28d1",
+      "gridId": "legendesfrissons-7x8-0917cf",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -612,7 +612,7 @@
     },
     {
       "date": "2026-11-14",
-      "gridId": "emotions-7x8-46259f",
+      "gridId": "emotions-7x8-01b4a8",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -624,7 +624,7 @@
     },
     {
       "date": "2026-11-16",
-      "gridId": "mermarine-7x8-bef2c1",
+      "gridId": "mermarine-7x8-038090",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -660,7 +660,7 @@
     },
     {
       "date": "2026-11-22",
-      "gridId": "musique-7x8-427232",
+      "gridId": "fetesmusique-7x8-0a30de",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -696,7 +696,7 @@
     },
     {
       "date": "2026-11-28",
-      "gridId": "espace-7x8-800a84",
+      "gridId": "espace-7x8-0db315",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
@@ -708,7 +708,7 @@
     },
     {
       "date": "2026-11-30",
-      "gridId": "legendesfrissons-7x8-d0f03e",
+      "gridId": "legendesfrissons-7x8-0e83eb",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -732,7 +732,7 @@
     },
     {
       "date": "2026-12-04",
-      "gridId": "emotions-7x8-4b8205",
+      "gridId": "emotions-7x8-19e55e",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -744,7 +744,7 @@
     },
     {
       "date": "2026-12-06",
-      "gridId": "mermarine-7x8-e94f0c",
+      "gridId": "mermarine-7x8-0d0cd9",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -780,7 +780,7 @@
     },
     {
       "date": "2026-12-12",
-      "gridId": "musique-7x8-9ebb90",
+      "gridId": "fetesmusique-7x8-0cdcd1",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -816,7 +816,7 @@
     },
     {
       "date": "2026-12-18",
-      "gridId": "espace-7x8-c22c25",
+      "gridId": "espace-7x8-1b5384",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
@@ -828,7 +828,7 @@
     },
     {
       "date": "2026-12-20",
-      "gridId": "legendesfrissons-7x8-ff63bb",
+      "gridId": "legendesfrissons-7x8-1e4a58",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -852,7 +852,7 @@
     },
     {
       "date": "2026-12-24",
-      "gridId": "emotions-7x8-980029",
+      "gridId": "emotions-7x8-2a798b",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -864,7 +864,7 @@
     },
     {
       "date": "2026-12-26",
-      "gridId": "mermarine-7x8-f3ea10",
+      "gridId": "mermarine-7x8-108bdd",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -900,7 +900,7 @@
     },
     {
       "date": "2027-01-01",
-      "gridId": "musique-7x8-25ebfd",
+      "gridId": "fetesmusique-7x8-114fc1",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -936,19 +936,19 @@
     },
     {
       "date": "2027-01-07",
-      "gridId": "espace-7x8-3e2d2d",
+      "gridId": "espace-7x8-1f07ed",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-01-08",
-      "gridId": "litterature-7x8-57c4e4",
+      "gridId": "ecolelettres-7x8-00b92a",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-01-09",
-      "gridId": "legendesfrissons-7x8-86b6c2",
+      "gridId": "legendesfrissons-7x8-1f3609",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -972,7 +972,7 @@
     },
     {
       "date": "2027-01-13",
-      "gridId": "emotions-7x8-110604",
+      "gridId": "emotions-7x8-2aaede",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -984,7 +984,7 @@
     },
     {
       "date": "2027-01-15",
-      "gridId": "mermarine-7x8-3975c6",
+      "gridId": "mermarine-7x8-13604a",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1020,7 +1020,7 @@
     },
     {
       "date": "2027-01-21",
-      "gridId": "musique-7x8-2980cd",
+      "gridId": "fetesmusique-7x8-153cb7",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1056,19 +1056,19 @@
     },
     {
       "date": "2027-01-27",
-      "gridId": "espace-7x8-56a0d9",
+      "gridId": "espace-7x8-206fc7",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-01-28",
-      "gridId": "litterature-7x8-9aadba",
+      "gridId": "ecolelettres-7x8-1c0c12",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-01-29",
-      "gridId": "legendesfrissons-7x8-b695f4",
+      "gridId": "legendesfrissons-7x8-26fd3c",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1092,7 +1092,7 @@
     },
     {
       "date": "2027-02-02",
-      "gridId": "emotions-7x8-3bbb6f",
+      "gridId": "emotions-7x8-2fccaf",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1104,7 +1104,7 @@
     },
     {
       "date": "2027-02-04",
-      "gridId": "mermarine-7x8-771c69",
+      "gridId": "mermarine-7x8-165c32",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1140,7 +1140,7 @@
     },
     {
       "date": "2027-02-10",
-      "gridId": "musique-7x8-385193",
+      "gridId": "fetesmusique-7x8-17cb28",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1176,19 +1176,19 @@
     },
     {
       "date": "2027-02-16",
-      "gridId": "espace-7x8-792dfa",
+      "gridId": "espace-7x8-331c8c",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-02-17",
-      "gridId": "litterature-7x8-b19afa",
+      "gridId": "ecolelettres-7x8-2b1c70",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-02-18",
-      "gridId": "legendesfrissons-7x8-be28d1",
+      "gridId": "legendesfrissons-7x8-27bdc4",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1212,7 +1212,7 @@
     },
     {
       "date": "2027-02-22",
-      "gridId": "emotions-7x8-46259f",
+      "gridId": "emotions-7x8-33e2a1",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1224,7 +1224,7 @@
     },
     {
       "date": "2027-02-24",
-      "gridId": "mermarine-7x8-bef2c1",
+      "gridId": "mermarine-7x8-25c331",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1260,7 +1260,7 @@
     },
     {
       "date": "2027-03-02",
-      "gridId": "musique-7x8-427232",
+      "gridId": "fetesmusique-7x8-1c307b",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1296,19 +1296,19 @@
     },
     {
       "date": "2027-03-08",
-      "gridId": "espace-7x8-800a84",
+      "gridId": "espace-7x8-3e620b",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-03-09",
-      "gridId": "litterature-7x8-c5d89b",
+      "gridId": "ecolelettres-7x8-5dac86",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-03-10",
-      "gridId": "legendesfrissons-7x8-d0f03e",
+      "gridId": "legendesfrissons-7x8-62687d",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1332,7 +1332,7 @@
     },
     {
       "date": "2027-03-14",
-      "gridId": "emotions-7x8-4b8205",
+      "gridId": "emotions-7x8-431c82",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1344,7 +1344,7 @@
     },
     {
       "date": "2027-03-16",
-      "gridId": "mermarine-7x8-e94f0c",
+      "gridId": "mermarine-7x8-2b7482",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1368,7 +1368,7 @@
     },
     {
       "date": "2027-03-20",
-      "gridId": "cuisine-7x8-206692",
+      "gridId": "gastronomie-7x8-0912bc",
       "theme": "Cuisine & Boissons",
       "difficulty": "normal"
     },
@@ -1380,7 +1380,7 @@
     },
     {
       "date": "2027-03-22",
-      "gridId": "musique-7x8-9ebb90",
+      "gridId": "fetesmusique-7x8-1fff1f",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1416,19 +1416,19 @@
     },
     {
       "date": "2027-03-28",
-      "gridId": "espace-7x8-c22c25",
+      "gridId": "espace-7x8-3fcd38",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-03-29",
-      "gridId": "ecole-7x8-0825d2",
+      "gridId": "ecolelettres-7x8-89c25b",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-03-30",
-      "gridId": "legendesfrissons-7x8-ff63bb",
+      "gridId": "legendesfrissons-7x8-647c76",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1440,7 +1440,7 @@
     },
     {
       "date": "2027-04-01",
-      "gridId": "armee-7x8-007aa3",
+      "gridId": "histoireguerres-7x8-195332",
       "theme": "Histoire & Guerres",
       "difficulty": "normal"
     },
@@ -1452,7 +1452,7 @@
     },
     {
       "date": "2027-04-03",
-      "gridId": "emotions-7x8-980029",
+      "gridId": "emotions-7x8-46259f",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1464,7 +1464,7 @@
     },
     {
       "date": "2027-04-05",
-      "gridId": "mermarine-7x8-f3ea10",
+      "gridId": "mermarine-7x8-4f7ebf",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1488,7 +1488,7 @@
     },
     {
       "date": "2027-04-09",
-      "gridId": "boissons-7x8-2aca35",
+      "gridId": "gastronomie-7x8-2c1202",
       "theme": "Cuisine & Boissons",
       "difficulty": "normal"
     },
@@ -1500,7 +1500,7 @@
     },
     {
       "date": "2027-04-11",
-      "gridId": "musique-7x8-25ebfd",
+      "gridId": "fetesmusique-7x8-418718",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1536,19 +1536,19 @@
     },
     {
       "date": "2027-04-17",
-      "gridId": "espace-7x8-3e2d2d",
+      "gridId": "espace-7x8-792dfa",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-04-18",
-      "gridId": "litterature-7x8-29bef3",
+      "gridId": "ecolelettres-7x8-954c66",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-04-19",
-      "gridId": "legendesfrissons-7x8-86b6c2",
+      "gridId": "legendesfrissons-7x8-6c7699",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1560,7 +1560,7 @@
     },
     {
       "date": "2027-04-21",
-      "gridId": "histoire-7x8-460ec3",
+      "gridId": "histoireguerres-7x8-3b0947",
       "theme": "Histoire & Guerres",
       "difficulty": "normal"
     },
@@ -1572,7 +1572,7 @@
     },
     {
       "date": "2027-04-23",
-      "gridId": "emotions-7x8-110604",
+      "gridId": "emotions-7x8-4a17a5",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1584,7 +1584,7 @@
     },
     {
       "date": "2027-04-25",
-      "gridId": "mermarine-7x8-3975c6",
+      "gridId": "mermarine-7x8-54174e",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1608,7 +1608,7 @@
     },
     {
       "date": "2027-04-29",
-      "gridId": "cuisine-7x8-37b1da",
+      "gridId": "gastronomie-7x8-325685",
       "theme": "Cuisine & Boissons",
       "difficulty": "normal"
     },
@@ -1620,7 +1620,7 @@
     },
     {
       "date": "2027-05-01",
-      "gridId": "musique-7x8-2980cd",
+      "gridId": "fetesmusique-7x8-6e7cc9",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1656,19 +1656,19 @@
     },
     {
       "date": "2027-05-07",
-      "gridId": "espace-7x8-56a0d9",
+      "gridId": "espace-7x8-800a84",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-05-08",
-      "gridId": "ecole-7x8-264a1b",
+      "gridId": "ecolelettres-7x8-96e2f6",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-05-09",
-      "gridId": "legendesfrissons-7x8-b695f4",
+      "gridId": "legendesfrissons-7x8-6f65ce",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1680,7 +1680,7 @@
     },
     {
       "date": "2027-05-11",
-      "gridId": "armee-7x8-5d3a12",
+      "gridId": "histoireguerres-7x8-3fd0d2",
       "theme": "Histoire & Guerres",
       "difficulty": "normal"
     },
@@ -1692,7 +1692,7 @@
     },
     {
       "date": "2027-05-13",
-      "gridId": "emotions-7x8-3bbb6f",
+      "gridId": "emotions-7x8-4b8205",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1704,7 +1704,7 @@
     },
     {
       "date": "2027-05-15",
-      "gridId": "mermarine-7x8-771c69",
+      "gridId": "mermarine-7x8-57efb7",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1728,7 +1728,7 @@
     },
     {
       "date": "2027-05-19",
-      "gridId": "boissons-7x8-9b582a",
+      "gridId": "gastronomie-7x8-395536",
       "theme": "Cuisine & Boissons",
       "difficulty": "normal"
     },
@@ -1740,7 +1740,7 @@
     },
     {
       "date": "2027-05-21",
-      "gridId": "musique-7x8-385193",
+      "gridId": "fetesmusique-7x8-8d93dc",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1776,19 +1776,19 @@
     },
     {
       "date": "2027-05-27",
-      "gridId": "espace-7x8-792dfa",
+      "gridId": "espace-7x8-8f3f1d",
       "theme": "Espace & Sciences",
       "difficulty": "normal"
     },
     {
       "date": "2027-05-28",
-      "gridId": "ecole-7x8-388d7b",
+      "gridId": "ecolelettres-7x8-98ca13",
       "theme": "École & Lettres",
       "difficulty": "normal"
     },
     {
       "date": "2027-05-29",
-      "gridId": "legendesfrissons-7x8-be28d1",
+      "gridId": "legendesfrissons-7x8-78aa19",
       "theme": "Légendes & Frissons",
       "difficulty": "normal"
     },
@@ -1800,7 +1800,7 @@
     },
     {
       "date": "2027-05-31",
-      "gridId": "armee-7x8-600eb5",
+      "gridId": "histoireguerres-7x8-4c0833",
       "theme": "Histoire & Guerres",
       "difficulty": "normal"
     },
@@ -1812,7 +1812,7 @@
     },
     {
       "date": "2027-06-02",
-      "gridId": "emotions-7x8-46259f",
+      "gridId": "emotions-7x8-759686",
       "theme": "Émotions & Sentiments",
       "difficulty": "normal"
     },
@@ -1824,7 +1824,7 @@
     },
     {
       "date": "2027-06-04",
-      "gridId": "mermarine-7x8-bef2c1",
+      "gridId": "mermarine-7x8-615ad3",
       "theme": "Mer & Marine",
       "difficulty": "normal"
     },
@@ -1848,7 +1848,7 @@
     },
     {
       "date": "2027-06-08",
-      "gridId": "boissons-7x8-d7f984",
+      "gridId": "gastronomie-7x8-48a15a",
       "theme": "Cuisine & Boissons",
       "difficulty": "normal"
     },
@@ -1860,7 +1860,7 @@
     },
     {
       "date": "2027-06-10",
-      "gridId": "musique-7x8-427232",
+      "gridId": "fetesmusique-7x8-afbc13",
       "theme": "Fêtes & Musique",
       "difficulty": "normal"
     },
@@ -1886,6 +1886,114 @@
       "date": "2027-06-14",
       "gridId": "enfants-7x8-787bdb",
       "theme": "Enfants",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-15",
+      "gridId": "transportsmoteurs-7x8-981f1b",
+      "theme": "Transports & Moteurs",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-16",
+      "gridId": "espace-7x8-905e87",
+      "theme": "Espace & Sciences",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-17",
+      "gridId": "ecolelettres-7x8-ac4daa",
+      "theme": "École & Lettres",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-18",
+      "gridId": "legendesfrissons-7x8-ab4948",
+      "theme": "Légendes & Frissons",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-19",
+      "gridId": "culturepop-7x8-a56116",
+      "theme": "Culture pop, Cinéma & Jeux vidéo",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-20",
+      "gridId": "histoireguerres-7x8-5c98ba",
+      "theme": "Histoire & Guerres",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-21",
+      "gridId": "jeux-7x8-ca693f",
+      "theme": "Sport & Jeux",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-22",
+      "gridId": "emotions-7x8-7711fa",
+      "theme": "Émotions & Sentiments",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-23",
+      "gridId": "justice-7x8-b367f3",
+      "theme": "Police & Justice",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-24",
+      "gridId": "mermarine-7x8-6477f8",
+      "theme": "Mer & Marine",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-25",
+      "gridId": "ateliermatieres-7x8-921cd3",
+      "theme": "Atelier & Maison",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-26",
+      "gridId": "corpshumain-7x8-890306",
+      "theme": "Corps humain",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-27",
+      "gridId": "argentbanque-7x8-9edcbb",
+      "theme": "Argent & Banque",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-28",
+      "gridId": "gastronomie-7x8-5debc6",
+      "theme": "Cuisine & Boissons",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-29",
+      "gridId": "arbresforet-7x8-2700b0",
+      "theme": "Nature & Paysages",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-06-30",
+      "gridId": "fetesmusique-7x8-b87111",
+      "theme": "Fêtes & Musique",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-07-01",
+      "gridId": "animaux-7x8-86eb37",
+      "theme": "Animaux",
+      "difficulty": "normal"
+    },
+    {
+      "date": "2027-07-02",
+      "gridId": "stars-7x8-a4cd7f",
+      "theme": "Stars",
       "difficulty": "normal"
     }
   ]
