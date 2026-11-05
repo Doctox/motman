@@ -78,7 +78,7 @@ export function RankingPage({ identity, progress, cosmetics, epreuveInitiale, op
     return <div className={`mm-ranking-row ${mine ? 'you' : ''}`} key={entry.user.playerId}>
       <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
       <SocialPortrait user={entry.user} small />
-      <strong>{entry.user.displayName}<small>{mine ? `Toi · ${entry.wins} victoire${entry.wins > 1 ? 's' : ''}` : `${entry.wins} victoire${entry.wins > 1 ? 's' : ''}`}</small></strong>
+      <strong><PseudoJoueur nom={entry.user.displayName} couleur={entry.user.couleurPseudo} /><small>{mine ? `Toi · ${entry.wins} victoire${entry.wins > 1 ? 's' : ''}` : `${entry.wins} victoire${entry.wins > 1 ? 's' : ''}`}</small></strong>
       <span className="mm-ranking-rank"><img src={rankImage(division)} alt="" /><b>{frenchNumber.format(entry.points)} <small>pt</small></b></span>
     </div>
   }

@@ -11,6 +11,8 @@ import { dailyThemeFor } from '../dailyThemeSchedule'
 import { dailyChallengeLabel } from '../dailyThemes'
 import { useDailyDateKey, useDailyLeaderboard } from './useDailyDay'
 import { SocialPortrait } from './MenuChrome'
+import { PseudoJoueur } from './PseudoJoueur'
+import { lireCouleurPseudo } from '../reglesPlus'
 import type { DailyRankingEntry } from '../dailyScore'
 import type { DailyLeaderboard } from '../dailyLeaderboard'
 import {
@@ -416,7 +418,7 @@ function DailyRankRow({ entry }: { entry: DailyRankingEntry }) {
     <span className={`mm-position ${entry.position <= 3 ? `p${entry.position}` : ''}`}>{entry.position}</span>
     <SocialPortrait user={{ displayName: entry.displayName, avatarId: entry.avatarId ?? undefined, frameId: entry.frameId ?? undefined, animationId: entry.animationId ?? undefined }} small />
     <strong>
-      {entry.displayName}
+      <PseudoJoueur nom={entry.displayName} couleur={lireCouleurPseudo(entry.couleurPseudo ?? null) ?? null} />
       <small>{entry.isMe ? 'Toi' : `${entry.score} pts · ${entry.turns} tours`}</small>
     </strong>
     <b>{entry.note} <small>pts</small></b>

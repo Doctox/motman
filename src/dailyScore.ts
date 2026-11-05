@@ -67,6 +67,8 @@ export type DailyRankingEntry = {
   frameId?: string | null
   /** Animation de portrait, comme au classement général. */
   animationId?: string | null
+  /** MotMan+ : la couleur de son pseudo (src/reglesPlus.ts), comme au classement classé. */
+  couleurPseudo?: string | null
   note: number
   score: number
   turns: number

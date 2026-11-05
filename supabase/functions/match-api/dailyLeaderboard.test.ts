@@ -66,7 +66,7 @@ function baseSimulee(options: {
       if (table === 'grid_player_history') {
         return resultat(options.courses.filter(c => c.daily_note !== null))
       }
-      if (table === 'profiles') return resultat(actifs.map(id => ({ id })))
+      if (table === 'profiles') return resultat(actifs.map(id => ({ id, couleur_pseudo: id === AMI ? 'prune' : null })))
       if (table === 'friendships') {
         return resultat(amis.map(id => ({ left_user_id: MOI, right_user_id: id })))
       }
@@ -204,3 +204,9 @@ Deno.test('une défaite menée au bout reste la partie retenue, même rejouée e
 })
 
 globalThis.fetch = originalFetch
+
+Deno.test('la couleur du pseudo d’un abonné se voit au classement du jour', async () => {
+  const board = await loadDailyLeaderboard(baseSimulee({ courses: [course(MOI, 50), course(AMI, 40)] }), MOI, '2026-09-10')
+  verifie(board.general.find(entree => entree.playerId === AMI)?.couleurPseudo === 'prune', 'la couleur de l’ami')
+  verifie(board.general.find(entree => entree.playerId === MOI)?.couleurPseudo === null, 'sans couleur : rien')
+})
