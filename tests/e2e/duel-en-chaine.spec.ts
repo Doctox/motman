@@ -18,7 +18,6 @@ import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
 const SERVEUR_TEST = `http://127.0.0.1:${process.env.MOTMAN_E2E_PORT ?? '4175'}`
 
 type Identite = ReturnType<typeof identite>
-type BoiteNoireRecue = { surChevalet: number; touchers: number; cacheMs: number; premiereImageMs: number | null; imageGeleeMs: number; ecrans: Array<{ actives: number; chrono: number | null }> }
 type Partie = {
   id: string; gridId: string; pace: string; status: string; winnerId: string | null; finishReason: string | null; currentPlayerId: string; turnNumber: number
   turnEndsAt: string; board: Record<string, { letter: string; playerId: string }>; racks: Record<string, string[]>; scores: Record<string, number>
@@ -44,7 +43,7 @@ async function session(joueur: Identite): Promise<APIRequestContext> {
 }
 
 /** Au doigt : `hasTouch`, et des `tap()` comme sur un téléphone. */
-async function ouvrir(browser: Browser, joueur: Identite, adresse: string, { largeur = 390, hauteur = 844, avant = {} as Record<string, string>, proprietaire = false } = {}) {
+async function ouvrir(browser: Browser, joueur: Identite, adresse: string, { largeur = 390, hauteur = 844, avant = {} as Record<string, string> } = {}) {
   const context = await browser.newContext({ viewport: { width: largeur, height: hauteur }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 })
   await context.addInitScript(({ stocke, reglages }) => {
     localStorage.setItem('motman-player-v1', JSON.stringify(stocke))
@@ -52,14 +51,6 @@ async function ouvrir(browser: Browser, joueur: Identite, adresse: string, { lar
     localStorage.setItem('motman:mot-du-createur', new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
     for (const [cle, valeur] of Object.entries(reglages)) localStorage.setItem(cle, valeur)
   }, { stocke: joueur, reglages: avant })
-  // Le drapeau du propriétaire vient de la réponse du serveur : le serveur de test ne l'envoie à personne.
-  if (proprietaire) {
-    await context.route('**/api/auth/bootstrap', async route => {
-      const reponse = await route.fetch()
-      const corps = await reponse.json() as { identity: object }
-      await route.fulfill({ response: reponse, json: { ...corps, identity: { ...corps.identity, admin: true } } })
-    })
-  }
   const page = await context.newPage()
   await page.goto(adresse)
   return { context, page }
@@ -507,67 +498,6 @@ test('le temps : un tour avec des lettres est joué, un tour muet est manqué, e
     // Celui dont le téléphone a clos la partie arrive bien sur l'écran de fin.
     await expect(ecranAutre.page.locator('.game-result-screen')).toBeVisible({ timeout: 15_000 })
     await expect(ecran.page.locator('.game-result-screen')).toBeVisible({ timeout: 15_000 })
-  } finally {
-    await ecran.context.close()
-    await ecranAutre.context.close()
-    await apiA.dispose()
-    await apiB.dispose()
-  }
-})
-
-test('un tour perdu sans lettre : la boîte noire part avec la fin du tour, et seulement pour le propriétaire', async ({ browser }) => {
-  test.setTimeout(120_000)
-  const a = identite('Noir A')
-  const b = identite('Noir B')
-  const [apiA, apiB] = await Promise.all([session(a), session(b)])
-  const matchId = await apparier(a, apiA, b, apiB, 7_000)
-  const initiale = await lire(apiA, a, matchId)
-  const [joueur, apiJ, adverse] = initiale.currentPlayerId === a.playerId ? [a, apiA, b] as const : [b, apiB, a] as const
-  const ecran = await ouvrir(browser, joueur, `/#partie=${encodeURIComponent(matchId)}`, { proprietaire: true })
-  const ecranAutre = await ouvrir(browser, adverse, `/#partie=${encodeURIComponent(matchId)}`)
-  const main = async (attendu: Identite) => expect.poll(async () => (await lire(apiJ, joueur, matchId)).currentPlayerId, { timeout: 20_000 }).toBe(attendu.playerId)
-  try {
-    const finsDeTour: Array<{ automatic?: boolean; boiteNoire?: BoiteNoireRecue }> = []
-    ecran.page.on('request', requete => {
-      if (requete.url().endsWith('/api/matches/turn')) finsDeTour.push(requete.postDataJSON())
-    })
-    const finsDeLAutre: typeof finsDeTour = []
-    ecranAutre.page.on('request', requete => {
-      if (requete.url().endsWith('/api/matches/turn')) finsDeLAutre.push(requete.postDataJSON())
-    })
-
-    // Un tour joué : rien de plus ne part.
-    await aSonTour(ecran.page)
-    const coup = coupJuste(await lire(apiJ, joueur, matchId), joueur)
-    await poser(ecran.page, coup)
-    await expect(caseDe(ecran.page, coup.cellIndex)).toHaveAttribute('data-confirmed', 'true')
-    await main(adverse)
-    await aSonTour(ecranAutre.page)
-    await ecranAutre.page.getByRole('button', { name: 'Passer mon tour' }).tap()
-    await main(joueur)
-
-    // Un tour où je touche une lettre sans la poser : le téléphone dit ce qu'il a vu.
-    await aSonTour(ecran.page)
-    await eclairPasse(ecran.page)
-    await ecran.page.locator('.rack-letter').first().tap()
-    await main(adverse)
-    expect(finsDeTour.map(fin => fin.automatic)).toEqual([true, true])
-    expect(finsDeTour[0].boiteNoire, 'des lettres posées : rien à expliquer').toBeUndefined()
-    const boite = finsDeTour[1].boiteNoire
-    expect(boite?.surChevalet).toBeGreaterThan(0)
-    expect(boite?.touchers).toBeGreaterThanOrEqual(boite?.surChevalet ?? 1)
-    expect(boite?.cacheMs).toBe(0)
-    expect(boite?.premiereImageMs, 'une image a bien été dessinée').not.toBeNull()
-    expect(boite?.imageGeleeMs).toBeGreaterThanOrEqual(0)
-    expect(boite?.ecrans.length, 'à 2 s, à mi-tour et à 00:00').toBe(3)
-    expect(boite?.ecrans[0]).toMatchObject({ titre: 'moi', dessus: 'lettre', attente: false, resolution: false, modale: false })
-    expect(boite?.ecrans[0].actives).toBeGreaterThan(0)
-    expect(boite?.ecrans[0].chrono).toBeGreaterThan(0)
-
-    // Un joueur ordinaire perd son tour : rien de plus ne part.
-    await main(joueur)
-    expect(finsDeLAutre.at(-1)?.automatic).toBe(true)
-    expect(finsDeLAutre.at(-1)?.boiteNoire).toBeUndefined()
   } finally {
     await ecran.context.close()
     await ecranAutre.context.close()

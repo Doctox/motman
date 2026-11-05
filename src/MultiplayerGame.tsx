@@ -40,7 +40,6 @@ import { compactClue, sameNumberRecord } from './game/gameDisplay'
 import { lettresGardeesApresConflit } from './game/brouillonDuTour'
 import { useBrouillonDuTour } from './game/useBrouillonDuTour'
 import { useSynchroDePartie } from './game/useSynchroDePartie'
-import { useBoiteNoireDuTour } from './game/boiteNoireDuTour'
 import { useClueAutoFit } from './game/clueAutoFit'
 import { aimPoint, cellAtPoint, measureCells, SEUIL_GLISSER_PX, type CellBox } from './game/dropTargeting'
 import { FINAL_GRID_COMPLETION_HOLD_MS, matchPresentationPhase } from './game/matchPresentation'
@@ -256,7 +255,6 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   // « À toi » ne bloque plus la saisie (15/10/2026, A4) : il prenait 1,8 s sur
   // les 45 du joueur, que le serveur en ligne ne lui rendait pas.
   const canAct = Boolean(isMyTurn && !match?.pause)
-  const boiteNoire = useBoiteNoireDuTour(match, playerId, Boolean(identity.current.admin))
   // La carte allumée suit la révélation seulement pendant qu'elle a lieu : un nom
   // resté en mémoire après une révélation interrompue allumait la carte de
   // l'adversaire pendant tout mon tour (15/10/2026, F1).
@@ -779,7 +777,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
    * les lettres qui restent au chevalet.
    */
   const envoyerLettre = (tile: Tile, cellIndex: number) => {
-    if (!matchRef.current?.chaine || provisionalRef.current[cellIndex] || lettresEnAttente.current.some(lettre => lettre.tile.id === tile.id)) { boiteNoire.refus('deja-en-file'); return }
+    if (!matchRef.current?.chaine || provisionalRef.current[cellIndex] || lettresEnAttente.current.some(lettre => lettre.tile.id === tile.id)) return
     lettresEnAttente.current.push({ tile, cellIndex, partieA: serverNow() })
     peindreLesLettresEnAttente()
     setSelected(null); setError(null); haptic(10); playEffect('place'); noterActivite()
@@ -839,7 +837,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   }
 
   const placeTile = (tile: Tile, cellIndex: number, origin: 'rack' | number = 'rack') => {
-    if (!canAct || resolving || !grid || match?.board[cellIndex] || grid.cells[cellIndex].kind !== 'letter') { boiteNoire.refus(resolving ? 'resolution' : !canAct ? 'pas-a-moi' : 'case'); return }
+    if (!canAct || resolving || !grid || match?.board[cellIndex] || grid.cells[cellIndex].kind !== 'letter') return
     if (match?.chaine) { envoyerLettre(tile, cellIndex); return }
     updateProvisional(current => {
       const next = { ...current }
@@ -935,7 +933,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   const pointerDown = (event: React.PointerEvent, tile: Tile, origin: 'rack' | number) => {
     // Un seul doigt à la fois : un deuxième contact (l'autre main, la paume, le
     // pouce qui tient le téléphone) ne reprend pas une lettre en plein geste.
-    if (!canAct || resolving || drag) { boiteNoire.refus(drag ? 'geste-en-cours' : resolving ? 'resolution' : 'pas-a-moi'); return }
+    if (!canAct || resolving || drag) return
     if (enChaine && origin !== 'rack') return
     event.currentTarget.setPointerCapture(event.pointerId)
     refreshCellBoxes()
@@ -1015,9 +1013,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     // puis le tour suivant, c'est ce que le propriétaire a vécu par réseau lent.
     const lenteur = window.setTimeout(() => setStatus('Connexion lente · ton coup arrive…'), 3_000)
     try {
-      const sansLettre = currentMatch.chaine ? !currentMatch.chaine.lettres.length : !Object.keys(provisionalRef.current).length
       // En chaîne, tout est déjà jugé : « Passer » et 00:00 ne font que fermer le tour.
-      const response = await playMatchTurn(playerId, currentMatch.id, currentMatch.turnNumber, currentMatch.chaine ? [] : Object.entries(provisionalRef.current).map(([cellIndex, tile]) => ({ cellIndex: Number(cellIndex), letter: tile.letter })), automatic, currentMatch.chaine ? undefined : currentMatch.updatedAt, automatic && sansLettre ? boiteNoire.resumer() : undefined)
+      const response = await playMatchTurn(playerId, currentMatch.id, currentMatch.turnNumber, currentMatch.chaine ? [] : Object.entries(provisionalRef.current).map(([cellIndex, tile]) => ({ cellIndex: Number(cellIndex), letter: tile.letter })), automatic, currentMatch.chaine ? undefined : currentMatch.updatedAt)
       window.clearTimeout(lenteur)
       applyMatchState(response.match)
       annoncerQuetes(response.result)

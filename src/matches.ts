@@ -2,7 +2,6 @@ import type { SocialUser } from './social'
 import type { GeneratedGrid } from './generator'
 import { hasSupabaseSession } from './supabaseClient'
 import { FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, RELANCES_FIN_DE_TOUR, RELANCES_LETTRE, type Relances } from './supabaseFunctions'
-import type { BoiteNoire } from './game/boiteNoireDuTour'
 import type { EnDirect } from './game/lettresEnDirect'
 import type { BoardSnapshot } from './matchBoardSnapshot'
 import type { MatchHistoryOutcome } from './matchHistory'
@@ -285,10 +284,10 @@ export async function loadMatch(playerId: string, matchId: string, knownUpdatedA
   return remote.unchanged ? null : remote.match ?? null
 }
 
-export async function playMatchTurn(playerId: string, matchId: string, turnNumber: number, placements: Array<{ cellIndex: number; letter: string }>, automatic = false, knownUpdatedAt?: string, boiteNoire?: BoiteNoire): Promise<{ match: MatchState; result: MatchTurn }> {
-  if (localTestServer) return localMatch('turn', { playerId, matchId, turnNumber, placements, automatic, knownUpdatedAt, boiteNoire })
+export async function playMatchTurn(playerId: string, matchId: string, turnNumber: number, placements: Array<{ cellIndex: number; letter: string }>, automatic = false, knownUpdatedAt?: string): Promise<{ match: MatchState; result: MatchTurn }> {
+  if (localTestServer) return localMatch('turn', { playerId, matchId, turnNumber, placements, automatic, knownUpdatedAt })
   void playerId
-  return supabaseMatch<{ match: MatchState; result: MatchTurn }>('turn', { matchId, turnNumber, placements, automatic, knownUpdatedAt, boiteNoire }, FUNCTION_TIMEOUT_MS, automatic ? RELANCES_FIN_DE_TOUR : undefined)
+  return supabaseMatch<{ match: MatchState; result: MatchTurn }>('turn', { matchId, turnNumber, placements, automatic, knownUpdatedAt }, FUNCTION_TIMEOUT_MS, automatic ? RELANCES_FIN_DE_TOUR : undefined)
 }
 
 /** Une lettre qui n'est pas arrivée au bout de ce délai revient au chevalet : le tour n'en dure que 30 s. */
