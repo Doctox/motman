@@ -92,7 +92,7 @@ test('le compte du propriétaire a MotMan+ ouvert dès que le serveur le reconna
   })
   await page.goto('/#jouer')
   await ouvrirLesThemes(page)
-  await page.getByRole('button', { name: 'Animaux', exact: true }).click()
+  await page.getByRole('button', { name: /^Animaux/ }).click()
   await expect(page.getByRole('dialog', { name: 'Animaux' }).getByRole('button', { name: 'Jouer ce thème' })).toBeVisible()
 })
 
@@ -100,7 +100,7 @@ test('abonné, un thème ouvre sa fiche, et le pseudo prend sa couleur', async (
   await page.addInitScript(() => localStorage.setItem('motman-abonnement-test', JSON.stringify({ actif: true, couleurPseudo: 'prune' })))
   await page.goto('/#jouer')
   await ouvrirLesThemes(page)
-  await page.getByRole('button', { name: 'Animaux', exact: true }).click()
+  await page.getByRole('button', { name: /^Animaux/ }).click()
   const fiche = page.getByRole('dialog', { name: 'Animaux' })
   await expect(fiche.getByRole('button', { name: 'Jouer ce thème' })).toBeVisible()
   // Le rythme se choisit (16/10/2026) : au calme la première fois, puis le dernier choix.
@@ -293,7 +293,7 @@ test('un thème avec chrono se joue contre un adversaire, chrono à l’écran',
   await compteProprietaire(page)
   await page.goto('/#jouer')
   await ouvrirLesThemes(page)
-  await page.getByRole('button', { name: 'Animaux', exact: true }).click()
+  await page.getByRole('button', { name: /^Animaux/ }).click()
   const fiche = page.getByRole('dialog', { name: 'Animaux' })
   await fiche.getByRole('button', { name: 'Avec chrono, 45 secondes par tour' }).click()
   await fiche.getByRole('button', { name: 'Jouer ce thème' }).click()
@@ -311,7 +311,7 @@ test('inviter un ami sur un thème : il le lit sur l’invitation, et la partie 
   await page.addInitScript(stocke => localStorage.setItem('motman-player-v1', JSON.stringify(stocke)), moi)
   await page.goto('/#jouer')
   await ouvrirLesThemes(page)
-  await page.getByRole('button', { name: 'Animaux', exact: true }).click()
+  await page.getByRole('button', { name: /^Animaux/ }).click()
   await page.getByRole('dialog', { name: 'Animaux' }).getByRole('button', { name: /Inviter un ami sur ce thème/ }).click()
 
   // La liste d'amis habituelle, avec le thème en plus : et pas de choix « en chaîne ».
