@@ -19,8 +19,9 @@ TRAIT = (96, 78, 62)
 BLEU = (98, 128, 176)
 OR = (205, 163, 76)
 THE = (176, 104, 46)
-VAPEUR = (0.80, 0.84, 0.88)
+VAPEUR = (0.74, 0.79, 0.85)
 TASSE_X, TASSE_Y = C, C + 60          # posée sur le bas du cadre
+HAUTEUR_VAPEUR = 25.0                 # s'arrête sous le menton, même avec un petit avatar
 
 
 def tasse(d):
@@ -63,19 +64,19 @@ def volute(cv, t, decale, phase, coeur_q):
     for k in range(34):
         s = k / 33                               # 0 en bas (tasse), 1 en haut
         age = (s + t * 1.0 + phase) % 1.0        # la vapeur défile vers le haut
-        y = TASSE_Y - 11 - 38 * s
+        y = TASSE_Y - 11 - HAUTEUR_VAPEUR * s
         x = TASSE_X + decale + 4.5 * math.sin(2 * math.pi * (1.4 * s - 2 * t + phase)) * (0.4 + s)
         if coeur_q > 0:
             # moitié de cœur : la volute gauche dessine le lobe gauche, la droite le lobe droit
             ang = math.pi * s * (1 if decale > 0 else -1)
             hx, hy = coeur(ang)
-            cx_, cy_ = TASSE_X + 12 * hx, TASSE_Y - 36 + 12 * hy - 8 * coeur_q
+            cx_, cy_ = TASSE_X + 9 * hx, TASSE_Y - 27 + 9 * hy - 3 * coeur_q
             x = x + (cx_ - x) * coeur_q
             y = y + (cy_ - y) * coeur_q
         alpha = math.sin(math.pi * s) ** 0.8 * (0.30 + 0.25 * math.sin(2 * math.pi * age) ** 2)
         if coeur_q > 0:
-            alpha = alpha * (1 - coeur_q) + 0.55 * coeur_q * (1 - lisse(0.75, 1.0, coeur_q))
-        r = (1.4 + 1.6 * s) * SS
+            alpha = alpha * (1 - coeur_q) + 0.8 * coeur_q * (1 - lisse(0.85, 1.0, coeur_q))
+        r = (1.4 + 1.6 * s) * (1 - 0.5 * coeur_q) * SS     # traits plus fins : le cœur se lit, même petit
         stamp_dot(cv, x * SS, y * SS, r, VAPEUR, alpha)
 
 
@@ -97,4 +98,4 @@ def render(f):
 
 if __name__ == '__main__':
     sortie = sys.argv[1] if len(sys.argv) > 1 else '.'
-    ecrire([render(f) for f in range(NF)], 'tasse-the', DUR, sortie, affiche=34)
+    ecrire([render(f) for f in range(NF)], 'tasse-the-2', DUR, sortie, affiche=34)

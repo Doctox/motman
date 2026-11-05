@@ -26,7 +26,7 @@ OR = (243, 206, 112)
 OR_VIF = (255, 226, 140)
 CASE = 18.0                    # côté d'une case (px 224)
 R_FLECHE = 58.0                # la flèche longe le bord du portrait (rayon 52)
-LIGNE_MOT = 143.0              # ligne du mot, en travers du bas du portrait
+LIGNE_MOT = 153.0              # ligne du mot, sur le bas du portrait : jamais au menton, même avec un petit avatar
 X_MOT = (92.0, 112.0, 132.0)   # centres des trois cases
 
 

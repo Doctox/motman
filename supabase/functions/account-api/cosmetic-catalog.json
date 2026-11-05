@@ -782,7 +782,7 @@
       "rarity": "commun",
       "pricePlumes": 1300,
       "availability": "epicerie",
-      "asset": "/assets/animations/lab/tasse-the.png"
+      "asset": "/assets/animations/lab/tasse-the-2.png"
     },
     {
       "kind": "animation",
@@ -944,7 +944,7 @@
       "rarity": "exceptionnel",
       "pricePlumes": 5900,
       "availability": "epicerie",
-      "asset": "/assets/animations/lab/papillons-du-songe.png"
+      "asset": "/assets/animations/lab/papillons-du-songe-2.png"
     },
     {
       "kind": "animation",
@@ -962,7 +962,7 @@
       "rarity": "legendaire",
       "pricePlumes": 8200,
       "availability": "epicerie",
-      "asset": "/assets/animations/lab/oiseau-de-lumiere.png"
+      "asset": "/assets/animations/lab/oiseau-de-lumiere-2.png"
     },
     {
       "kind": "animation",
@@ -980,7 +980,7 @@
       "rarity": "legendaire",
       "pricePlumes": 9000,
       "availability": "epicerie",
-      "asset": "/assets/animations/lab/dragon-solaire.png"
+      "asset": "/assets/animations/lab/dragon-solaire-2.png"
     }
   ],
   "baskets": [
