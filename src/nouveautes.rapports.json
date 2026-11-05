@@ -396,5 +396,11 @@
     "ajoute": "2026-11-05T03:22",
     "titre": "Les lettres de l'autre arrivent une à une",
     "texte": "Pendant le tour de ton adversaire, ses lettres n'apparaissent plus par paquets : tu les vois arriver l'une après l'autre, au défi comme en partie."
+  },
+  {
+    "ajoute": "2026-11-05T16:38",
+    "titre": "152 nouvelles grilles",
+    "texte": "Les parties normales en comptent désormais 760 : tu retomberas moins souvent sur la même.",
+    "genre": "grilles"
   }
 ]

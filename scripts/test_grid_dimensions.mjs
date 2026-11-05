@@ -54,7 +54,8 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 43],
+      ['version', catalog.version, 44],
+      // v44 (05/11) : lot « normales-12 », 152 grilles de rotation.
       // v43 (04/11) : huit thèmes grossis (145 grilles), une révision des normales qui
       // change des définitions en dessins, et onze grilles retirées du tirage (mots rares).
       // v42 (16/10) : Atelier & Maison change toutes ses grilles — 25 neuves
@@ -67,12 +68,12 @@ try {
       // EQUIPE/EQUIPER…). v38 (25/09) : trois thèmes neufs, Justice & Droit, Maison, Mer & Marine
       // (15 grilles à thème). v37 (23/09) : lot « normales-9 », 117 grilles de
       // rotation. v36 (22/09) : six thèmes neufs (30 grilles à thème).
-      // 262 en v35 → 292 → 409 → 424 → 539 → 904 → 914 → 1048.
-      ['grilles', catalog.grids.length, 1048],
+      // 262 en v35 → 292 → 409 → 424 → 539 → 904 → 914 → 1048 → 1200.
+      ['grilles', catalog.grids.length, 1200],
       // 413 en v35 ; les lots v36 à v38 en ont apporté 116, la v39 112 moins
       // les 11 des grilles retirées ; la v41, 224 ; la v42, 19 moins 15 ;
-      // la v43, 154 des lots, plus 236 moins 43 de la révision, moins 10 des grilles retirées.
-      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 1195],
+      // la v43, 154 des lots, plus 236 moins 43 de la révision, moins 10 des grilles retirées ; la v44, 369.
+      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 1564],
       // Les grilles à thème du défi du jour : 75 en v35, +30 en v36, +15 en v38, +165 en v41, +25 −15 en v42, +145 en v43.
       ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 440],
     ]
