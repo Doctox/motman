@@ -14,7 +14,7 @@ import type { MatchRow, Pace, Variante } from './matchModel.ts'
 import { inQuietHours } from './matchReminders.ts'
 
 export function notifyCurrentTurn(admin: AdminClient, row: MatchRow): void {
-  if (row.status !== 'active' || row.pace !== 'async' || row.state.bot?.playerId === row.current_player_id) return
+  if (row.status !== 'active' || row.pace !== 'async' || row.state.calme || row.state.bot?.playerId === row.current_player_id) return
   // Un tour PASSÉ est désormais clos par la tâche des rappels, à toute heure :
   // pas de notification la nuit pour ça, le rappel de 8 h prendra le relais.
   const tourPasse = row.state.lastTurn?.kind === 'timeout'
@@ -34,10 +34,11 @@ export function notifyFriendInvitation(
   inviterName: string,
   pace: Pace,
   variante: Variante = 'classique',
+  theme?: string | null,
 ): void {
   queuePush(sendPushToUser(admin, guestId, {
     title: `Invitation de ${inviterName}`,
-    body: variante === 'chaine' ? 'Te propose une partie en chaîne.' : pace === 'async' ? 'Te propose une partie en temps illimité.' : 'Te propose une partie en temps limité.',
+    body: theme ? `Te propose une partie à thème : ${theme}.` : variante === 'chaine' ? 'Te propose une partie en chaîne.' : pace === 'async' ? 'Te propose une partie en temps illimité.' : 'Te propose une partie en temps limité.',
     data: { type: 'friend_invitation', invitationId },
     tag: `invitation-${invitationId}`,
   }))

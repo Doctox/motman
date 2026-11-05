@@ -23,7 +23,7 @@ import { normalRotationGrids } from '../../../src/dailyThemes.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { neededLetters, refill, ruleGrid } from './matchGrid.ts'
-import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, type Bot, type CatalogGrid, type MatchRow, type Mode, type Pace, type State, type Variante } from './matchModel.ts'
+import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, TOUR_CALME_MS, type Bot, type CatalogGrid, type FamilleDeForce, type MatchRow, type Mode, type Pace, type State, type Variante } from './matchModel.ts'
 import { chaineVierge } from './matchTurns.ts'
 
 export type ActiveMatchGrid = { id: string; gridId: string; createdAt: string }
@@ -106,7 +106,7 @@ type HistoriqueJoueur = { recent: string[]; counts: Record<string, number> }
  * Anciens identifiants rattachés aux grilles renommées, archive comprise
  * (`server_player_grid_plays`, migration 20260915150000).
  */
-async function historiquesJoueurs(admin: AdminClient, playerIds: string[]): Promise<HistoriqueJoueur[]> {
+export async function historiquesJoueurs(admin: AdminClient, playerIds: string[]): Promise<HistoriqueJoueur[]> {
   if (!playerIds.length) return []
   // Par pages (22/10/2026) : une ligne par joueur et par grille jouée. Deux
   // habitués qui ont fait le tour des ~620 grilles normales dépassent déjà les
@@ -140,11 +140,21 @@ async function historiquesJoueurs(admin: AdminClient, playerIds: string[]): Prom
 /** Une ligne de `server_grid_selection` : le strict nécessaire au tirage. */
 type GridSelectionRow = { id: string; daily_only: boolean; words: Array<{ answer: string }> | null }
 
+/** Le thème demandé n'a aucune grille active. */
+export class ThemeSansGrilleError extends Error {
+  constructor(theme: string) {
+    super(`Aucune grille active pour le thème « ${theme} ».`)
+    this.name = 'ThemeSansGrilleError'
+  }
+}
+
 export async function chooseGrid(
   admin: AdminClient,
   seed: string,
   playerIds: string[],
   excludedMatchId?: string,
+  /** MotMan+ : les grilles de ce thème, celles que le tirage normal écarte. */
+  theme?: string,
 ): Promise<CatalogGrid> {
   // ON NE LIT PLUS TOUT LE CATALOGUE POUR N'EN GARDER QU'UNE GRILLE.
   //
@@ -167,12 +177,14 @@ export async function chooseGrid(
   // le dire : passé ce nombre, les grilles rangées après la 1 000e ne seraient
   // jamais sorties, et « la moins jouée d'abord » ne les aurait pas vues.
   const [selectionRows, histories, activeMatches] = await Promise.all([
-    toutesLesLignes((de, a) => admin.from('server_grid_selection').select('id,daily_only,words')
-      .eq('active', true).eq('daily_only', false).order('id').range(de, a)),
+    toutesLesLignes((de, a) => {
+      const requete = admin.from('server_grid_selection').select('id,daily_only,words').eq('active', true)
+      return (theme ? requete.eq('daily_only', true).eq('theme', theme) : requete.eq('daily_only', false)).order('id').range(de, a)
+    }),
     historiquesJoueurs(admin, playerIds),
     activeMatchesForPlayers(admin, playerIds, excludedMatchId),
   ])
-  if (!selectionRows.length) throw new Error('Le catalogue serveur est vide.')
+  if (!selectionRows.length) throw theme ? new ThemeSansGrilleError(theme) : new Error('Le catalogue serveur est vide.')
   // Les grilles à thème sont RÉSERVÉES au défi du jour, qui les charge par son
   // identifiant (`activeGridById`). Elles restent `active` — sans quoi le défi
   // ne pourrait pas les servir — et c'est donc ICI qu'elles sortent du tirage :
@@ -184,7 +196,7 @@ export async function chooseGrid(
     dailyOnly: ligne.daily_only,
   }))
   const retenue = selectGridForPlayers({
-    grids: normalRotationGrids(candidates),
+    grids: theme ? candidates : normalRotationGrids(candidates),
     recentGridIdsByPlayer: histories.map(historique => historique.recent),
     playCountsByPlayer: histories.map(historique => historique.counts),
     activeGridIds: activeMatches.map(item => item.gridId),
@@ -213,12 +225,18 @@ export async function playerLevel(admin: AdminClient, userId: string): Promise<n
 }
 
 /**
- * En chaîne : la force de son prochain adversaire, d'après sa dernière partie contre lui
- * dans l'historique, gardée 90 jours. Sans partie, celle de son niveau (`botOpponents.ts`).
+ * La force de son prochain adversaire, d'après sa dernière partie contre lui dans
+ * l'historique, gardée 90 jours. Sans partie, celle de son niveau (`botOpponents.ts`).
+ *
+ * Une force par famille (05/11/2026) : En chaîne (`famille` absente), en règles normales
+ * avec chrono, au calme. Elles ne mesurent pas la même chose : sans chrono, un joueur gagne
+ * plus, et ça ne doit pas durcir ses parties chronométrées.
  */
-export async function forceDuProchainAdversaire(admin: AdminClient, userId: string, skill: BotSkill): Promise<number> {
-  const { data } = await admin.from('grid_player_history').select('force_adversaire,outcome').eq('user_id', userId)
-    .not('force_adversaire', 'is', null).order('completed_at', { ascending: false }).limit(1).maybeSingle()
+export async function forceDuProchainAdversaire(admin: AdminClient, userId: string, skill: BotSkill, famille?: FamilleDeForce): Promise<number> {
+  const requete = admin.from('grid_player_history').select('force_adversaire,outcome').eq('user_id', userId)
+    .not('force_adversaire', 'is', null)
+  const { data } = await (famille ? requete.eq('famille_force', famille) : requete.is('famille_force', null))
+    .order('completed_at', { ascending: false }).limit(1).maybeSingle()
   return data ? forceSuivante(Number(data.force_adversaire), data.outcome) : forceDeDepart(skill)
 }
 
@@ -269,6 +287,8 @@ export type CreateMatchOptions = {
   dailyDate?: string
   /** Grille du calendrier du jour : partagée par tous les joueurs. */
   forcedGridId?: string | null
+  /** MotMan+ : ce que la partie porte en plus (partie au calme, thème choisi). */
+  marques?: Pick<State, 'calme' | 'themeChoisi'>
 }
 
 export async function createMatch(
@@ -286,13 +306,15 @@ export async function createMatch(
   const forcedGrid = options.forcedGridId ? await activeGridById(admin, options.forcedGridId) : null
   // Le défi du jour porte ses marqueurs dans l'état persisté : `view` les relit à
   // chaque chargement, y compris après une reprise sur coupure.
-  const markDaily = (state: State): State => options.isDaily && options.dailyDate
-    ? { ...state, isDaily: true, dailyDate: options.dailyDate }
-    : state
+  const marquer = (state: State): State => ({
+    ...state,
+    ...(options.isDaily && options.dailyDate ? { isDaily: true, dailyDate: options.dailyDate } : {}),
+    ...options.marques,
+  })
   const grid = forcedGrid ?? await chooseGrid(admin, selectionSeed, humanPlayerIds)
   const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
-  const endsAt = new Date(startedAt.getTime() + (pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
-  const state = markDaily(initialMatchState(grid, hostId, guestId, invitationId, bot))
+  const endsAt = new Date(startedAt.getTime() + (options.marques?.calme ? TOUR_CALME_MS : pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
+  const state = marquer(initialMatchState(grid, hostId, guestId, invitationId, bot))
   const { data: insertedRow, error } = await admin.from('server_matches').insert({
     mode, pace, grid_id: grid.id, state, status: 'active', current_player_id: hostId,
     turn_number: 1, turn_started_at: startedAt.toISOString(), turn_ends_at: endsAt.toISOString(),
@@ -311,9 +333,9 @@ export async function createMatch(
   // La grille du défi du jour est EXCLUE de la parade à la collision : elle est
   // partagée par tous les joueurs du jour, la faire tourner viderait le défi de
   // son sens. Une grille de repli, elle, cède comme les autres — et la partie
-  // reste un défi du jour (`markDaily`).
+  // reste un défi du jour (`marquer`).
   if (forcedGrid) return { row, grid }
-  return resolveAtomicGridCollision(admin, row, grid, hostId, guestId, invitationId, bot, selectionSeed, markDaily)
+  return resolveAtomicGridCollision(admin, row, grid, hostId, guestId, invitationId, bot, selectionSeed, marquer)
 }
 
 export async function prepareAtomicMatch(
@@ -324,14 +346,16 @@ export async function prepareAtomicMatch(
   invitationId: string | null,
   bot: Bot | null,
   variante: Variante = 'classique',
+  /** MotMan+ : l'invitation d'un ami sur un thème. */
+  theme?: string | null,
 ) {
   const humanPlayerIds = [hostId, guestId].filter(id => id !== bot?.playerId)
   const selectionSeed = `${hostId}:${guestId}:${Date.now()}`
-  const grid = await chooseGrid(admin, selectionSeed, humanPlayerIds)
+  const grid = await chooseGrid(admin, selectionSeed, humanPlayerIds, undefined, theme ?? undefined)
   const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
   const dureeDuTour = variante === 'chaine' ? CHAINE_TOUR_MS : pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS
   const endsAt = new Date(startedAt.getTime() + dureeDuTour)
-  const state = initialMatchState(grid, hostId, guestId, invitationId, bot, variante)
+  const state: State = { ...initialMatchState(grid, hostId, guestId, invitationId, bot, variante), ...(theme ? { themeChoisi: theme } : {}) }
   return { grid, state, startedAt, endsAt, selectionSeed, humanPlayerIds }
 }
 
@@ -369,10 +393,11 @@ export async function resolveAtomicGridCollision(
       sameGridMatches.map(item => ({ id: item.id, createdAt: item.createdAt })),
     )
     if (!newerThanConflict) break
-    const replacement = await chooseGrid(admin, `${selectionSeed}:collision:${collisionAttempt}`, humanPlayerIds, row.id)
+    const theme = initialRow.state.themeChoisi
+    const replacement = await chooseGrid(admin, `${selectionSeed}:collision:${collisionAttempt}`, humanPlayerIds, row.id, theme)
     if (replacement.id === grid.id) break
-    // Une grille de rechange ne change pas la partie : un duel en chaîne le reste.
-    const state = marquer(initialMatchState(replacement, hostId, guestId, invitationId, bot, initialRow.state.chaine ? 'chaine' : 'classique'))
+    // Une grille de rechange ne change pas la partie : un duel en chaîne le reste, un thème aussi.
+    const state = marquer({ ...initialMatchState(replacement, hostId, guestId, invitationId, bot, initialRow.state.chaine ? 'chaine' : 'classique'), ...(theme ? { themeChoisi: theme } : {}) })
     const { data: updatedRow, error: updateError } = await admin.from('server_matches')
       // `updated_at` bouge avec la grille : un client qui avait lu la partie
       // avant le changement recevait sinon « rien de nouveau » et gardait

@@ -312,6 +312,7 @@ Deno.test('le prochain adversaire en chaîne repart de la dernière partie, ou d
       select: () => requete,
       eq: (colonne: string, valeur: unknown) => { lectures.push({ [colonne]: valeur }); return requete },
       not: (colonne: string, operateur: string) => { lectures.push({ [colonne]: operateur }); return requete },
+      is: (colonne: string, valeur: unknown) => { lectures.push({ [colonne]: valeur }); return requete },
       order: () => requete,
       limit: () => requete,
       maybeSingle: () => Promise.resolve({ data: ligne, error: null }),
@@ -319,6 +320,11 @@ Deno.test('le prochain adversaire en chaîne repart de la dernière partie, ou d
     return { from: () => requete } as unknown as AdminClient
   }
   verifie(await forceDuProchainAdversaire(historique(null), HOTE, 'regular') === 0.5, 'sans partie : la force de son niveau')
+  verifie(lectures.some(lecture => lecture.famille_force === null), 'En chaîne ne lit que sa famille')
+  lectures.length = 0
+  verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.2, outcome: 'win' }), HOTE, 'regular', 'calme') === 0.24, 'au calme : sa dernière partie au calme')
+  verifie(lectures.some(lecture => lecture.famille_force === 'calme'), 'chaque famille lit la sienne')
+  lectures.length = 0
   verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.8, outcome: 'win' }), HOTE, 'regular') === 0.84, 'il a gagné : plus fort')
   verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.8, outcome: 'loss' }), HOTE, 'regular') === 0.74, 'il a perdu : moins fort')
   verifie(lectures.some(lecture => lecture.user_id === HOTE), 'la sienne, pas celle d’un autre')

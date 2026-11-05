@@ -105,7 +105,8 @@ export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = 
       -- La table match_participants ne contient que des humains : les bots n'y
       -- entrent jamais. Le transfert vers un match classé est volontairement sans
       -- récompense — l'exclure évite une fausse alerte à chaque duel interrompu.
-      -- Même chose pour la partie automatique qui cède sa place pendant la lecture.
+      -- Même chose pour la partie automatique qui cède sa place pendant la lecture,
+      -- et pour la partie au calme de MotMan+, plaisir seulement.
       -- (Pas d'accent grave dans ce bloc : il est à l'intérieur d'un gabarit de
       --  chaîne JavaScript, qu'un accent grave refermerait.)
       select participant.user_id, partie.id, partie.updated_at
@@ -113,6 +114,7 @@ export async function collectUnpaidRewards(projectRef, accessToken, fetchImpl = 
       join public.match_participants as participant on participant.match_id = partie.id
       where partie.status = 'finished'
         and coalesce(partie.finish_reason, '') not in ('ranked_transfer', 'human_takeover')
+        and coalesce(partie.state ->> 'calme', '') <> 'true'
         and not exists (
           select 1 from public.experience_awards as recompense
           where recompense.user_id = participant.user_id

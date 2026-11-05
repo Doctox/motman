@@ -123,6 +123,9 @@ export async function view(
     ...(state.isDaily ? { isDaily: true, dailyDate: state.dailyDate } : {}),
     // Un duel en chaîne : le tour en cours, déjà public (matchChaine.ts).
     ...(state.chaine ? { chaine: state.chaine } : {}),
+    // MotMan+ : pas de chrono à l'écran, et de quoi rejouer le même thème.
+    ...(state.calme ? { calme: true } : {}),
+    ...(state.themeChoisi ? { themeChoisi: state.themeChoisi } : {}),
     // Cette partie a cédé la place : l'écran saute à celle-ci, sans écran de fin (20261104120000).
     ...(state.remplaceePar ? { remplaceePar: state.remplaceePar } : {}),
     // PAS DE GRILLE PENDANT LA CONFIRMATION (22/10/2026, code S3). Pendant les

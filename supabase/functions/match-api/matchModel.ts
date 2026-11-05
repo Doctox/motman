@@ -17,6 +17,12 @@ export const nowIso = () => new Date().toISOString()
 // expiration) — d'où leur présence ici plutôt que dans l'un des deux.
 export const REALTIME_TURN_MS = 45_000
 export const ASYNC_TURN_MS = 24 * 60 * 60 * 1000
+/**
+ * Un tour de partie au calme : dix ans, c'est-à-dire jamais (MotMan+, 05/11/2026). Une
+ * échéance très lointaine plutôt qu'un test à chaque endroit qui lit la fin du tour :
+ * absence, tour échu et rappels n'ont alors rien à faire, sans une ligne de plus.
+ */
+export const TOUR_CALME_MS = 10 * 365 * 24 * 60 * 60 * 1000
 export { CHAINE_TOUR_MS }
 
 export type Pace = 'realtime' | 'async'
@@ -28,6 +34,8 @@ export type Pace = 'realtime' | 'async'
  * la variante pour rester séparées (migration 20261102220000).
  */
 export type Variante = 'classique' | 'chaine'
+/** D'où repart la force de l'adversaire : une par famille, En chaîne n'en porte pas (matchSetup.ts). */
+export type FamilleDeForce = 'classique' | 'calme'
 export type Mode = 'solo' | 'friend' | 'normal' | 'ranked'
 export type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: unknown; direction: 'across' | 'down'; arrow?: string; clueCell: number[]; cells: number[][] }
 /** `theme` + `dailyOnly` : grille à thème, RÉSERVÉE au défi du jour (src/dailyThemes.ts). */
@@ -86,6 +94,13 @@ export type State = {
   chaine?: Chaine;
   /** Cette partie automatique a cédé la place à une partie entre humains : celle-ci (20261104120000). */
   remplaceePar?: string;
+  /**
+   * MotMan+ (05/11/2026) : la partie au calme, sans chrono, sans absence, sans rappel ni
+   * récompense. Rien d'autre ne la marque : en base, c'est une partie en temps illimité.
+   */
+  calme?: boolean;
+  /** MotMan+ : le thème choisi par le joueur, ou par l'ami qui l'a invité. */
+  themeChoisi?: string;
 }
 export type MatchRow = {
   id: string; mode: Mode; pace: Pace; grid_id: string; state: State; status: 'pending' | 'active' | 'finished'; current_player_id: string;

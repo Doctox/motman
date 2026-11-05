@@ -31,6 +31,8 @@
     "src/gridSelection.ts",
     "src/hachage.ts",
     "src/rythmeDeJoueur.ts",
+    "src/emotes.ts",
+    "src/reglesPlus.ts",
     "supabase/functions/match-api/matchModel.ts",
     "supabase/functions/match-api/matchGrid.ts",
     "supabase/functions/match-api/matchTurns.ts",

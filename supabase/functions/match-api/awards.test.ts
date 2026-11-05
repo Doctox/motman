@@ -389,3 +389,23 @@ Deno.test('en chaîne contre l’adversaire automatique, l’historique garde sa
   verifie(entreHumains.length === 2 && entreHumains.every(appel => (appel.charge as { force_adversaire?: number }).force_adversaire === undefined), 'ni entre humains')
 })
 
+Deno.test('une partie au calme : l’historique et la force de l’adversaire, sans rien de plus', async () => {
+  const robot = { playerId: BOT, displayName: 'Léa', level: 12, skill: 'regular' as const, avatarId: 'a', frameId: 'c', force: 0.6 }
+  const { client, tables, rpcs } = clientFactice()
+  await awardFinished(client, match({ mode: 'solo', pace: 'async' }, { playerIds: [HUMAIN_A, BOT], bot: robot, calme: true }))
+  egal(rpcs.map(appel => appel.fonction), [], 'ni XP, ni plumes, ni quêtes')
+  const ligne = tables.find(appel => appel.table === 'grid_player_history' && appel.operation === 'upsert')?.charge as Record<string, unknown>
+  egal(ligne.force_adversaire, 0.6, 'd’où repart le suivant')
+  egal(ligne.famille_force, 'calme', 'une force à part')
+  egal(ligne.mode, 'multiplayer', 'pas un entraînement')
+})
+
+Deno.test('une partie à thème avec chrono rapporte comme une partie normale, pas comme un entraînement', async () => {
+  const robot = { playerId: BOT, displayName: 'Léa', level: 12, skill: 'regular' as const, avatarId: 'a', frameId: 'c', force: 0.4 }
+  const { client, tables, rpcs } = clientFactice()
+  await awardFinished(client, match({ mode: 'solo' }, { playerIds: [HUMAIN_A, BOT], bot: robot, themeChoisi: 'Animaux' }))
+  const paiement = rpcs.find(appel => appel.fonction === 'server_award_progress')
+  egal(paiement?.arguments.p_mode, 'multiplayer', 'XP et plumes d’une partie normale')
+  const ligne = tables.find(appel => appel.table === 'grid_player_history' && appel.operation === 'upsert')?.charge as Record<string, unknown>
+  egal(ligne.famille_force, 'classique', 'sa force à lui')
+})

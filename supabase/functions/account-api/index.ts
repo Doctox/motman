@@ -8,6 +8,7 @@ import { createHttpResponder, logServerError } from '../_shared/http.ts'
 import { enforceRateLimits, RateLimitExceededError } from '../_shared/rateLimit.ts'
 import { createAdminClient, createAuthClient, type AdminClient } from '../_shared/supabaseClients.ts'
 import { compteNeuf, sourceRecue } from './playerSource.ts'
+import { lireCouleurPseudo } from '../../../src/reglesPlus.ts'
 
 const starterItems = {
   avatar: 'plume-motman',
@@ -206,6 +207,8 @@ async function accountState(admin: AdminClient, userId: string) {
       // n'a pas à savoir qu'un rôle existe, et l'écran d'accueil a besoin de ce
       // seul bit pour montrer — ou taire — le compteur du propriétaire.
       ...(profile.role === 'admin' ? { admin: true as const } : {}),
+      // MotMan+ : la couleur suit le compte, d'un appareil à l'autre.
+      ...(profile.couleur_pseudo ? { couleurPseudo: profile.couleur_pseudo } : {}),
     },
     progress: {
       version: 4, playerId: userId, level: progress.level, xp: progress.xp,
@@ -362,6 +365,14 @@ Deno.serve(async request => {
       if (titleId && !ownedTitle) return json(403, { error: 'Titre non débloqué.' })
       const { error } = await admin.from('profiles').update({ display_name: checkedName.name, avatar_id: avatarId, frame_id: frameId, animation_id: animationId, title_id: titleId, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (error?.code === '23505') return json(409, { error: 'Ce pseudo est déjà utilisé.' })
+      if (error) throw error
+    } else if (action === 'couleur-pseudo') {
+      // MotMan+ : le rôle se revérifie en base. Sur le seul compte du propriétaire pour l'instant.
+      const { data: droit } = await admin.from('profiles').select('role').eq('id', user.id).single()
+      if (droit?.role !== 'admin') return json(403, { error: 'Réservé à MotMan+.', code: 'MOTMAN_PLUS_REQUIS' })
+      const couleur = lireCouleurPseudo(body.couleur)
+      if (couleur === undefined) return json(400, { error: 'Couleur inconnue.' })
+      const { error } = await admin.from('profiles').update({ couleur_pseudo: couleur, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (error) throw error
     } else if (action === 'equip-cosmetic') {
       const cosmetic = cosmeticInput(body)

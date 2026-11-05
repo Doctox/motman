@@ -76,14 +76,17 @@ export function createBotPersona(seed: string, preferredSkill?: BotSkill): BotPe
   return { displayName, level, skill, avatarId, frameId }
 }
 
-export function botTuning(persona: BotPersona): BotTuning {
-  if (persona.tuning) return persona.tuning
-  if (persona.skill === 'beginner') return { accuracy: 78, minLetters: 2, maxLetters: 3, wordBonusWeight: 2, pressureGap: 8 }
+const REGLAGE_PAR_NIVEAU: Record<BotSkill, BotTuning> = {
+  beginner: { accuracy: 78, minLetters: 2, maxLetters: 3, wordBonusWeight: 2, pressureGap: 8 },
   // Normal must remain strategic without feeling clairvoyant: it still tries
   // three to four tiles and sees useful word completions, but makes a few more
   // human mistakes and waits a little longer before entering comeback mode.
-  if (persona.skill === 'regular') return { accuracy: 88, minLetters: 3, maxLetters: 4, wordBonusWeight: 2.5, pressureGap: 7 }
-  return { accuracy: 98, minLetters: 4, maxLetters: 5, wordBonusWeight: 3.6, pressureGap: 4 }
+  regular: { accuracy: 88, minLetters: 3, maxLetters: 4, wordBonusWeight: 2.5, pressureGap: 7 },
+  expert: { accuracy: 98, minLetters: 4, maxLetters: 5, wordBonusWeight: 3.6, pressureGap: 4 },
+}
+
+export function botTuning(persona: BotPersona): BotTuning {
+  return persona.tuning ?? REGLAGE_PAR_NIVEAU[persona.skill]
 }
 
 function neededLetters(grid: GameRuleGrid, occupiedCells: Iterable<number>): string[] {
@@ -260,6 +263,36 @@ export function niveauDeLaForce(force: number): BotSkill {
 export function forceSuivante(force: number, issue: string): number {
   const pas = issue === 'win' ? PAS_SI_GAGNE : issue === 'loss' || issue === 'abandon' ? -PAS_SI_PERDU : 0
   return Math.round(Math.min(1, Math.max(0, force + pas)) * 100) / 100
+}
+
+/**
+ * LE MÊME ADVERSAIRE, EN RÈGLES NORMALES (05/11/2026, parties à thème et au calme de
+ * MotMan+ ; le propriétaire : « les mêmes systèmes que normal / en chaîne »). La force suit
+ * les résultats de la même façon, et ce réglage la traduit en coups entiers. Aux trois
+ * forces de départ, il vaut exactement celui du niveau : un joueur retrouve la même
+ * difficulté qu'en partie normale, puis l'adversaire s'ajuste.
+ */
+export function reglageClassique(force: number): BotTuning {
+  const points: ReadonlyArray<readonly [number, BotTuning]> = [
+    [0, { accuracy: 66, minLetters: 1, maxLetters: 2, wordBonusWeight: 1.5, pressureGap: 10 }],
+    [FORCE_PAR_NIVEAU.beginner, REGLAGE_PAR_NIVEAU.beginner],
+    [FORCE_PAR_NIVEAU.regular, REGLAGE_PAR_NIVEAU.regular],
+    [FORCE_PAR_NIVEAU.expert, REGLAGE_PAR_NIVEAU.expert],
+    [1, { accuracy: 99, minLetters: 5, maxLetters: 5, wordBonusWeight: 4, pressureGap: 3 }],
+  ]
+  const borne = Math.min(1, Math.max(0, force))
+  const haut = Math.max(1, points.findIndex(([seuil]) => seuil >= borne))
+  const [forceBasse, bas] = points[haut - 1]
+  const [forceHaute, fort] = points[haut]
+  const t = (borne - forceBasse) / (forceHaute - forceBasse)
+  const selon = (cle: keyof BotTuning) => bas[cle] + (fort[cle] - bas[cle]) * t
+  return {
+    accuracy: Math.round(selon('accuracy')),
+    minLetters: Math.round(selon('minLetters')),
+    maxLetters: Math.round(selon('maxLetters')),
+    wordBonusWeight: Math.round(selon('wordBonusWeight') * 100) / 100,
+    pressureGap: Math.round(selon('pressureGap')),
+  }
 }
 
 export function reglageDeChaine(force: number) {

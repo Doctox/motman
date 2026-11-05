@@ -28,6 +28,7 @@ function client(reponse: unknown) {
   const chaine = {
     select: () => chaine,
     eq: (colonne: string, valeur: unknown) => { filtres[colonne] = valeur; return chaine },
+    is: (colonne: string, valeur: unknown) => { filtres[colonne] = valeur; return chaine },
     gt: (colonne: string, valeur: unknown) => { gt[colonne] = valeur; return chaine },
     order: () => chaine,
     limit: () => chaine,
@@ -70,4 +71,13 @@ Deno.test('dans une course parfaite, exactement une des deux requêtes accepte',
     const secondeAccepte = jeDoisAccepter(b, a)
     verifie(premiereAccepte !== secondeAccepte, `${a} / ${b} : il faut une et une seule acceptation`)
   }
+})
+
+Deno.test('un thème n’accepte que l’invitation sur le même thème, une partie ordinaire que les ordinaires', async () => {
+  const ordinaire = client(null)
+  await invitationCroisee(ordinaire.admin, MOI, AMI, 'realtime')
+  verifie(ordinaire.filtres.theme === null, 'une partie ordinaire n’accepte pas une invitation sur un thème')
+  const aTheme = client(null)
+  await invitationCroisee(aTheme.admin, MOI, AMI, 'realtime', 'classique', 'Animaux')
+  verifie(aTheme.filtres.theme === 'Animaux', 'le même thème')
 })

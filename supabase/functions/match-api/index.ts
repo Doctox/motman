@@ -36,7 +36,7 @@ import { brouillonRecevable, lettresDuBrouillon, lettresEnDirect, lireBrouillon,
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
 import { AUTOMATIC_SUBMIT_GRACE_MS, resolveMatchRow } from './matchResolve.ts'
-import { atomicResult, botSkillForLevel, createBot, createMatch, forceDuProchainAdversaire, MatchStateConflictError, persist, playerLevel, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
+import { atomicResult, botSkillForLevel, createBot, createMatch, forceDuProchainAdversaire, MatchStateConflictError, persist, playerLevel, ThemeSansGrilleError, playersBlocked, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import { loadDailyLeaderboard } from './dailyLeaderboard.ts'
 import { loadPlayerStats } from './playerStats.ts'
 import { advanceRankedSearch, rankedLeaderboard, rankedSnapshot } from './ranked.ts'
@@ -46,6 +46,12 @@ import { allumerFantome, fantomeAllume } from './ghost.ts'
 import { joueursEnLigne } from './onlinePlayers.ts'
 import { bilanDesSources, jourAvant } from './playerSources.ts'
 import { enPleinDefi } from './enPleinDefi.ts'
+import { lancerPartiePlus, lireDemandePlus, lireTheme, noterPartieOfferte, partieAReprendre, partiesOffertes, themesDuJoueur } from './matchPlus.ts'
+import { ATTENTE_ENTRE_EMOTES_MS, EMOTES, EMOTES_PAR_PARTIE } from '../../../src/emotes.ts'
+import { PARTIES_OFFERTES_A_UN_AMI } from '../../../src/reglesPlus.ts'
+
+/** Une emote partie 6 s après la précédente peut arriver un peu avant : le réseau ne doit pas la refuser. */
+const MARGE_EMOTE_MS = 500
 
 /** La marge d'une lettre (matchChaine.ts) : celle d'un coup à la main, puis celle d'un envoi parti à temps. */
 const MARGES_DE_LETTRE = { mainMs: MANUAL_SUBMIT_GRACE_MS, envoiMs: AUTOMATIC_SUBMIT_GRACE_MS }
@@ -218,6 +224,7 @@ Deno.serve(async request => {
         guestId: item.guest_id,
         pace: item.pace,
         variante: item.variante ?? 'classique',
+        theme: item.theme ?? null,
         createdAt: item.created_at,
         expiresAt: item.expires_at,
         status: item.status,
@@ -540,12 +547,35 @@ Deno.serve(async request => {
       return json(200, { match: await view(admin, created.row, user.id, created.grid) })
     }
 
+    // MOTMAN+ (matchPlus.ts) : le rôle se revérifie ici à chaque demande. Sur le seul
+    // compte du propriétaire pour l'instant ; `identity.admin` ne sert qu'à afficher.
+    if (action === 'plus-themes' || action === 'plus-partie') {
+      if (accessProfile?.role !== 'admin') return json(403, { error: 'Réservé à MotMan+.', code: 'MOTMAN_PLUS_REQUIS' })
+      if (action === 'plus-themes') return json(200, { themes: await themesDuJoueur(admin, user.id) })
+      const demande = lireDemandePlus(body)
+      if (!demande) return json(400, { error: 'Partie invalide.' })
+      const ouverte = partieAReprendre(await activeRows(), demande)
+      if (ouverte) {
+        const chargerGrille = gridLoader(admin, ouverte.grid_id)
+        const reprise = await resolveRow(ouverte, chargerGrille)
+        if (reprise.status === 'active') return json(200, { match: await view(admin, reprise, user.id, await chargerGrille()) })
+      }
+      if (await enPleinDefi(admin, user.id)) return json(409, { error: 'Ton défi du jour est en cours : termine-le d’abord.', code: 'DEFI_EN_COURS' })
+      const creee = await lancerPartiePlus(admin, user.id, demande)
+      return json(200, { match: await view(admin, creee.row, user.id, creee.grid) })
+    }
+
     // Répondre à une invitation reçue — depuis la carte d'invitation, ou depuis
     // `create` quand l'ami m'avait déjà invité (voir matchInvitations.ts).
     // Rend une réponse d'erreur, ou `null` si c'est réglé.
     const repondreInvitation = async (invitation: InvitationRow, decision: 'accept' | 'decline'): Promise<Response | null> => {
+      // Une partie à thème offerte (MotMan+) : 3 en tout pour un joueur sans abonnement.
+      const offerte = decision === 'accept' && Boolean(invitation.theme) && accessProfile?.role !== 'admin'
+      if (offerte && await partiesOffertes(admin, user.id) >= PARTIES_OFFERTES_A_UN_AMI) {
+        return json(409, { error: 'Tu as déjà joué tes parties à thème offertes.', code: 'PARTIES_OFFERTES_EPUISEES' })
+      }
       const prepared = decision === 'accept' && invitation.status === 'pending'
-        ? await prepareAtomicMatch(admin, invitation.host_id, user.id, invitation.pace as Pace, invitation.id, null, invitation.variante)
+        ? await prepareAtomicMatch(admin, invitation.host_id, user.id, invitation.pace as Pace, invitation.id, null, invitation.variante, invitation.theme)
         : null
       const result = await atomicResult(admin.rpc('server_respond_match_invitation_atomic', {
         p_invitation_id: invitation.id,
@@ -570,6 +600,8 @@ Deno.serve(async request => {
             prepared.selectionSeed,
           )
         }
+        // Un compte manqué ne doit pas faire échouer la partie qui vient de s'ouvrir.
+        if (result.created && offerte) await noterPartieOfferte(admin, user.id, result.match.id).catch(raison => logServerError('match-api:partie-offerte', raison, { userId: user.id }))
         const guest = await profile(admin, user.id)
         if (result.created) notifyInvitationAccepted(admin, invitation.host_id, result.match.id, guest?.displayName ?? 'Ton ami')
       } else if (result.status !== 'declined') {
@@ -584,30 +616,39 @@ Deno.serve(async request => {
     if (action === 'create') {
       const targetId = typeof body.targetId === 'string' && UUID_PATTERN.test(body.targetId) ? body.targetId : ''
       if (!targetId) return json(400, { error: 'Joueur invalide.' })
-      const variante = lireVariante(body.variante)
+      // Une invitation sur un thème se joue en règles normales (MotMan+).
+      const theme = lireTheme(body.theme)
+      if (theme && accessProfile?.role !== 'admin') return json(403, { error: 'Réservé à MotMan+.', code: 'MOTMAN_PLUS_REQUIS' })
+      const variante = theme ? 'classique' : lireVariante(body.variante)
       const pace: Pace = variante !== 'chaine' && body.pace === 'async' ? 'async' : 'realtime'
       const [left, right] = [user.id, targetId].sort()
       if (await playersBlocked(admin, user.id, targetId)) return json(409, { error: 'Cette invitation ne peut pas être envoyée.' })
       const { data: friendship } = await admin.from('friendships').select('left_user_id').eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
       if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans tes amis.' })
+      if (theme) {
+        const { data: ami } = await admin.from('profiles').select('role').eq('id', targetId).maybeSingle()
+        if (ami?.role !== 'admin' && await partiesOffertes(admin, targetId) >= PARTIES_OFFERTES_A_UN_AMI) {
+          return json(409, { error: 'Cet ami a déjà joué ses parties à thème offertes.', code: 'PARTIES_OFFERTES_EPUISEES' })
+        }
+      }
       // L'ami m'a déjà invité au même rythme : l'inviter à mon tour, c'est
       // accepter. Une seule partie pour les deux (voir matchInvitations.ts).
-      const dejaInvite = await invitationCroisee(admin, user.id, targetId, pace, variante)
+      const dejaInvite = await invitationCroisee(admin, user.id, targetId, pace, variante, theme)
       if (dejaInvite) return await repondreInvitation(dejaInvite, 'accept') ?? json(200, await lobby())
       const { data: invitation, error: invitationError } = await admin.from('server_match_invitations')
-        .insert({ host_id: user.id, guest_id: targetId, pace, variante, expires_at: new Date(Date.now() + (pace === 'async' ? 7 * 86400000 : 120000)).toISOString() })
+        .insert({ host_id: user.id, guest_id: targetId, pace, variante, theme, expires_at: new Date(Date.now() + (pace === 'async' ? 7 * 86400000 : 120000)).toISOString() })
         .select('id').single()
       if (invitationError || !invitation) throw invitationError ?? new Error('Invitation non créée.')
       // Les deux invitations sont parties à la même milliseconde : aucune des
       // deux requêtes n'a vu l'autre avant d'insérer. Une seule accepte.
-      const course = await invitationCroisee(admin, user.id, targetId, pace, variante)
+      const course = await invitationCroisee(admin, user.id, targetId, pace, variante, theme)
       if (course) {
         if (!jeDoisAccepter(invitation.id, course.id)) return json(200, await lobby())
         await admin.from('server_match_invitations').update({ status: 'cancelled' }).eq('id', invitation.id).eq('status', 'pending')
         return await repondreInvitation(course, 'accept') ?? json(200, await lobby())
       }
       const inviter = await profile(admin, user.id)
-      notifyFriendInvitation(admin, targetId, invitation.id, inviter?.displayName ?? 'Un ami', pace, variante)
+      notifyFriendInvitation(admin, targetId, invitation.id, inviter?.displayName ?? 'Un ami', pace, variante, theme)
       return json(200, await lobby())
     }
 
@@ -721,6 +762,21 @@ Deno.serve(async request => {
     const matchId = typeof body.matchId === 'string' ? body.matchId : ''
     const { data: participant } = await admin.from('match_participants').select('match_id').eq('match_id', matchId).eq('user_id', user.id).maybeSingle()
     if (!participant) return json(404, { error: 'Partie introuvable.' })
+    // LES EMOTES (MotMan+, src/emotes.ts). Avant la lecture de la partie : une bulle ne
+    // touche ni au plateau, ni au tour, et la base garde seule la cadence.
+    if (action === 'emote') {
+      if (accessProfile?.role !== 'admin') return json(403, { error: 'Réservé à MotMan+.', code: 'MOTMAN_PLUS_REQUIS' })
+      if (!EMOTES.some(emote => emote.id === body.emote)) return json(400, { error: 'Emote inconnue.' })
+      const { data: statut, error: emoteError } = await admin.rpc('server_send_match_emote', {
+        p_match_id: matchId,
+        p_user_id: user.id,
+        p_emote: body.emote,
+        p_attente_ms: ATTENTE_ENTRE_EMOTES_MS - MARGE_EMOTE_MS,
+        p_maximum: EMOTES_PAR_PARTIE,
+      })
+      if (emoteError) throw emoteError
+      return json(200, { statut })
+    }
     const { data: found } = await admin.from('server_matches').select('*').eq('id', matchId).single()
     if (!found) return json(404, { error: 'Partie introuvable.' })
     // Une seule lecture de grille pour toute la requête : `resolveMatchRow` en
@@ -872,7 +928,8 @@ Deno.serve(async request => {
       // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
       // Le carnet du propriétaire se lit AVANT le coup : `applyTurn` réécrit le
       // numéro et le début du tour.
-      if (accessProfile?.role === 'admin' && !row.state.chaine) carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
+      // Pas au calme : un coup sans chrono ne dit rien de son rythme de jeu.
+      if (accessProfile?.role === 'admin' && !row.state.chaine && !row.state.calme) carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
       // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu
       // pendant le tour, s'il y en a, plutôt qu'un tour manqué (matchDrafts.ts).
       //
@@ -930,6 +987,7 @@ Deno.serve(async request => {
     if (error instanceof RateLimitExceededError) {
       return json(429, { error: 'Trop de requêtes. Réessaie dans un instant.', code: 'RATE_LIMITED', retryAfter: error.retryAfterSeconds }, { 'Retry-After': String(error.retryAfterSeconds) })
     }
+    if (error instanceof ThemeSansGrilleError) return json(404, { error: 'Ce thème n’a pas encore de grille.' })
     if (error instanceof MatchStateConflictError) {
       return matchConflictResponse(admin, error.latest, user.id, undefined, json)
     }

@@ -36,6 +36,25 @@ export function playerOutcome(row: MatchRow, playerId: string) {
   return interrupted ? won ? 'opponent-abandoned' : 'abandon' : row.winner_id === null ? 'draw' : won ? 'win' : 'loss'
 }
 
+/**
+ * Une partie contre l'automate, en mode `solo`, rapportait comme un entraînement. Une
+ * partie à thème rapporte comme une partie normale, et le joueur y voit « Multijoueur »,
+ * comme toute partie normale contre lui (MotMan+, 05/11/2026).
+ */
+function compteCommeEntrainement(row: MatchRow): boolean {
+  return row.mode === 'solo' && !row.state.themeChoisi && !row.state.calme
+}
+
+/** La force de l'adversaire dans cette partie, s'il s'adapte à ce joueur. */
+function forceARetenir(row: MatchRow, opponentId: string) {
+  const bot = row.state.bot
+  if (bot?.playerId !== opponentId || bot.ghostOf) return {}
+  if (row.state.chaine) return { force_adversaire: forceEnChaine(bot) }
+  if (row.state.calme) return { force_adversaire: forceEnChaine(bot), famille_force: 'calme' }
+  if (row.state.themeChoisi) return { force_adversaire: forceEnChaine(bot), famille_force: 'classique' }
+  return {}
+}
+
 export async function recordMatchHistory(
   admin: AdminClient,
   row: MatchRow,
@@ -52,7 +71,7 @@ export async function recordMatchHistory(
     play_key: `match:${row.id}`,
     match_id: row.id,
     grid_id: row.grid_id,
-    mode: row.mode === 'solo' ? 'solo' : 'multiplayer',
+    mode: compteCommeEntrainement(row) ? 'solo' : 'multiplayer',
     pace: row.pace,
     outcome: playerOutcome(row, playerId),
     completed: row.finish_reason === 'completed',
@@ -72,8 +91,8 @@ export async function recordMatchHistory(
     // rester en rotation. La propriété est enregistrée du point de vue de
     // `playerId` — cette ligne lui appartient.
     final_board: encodeBoardSnapshot(row.state.board, playerId),
-    // En chaîne, contre l'adversaire automatique : d'où repart le suivant (botOpponents.ts).
-    ...(row.state.chaine && row.state.bot?.playerId === opponentId && !row.state.bot.ghostOf ? { force_adversaire: forceEnChaine(row.state.bot) } : {}),
+    // Contre l'adversaire qui s'adapte : d'où repart le suivant (botOpponents.ts).
+    ...forceARetenir(row, opponentId),
     // Défi du jour : de quoi classer la partie. `daily_date` distingue le défi
     // d'une partie solo tombée par hasard sur la même grille, et `turns` sert
     // la note — contrairement à `duration_seconds`, il ne dépend pas du temps
@@ -269,9 +288,10 @@ export async function awardFinished(admin: AdminClient, row: MatchRow) {
     // A casual duel interrupted only after both ranked players accepted is
     // visible as an administrative draw, but it is intentionally reward-free
     // so the ready-check flow cannot be farmed.
-    if (row.finish_reason === 'ranked_transfer') return await history
+    // La partie au calme non plus (MotMan+) : ni XP, ni plumes, ni quêtes. Plaisir seulement.
+    if (row.finish_reason === 'ranked_transfer' || row.state.calme) return await history
     const outcome = playerOutcome(row, playerId)
-    const solo = row.mode === 'solo'
+    const solo = compteCommeEntrainement(row)
     const productiveTurns = row.state.productiveTurns[playerId] ?? 0
     const totalProductiveTurns = Object.entries(row.state.productiveTurns)
       .filter(([id]) => id !== row.state.bot?.playerId)

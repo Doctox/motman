@@ -24,14 +24,18 @@ export type InvitationRow = {
   guest_id: string
   pace: Pace
   variante?: Variante
+  /** MotMan+ : l'invitation porte sur ce thème (matchPlus.ts). */
+  theme?: string | null
   status: string
   expires_at: string
 }
 
 /** L'invitation que `ami` m'a envoyée, au même rythme, encore en attente et valable. */
-export async function invitationCroisee(admin: AdminClient, moi: string, ami: string, pace: Pace, variante: Variante = 'classique'): Promise<InvitationRow | null> {
-  const { data, error } = await admin.from('server_match_invitations').select('*')
+export async function invitationCroisee(admin: AdminClient, moi: string, ami: string, pace: Pace, variante: Variante = 'classique', theme: string | null = null): Promise<InvitationRow | null> {
+  const requete = admin.from('server_match_invitations').select('*')
     .eq('host_id', ami).eq('guest_id', moi).eq('pace', pace).eq('variante', variante).eq('status', 'pending')
+  // Deux thèmes différents, ou un thème et une partie ordinaire : deux demandes différentes.
+  const { data, error } = await (theme ? requete.eq('theme', theme) : requete.is('theme', null))
     .gt('expires_at', nowIso())
     .order('created_at', { ascending: true }).limit(1).maybeSingle()
   if (error) throw error

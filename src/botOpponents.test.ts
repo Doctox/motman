@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BOT_THINKING_MAX_MS, BOT_THINKING_MIN_MS, botThinkingDelayMs, botTuning, planBotMove, refillBotRack, type BotPersona } from './botOpponents'
+import { BOT_THINKING_MAX_MS, BOT_THINKING_MIN_MS, botThinkingDelayMs, botTuning, forceDeDepart, niveauDeLaForce, planBotMove, reglageClassique, refillBotRack, type BotPersona } from './botOpponents'
 import type { GameRuleGrid } from './gameRules'
 
 const expert: BotPersona = {
@@ -145,5 +145,38 @@ describe('un bot aux réglages sur mesure', () => {
     const surMesure = { accuracy: 93, minLetters: 3, maxLetters: 5, wordBonusWeight: 3, pressureGap: 6 }
     expect(botTuning({ ...expert, skill: 'regular', tuning: surMesure })).toEqual(surMesure)
     expect(botTuning({ ...expert, skill: 'regular' })).not.toEqual(surMesure)
+  })
+})
+
+describe('le même adversaire, en règles normales', () => {
+  const niveaux = ['beginner', 'regular', 'expert'] as const
+
+  it('à chaque force de départ, il vaut le réglage de ce niveau', () => {
+    for (const skill of niveaux) {
+      expect(reglageClassique(forceDeDepart(skill))).toEqual(botTuning({ displayName: '', level: 1, skill, avatarId: '', frameId: '' }))
+    }
+  })
+
+  it('plus il est fort, plus il vise juste et plus il pose de lettres', () => {
+    let avant = reglageClassique(0)
+    for (let force = 0.05; force <= 1; force += 0.05) {
+      const reglage = reglageClassique(force)
+      expect(reglage.accuracy).toBeGreaterThanOrEqual(avant.accuracy)
+      expect(reglage.minLetters).toBeGreaterThanOrEqual(avant.minLetters)
+      expect(reglage.maxLetters).toBeGreaterThanOrEqual(avant.maxLetters)
+      expect(reglage.minLetters).toBeLessThanOrEqual(reglage.maxLetters)
+      expect(reglage.maxLetters).toBeLessThanOrEqual(5)
+      avant = reglage
+    }
+  })
+
+  it('une force hors des bornes reste dans le jeu', () => {
+    expect(reglageClassique(-1)).toEqual(reglageClassique(0))
+    expect(reglageClassique(2)).toEqual(reglageClassique(1))
+  })
+
+  it('son niveau suit sa force, et son réglage aussi', () => {
+    expect(niveauDeLaForce(0.1)).toBe('beginner')
+    expect(reglageClassique(0.1).accuracy).toBeLessThan(reglageClassique(0.5).accuracy)
   })
 })
