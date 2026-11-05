@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, ChevronRight, Feather, Gamepad2, Pencil, Trophy, User, X } from 'lucide-react'
+import { BarChart3, ChevronRight, Feather, Gamepad2, Lock, Pencil, Trophy, User, X } from 'lucide-react'
+import { ARC_EN_CIEL, COULEURS_PSEUDO, NOM_ABONNEMENT, type CouleurPseudoId, type EtatAbonnement } from '../abonnement'
+import { PseudoJoueur, variablesCouleur } from './PseudoJoueur'
+import { IconeMotManPlus } from './LogoMotManPlus'
 import { CosmeticPortrait } from '../CosmeticPortrait'
 import { getAnimation, getAvatar, getFrame, type PlayerCosmetics } from '../cosmetics'
 import { PLAYER_NAME_MAX_LENGTH, validatePlayerName } from '../playerNamePolicy'
@@ -176,15 +179,28 @@ function PlayerStatsPanel({ jouer }: { jouer?: () => void }) {
   </section>
 }
 
-export function ProfilePage({ identity, progress, cosmetics, parties = [], edit, openAccount, jouerPremierePartie }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; parties?: readonly MatchHistoryEntry[]; edit: () => void; openAccount: () => void; jouerPremierePartie?: () => void }) {
+/** L'entrée de l'abonnement, sur le profil : ce qu'on y gagne, ou où l'on en est. */
+function EntreeAbonnement({ abonnement, ouvrir }: { abonnement: EtatAbonnement; ouvrir: () => void }) {
+  return <button type="button" className="mm-plus-entry" onClick={ouvrir}>
+    <span aria-hidden="true"><IconeMotManPlus /></span>
+    <span>
+      <strong>{NOM_ABONNEMENT}</strong>
+      <small>{abonnement.actif ? 'Tout est ouvert sur ton compte' : 'Tous les thèmes, ton pseudo en couleur'}</small>
+    </span>
+    <b>{abonnement.actif ? 'Ouvrir' : 'Bientôt'}</b>
+  </button>
+}
+
+export function ProfilePage({ identity, progress, cosmetics, parties = [], edit, openAccount, jouerPremierePartie, abonnement, couleurPseudo = null, ouvrirOffre }: { identity: GuestIdentity; progress: PlayerProgress; cosmetics: PlayerCosmetics; parties?: readonly MatchHistoryEntry[]; edit: () => void; openAccount: () => void; jouerPremierePartie?: () => void; abonnement?: EtatAbonnement; couleurPseudo?: CouleurPseudoId | null; ouvrirOffre?: () => void }) {
   const xpGoal = experienceGoalForLevel(progress.level)
   // Au niveau 50, la barre repart vers l'étoile suivante (experienceCurve.ts).
   const etoiles = progress.level >= MAX_PLAYER_LEVEL ? etoilesDuJoueur(progress.lifetimeXp) : null
   const xpPercent = etoiles ? etoiles.xp / XP_PAR_ETOILE * 100 : Math.min(100, progress.xp / xpGoal * 100)
   const equippedTitle = progress.titles.find(title => title.id === progress.equippedTitleId)
   return <div className="mm-page mm-profile-page">
-    <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" /><div><h1>{identity.displayName}</h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
+    <section className="mm-profile-hero"><CosmeticPortrait avatarId={cosmetics.equippedAvatarId} frameId={cosmetics.equippedFrameId} animationId={cosmetics.equippedAnimationId} alt="Ton avatar" /><div><h1><PseudoJoueur nom={identity.displayName} couleur={couleurPseudo} /></h1>{equippedTitle ? <small className="mm-equipped-title">{equippedTitle.name}</small> : null}<button type="button" onClick={edit}><Pencil />Modifier</button></div></section>
     <section className="mm-level"><div><BarChart3 /><strong>Niveau {progress.level}</strong><span>{etoiles ? etoiles.etoiles ? nombreDEtoiles(etoiles.etoiles) : 'Niveau maximum' : `Niveau ${progress.level + 1}`}</span></div><i className="guest-progress"><b style={{ width: `${xpPercent}%` }} /></i><p>{etoiles ? <><strong>{frenchNumber.format(etoiles.xp)}</strong> / {frenchNumber.format(XP_PAR_ETOILE)} XP vers la {etoileSuivante(etoiles.etoiles)}</> : <><strong>{progress.xp}</strong> / {xpGoal} XP</>}</p></section>
+    {abonnement && ouvrirOffre ? <EntreeAbonnement abonnement={abonnement} ouvrir={ouvrirOffre} /> : null}
     <LigneDuCarnet titres={progress.titles} />
     <PlayerStatsPanel jouer={jouerPremierePartie} />
     <LigneDesParties parties={parties} />
@@ -203,13 +219,18 @@ export function ProfilePage({ identity, progress, cosmetics, parties = [], edit,
   </div>
 }
 
-export function EditGuestPanel({ identity, progress, cosmetics, close, save }: {
+export function EditGuestPanel({ identity, progress, cosmetics, close, save, abonnement, choisirCouleurPseudo, ouvrirOffre }: {
   identity: GuestIdentity
   progress: PlayerProgress
   cosmetics: PlayerCosmetics
   close: () => void
   save: (displayName: string, avatarId: string, frameId: string, animationId: string, titleId: string | null) => Promise<void>
+  abonnement?: EtatAbonnement
+  choisirCouleurPseudo?: (couleur: CouleurPseudoId | null) => void
+  ouvrirOffre?: () => void
 }) {
+  const [couleur, setCouleur] = useState<CouleurPseudoId | null>(abonnement?.couleurPseudo ?? null)
+  const arcEnCiel = abonnement?.actif ?? false
   const [displayName, setDisplayName] = useState(identity.displayName)
   const [avatarId, setAvatarId] = useState(cosmetics.equippedAvatarId)
   const [frameId, setFrameId] = useState(cosmetics.equippedFrameId)
@@ -225,16 +246,31 @@ export function EditGuestPanel({ identity, progress, cosmetics, close, save }: {
       event.preventDefault()
       if (!nameValidation.valid || busy) return
       setBusy(true); setError(null)
+      if (choisirCouleurPseudo && couleur !== (abonnement?.couleurPseudo ?? null)) choisirCouleurPseudo(couleur)
       void save(normalized, avatarId, frameId, animationId, titleId).catch(reason => setError(reason instanceof Error ? reason.message : 'Enregistrement impossible.')).finally(() => setBusy(false))
     }}>
       <header><div><small>Ton identité</small><h2>Modifier le profil</h2></div><button type="button" onClick={close} aria-label="Fermer"><X /></button></header>
-      <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de ton avatar" /><span><strong>{normalized || 'Ton pseudo'}</strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `Code ami ${friendCodeOf(identity)}`}</small></span></div>
+      <div className="mm-guest-preview"><CosmeticPortrait avatarId={avatarId} frameId={frameId} animationId={animationId} alt="Aperçu de ton avatar" /><span><strong><PseudoJoueur nom={normalized || 'Ton pseudo'} couleur={abonnement?.actif ? couleur : null} /></strong><small>{progress.titles.find(title => title.id === titleId)?.name ?? `Code ami ${friendCodeOf(identity)}`}</small></span></div>
       <div className="mm-profile-editor-scroll">
       <label htmlFor="guest-display-name">Pseudo</label>
       <input id="guest-display-name" value={displayName} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" autoCorrect="off" spellCheck={false} enterKeyHint="done" aria-invalid={!nameValidation.valid} aria-describedby="guest-display-name-help" onChange={event => setDisplayName(event.target.value)} />
       <p id="guest-display-name-help" className={`mm-name-help ${nameValidation.valid ? 'valid' : 'invalid'}`} role="status">
         {nameValidation.valid ? `${Array.from(normalized).length}/${PLAYER_NAME_MAX_LENGTH}` : nameValidation.error}
       </p>
+      {abonnement ? <fieldset><legend>Couleur du pseudo</legend>
+        <div className="mm-pseudo-colors">
+          <button type="button" className={couleur === null ? 'active' : ''} aria-pressed={couleur === null} onClick={() => setCouleur(null)}><i className="is-none" /><span>Normale</span></button>
+          {COULEURS_PSEUDO.map(teinte => <button type="button" key={teinte.id} disabled={!abonnement.actif} className={couleur === teinte.id ? 'active' : ''} aria-pressed={couleur === teinte.id} aria-label={abonnement.actif ? teinte.nom : `${teinte.nom}, avec ${NOM_ABONNEMENT}`} style={variablesCouleur(teinte.id)} onClick={() => setCouleur(teinte.id)}>
+            <i />{abonnement.actif ? null : <Lock aria-hidden="true" />}<span>{teinte.nom}</span>
+          </button>)}
+          <button type="button" disabled={!arcEnCiel} className={couleur === 'arc-en-ciel' ? 'active' : ''} aria-pressed={couleur === 'arc-en-ciel'} aria-label={arcEnCiel ? ARC_EN_CIEL.nom : `${ARC_EN_CIEL.nom}, avec ${NOM_ABONNEMENT}`} onClick={() => setCouleur('arc-en-ciel')}>
+            <i className="is-arc-en-ciel" />{arcEnCiel ? null : <Lock aria-hidden="true" />}<span>{ARC_EN_CIEL.nom}</span>
+          </button>
+        </div>
+        {!abonnement.actif
+          ? <p className="mm-pseudo-colors-note"><span>Les couleurs arrivent bientôt avec {NOM_ABONNEMENT}.</span>{ouvrirOffre ? <button type="button" onClick={ouvrirOffre}>Découvrir</button> : null}</p>
+          : null}
+      </fieldset> : null}
       <fieldset><legend>Avatar</legend><div className="mm-owned-avatar-grid">{cosmetics.ownedAvatarIds.map(id => {
         const avatar = getAvatar(id)
         return <button type="button" className={avatarId === id ? 'active' : ''} aria-pressed={avatarId === id} onClick={() => setAvatarId(id)} key={id}><CosmeticPortrait avatarId={id} frameId="cadre-ivoire" alt={avatar.name} /><span>{avatar.name}</span></button>

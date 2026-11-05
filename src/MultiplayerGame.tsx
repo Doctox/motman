@@ -55,6 +55,8 @@ import { RankedSeekerDialog } from './game/RankedSeekerDialog'
 import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 import { useReadingWindow } from './game/ReadingWindow'
 import { prechargerRecompense } from './game/matchRewardPrefetch'
+import { useEmotesDeLaPartie } from './game/EmotesPartie'
+import { lireAbonnement } from './abonnement'
 
 export { LeaveMatchPanel } from './game/DuelPresentation'
 export { StableBoardLetters } from './game/StableBoardLetters'
@@ -222,6 +224,9 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   /** Les tours déjà comptés, pour n'en compter aucun deux fois. */
   const questsComptes = useRef(new Set<string>())
   const [questDone, setQuestDone] = useState<{ cle: number; titre: string } | null>(null)
+  // Les emotes MotMan+ : l'abonnement est lu une fois ; le serveur le revérifiera à l'envoi.
+  const [abonnePlus] = useState(() => lireAbonnement(Boolean(identity.current.admin)).actif)
+  const emotes = useEmotesDeLaPartie(matchId, abonnePlus)
 
   const seenTurn = useRef<string | null>(null)
   const animationTimer = useRef<number | null>(null)
@@ -1408,7 +1413,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       résultat, elle restait affichée, grisée, sans rien faire (retiré à la
       demande du propriétaire, 19/09/2026). Une case vide garde le logo centré. */}
       {match.status === 'active' ? <button type="button" aria-label="Options de sortie" onClick={() => setLeaveOpen(true)}><ArrowLeft /></button> : <span aria-hidden="true" />}<img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
-    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div><DuelPlayer name={identity.current.displayName.trim() || 'Toi'} title={titres.mien} detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player /></section>
+    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div><DuelPlayer name={identity.current.displayName.trim() || 'Toi'} title={titres.mien} detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' ? emotes.ouvrir : undefined} /></section>
+      {emotes.calque}
     </> : null}
     {questDone ? <QuestAchieved key={questDone.cle} titre={questDone.titre} close={() => setQuestDone(null)} /> : null}
     {/* Le bandeau ne survit pas à la partie : plus aucun sondage ne vient

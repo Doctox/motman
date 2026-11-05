@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BarChart3, ChevronRight, History, Trophy, UserPlus, Users } from 'lucide-react'
+import { BarChart3, ChevronRight, History, Lock, Shapes, Trophy, UserPlus, Users } from 'lucide-react'
+import { NOM_ABONNEMENT, type EtatAbonnement, type RythmeTheme, type ThemeAbonnement } from '../abonnement'
 import type { MatchLobbyState, MatchPace, MatchState } from '../matches'
 import { ChronoRecherche } from './ChronoRecherche'
 import { playerInitials, type GuestIdentity } from '../playerIdentity'
@@ -11,12 +12,14 @@ import { asyncTimeLeft, matchOpponent } from './HomePage'
 import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { useHauteurAnimee } from './hauteurAnimee'
 import { DefinitionEnAttente } from './DefinitionEnAttente'
+import { ThemesTab } from './ThemesAbonnement'
+import { IconeMotManPlus } from './LogoMotManPlus'
 import { Link2 } from 'lucide-react'
 import type { RythmeChoisi } from '../matches'
 import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// L'ÉCRAN JOUER — trois onglets, une carte.
+// L'ÉCRAN JOUER — quatre onglets, une carte.
 //
 // Maquette validée par le propriétaire le 16/09/2026. Seule la carte du milieu
 // change ; la reprise ne bouge jamais. Les derniers matchs sont au profil depuis
@@ -29,12 +32,14 @@ import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from
 // téléphone à l'autre. Ils sont décoratifs, le libellé à côté porte le sens.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type PlayTabId = 'normal' | 'ranked' | 'friends'
+export type PlayTabId = 'normal' | 'ranked' | 'friends' | 'themes'
 
 const ONGLETS: Array<{ id: PlayTabId; icone: ReactNode; label: string }> = [
   { id: 'normal', icone: <Trophy />, label: 'Normal' },
   { id: 'ranked', icone: <BarChart3 />, label: 'Classé' },
   { id: 'friends', icone: <Users />, label: 'Amis' },
+  // Le quatrième est celui de l'abonnement, visible de tous : c'est sa vitrine.
+  { id: 'themes', icone: <Shapes />, label: 'Thèmes' },
 ]
 
 const MODE_STORAGE_KEY = 'motman-dernier-mode'
@@ -43,7 +48,7 @@ const MODE_STORAGE_KEY = 'motman-dernier-mode'
 function lireDernierMode(): PlayTabId {
   try {
     const range = localStorage.getItem(MODE_STORAGE_KEY)
-    if (range === 'normal' || range === 'ranked' || range === 'friends') return range
+    if (range === 'normal' || range === 'ranked' || range === 'friends' || range === 'themes') return range
   } catch {
     // Stockage privé indisponible : on repart de Normal, sans rien casser.
   }
@@ -72,7 +77,7 @@ function PremierePartie() {
 }
 
 /** Les deux rythmes, côte à côte. Le même bloc sert à Normal et à Amis. */
-function PaceChoice({ pace, setPace, label, avecChaine = false }: { pace: RythmeChoisi; setPace: (rythme: RythmeChoisi) => void; label: string; avecChaine?: boolean }) {
+function PaceChoice({ pace, setPace, label, avecChaine = false }: { pace: RythmeChoisi | null; setPace: (rythme: RythmeChoisi) => void; label: string; avecChaine?: boolean }) {
   return <div className={`mm-pace-choice ${avecChaine ? 'is-trois' : ''}`} role="group" aria-label={label}>
     <button type="button" className={pace === 'realtime' ? 'active' : ''} aria-pressed={pace === 'realtime'} aria-label="Temps limité, 45 secondes par tour" onClick={() => setPace('realtime')}>
       <strong>Temps limité</strong><small>45 s par tour</small>
@@ -84,6 +89,20 @@ function PaceChoice({ pace, setPace, label, avecChaine = false }: { pace: Rythme
       <strong>En chaîne</strong><small>{SECONDES_DU_TOUR_DE_CHAINE} s par tour</small>
     </button> : null}
   </div>
+}
+
+/**
+ * Le troisième rythme, celui de l'abonnement : « La partie au calme » (A9,
+ * décidée le 15/10/2026). Sur les grilles normales, sans chrono, sans défaite
+ * par absence ni récompense. Visible de tous : sans abonnement, le cadenas
+ * ouvre la fiche de l'abonnement. Le mot « bot » n'y figure pas (16/10/2026).
+ */
+function ChoixAuCalme({ choisi, verrouille, choisir }: { choisi: boolean; verrouille: boolean; choisir: () => void }) {
+  return <button type="button" className={`mm-pace-calme ${choisi ? 'active' : ''}`} aria-pressed={choisi} aria-label={verrouille ? `Au calme, sans chrono, avec ${NOM_ABONNEMENT}` : 'Au calme, sans chrono'} onClick={choisir}>
+    <span className="mm-pace-calme-icone" aria-hidden="true"><IconeMotManPlus taille={30} /></span>
+    <span><strong>Au calme</strong><small>Sans chrono, à ton rythme</small></span>
+    {verrouille ? <span className="mm-pace-calme-plus" aria-hidden="true"><Lock />{NOM_ABONNEMENT}</span> : null}
+  </button>
 }
 
 /**
@@ -102,7 +121,7 @@ function SearchingCard({ titre, detail, annuler, disabled }: { titre: string; de
   </section>
 }
 
-export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, rechercheEnvoyee = false, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab }: {
+export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, rechercheEnvoyee = false, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab, abonnement, themes, ouvrirOffre, jouerTheme, inviterSurTheme, jouerAuCalme }: {
   identity: GuestIdentity
   social: SocialState
   lobby: MatchLobbyState
@@ -127,9 +146,16 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   cancelRanked: () => Promise<void>
   /** L'onglet demandé par l'écran d'où l'on vient (un ami touché à l'accueil → Amis). */
   initialTab?: PlayTabId
+  abonnement: EtatAbonnement
+  themes: readonly ThemeAbonnement[]
+  ouvrirOffre: () => void
+  jouerTheme: (theme: ThemeAbonnement, rythme: RythmeTheme) => void
+  inviterSurTheme: (theme: ThemeAbonnement) => void
+  jouerAuCalme: () => void
 }) {
   const [onglet, setOnglet] = useState<PlayTabId>(() => initialTab ?? lireDernierMode())
   const [normalPace, setNormalPace] = useState<MatchPace>('realtime')
+  const [auCalme, setAuCalme] = useState(false)
   const [friendPace, setFriendPace] = useState<RythmeChoisi>('realtime')
   const [matchBusy, setMatchBusy] = useState<string | null>(null)
   const [searchBusy, setSearchBusy] = useState<MatchPace | null>(null)
@@ -177,7 +203,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   }
 
   return <div className="mm-page mm-play-page">
-    <div className="mm-play-tabs" role="tablist" aria-label="Mode de jeu">
+    <div className={`mm-play-tabs ${ONGLETS.length > 3 ? 'has-plus' : ''}`} role="tablist" aria-label="Mode de jeu">
       {ONGLETS.map(({ id, icone, label }) => <button
         type="button"
         key={id}
@@ -217,8 +243,9 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
               <span className="mm-play-card-icon" aria-hidden="true"><Trophy /></span>
               <span><h2>Normal</h2><small>{nouveau ? 'Un adversaire en quelques secondes · une dizaine de minutes' : 'Adversaire au hasard · sans classement'}</small></span>
             </header>
-            <PaceChoice pace={normalPace} setPace={rythme => { if (rythme !== 'chaine') setNormalPace(rythme) }} label="Choisir le rythme de la partie" />
-            <button type="button" className="mm-play-cta" aria-label="Jouer une partie normale" disabled={lancementEnCours} onClick={() => void lancerRechercheNormale()}>
+            <PaceChoice pace={auCalme ? null : normalPace} setPace={rythme => { if (rythme !== 'chaine') { setAuCalme(false); setNormalPace(rythme) } }} label="Choisir le rythme de la partie" />
+            <ChoixAuCalme choisi={auCalme} verrouille={!abonnement.actif} choisir={() => abonnement.actif ? setAuCalme(true) : ouvrirOffre()} />
+            <button type="button" className="mm-play-cta" aria-label={auCalme ? 'Jouer une partie au calme' : 'Jouer une partie normale'} disabled={lancementEnCours} onClick={() => auCalme ? jouerAuCalme() : void lancerRechercheNormale()}>
               Jouer <ChevronRight />
             </button>
           </section>
@@ -270,6 +297,8 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         </>}
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </section> : null}
+
+      {onglet === 'themes' ? <ThemesTab abonnement={abonnement} themes={themes} ouvrirOffre={ouvrirOffre} jouerTheme={(theme, rythme) => { retenirMode('themes'); jouerTheme(theme, rythme) }} inviterSurTheme={inviterSurTheme} /> : null}
 
       {onglet === 'friends' ? <>
         <section className="mm-play-card is-sage">
@@ -335,6 +364,6 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
 
     {onAttend ? <DefinitionEnAttente /> : null}
 
-    {lobby.recent.length ? null : <PremierePartie />}
+    {onglet === 'themes' || lobby.recent.length ? null : <PremierePartie />}
   </div>
 }

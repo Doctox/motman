@@ -83,12 +83,14 @@ function usePseudoSurDeuxLignes(nom: string) {
   return { pseudo, deuxLignes }
 }
 
-export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null }) {
+export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title, onPortrait }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null; onPortrait?: (portrait: HTMLElement) => void }) {
   // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
   // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
   const affiche = useCountUp(score)
   const { pseudo, deuxLignes } = usePseudoSurDeuxLignes(name)
-  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
+  const portrait = avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>
+  // Le portrait d'un abonné ouvre ses emotes (src/game/EmotesPartie.tsx).
+  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{onPortrait ? <button type="button" className="player-portrait-bouton" aria-label="Envoyer une emote" onClick={event => onPortrait(event.currentTarget)}>{portrait}</button> : portrait}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
 }
 
 /**

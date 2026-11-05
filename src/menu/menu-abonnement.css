@@ -1,0 +1,195 @@
+/* ============================================================
+   L'abonnement : sa teinte, le pseudo en couleur, l'onglet Thèmes,
+   la fiche d'un thème et la fiche de l'abonnement.
+   Dans la DA, pas de teinte à part (le propriétaire a refusé le
+   violet, 13/10/2026) : une « carte de membre », vert pin et laiton.
+   Le classé garde l'or sur ivoire ; l'abonnement, c'est l'or sur le
+   vert. En sombre, comme les boutons du jeu, il s'inverse : laiton
+   plein, texte foncé.
+   ============================================================ */
+
+:root{
+  --mm-plus:#7a5c1e;          /* laiton foncé : texte et icônes sur ivoire (4,5:1) */
+  --mm-plus-or:#c59b45;       /* laiton : filets et sceaux */
+  --mm-plus-fond:#073f36;     /* vert pin : boutons, sceau, onglet actif */
+  --mm-plus-sur-fond:#ecd59c; /* l'or qu'on pose sur le vert */
+  --mm-plus-soft:#f6eedb
+}
+[data-theme="dark"],[data-theme="dark"] .mm-modal-layer{
+  --mm-plus:#d9b563;--mm-plus-or:#d9b563;--mm-plus-fond:#d9b563;--mm-plus-sur-fond:#18241f;--mm-plus-soft:#2b2a1f
+}
+
+/* ── Le pseudo ─────────────────────────────────────────────── */
+.mm-pseudo{color:var(--pseudo-clair)}
+[data-theme="dark"] .mm-pseudo{color:var(--pseudo-sombre)}
+.mm-pseudo.is-arc-en-ciel{
+  background:linear-gradient(90deg,#b8322a,#a86200,#2f7d32,#1b5aa0,#6a3d9a,#b8322a);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  animation:mmArcEnCiel 7s linear infinite
+}
+[data-theme="dark"] .mm-pseudo.is-arc-en-ciel{background-image:linear-gradient(90deg,#ff8f85,#ffc061,#8fdc8a,#86b8f2,#d6a6e2,#ff8f85)}
+html[data-motion="off"] .mm-pseudo.is-arc-en-ciel{animation:none}
+@keyframes mmArcEnCiel{to{background-position:200% 0}}
+
+/* ── Les onglets de Jouer, à quatre ─────────────────────────── */
+.mm-play-tabs.has-plus{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+.mm-shell .mm-play-tabs.has-plus>button{gap:5px;font-size:0.75rem}
+.mm-play-tabs.has-plus>button:nth-child(4) svg{color:var(--mm-plus)}
+.mm-play-tabs.has-plus>button:nth-child(4).is-active svg{color:inherit}
+.mm-shell .mm-play-tabs.has-plus>button:nth-child(4).is-active{background:var(--mm-plus-fond);color:var(--mm-plus-sur-fond);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mm-plus-or) 60%,transparent)}
+.mm-play-card.is-plus{--mm-accent:var(--mm-plus-or)}
+.mm-play-card.is-plus:before{background:linear-gradient(var(--mm-plus-or),var(--mm-plus-fond))}
+/* Le bouton de l'abonnement : celui du jeu, cerclé de laiton. */
+.mm-shell .mm-play-cta.is-plus{
+  border:1px solid color-mix(in srgb,var(--mm-plus-or) 75%,var(--mm-plus-fond));
+  background:linear-gradient(color-mix(in srgb,var(--mm-plus-fond) 86%,#fff),var(--mm-plus-fond));color:var(--mm-plus-sur-fond);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mm-plus-or) 45%,transparent),0 6px 16px color-mix(in srgb,var(--mm-plus-fond) 24%,transparent)
+}
+.mm-shell .mm-play-cta.is-plus svg{color:var(--mm-plus-or)}
+[data-theme="dark"] .mm-shell .mm-play-cta.is-plus svg{color:inherit}
+.mm-plus-hint{margin:-4px 0 0;text-align:center;color:var(--mm-muted);font-size:0.6875rem}
+
+/* ── La grille des thèmes ───────────────────────────────────── */
+.mm-theme-grid{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mm-theme-grid>li{min-width:0}
+.mm-shell .mm-theme-card{
+  --theme-tint:#24594f;--theme-vif:var(--theme-tint);
+  position:relative;overflow:hidden;width:100%;height:100%;min-height:122px;padding:12px 12px 11px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+  border:1px solid color-mix(in srgb,var(--theme-tint) 22%,var(--mm-line));border-radius:16px;
+  background:linear-gradient(155deg,color-mix(in srgb,var(--theme-tint) 11%,var(--mm-surface)),var(--mm-surface) 72%);
+  box-shadow:0 4px 12px var(--mm-shadow);color:var(--mm-ink);text-align:left;cursor:pointer;
+  transition:transform .2s var(--mm-ease),box-shadow .2s ease
+}
+[data-theme="dark"] .mm-theme-card{--theme-vif:color-mix(in srgb,var(--theme-tint) 50%,#fff)}
+.mm-shell .mm-theme-card:active{transform:scale(.975)}
+.mm-theme-card-icon{width:40px;height:40px;flex:0 0 auto;display:grid;place-items:center;border-radius:13px;background:color-mix(in srgb,var(--theme-tint) 17%,var(--mm-surface));color:var(--theme-vif)}
+/* Le dessin du thème (celui de la carte du défi), posé en masque : sa couleur suit le thème clair ou sombre. */
+.mm-theme-card-icon>i{display:block;width:26px;height:26px;background:currentColor;-webkit-mask:var(--theme-dessin) center/contain no-repeat;mask:var(--theme-dessin) center/contain no-repeat}
+.mm-shell .mm-theme-card,.mm-theme-sheet{background-repeat:no-repeat}
+.mm-shell .mm-theme-card::after{content:'';position:absolute;right:-24px;bottom:-30px;width:92px;height:92px;background:var(--theme-motif-clair) center/contain no-repeat;pointer-events:none}
+[data-theme="dark"] .mm-shell .mm-theme-card::after{background-image:var(--theme-motif-sombre)}
+.mm-theme-card-icon,.mm-theme-card>strong,.mm-theme-card-foot{position:relative;z-index:1}
+.mm-theme-card-lock,.mm-theme-card-new{z-index:1}
+.mm-theme-card strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:700 0.9375rem/1.18 'Playfair Display',serif}
+.mm-theme-card-foot{width:100%;margin-top:auto;display:grid;gap:5px}
+.mm-theme-card-foot small{display:flex;align-items:center;gap:4px;color:var(--mm-muted);font-size:0.6875rem;font-weight:600}
+.mm-theme-card-foot small svg{width:12px;height:12px}
+/* Piste opaque : le filigrane du coin ne doit pas se voir à travers. */
+.mm-theme-card-bar{height:4px;border-radius:2px;overflow:hidden;background:color-mix(in srgb,var(--theme-tint) 16%,var(--mm-surface))}
+.mm-theme-card-bar i{display:block;height:100%;border-radius:inherit;background:var(--theme-vif)}
+.mm-theme-card-lock{position:absolute;top:10px;right:10px;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:var(--mm-plus-soft);color:var(--mm-plus)}
+.mm-theme-card-lock svg{width:12px;height:12px}
+.mm-theme-card-new{position:absolute;top:11px;right:11px;padding:3px 7px;border-radius:999px;background:color-mix(in srgb,var(--theme-tint) 16%,var(--mm-surface));color:var(--theme-vif);font-size:0.5625rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+
+/* ── La fiche d'un thème, posée en bas ───────────────────────── */
+.mm-theme-sheet{
+  --theme-tint:#24594f;--theme-vif:var(--theme-tint);
+  width:min(100%,440px);padding:16px 18px calc(18px + env(safe-area-inset-bottom));display:grid;gap:13px;
+  border:1px solid var(--mm-line);border-bottom:0;border-radius:24px 24px 0 0;
+  background:linear-gradient(170deg,color-mix(in srgb,var(--theme-tint) 12%,var(--mm-paper)),var(--mm-paper) 46%);
+  color:var(--mm-ink);box-shadow:0 -15px 45px #0004;animation:mmSheetIn .38s var(--mm-ease) both
+}
+[data-theme="dark"] .mm-theme-sheet{--theme-vif:color-mix(in srgb,var(--theme-tint) 50%,#fff)}
+@keyframes mmSheetIn{from{transform:translateY(40px);opacity:0}}
+.mm-theme-sheet>header{display:grid;grid-template-columns:56px minmax(0,1fr) 36px;gap:12px;align-items:center}
+.mm-theme-sheet>header .mm-theme-card-icon{width:56px;height:56px;border-radius:18px}
+.mm-theme-sheet>header .mm-theme-card-icon>i{width:32px;height:32px}
+.mm-theme-sheet>header small{color:var(--theme-vif);font-size:0.625rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.mm-theme-sheet h2{margin:2px 0 0;font:700 1.375rem/1.12 'Playfair Display',serif}
+.mm-theme-sheet>header button{width:36px;height:36px;padding:0;border:1px solid var(--mm-line);border-radius:50%;display:grid;place-items:center;background:var(--mm-surface);color:var(--mm-ink)}
+.mm-theme-sheet>header button svg{width:18px}
+.mm-theme-sheet-stats{margin:0;display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.mm-theme-sheet-stats>div{padding:9px 6px;border:1px solid var(--mm-line);border-radius:12px;background:var(--mm-surface);text-align:center}
+.mm-theme-sheet-stats dt{color:var(--mm-muted);font-size:0.5625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.mm-theme-sheet-stats dd{margin:2px 0 0;font:700 1.25rem 'Playfair Display',serif}
+.mm-theme-sheet-note{margin:-3px 0 0;color:var(--mm-muted);font-size:0.6875rem;line-height:1.45;text-align:center}
+.mm-shell .mm-theme-sheet .mm-play-cta,.mm-theme-sheet .mm-play-cta{min-height:52px;border:1px solid color-mix(in srgb,var(--mm-ink) 88%,#000);border-radius:16px;background:linear-gradient(var(--mm-ink),color-mix(in srgb,var(--mm-ink) 86%,#000));color:var(--mm-paper);display:flex;align-items:center;justify-content:center;gap:8px;font:800 1.0625rem 'DM Sans',sans-serif;cursor:pointer}
+.mm-theme-sheet .mm-play-cta svg{width:19px;height:19px}
+.mm-theme-sheet-friend{min-height:58px;padding:9px 12px;display:grid;grid-template-columns:34px minmax(0,1fr) 16px;gap:10px;align-items:center;border:1px solid var(--mm-line);border-radius:14px;background:var(--mm-surface);color:var(--mm-ink);text-align:left;cursor:pointer}
+.mm-theme-sheet-friend>span:first-child{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--mm-plus-soft);color:var(--mm-plus)}
+.mm-theme-sheet-friend svg{width:17px;height:17px}
+.mm-theme-sheet-friend strong{display:block;font-size:0.875rem}
+.mm-theme-sheet-friend small{display:block;margin-top:1px;color:var(--mm-muted);font-size:0.6875rem}
+
+/* ── La fiche de l'abonnement ────────────────────────────────── */
+.mm-plus-layer{align-items:center;padding:14px}
+.mm-plus-panel{
+  width:min(100%,400px);max-height:min(92dvh,780px);display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden;
+  border:1px solid var(--mm-line);border-radius:24px;background:var(--mm-paper);color:var(--mm-ink);
+  box-shadow:0 24px 70px #061e1852;animation:mmModalIn .36s var(--mm-ease) both
+}
+.mm-plus-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.mm-plus-scroll::-webkit-scrollbar{display:none}
+.mm-plus-hero{position:relative;padding:22px 20px 18px;text-align:center;background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--mm-plus) 20%,var(--mm-paper)),var(--mm-paper) 72%)}
+.mm-plus-close{position:absolute;top:12px;right:12px;width:36px;height:36px;padding:0;border:1px solid var(--mm-line);border-radius:50%;display:grid;place-items:center;background:var(--mm-surface);color:var(--mm-ink);cursor:pointer}
+.mm-plus-close svg{width:18px}
+/* Le logo MotMan+ : le logo de base, un « + » doré dans la case vide du O (LogoMotManPlus.tsx). */
+.mm-logo-plus{position:relative;display:block;width:min(100%,268px);margin:8px auto 4px}
+.mm-logo-plus img{display:block;width:100%;height:auto}
+.mm-logo-plus .mm-logo-plus-nuit{display:none}
+[data-theme="dark"] .mm-logo-plus .mm-logo-plus-jour{display:none}
+[data-theme="dark"] .mm-logo-plus .mm-logo-plus-nuit{display:block}
+.mm-logo-plus-croix{position:absolute;left:30.178%;top:23.694%;width:4.207%;height:19.403%;fill:var(--mm-plus-or)}
+.mm-icone-plus{display:block;color:var(--mm-ink)}
+.mm-icone-plus-case{fill:var(--mm-coral)}
+.mm-icone-plus-croix{stroke:var(--mm-plus-or);fill:none}
+.mm-plus-hero small{color:var(--mm-plus);font-size:0.625rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.mm-plus-hero h2{margin:3px 0 0;line-height:0}
+.mm-plus-hero p{margin:7px 0 0;color:var(--mm-muted);font-size:0.875rem}
+.mm-plus-perks{list-style:none;margin:0;padding:4px 18px 6px;display:grid;gap:2px}
+.mm-plus-perks li{padding:9px 0;display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid color-mix(in srgb,var(--mm-line) 60%,transparent)}
+.mm-plus-perks li:last-child{border-bottom:0}
+.mm-plus-perks li>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:var(--mm-plus-soft);color:var(--mm-plus)}
+.mm-plus-perks li>span svg{width:19px;height:19px}
+.mm-plus-perks strong{display:block;font-size:0.875rem}
+.mm-plus-perks small{display:block;margin-top:1px;color:var(--mm-muted);font-size:0.6875rem;line-height:1.35}
+.mm-plus-foot{padding:12px 18px calc(14px + env(safe-area-inset-bottom));display:grid;gap:8px;border-top:1px solid var(--mm-line);background:var(--mm-surface)}
+.mm-plus-foot p{margin:0;text-align:center;color:var(--mm-muted);font-size:0.625rem;line-height:1.45}
+/* Avant la vente : « Bientôt » à la place du bouton, posé, et rien à toucher. */
+.mm-plus-bientot{min-height:52px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid color-mix(in srgb,var(--mm-plus) 32%,var(--mm-line));border-radius:16px;background:var(--mm-plus-soft);color:var(--mm-plus);font:700 1.25rem 'Playfair Display',serif}
+.mm-plus-bientot svg{width:18px;height:18px;color:var(--mm-plus-or)}
+.mm-plus-foot .mm-plus-bientot+p{font-size:0.75rem}
+
+/* L'abonné : où il en est. */
+.mm-plus-block{margin:12px 18px 0;padding:12px 14px;border:1px solid var(--mm-line);border-radius:16px;background:var(--mm-surface)}
+.mm-plus-block h3{margin:0 0 8px;font:600 1rem 'Playfair Display',serif}
+.mm-plus-block p{margin:6px 0 0;color:var(--mm-muted);font-size:0.6875rem;line-height:1.4}
+.mm-plus-secondary{width:100%;min-height:44px;margin-top:10px;border:1px solid var(--mm-line);border-radius:12px;background:var(--mm-paper);color:var(--mm-ink);display:flex;align-items:center;justify-content:center;gap:7px;font-size:0.8125rem;font-weight:700;cursor:pointer}
+.mm-plus-secondary svg{width:16px;height:16px}
+
+/* ── L'entrée du profil ─────────────────────────────────────── */
+.mm-shell .mm-plus-entry{width:100%;min-height:68px;padding:11px 13px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:11px;align-items:center;border:1px solid color-mix(in srgb,var(--mm-plus) 32%,var(--mm-line));border-radius:16px;background:linear-gradient(115deg,color-mix(in srgb,var(--mm-plus-soft) 85%,var(--mm-surface)),var(--mm-surface));color:var(--mm-ink);text-align:left;box-shadow:0 4px 12px var(--mm-shadow);cursor:pointer}
+.mm-plus-entry>span:first-child{width:44px;height:44px;display:grid;place-items:center}
+.mm-plus-entry strong{display:block;font:700 1rem 'Playfair Display',serif}
+.mm-plus-entry small{display:block;margin-top:1px;color:var(--mm-muted);font-size:0.6875rem}
+.mm-plus-entry b{height:32px;padding:0 13px;display:flex;align-items:center;border-radius:16px;background:var(--mm-plus-fond);color:var(--mm-plus-sur-fond);font-size:0.75rem;font-weight:800;white-space:nowrap}
+
+/* ── Le choix de la couleur, dans l'éditeur de profil ─────────── */
+.mm-pseudo-colors{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.mm-pseudo-colors button{position:relative;min-width:0;padding:7px 0 6px;border:1px solid transparent;border-radius:10px;background:transparent;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--mm-ink);cursor:pointer}
+.mm-pseudo-colors button.active{border-color:#83a994;background:color-mix(in srgb,var(--mm-sage) 72%,var(--mm-surface))}
+.mm-pseudo-colors button:disabled{cursor:default}
+.mm-pseudo-colors i{width:28px;height:28px;border-radius:50%;background:var(--pseudo-clair);box-shadow:inset 0 0 0 2px #ffffff70,0 0 0 1px var(--mm-line)}
+[data-theme="dark"] .mm-pseudo-colors i{background:var(--pseudo-sombre)}
+.mm-pseudo-colors i.is-none{background:var(--mm-ink)}
+.mm-pseudo-colors i.is-arc-en-ciel{background:conic-gradient(#b8322a,#a86200,#2f7d32,#1b5aa0,#6a3d9a,#b8322a)}
+.mm-pseudo-colors span{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:0.5rem}
+.mm-pseudo-colors svg{position:absolute;top:4px;right:6px;width:13px;height:13px;padding:2px;border-radius:50%;background:var(--mm-plus-soft);color:var(--mm-plus)}
+.mm-pseudo-colors button:disabled i{opacity:.45}
+.mm-pseudo-colors-note{margin:9px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--mm-muted);font-size:0.6875rem}
+.mm-pseudo-colors-note button{flex:0 0 auto;height:30px;padding:0 12px;border:0;border-radius:15px;background:var(--mm-plus-fond);color:var(--mm-plus-sur-fond);font-size:0.6875rem;font-weight:800;cursor:pointer}
+
+/* ── « Au calme », le 3e rythme de la carte Normal (A9) ─────────── */
+.mm-shell .mm-pace-calme{width:100%;min-height:58px;margin-top:-4px;padding:9px 11px;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--mm-line);border-radius:9px;background:var(--mm-surface);color:var(--mm-ink);text-align:left;cursor:pointer;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease}
+.mm-shell .mm-pace-calme:hover{background:var(--mm-sage-soft)}
+.mm-shell .mm-pace-calme.active{border-color:var(--mm-ink);background:var(--mm-sage);box-shadow:inset 0 0 0 1px var(--mm-ink)}
+.mm-shell .mm-pace-calme:active{transform:scale(.985)}
+/* L'icône MotMan+ (le O et son « + »), demandée à la place de la feuille le 16/10/2026. */
+.mm-pace-calme-icone{width:34px;height:34px;display:grid;place-items:center}
+.mm-pace-calme strong{display:block;font:600 0.8125rem 'Playfair Display',serif}
+.mm-pace-calme small{display:block;margin-top:2px;color:var(--mm-muted);font-size:0.5625rem}
+.mm-pace-calme-plus{height:24px;padding:0 9px;display:flex;align-items:center;gap:4px;border-radius:12px;background:var(--mm-plus-fond);color:var(--mm-plus-sur-fond);font-size:0.625rem;font-weight:800;white-space:nowrap}
+.mm-pace-calme-plus svg{width:11px;height:11px}
+.mm-theme-sheet .mm-pace-choice>button{min-height:58px;flex-direction:column;justify-content:center;gap:2px;text-align:center}
+.mm-theme-sheet-rythme{margin:-5px 0 0;text-align:center;color:var(--mm-muted);font-size:0.6875rem}

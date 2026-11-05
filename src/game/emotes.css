@@ -1,0 +1,44 @@
+/* ============================================================
+   Les emotes MotMan+ en partie : le portrait cliquable, l'éventail
+   de jetons et la bulle de 2 s. Jetons ivoire cerclés de laiton,
+   comme une petite médaille ; les images sont peintes comme les
+   avatars (17/10/2026).
+   ============================================================ */
+
+/* Le portrait du joueur abonné devient un bouton, sans rien déplacer. */
+.player-portrait-bouton{flex:0 0 auto;display:grid;place-items:center;margin:0;padding:0;border:0;border-radius:50%;background:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.player-portrait-bouton:focus-visible{outline:2px solid #c59b45;outline-offset:3px}
+
+.emotes-calque{position:fixed;inset:0;z-index:120;background:#071d181a}
+.emotes-eventail{position:absolute;inset:0;pointer-events:none}
+.emote-jeton{position:absolute;padding:0;border:0;border-radius:50%;overflow:hidden;background:#fbf7ee;box-shadow:0 0 0 2px #c59b45,0 6px 14px #0004;cursor:pointer;pointer-events:auto;
+  animation:emoteSort .26s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--rang) * 35ms)}
+.emote-jeton img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.emote-jeton:active{transform:scale(.92)}
+.emote-jeton:disabled{cursor:default;filter:saturate(.35);opacity:.6}
+.emote-jeton:focus-visible{outline:2px solid #073f36;outline-offset:3px}
+@keyframes emoteSort{from{transform:translate(var(--depuis-x),var(--depuis-y)) scale(.4);opacity:0}}
+
+/* La bulle envoyée, toujours une bulle de BD (19/10/2026) : une image à gauche du portrait, la queue
+   vers lui, ou « Bonne chance ! » dans la bande libre sous la carte, la queue vers le haut. */
+.emote-bulle-bd{position:fixed;z-index:110;pointer-events:none;animation:emoteBulle 2s ease both}
+.emote-bulle-bd{height:26px;padding:0 12px 0 4px;display:flex;align-items:center;gap:5px;border-radius:14px;background:#fffdf8;box-shadow:0 0 0 1.6px #c59b45,0 6px 14px #0003;
+  font:700 italic 0.84375rem 'Playfair Display',serif;color:#073f36;white-space:nowrap}
+.emote-bulle-bd img{width:20px;height:20px;border-radius:50%}
+.emote-bulle-bd i{font-style:inherit;color:#c94d29}
+.emote-bulle-bd::before{content:'';position:absolute;top:-6px;right:var(--queue,24px);width:11px;height:11px;background:#fffdf8;transform:rotate(45deg);box-shadow:-1.6px -1.6px 0 0 #c59b45}
+.emote-bulle-bd-image{height:auto;padding:0;justify-content:center;border-radius:17px}
+.emote-bulle-bd-image .emote-image{width:40px;height:40px;border-radius:50%;overflow:hidden}
+.emote-bulle-bd-image .emote-image img{display:block;width:100%;height:100%}
+.emote-bulle-bd-image::before{top:calc(50% - 5.5px);right:-6px;box-shadow:1.6px -1.6px 0 0 #c59b45}
+/* Coucou : la main salue pendant les 2 s de la bulle (19/10/2026), en pivotant au poignet, 10° de
+   chaque côté. Elle grossit de 12 % pour que le bord de l'image ne se voie jamais quand elle penche
+   (calculé : à 1,08 il dépassait encore d'un point sur 192). */
+.emote-salue img{transform:scale(1.12);transform-origin:46% 73%;animation:emoteSalut .5s ease-in-out infinite alternate}
+@keyframes emoteSalut{from{transform:scale(1.12) rotate(-10deg)}to{transform:scale(1.12) rotate(10deg)}}
+@keyframes emoteBulle{0%{transform:scale(.6);opacity:0}12%{transform:scale(1.04);opacity:1}20%{transform:scale(1)}85%{opacity:1}100%{opacity:0}}
+
+/* Animations coupées par le joueur : tout apparaît et disparaît sans bouger. */
+html[data-motion="off"] .emote-jeton,html[data-motion="off"] .emote-salue img{animation:none}
+html[data-motion="off"] .emote-bulle-bd{animation:emoteFondu 2s linear both}
+@keyframes emoteFondu{0%,85%{opacity:1}100%{opacity:0}}
