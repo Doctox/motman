@@ -47,8 +47,8 @@ html[data-motion="off"] .emote-bulle-bd{animation:emoteFondu 2s linear both}
 .emote-bulle-bd.is-adverse::before{right:auto;left:var(--queue,24px)}
 .emote-bulle-bd-image.is-adverse::before{right:auto;left:-6px;box-shadow:-1.6px 1.6px 0 0 #c59b45}
 
-/* Le néon ne tourne pas en partie : pas d'animation continue près des ombres (lag GPU sur Samsung). */
-.scoreboard .mm-pseudo.is-arc-en-ciel{animation:none}
+/* En partie, le néon ne défile pas : il change de couleur par paliers (src/menu/PseudoJoueur.tsx). */
+.mm-pseudo.is-arc-en-ciel.is-par-paliers{animation:none}
 
 /* La partie au calme : le joueur seul, sa carte sur toute la largeur, et ce qu'il reste à poser. */
 .multiplayer-shell .scoreboard.is-seul{display:block}
