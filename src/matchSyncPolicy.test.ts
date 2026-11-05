@@ -67,6 +67,40 @@ describe('matchPollDelay', () => {
     expect(matchPollDelay({ match: { ...fantome, currentPlayerId: 'player' }, playerId: 'player', visibility: 'visible', realtimeConnected: true, unchangedPolls: 0, failureCount: 0, now: 2_000 })).toBe(12_000)
   })
 
+  describe('l’heure redonnée à chaque lecture (05/11/2026)', () => {
+    const attente = (autres: Partial<MatchState>, prochaineLecture: string | undefined, now: number, realtimeConnected = true) => matchPollDelay({ match: match(autres), playerId: 'player', visibility: 'visible', realtimeConnected, unchangedPolls: 4, failureCount: 0, prochaineLecture, now })
+
+    it('on vient lire la prochaine lettre à son heure', () => {
+      expect(attente({}, new Date(5_000).toISOString(), 2_000)).toBe(3_250)
+    })
+
+    it('jamais en rafale, même deux lettres de suite', () => {
+      expect(attente({}, new Date(2_100).toISOString(), 2_000)).toBe(1_250)
+    })
+
+    it('elle passe avant l’heure de la partie, et un serveur sans elle ne change rien', () => {
+      const partie = { nextCheckAt: new Date(20_000).toISOString() }
+      expect(attente(partie, new Date(5_000).toISOString(), 2_000)).toBe(3_250)
+      expect(attente(partie, undefined, 16_000)).toBe(4_250)
+    })
+
+    it('dépassée, on relit toutes les 1,25 s jusqu’au coup', () => {
+      expect(attente({}, new Date(10_000).toISOString(), 30_000)).toBe(1_250)
+    })
+
+    it('le sondage ordinaire reste un maximum : le temps réel décroché, on lit quand même toutes les 2 s', () => {
+      expect(attente({}, new Date(20_000).toISOString(), 2_000, false)).toBe(4_000)
+    })
+
+    it('ne compte ni à mon tour, ni en chaîne, ni face à un adversaire annoncé', () => {
+      const heure = new Date(5_000).toISOString()
+      expect(attente({ currentPlayerId: 'player' }, heure, 2_000)).toBe(14_000)
+      const CHAINE = { tour: 2, lettres: [], letterPoints: 0, wordBonuses: [], rackBonus: 0, scoreGained: 0 }
+      expect(attente({ chaine: CHAINE }, heure, 2_000)).toBe(10_000)
+      expect(attente({ bot: { playerId: 'opponent', displayName: 'Camille', level: 4, avatarId: 'plume', frameId: 'cadre-ivoire' } }, heure, 2_000)).toBe(1_250)
+    })
+  })
+
   it('face à un humain, l’heure de rappel (la fin de son tour) ne change rien au sondage', () => {
     for (const now of [2_000, 40_000, 46_100, 50_000]) {
       for (const realtimeConnected of [true, false]) {

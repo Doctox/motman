@@ -1,3 +1,4 @@
+import { botTurnDelayMs } from './botDelay.ts'
 import { ruleGrid } from './matchGrid.ts'
 import { createBot } from './matchSetup.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
@@ -370,6 +371,26 @@ Deno.test('quand la main passe à l’adversaire automatique, son coup est prép
   egal(ligne.state.coupPrepare?.turnNumber, ligne.turn_number, 'préparé pour ce tour-là')
   egal(ligne.state.coupPrepare?.placements, botPlacements(ligne, GRILLE), 'le coup qu’il aurait joué de toute façon')
   egal(coupDuBotAJouer(ligne, GRILLE), ligne.state.coupPrepare?.placements, 'c’est lui qui sera joué')
+})
+
+Deno.test('une ombre prépare ses gestes : les mêmes lettres, à son rythme, et le coup ne change pas', () => {
+  const { bot, ligne } = partieContreUnBot()
+  ligne.state.bot = { ...bot, ghostOf: bot.playerId, tuning: { accuracy: 100, minLetters: 3, maxLetters: 3, wordBonusWeight: 1, pressureGap: 99 } }
+  applyTurn(ligne, GRILLE, JOUEUR, [placer(0, 'M')])
+  const prepare = ligne.state.coupPrepare!
+  verifie(prepare.placements.length > 0, 'elle a un coup à jouer')
+  const gestes = prepare.gestes ?? []
+  const parCase = <L extends { cellIndex: number }>(lettres: L[]) => lettres.map(({ cellIndex, letter }: L & { letter?: string }) => `${cellIndex}${letter}`).sort()
+  egal(parCase(gestes), parCase(prepare.placements), 'exactement les lettres de son coup')
+  const reflexion = botTurnDelayMs(ligne)
+  verifie(gestes.every((geste, rang) => geste.aMs < reflexion && (rang === 0 || geste.aMs > gestes[rang - 1].aMs)), 'dans l’ordre, avant son coup')
+  egal(coupDuBotAJouer(ligne, GRILLE), prepare.placements, 'le coup joué reste celui qu’il aurait joué')
+})
+
+Deno.test('un adversaire annoncé n’a pas de gestes : il garde son rythme', () => {
+  const { ligne } = partieContreUnBot()
+  applyTurn(ligne, GRILLE, JOUEUR, [placer(0, 'M')])
+  egal(ligne.state.coupPrepare?.gestes, undefined, 'seule une ombre')
 })
 
 Deno.test('le coup préparé disparaît une fois joué, et n’existe pas entre personnes', () => {

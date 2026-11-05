@@ -47,6 +47,7 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   const sondagesInchanges = useRef(0)
   const echecs = useRef(0)
   const erreurAffichee = useRef<string | null>(null)
+  const prochaineLecture = useRef<{ tour: number; heure: string } | null>(null)
   // Les rappels changent à chaque rendu ; le sondage, lui, vit tant que l'écran.
   const rappels = useRef({ appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError })
   rappels.current = { appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError }
@@ -62,7 +63,11 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
     const sync = async () => {
       try {
         const connue = partieRef.current
-        const next = await loadMatch(playerId, matchId, connue?.updatedAt, enDirect => { if (vivant) rappels.current.recevoirEnDirect?.(enDirect) }, connue?.chaine ? connue.gridId : undefined)
+        const next = await loadMatch(playerId, matchId, connue?.updatedAt, enDirect => {
+          if (!vivant) return
+          prochaineLecture.current = enDirect.prochaineA ? { tour: enDirect.turnNumber, heure: enDirect.prochaineA } : null
+          rappels.current.recevoirEnDirect?.(enDirect)
+        }, connue?.chaine ? connue.gridId : undefined)
         if (!vivant) return
         if (!next) {
           sondagesInchanges.current += 1
@@ -101,6 +106,7 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
         realtimeConnected: tempsReelConnecte.current,
         unchangedPolls: sondagesInchanges.current,
         failureCount: echecs.current,
+        prochaineLecture: prochaineLecture.current?.tour === partieRef.current?.turnNumber ? prochaineLecture.current?.heure : undefined,
       }),
     })
     pollingRef.current = polling

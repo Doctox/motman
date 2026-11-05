@@ -8,8 +8,10 @@
 // Rien n'a été réécrit : le corps est celui d'`index.ts`, déplacé tel quel.
 // Voir `matchTurns.test.ts` pour ce qui est désormais couvert.
 
+import { heuresDesLettres, ordreDeJoueur } from '../../../src/rythmeDeJoueur.ts'
 import { planBotMove } from '../../../src/botOpponents.ts'
 import { evaluateTurn, keepRackLettersAfterTurn, PRESENCE_WINDOW_MS, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
+import { botTurnDelayMs } from './botDelay.ts'
 import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
 import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type Chaine, type MatchRow, type State, type Turn } from './matchModel.ts'
 
@@ -349,8 +351,18 @@ export function botPlacements(row: MatchRow, grid: CatalogGrid) {
 export function preparerCoupDuBot(row: MatchRow, grid: CatalogGrid): void {
   // En chaîne, ses lettres se décident une à une, à leur heure (matchChaine.ts).
   if (row.status === 'active' && row.pace === 'realtime' && !row.state.chaine && row.state.bot?.playerId === row.current_player_id) {
-    row.state.coupPrepare = { turnNumber: row.turn_number, placements: botPlacements(row, grid) }
+    const placements = botPlacements(row, grid)
+    row.state.coupPrepare = { turnNumber: row.turn_number, placements, ...(row.state.bot.ghostOf ? { gestes: gestesDeLOmbre(row, grid, placements) } : {}) }
   } else delete row.state.coupPrepare
+}
+
+/** Une ombre pose ses lettres comme une personne : un mot après l'autre, et à son rythme (src/rythmeDeJoueur.ts). */
+function gestesDeLOmbre(row: MatchRow, grid: CatalogGrid, placements: Array<{ cellIndex: number; letter: string }>) {
+  const rules = ruleGrid(grid)
+  const mots = rules.words.map(mot => (mot.cells ?? []).map(([ligne, colonne]) => ligne * rules.columns + colonne))
+  const { ordre, memeMot } = ordreDeJoueur(placements, mots)
+  const heures = heuresDesLettres(`${row.id}:${row.turn_number}`, botTurnDelayMs(row), memeMot)
+  return ordre.map((lettre, rang) => ({ aMs: heures[rang], ...lettre }))
 }
 
 /** Le coup que l'adversaire automatique joue : celui qu'on a montré, s'il a été préparé. */

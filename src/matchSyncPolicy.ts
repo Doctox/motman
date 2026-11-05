@@ -9,6 +9,8 @@ type MatchPollDelayOptions = {
   realtimeConnected: boolean
   unchangedPolls: number
   failureCount: number
+  /** L'heure que la dernière lecture a donnée pour ce tour-là (`EnDirect.prochaineA`). */
+  prochaineLecture?: string
   now?: number
 }
 
@@ -24,6 +26,7 @@ export function matchPollDelay({
   realtimeConnected,
   unchangedPolls,
   failureCount,
+  prochaineLecture,
   // L'heure du SERVEUR, comme `turnEndsAt` : avec celle du téléphone, un
   // appareil en avance voyait chaque tour déjà fini et sondait toutes les
   // 350 ms toute la partie — assez pour buter sur « Trop de requêtes ».
@@ -64,8 +67,13 @@ export function matchPollDelay({
   // un coup qui tarde ne doit pas faire sonder en rafale jusqu'à « Trop de
   // requêtes ».
   // Pas en chaîne : cette heure-là tomberait en plein tour, et il resterait 1,25 s entre deux lectures.
-  if (match.nextCheckAt && !ownTurn && !match.chaine) {
-    return Math.min(ordinaire, Math.max(1_250, Date.parse(match.nextCheckAt) - now + 250))
+  //
+  // Depuis le 05/11/2026, chaque lecture redonne l'heure de la suivante (`prochaineLecture`) :
+  // la prochaine lettre d'une ombre, qui n'arrivait qu'en rafales toutes les 9 s. Sans elle
+  // (serveur pas encore à jour), on garde l'heure de la partie.
+  const heure = prochaineLecture ?? match.nextCheckAt
+  if (heure && !ownTurn && !match.chaine) {
+    return Math.min(ordinaire, Math.max(1_250, Date.parse(heure) - now + 250))
   }
   return ordinaire
 }

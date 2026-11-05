@@ -18,6 +18,8 @@ export type EnDirect = {
   placements: Array<{ cellIndex: number; letter: string }>
   /** L'heure du serveur à laquelle ces lettres étaient vraies : deux envois se croisent en route. */
   recuA: string
+  /** Quand revenir lire. Seul le sondage la donne (matchSyncPolicy.ts), jamais le temps réel. */
+  prochaineA?: string
 }
 
 /** Ce qui arrive par le temps réel n'est jamais tenu pour bon sans contrôle. */

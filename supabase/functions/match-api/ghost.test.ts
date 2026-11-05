@@ -98,6 +98,11 @@ Deno.test('le joueur voit le vrai profil du propriétaire, en partie, et jamais 
     ['DocTox', 'BBBBBBBB', 'chat', 'cadre-fleurs', 'petales', 20, true, 'playing'],
   )
   assertEquals(JSON.stringify(vue).includes('ghostOf'), false)
+  // Ses gestes disent ce qu'il va jouer : ils ne sortent jamais du serveur (05/11/2026).
+  const avecSesGestes = partie(fantome, true)
+  avecSesGestes.state = { ...avecSesGestes.state, coupPrepare: { turnNumber: avecSesGestes.turn_number, placements: [{ cellIndex: 0, letter: 'A' }], gestes: [{ aMs: 9_000, cellIndex: 0, letter: 'A' }] } }
+  const texte = JSON.stringify(await view(base(), avecSesGestes, JOUEUR))
+  assertEquals(texte.includes('gestes') || texte.includes('coupPrepare'), false)
   assertEquals(JSON.stringify(vue).includes('tuning'), false)
 })
 

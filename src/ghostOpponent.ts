@@ -32,7 +32,7 @@ export const FANTOME_ATTENTE_MS = 60_000
 export const FANTOME_EN_LIGNE_MAX = 2
 
 /** Version des réglages : à monter à chaque recalibrage, pour s'y retrouver. */
-export const FANTOME_VERSION = 2
+export const FANTOME_VERSION = 3
 
 /**
  * VERSION 2 (13/10/2026). La v1 (93 % de lettres justes, 3 à 5 par tour) se
@@ -58,17 +58,23 @@ export const FANTOME_REGLAGES: BotTuning = {
 }
 
 /**
- * Le temps de réflexion du fantôme. Un humain ne joue pas en 4 à 8 s comme les
- * bots ordinaires : un adversaire « propriétaire » qui répondrait aussi vite se
- * trahirait. Le carnet dit 20 à 44 s (médiane 39) ; mais un tour en temps réel
- * dure 45 s, et le fantôme ne doit jamais rater le sien : 14 à 32 s.
+ * Le temps de réflexion du fantôme et des ombres. Un humain ne joue pas en 4 à 8 s comme
+ * les bots ordinaires : un adversaire présenté comme une personne qui répondrait aussi
+ * vite se trahirait.
+ *
+ * MESURÉ LE 05/11/2026 : 14 à 32 s (la v1) restait bien en dessous des vrais joueurs. Le
+ * carnet du propriétaire dit 8 à 13 s (10 %), 32 à 39 s (médiane), 45 s (90 %), et les
+ * défis du dernier mois environ 35 à 40 s par tour. D'où 12 à 42 s, tirés
+ * vers le haut (racine carrée) : 21 s (10 %), 33 s (médiane), 40 s (90 %). Jamais au-delà
+ * de 42 s : un tour dure 45 s, et le coup doit tomber avant que le chrono du joueur finisse.
  */
-export const FANTOME_REFLEXION_MIN_MS = 14_000
-export const FANTOME_REFLEXION_MAX_MS = 32_000
+export const FANTOME_REFLEXION_MIN_MS = 12_000
+export const FANTOME_REFLEXION_MAX_MS = 42_000
 
 /** Déterministe par partie et par tour : le serveur et l'annonce au client tombent d'accord. */
 export function fantomeReflexionMs(seed: string): number {
-  return FANTOME_REFLEXION_MIN_MS + fnv1a(`${seed}:fantome`) % (FANTOME_REFLEXION_MAX_MS - FANTOME_REFLEXION_MIN_MS + 1)
+  const tirage = (fnv1a(`${seed}:fantome`) % 10_000) / 10_000
+  return Math.round(FANTOME_REFLEXION_MIN_MS + (FANTOME_REFLEXION_MAX_MS - FANTOME_REFLEXION_MIN_MS) * Math.sqrt(tirage))
 }
 
 /** La règle d'entrée, telle que le serveur la revérifie en base. */

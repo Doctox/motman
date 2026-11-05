@@ -80,7 +80,8 @@ export type State = {
    * passe : ses lettres arrivent au fil de sa réflexion, comme celles d'une
    * personne (matchDrafts.ts). `view` ne le renvoie jamais tel quel.
    */
-  coupPrepare?: { turnNumber: number; placements: Array<{ cellIndex: number; letter: string }> };
+  /** `gestes` : pour une ombre, les mêmes lettres dans l'ordre et à l'heure où elle les pose (src/rythmeDeJoueur.ts). */
+  coupPrepare?: { turnNumber: number; placements: Array<{ cellIndex: number; letter: string }>; gestes?: Array<{ aMs: number; cellIndex: number; letter: string }> };
   /** Présent : c'est un duel en chaîne (matchChaine.ts). Rien d'autre ne marque ce mode dans la partie. */
   chaine?: Chaine;
   /** Cette partie automatique a cédé la place à une partie entre humains : celle-ci (20261104120000). */

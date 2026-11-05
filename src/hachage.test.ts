@@ -52,8 +52,9 @@ describe('FNV-1a : une seule écriture, les mêmes tirages', () => {
     expect(createBotPersona('autre-graine', 'beginner')).toEqual({ displayName: 'Clara', level: 7, skill: 'beginner', avatarId: 'amina', frameId: 'cadre-sauge' })
   })
 
-  it('le fantôme réfléchit comme avant', () => {
-    expect(['partie-1:1', 'partie-1:2', 'abc:7'].map(fantomeReflexionMs)).toEqual([14474, 15188, 16265])
+  // Valeurs revues le 05/11/2026 : la réflexion est passée de 14-32 s à 12-42 s (ghostOpponent.ts).
+  it('le fantôme tire toujours la même réflexion', () => {
+    expect(['partie-1:1', 'partie-1:2', 'abc:7'].map(fantomeReflexionMs)).toEqual([16957, 33939, 27214])
   })
 
   it('la grille d’une partie se tire comme avant', () => {

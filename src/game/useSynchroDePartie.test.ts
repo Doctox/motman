@@ -12,21 +12,25 @@ import type { MatchState } from '../matches'
 
 const reponses: Array<MatchState | null | Error> = []
 let tache: (() => Promise<void>) | null = null
+let delaiDuSondage: ((visibilite: 'visible' | 'hidden') => number) | null = null
+let lettresALire: { turnNumber: number; placements: never[]; recuA: string; prochaineA?: string } | null = null
 const reveil = vi.fn()
 let notifier: ((updatedAt: string | null) => void) | null = null
+let surStatut: ((statut: string) => void) | null = null
 
 vi.mock('../matches', () => ({
-  loadMatch: async () => {
+  loadMatch: async (_joueur: string, _partie: string, _connue: string | undefined, surEnDirect?: (enDirect: NonNullable<typeof lettresALire>) => void) => {
+    if (lettresALire) surEnDirect?.(lettresALire)
     const reponse = reponses.shift()
     if (reponse instanceof Error) throw reponse
     return reponse ?? null
   },
 }))
 vi.mock('../adaptivePolling', () => ({
-  startAdaptivePolling: ({ task }: { task: () => Promise<void> }) => { tache = task; return { stop: vi.fn(), wake: reveil } },
+  startAdaptivePolling: ({ task, delay }: { task: () => Promise<void>; delay: (visibilite: 'visible' | 'hidden') => number }) => { tache = task; delaiDuSondage = delay; return { stop: vi.fn(), wake: reveil } },
 }))
 vi.mock('../matchRealtime', () => ({
-  subscribeToMatchUpdates: (_id: string, surMiseAJour: (updatedAt: string | null) => void) => { notifier = surMiseAJour; return () => { notifier = null } },
+  subscribeToMatchUpdates: (_id: string, surMiseAJour: (updatedAt: string | null) => void, statut: (statut: string) => void) => { notifier = surMiseAJour; surStatut = statut; return () => { notifier = null } },
 }))
 
 const { useSynchroDePartie } = await import('./useSynchroDePartie')
@@ -47,6 +51,7 @@ describe('la synchro de la partie', () => {
     erreurs.length = 0
     disparue.mockReset()
     reveil.mockReset()
+    lettresALire = null
     partieRef.current = null
     racine = createRoot(document.createElement('div'))
     function Sonde() {
@@ -64,6 +69,44 @@ describe('la synchro de la partie', () => {
   afterEach(() => act(() => racine.unmount()))
 
   const sonder = () => act(async () => { await tache!() })
+
+  // Le dernier maillon contre les rafales d'une ombre (05/11/2026) : sans lui, tous les
+  // autres tests passent, et on relit toutes les 9 s comme avant.
+  describe('l’heure de la prochaine lecture', () => {
+    const dans = (ms: number) => new Date(Date.now() + ms).toISOString()
+    const tourDeLAutre = (turnNumber: number) => ({
+      id: 'match-1', updatedAt: '2026-11-05T10:00:00.000Z', status: 'active', pace: 'realtime', bot: null,
+      currentPlayerId: 'autre', turnNumber, turnEndsAt: dans(40_000),
+    } as MatchState)
+    const lire = (turnNumber: number, prochaineA?: string) => { lettresALire = { turnNumber, placements: [], recuA: dans(-1_000), prochaineA } }
+
+    beforeEach(() => surStatut!('connected'))
+
+    it('la lecture suivante tombe à l’heure que la dernière a donnée', async () => {
+      partieRef.current = tourDeLAutre(2)
+      lire(2, dans(3_000))
+      await sonder()
+      const attente = delaiDuSondage!('visible')
+      expect(attente).toBeGreaterThan(2_500)
+      expect(attente).toBeLessThanOrEqual(3_300)
+    })
+
+    it('une heure donnée pour un autre tour ne compte pas', async () => {
+      partieRef.current = tourDeLAutre(4)
+      lire(2, dans(3_000))
+      await sonder()
+      expect(delaiDuSondage!('visible')).toBeGreaterThan(5_000)
+    })
+
+    it('un serveur qui ne la donne pas efface la précédente', async () => {
+      partieRef.current = tourDeLAutre(2)
+      lire(2, dans(3_000))
+      await sonder()
+      lire(2)
+      await sonder()
+      expect(delaiDuSondage!('visible')).toBeGreaterThan(5_000)
+    })
+  })
 
   it('applique la nouvelle version de la partie', async () => {
     reponses.push(partie('2026-10-22T10:00:00.000Z'))

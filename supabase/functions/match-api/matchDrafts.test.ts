@@ -1,3 +1,5 @@
+import { fantomeReflexionMs } from '../../../src/ghostOpponent.ts'
+import { botTurnDelayMs } from './botDelay.ts'
 import { nowIso, type CatalogGrid, type MatchRow, type State } from './matchModel.ts'
 import { BROUILLON_MARGE_MS, brouillonRecevable, lettresDuBrouillon, lettresDuCoupPrepare, lettresEnDirect } from './matchDrafts.ts'
 import { closeExpiredTurn } from './matchTurns.ts'
@@ -159,7 +161,7 @@ Deno.test('ce que voit celui qui attend : la forme d’un envoi ordinaire, jamai
   const sansBase = null as never
 
   const avant = await lettresEnDirect(sansBase, ligne, JOUEUR, DEBUT - 1)
-  egal(avant, { turnNumber: 2, placements: [], recuA: ligne.turn_started_at }, 'rien de dû : l’heure du début du tour')
+  egal({ ...avant, prochaineA: undefined }, { turnNumber: 2, placements: [], recuA: ligne.turn_started_at }, 'rien de dû : l’heure du début du tour')
 
   const apres = await lettresEnDirect(sansBase, ligne, JOUEUR, DEBUT + 60_000)
   egal(apres?.placements, poses, 'tout est dû')
@@ -168,4 +170,55 @@ Deno.test('ce que voit celui qui attend : la forme d’un envoi ordinaire, jamai
   egal(await lettresEnDirect(sansBase, ligne, ADVERSAIRE, DEBUT + 60_000), null, 'pas pour celui dont c’est le tour')
   const illimitee = partie({ bot: adversaire, coupPrepare: { turnNumber: 2, placements: poses } }, { current_player_id: ADVERSAIRE, pace: 'async' })
   egal(await lettresEnDirect(sansBase, illimitee, JOUEUR, DEBUT + 60_000), null, 'pas en temps illimité')
+})
+
+// ── Une ombre pose ses lettres comme une personne (05/11/2026) ──────────────
+
+const gestes = [{ aMs: 9_000, cellIndex: 2, letter: 'T' }, { aMs: 10_000, cellIndex: 0, letter: 'M' }, { aMs: 16_000, cellIndex: 1, letter: 'O' }]
+const ombre = { playerId: ADVERSAIRE, ghostOf: ADVERSAIRE } as State['bot']
+const tourDeLOmbre = () => partie({ bot: ombre, coupPrepare: { turnNumber: 2, placements: poses, gestes } }, { current_player_id: ADVERSAIRE })
+const aucuneBase = { from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) }) }) } as never
+
+Deno.test('ses lettres tombent à leur heure et dans l’ordre de ses gestes', () => {
+  const ligne = tourDeLOmbre()
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 8_999, 20_000), [], 'il lit encore')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 9_000, 20_000), [{ cellIndex: 2, letter: 'T' }], 'sa première')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 10_000, 20_000), [{ cellIndex: 2, letter: 'T' }, { cellIndex: 0, letter: 'M' }], 'la suivante, une seconde après')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 15_999, 20_000).length, 2, 'puis il cherche')
+  egal(lettresDuCoupPrepare(ligne, DEBUT + 60_000, 20_000).length, 3, 'jamais plus que son coup')
+})
+
+Deno.test('chaque lecture dit quand revenir : sa prochaine lettre, puis son coup', async () => {
+  const ligne = tourDeLOmbre()
+  const reflexion = botTurnDelayMs(ligne)
+  const lire = (decalage: number) => lettresEnDirect(null as never, ligne, JOUEUR, DEBUT + decalage)
+  egal((await lire(-1_500))?.prochaineA, new Date(DEBUT + 9_000).toISOString(), 'pendant la révélation : sa première lettre')
+  egal((await lire(9_300))?.prochaineA, new Date(DEBUT + 10_000).toISOString(), 'la suivante')
+  egal((await lire(9_300))?.recuA, new Date(DEBUT + 9_000).toISOString(), 'l’heure de sa dernière lettre, pas celle de la lecture')
+  egal((await lire(16_100))?.prochaineA, new Date(DEBUT + reflexion).toISOString(), 'plus de lettre : son coup')
+})
+
+Deno.test('ses heures passées, on reste sur la dernière : le téléphone relit jusqu’au coup, comme avant', async () => {
+  const ligne = tourDeLOmbre()
+  const reflexion = botTurnDelayMs(ligne)
+  egal((await lettresEnDirect(null as never, ligne, JOUEUR, DEBUT + reflexion + 500))?.prochaineA, new Date(DEBUT + reflexion).toISOString(), 'son coup, dû')
+  const personne = partie({}, { current_player_id: ADVERSAIRE })
+  const lecture = await lettresEnDirect(aucuneBase, personne, JOUEUR, DEBUT + 44_000)
+  egal(lecture?.prochaineA, new Date(DEBUT + fantomeReflexionMs(`${personne.id}:${personne.turn_number}`)).toISOString(), 'la même chose que `nextCheckAt` face à une personne')
+})
+
+Deno.test('face à une personne, la réponse a la même forme et la même allure', async () => {
+  const personne = partie({}, { current_player_id: ADVERSAIRE })
+  const lecture = await lettresEnDirect(aucuneBase, personne, JOUEUR, DEBUT - 1_000)
+  const face = await lettresEnDirect(null as never, tourDeLOmbre(), JOUEUR, DEBUT - 1_000)
+  egal(Object.keys(lecture ?? {}).sort(), Object.keys(face ?? {}).sort(), 'les mêmes champs')
+  const heure = Date.parse(lecture!.prochaineA)
+  if (!(heure > DEBUT && heure < FIN)) throw new Error(`Une heure dans le tour : ${lecture!.prochaineA}`)
+  // Elle avance au fil des lectures, sans jamais revenir en arrière ni sortir du tour.
+  let derniere = 0
+  for (let decalage = 0; decalage < 45_000; decalage += 1_000) {
+    const suivante = Date.parse((await lettresEnDirect(aucuneBase, personne, JOUEUR, DEBUT + decalage))!.prochaineA)
+    if (suivante < derniere || suivante > FIN) throw new Error(`À ${decalage} ms : ${new Date(suivante).toISOString()}`)
+    derniere = suivante
+  }
 })
