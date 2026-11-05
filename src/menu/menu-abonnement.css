@@ -32,11 +32,6 @@ html[data-motion="off"] .mm-pseudo.is-arc-en-ciel{animation:none}
 @keyframes mmArcEnCiel{to{background-position:200% 0}}
 
 /* ── Les onglets de Jouer, à quatre ─────────────────────────── */
-.mm-play-tabs.has-plus{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
-.mm-shell .mm-play-tabs.has-plus>button{gap:5px;font-size:0.75rem}
-.mm-play-tabs.has-plus>button:nth-child(4) svg{color:var(--mm-plus)}
-.mm-play-tabs.has-plus>button:nth-child(4).is-active svg{color:inherit}
-.mm-shell .mm-play-tabs.has-plus>button:nth-child(4).is-active{background:var(--mm-plus-fond);color:var(--mm-plus-sur-fond);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mm-plus-or) 60%,transparent)}
 .mm-play-card.is-plus{--mm-accent:var(--mm-plus-or)}
 .mm-play-card.is-plus:before{background:linear-gradient(var(--mm-plus-or),var(--mm-plus-fond))}
 /* Le bouton de l'abonnement : celui du jeu, cerclé de laiton. */
@@ -201,3 +196,12 @@ html[data-motion="off"] .mm-pseudo.is-arc-en-ciel{animation:none}
 .mm-invite-theme strong{color:var(--mm-ink);font-size:.92rem;line-height:1.2;overflow-wrap:anywhere}
 .mm-invite-theme button{flex:0 0 auto;height:30px;padding:0 12px;border:0;border-radius:15px;background:var(--mm-surface);color:var(--mm-ink);font:inherit;font-size:.78rem;font-weight:700}
 .mm-match-rule+.mm-match-rule{margin-top:8px}
+
+/* Le bouton des grilles à thème, sous le duel en chaîne, et le retour depuis leur page. */
+.mm-shell .mm-play-themes{--mm-accent:var(--mm-plus-or);width:100%;min-height:68px;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;border:1px solid var(--mm-line);border-radius:20px;background:var(--mm-surface);color:var(--mm-ink);text-align:left;cursor:pointer}
+.mm-shell .mm-play-themes:active{transform:scale(.985)}
+.mm-play-themes strong{display:block;font:700 1.0625rem 'Playfair Display',serif;line-height:1.2}
+.mm-play-themes small{display:block;margin-top:1px;color:var(--mm-muted);font-size:0.75rem}
+.mm-play-themes>svg{width:18px;height:18px;color:var(--mm-muted)}
+.mm-shell .mm-themes-retour{justify-self:start;min-height:36px;padding:0 12px 0 6px;display:inline-flex;align-items:center;gap:3px;border:0;border-radius:18px;background:transparent;color:var(--mm-ink);font:inherit;font-size:0.8125rem;font-weight:700;cursor:pointer}
+.mm-themes-retour svg{width:18px;height:18px}

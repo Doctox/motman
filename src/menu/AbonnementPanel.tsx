@@ -7,7 +7,7 @@ import './menu-abonnement.css'
 // ─────────────────────────────────────────────────────────────────────────────
 // LA FICHE DE MOTMAN+ — ce qui arrive, ou ce qui est ouvert.
 //
-// Elle s'ouvre depuis l'onglet Thèmes, « Au calme », le profil et le choix de la
+// Elle s'ouvre depuis la page des thèmes, « Au calme », le profil et le choix de la
 // couleur du pseudo. Tout le monde voit ce qui arrive, et rien ne s'y achète
 // (décision du propriétaire, 05/11/2026).
 // ─────────────────────────────────────────────────────────────────────────────

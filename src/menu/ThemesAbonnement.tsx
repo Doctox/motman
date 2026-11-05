@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRight, Lock, Shapes, Sparkles, UserPlus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, Shapes, Sparkles, UserPlus, X } from 'lucide-react'
 import { lireRythmeTheme, NOM_ABONNEMENT, PARTIES_OFFERTES_A_UN_AMI, retenirRythmeTheme, type EtatAbonnement, type RythmeTheme, type ThemeAbonnement } from '../abonnement'
 import { useDialogFocus } from '../useDialogFocus'
 import { nomAffiche, styleDuTheme } from './themeApparence'
 import './menu-abonnement.css'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// L'ONGLET THÈMES de l'écran Jouer.
+// LA PAGE DES THÈMES de l'écran Jouer, ouverte par le bouton de l'onglet Normal.
 //
 // Tout le monde voit les vingt thèmes : c'est la vitrine de l'abonnement. Pour
 // un abonné, chaque carte ouvre la fiche du thème ; pour les autres, la fiche de
@@ -17,7 +17,9 @@ import './menu-abonnement.css'
 // tant qu'il ne les donne pas, ils ne s'affichent pas.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ThemesTab({ abonnement, themes, ouvrirOffre, jouerTheme, inviterSurTheme }: {
+export function ThemesTab({ abonnement, themes, ouvrirOffre, jouerTheme, inviterSurTheme, retour }: {
+  /** Revenir à l'onglet Normal, d'où le bouton l'a ouverte. */
+  retour: () => void
   abonnement: EtatAbonnement
   themes: readonly ThemeAbonnement[]
   ouvrirOffre: () => void
@@ -27,6 +29,7 @@ export function ThemesTab({ abonnement, themes, ouvrirOffre, jouerTheme, inviter
   const [ouvert, setOuvert] = useState<ThemeAbonnement | null>(null)
   const grilles = themes.reduce((total, theme) => total + theme.grilles, 0)
   return <>
+    <button type="button" className="mm-themes-retour" onClick={retour}><ChevronLeft aria-hidden="true" />Retour aux parties</button>
     <section className="mm-play-card is-plus">
       <header>
         <span className="mm-play-card-icon" aria-hidden="true"><Shapes /></span>

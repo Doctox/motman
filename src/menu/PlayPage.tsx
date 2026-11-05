@@ -20,7 +20,7 @@ import type { RythmeChoisi } from '../matches'
 import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// L'ÉCRAN JOUER — quatre onglets, une carte.
+// L'ÉCRAN JOUER — trois onglets, une carte.
 //
 // Maquette validée par le propriétaire le 16/09/2026. Seule la carte du milieu
 // change ; la reprise ne bouge jamais. Les derniers matchs sont au profil depuis
@@ -33,14 +33,13 @@ import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from
 // téléphone à l'autre. Ils sont décoratifs, le libellé à côté porte le sens.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// `themes` n'est pas un onglet : c'est la page qu'ouvre le bouton de l'onglet Normal.
 export type PlayTabId = 'normal' | 'ranked' | 'friends' | 'themes'
 
 const ONGLETS: Array<{ id: PlayTabId; icone: ReactNode; label: string }> = [
   { id: 'normal', icone: <Trophy />, label: 'Normal' },
   { id: 'ranked', icone: <BarChart3 />, label: 'Classé' },
   { id: 'friends', icone: <Users />, label: 'Amis' },
-  // Le quatrième est celui de l'abonnement, visible de tous : c'est sa vitrine.
-  { id: 'themes', icone: <Shapes />, label: 'Thèmes' },
 ]
 
 const MODE_STORAGE_KEY = 'motman-dernier-mode'
@@ -211,7 +210,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   }
 
   return <div className="mm-page mm-play-page">
-    <div className={`mm-play-tabs ${ONGLETS.length > 3 ? 'has-plus' : ''}`} role="tablist" aria-label="Mode de jeu">
+    <div className="mm-play-tabs" role="tablist" aria-label="Mode de jeu">
       {ONGLETS.map(({ id, icone, label }) => <button
         type="button"
         key={id}
@@ -237,7 +236,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       <span className="mm-play-resume-go">Reprendre</span>
     </button> : null}
 
-    <div ref={panneauMode} id="mm-play-mode" className="mm-play-mode" role="tabpanel" aria-labelledby={`mm-${onglet}-tab`}>
+    <div ref={panneauMode} id="mm-play-mode" className="mm-play-mode" role="tabpanel" {...(onglet === 'themes' ? { 'aria-label': 'Grilles à thème' } : { 'aria-labelledby': `mm-${onglet}-tab` })}>
       {onglet === 'normal' ? (normalSearching
         ? <SearchingCard
           titre="On te trouve un adversaire…"
@@ -268,6 +267,14 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
               Jouer <ChevronRight />
             </button>
           </section>
+          {/* LES GRILLES À THÈME (05/11/2026, demande du propriétaire) : un bouton sous le duel
+              en chaîne, qui ouvre leur page. Visible de tous : c'est la vitrine de MotMan+. */}
+          <button type="button" className="mm-play-themes" aria-label={abonnement.actif ? 'Grilles à thème' : `Grilles à thème, avec ${NOM_ABONNEMENT}`} onClick={() => setOnglet('themes')}>
+            <span className="mm-play-card-icon" aria-hidden="true"><Shapes /></span>
+            <span><strong>Grilles à thème</strong><small>{themes.length} thèmes, quand tu veux</small></span>
+            {abonnement.actif ? null : <span className="mm-pace-calme-plus" aria-hidden="true"><Lock />{NOM_ABONNEMENT}</span>}
+            <ChevronRight aria-hidden="true" />
+          </button>
         </>) : null}
 
       {onglet === 'ranked' ? <section className="mm-play-card is-gold">
@@ -306,7 +313,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
         {rankedError ? <p className="mm-social-error" role="alert">{rankedError}</p> : null}
       </section> : null}
 
-      {onglet === 'themes' ? <ThemesTab abonnement={abonnement} themes={themes} ouvrirOffre={ouvrirOffre} jouerTheme={(theme, rythme) => { retenirMode('themes'); jouerTheme(theme, rythme) }} inviterSurTheme={inviterSurTheme} /> : null}
+      {onglet === 'themes' ? <ThemesTab abonnement={abonnement} themes={themes} ouvrirOffre={ouvrirOffre} jouerTheme={(theme, rythme) => { retenirMode('themes'); jouerTheme(theme, rythme) }} inviterSurTheme={inviterSurTheme} retour={() => setOnglet('normal')} /> : null}
 
       {onglet === 'friends' ? <>
         <section className="mm-play-card is-sage">

@@ -12,9 +12,31 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
+/** Les grilles à thème : un bouton sous le duel en chaîne, dans l'onglet Normal. */
+async function ouvrirLesThemes(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Normal', exact: true }).click()
+  await page.getByRole('button', { name: /^Grilles à thème/ }).click()
+  await expect(page.getByRole('list', { name: 'Les thèmes' })).toBeVisible()
+}
+
+test('les grilles à thème s’ouvrent par un bouton sous le duel en chaîne, et on en revient', async ({ page }) => {
+  await page.goto('/#jouer')
+  await expect(page.getByRole('tab')).toHaveCount(3)
+  const chaine = page.getByRole('button', { name: 'Jouer une partie en chaîne' })
+  const bouton = page.getByRole('button', { name: 'Grilles à thème, avec MotMan+' })
+  await expect(chaine).toBeVisible()
+  const [enHaut, enBas] = [await chaine.boundingBox(), await bouton.boundingBox()]
+  expect(enBas!.y).toBeGreaterThan(enHaut!.y + enHaut!.height - 1)
+  await bouton.click()
+  await expect(page.getByRole('list', { name: 'Les thèmes' })).toBeVisible()
+  await page.getByRole('button', { name: 'Retour aux parties' }).click()
+  await expect(chaine).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Normal', exact: true })).toHaveAttribute('aria-selected', 'true')
+})
+
 test('tout le monde voit MotMan+ : un thème ouvre « Bientôt », sans prix ni achat', async ({ page }) => {
   await page.goto('/#jouer')
-  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await ouvrirLesThemes(page)
   const themes = page.getByRole('list', { name: 'Les thèmes' })
   await expect(themes.getByRole('button')).toHaveCount(20)
   await expect(page.locator('.mm-plus-hint')).toHaveText('Bientôt dans MotMan')
@@ -34,16 +56,11 @@ test('tout le monde voit MotMan+ : un thème ouvre « Bientôt », sans prix ni 
   await expect(entree).not.toContainText('gratuits')
 })
 
-test('en sombre à 360 px, l’onglet actif garde son icône, la fiche le vrai logo de nuit, et chaque couleur son nom', async ({ page }) => {
+test('en sombre à 360 px, la fiche a le vrai logo de nuit, et chaque couleur son nom', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 })
   await page.addInitScript(() => localStorage.setItem('motman-theme', 'dark'))
   await page.goto('/#jouer')
-  const onglet = page.getByRole('tab', { name: 'Thèmes', exact: true })
-  await onglet.click()
-  await expect(onglet).toHaveClass(/is-active/)
-  // L'icône prenait la couleur de son fond (mesuré le 05/11/2026).
-  const couleurs = await onglet.evaluate(bouton => ({ fond: getComputedStyle(bouton).backgroundColor, icone: getComputedStyle(bouton.querySelector('svg')!).color }))
-  expect(couleurs.icone).not.toBe(couleurs.fond)
+  await ouvrirLesThemes(page)
 
   await page.getByRole('button', { name: 'Découvrir MotMan+' }).click()
   const fiche = page.getByRole('dialog', { name: 'MotMan+' })
@@ -74,7 +91,7 @@ test('le compte du propriétaire a MotMan+ ouvert dès que le serveur le reconna
     await route.fulfill({ response: reponse, json: { ...corps, identity: { ...corps.identity, admin: true } } })
   })
   await page.goto('/#jouer')
-  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await ouvrirLesThemes(page)
   await page.getByRole('button', { name: 'Animaux', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Animaux' }).getByRole('button', { name: 'Jouer ce thème' })).toBeVisible()
 })
@@ -82,7 +99,7 @@ test('le compte du propriétaire a MotMan+ ouvert dès que le serveur le reconna
 test('abonné, un thème ouvre sa fiche, et le pseudo prend sa couleur', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('motman-abonnement-test', JSON.stringify({ actif: true, couleurPseudo: 'prune' })))
   await page.goto('/#jouer')
-  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await ouvrirLesThemes(page)
   await page.getByRole('button', { name: 'Animaux', exact: true }).click()
   const fiche = page.getByRole('dialog', { name: 'Animaux' })
   await expect(fiche.getByRole('button', { name: 'Jouer ce thème' })).toBeVisible()
@@ -275,7 +292,7 @@ test('la partie au calme : seul, une lettre posée en fait venir une autre, une 
 test('un thème avec chrono se joue contre un adversaire, chrono à l’écran', async ({ page }) => {
   await compteProprietaire(page)
   await page.goto('/#jouer')
-  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await ouvrirLesThemes(page)
   await page.getByRole('button', { name: 'Animaux', exact: true }).click()
   const fiche = page.getByRole('dialog', { name: 'Animaux' })
   await fiche.getByRole('button', { name: 'Avec chrono, 45 secondes par tour' }).click()
@@ -293,7 +310,7 @@ test('inviter un ami sur un thème : il le lit sur l’invitation, et la partie 
   await compteProprietaire(page)
   await page.addInitScript(stocke => localStorage.setItem('motman-player-v1', JSON.stringify(stocke)), moi)
   await page.goto('/#jouer')
-  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await ouvrirLesThemes(page)
   await page.getByRole('button', { name: 'Animaux', exact: true }).click()
   await page.getByRole('dialog', { name: 'Animaux' }).getByRole('button', { name: /Inviter un ami sur ce thème/ }).click()
 

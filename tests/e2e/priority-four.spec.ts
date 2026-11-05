@@ -489,13 +489,11 @@ test('avant la première partie, Jouer dit comment ça se passe, et le profil n�
   await expect(page.getByRole('button', { name: /Tes derniers matchs/ })).toHaveCount(0)
 })
 
-test('l’écran Jouer propose Normal, Classé, Amis et Thèmes, sans Solo', async ({ page }) => {
+test('l’écran Jouer propose Normal, Classé et Amis, sans Solo', async ({ page }) => {
   // Le mode Solo séparait les joueurs en deux files pour rien : la file normale
   // sert déjà un bot, à leur niveau, quand personne ne répond en quinze secondes.
-  // Le quatrième onglet est celui de MotMan+.
   await page.goto('/#jouer')
-  await expect(page.getByRole('tab')).toHaveCount(4)
-  await expect(page.getByRole('tab', { name: 'Thèmes', exact: true })).toBeVisible()
+  await expect(page.getByRole('tab')).toHaveCount(3)
   await expect(page.locator('#mm-solo-accordion')).toHaveCount(0)
   await expect(page.getByRole('tab', { name: 'Normal', exact: true })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'Normal' })).toBeVisible()
