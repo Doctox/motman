@@ -24,14 +24,16 @@ import { useDialogFocus } from '../useDialogFocus'
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Ce que rejoindre coûte à la partie en cours, dit au joueur avant qu'il choisisse. */
-export function coutDuDepart(pace: 'realtime' | 'async'): string {
+export function coutDuDepart(pace: 'realtime' | 'async', calme = false): string {
+  if (calme) return 'Ta partie au calme t’attendra.'
   return pace === 'async'
     ? 'Ta partie en 24 h t’attendra.'
     : 'Ta partie en cours sera déclarée égale : ni gain, ni perte.'
 }
 
-export function RankedSeekerDialog({ pace, rejoindre, refuser }: {
+export function RankedSeekerDialog({ pace, calme = false, rejoindre, refuser }: {
   pace: 'realtime' | 'async'
+  calme?: boolean
   rejoindre: () => void
   refuser: () => void
 }) {
@@ -53,7 +55,7 @@ export function RankedSeekerDialog({ pace, rejoindre, refuser }: {
             puis une division » — était du discours pendant une partie. */}
         <span className="ranked-seeker-embleme" aria-hidden="true"><Swords /></span>
         <h2 id="ranked-seeker-title">L’arène classée s’ouvre</h2>
-        <p id="ranked-seeker-cout" className="ranked-seeker-cout">{coutDuDepart(pace)}</p>
+        <p id="ranked-seeker-cout" className="ranked-seeker-cout">{coutDuDepart(pace, calme)}</p>
         <div className="ranked-seeker-actions">
           <button type="button" className="ranked-seeker-refuser" data-dialog-autofocus onClick={refuser}>Non</button>
           <button type="button" className="ranked-seeker-rejoindre" onClick={rejoindre}><Swords aria-hidden="true" />Rejoindre</button>

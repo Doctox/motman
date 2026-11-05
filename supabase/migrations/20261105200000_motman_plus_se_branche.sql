@@ -6,12 +6,17 @@
 -- account-api revérifient le rôle à chaque action. Rien ici n'est lisible par un joueur,
 -- sauf la couleur, qui est faite pour se voir.
 --
--- À APPLIQUER AVANT match-api : le tirage des grilles et la force d'En chaîne lisent
--- les nouvelles colonnes.
+-- L'ORDRE : cette migration, puis match-api, match-rappels (--no-verify-jwt) et account-api,
+-- puis le site. Le tirage des grilles et la force d'En chaîne lisent les nouvelles colonnes,
+-- et match-rappels embarque la clôture d'une partie (awards.ts) : ancienne, elle paierait une
+-- partie à thème comme un entraînement, et la clé d'idempotence interdit tout rattrapage.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Le thème de chaque grille, pour tirer dans un thème sans lire tout le catalogue.
-create or replace view public.server_grid_selection as
+-- `with` est obligatoire : sans lui, `create or replace` retire `security_invoker`, posé le
+-- 22/10/2026, et cette vue, qui rassemble toutes les réponses, lirait avec les droits de son
+-- propriétaire.
+create or replace view public.server_grid_selection with (security_invoker = true) as
 select
   catalogue.id,
   catalogue.active,

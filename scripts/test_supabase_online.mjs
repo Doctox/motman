@@ -178,6 +178,16 @@ try {
   assert.equal(staleMutation.match.updatedAt, match.updatedAt, 'Le conflit doit transporter l’état serveur courant')
 
   await invoke(bob, 'match-api', { action: 'match', matchId: match.id }, 404)
+
+  // MotMan+ : réservé pour l'instant au compte du propriétaire, revérifié à chaque action.
+  for (const corps of [
+    { action: 'plus-themes' },
+    { action: 'plus-partie', calme: true },
+    { action: 'plus-partie', theme: 'Animaux' },
+    { action: 'emote', matchId: match.id, emote: 'coucou' },
+    { action: 'create', targetId: bob.user.id, theme: 'Animaux' },
+  ]) await invoke(alice, 'match-api', corps, 403)
+  await invoke(alice, 'account-api', { action: 'couleur-pseudo', couleur: 'ocean' }, 403)
   const directCatalog = await fetch(`${url}/rest/v1/server_grid_catalog?select=id&limit=1`, {
     headers: { apikey: key, Authorization: `Bearer ${alice.token}` },
   })

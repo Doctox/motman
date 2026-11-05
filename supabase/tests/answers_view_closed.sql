@@ -18,6 +18,14 @@ begin
   if not has_table_privilege('service_role', 'public.server_grid_selection', 'select') then
     raise exception 'Le rôle de service doit pouvoir lire la vue de tirage';
   end if;
+  -- Une vue recréée sans `with (security_invoker = true)` perd cette option sans le dire.
+  if not exists (
+    select 1 from pg_catalog.pg_class as vue
+    where vue.oid = 'public.server_grid_selection'::regclass
+      and 'security_invoker=true' = any(vue.reloptions)
+  ) then
+    raise exception 'La vue des réponses doit lire avec les droits de qui l''interroge';
+  end if;
 end;
 $$;
 

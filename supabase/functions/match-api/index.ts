@@ -46,9 +46,9 @@ import { allumerFantome, fantomeAllume } from './ghost.ts'
 import { joueursEnLigne } from './onlinePlayers.ts'
 import { bilanDesSources, jourAvant } from './playerSources.ts'
 import { enPleinDefi } from './enPleinDefi.ts'
-import { lancerPartiePlus, noterPartieOfferte, partieAReprendre, partiesOffertes, themesDuJoueur } from './matchPlus.ts'
+import { lancerPartiePlus, noterPartieOfferte, partieAReprendre, partiesOffertes, themeExiste, themesDuJoueur } from './matchPlus.ts'
 import { ATTENTE_ENTRE_EMOTES_MS, EMOTES, EMOTES_PAR_PARTIE } from '../../../src/emotes.ts'
-import { lireDemandePlus, lireTheme, PARTIES_OFFERTES_A_UN_AMI } from '../../../src/reglesPlus.ts'
+import { consommeUnePartieOfferte, lireDemandePlus, lireTheme, PARTIES_OFFERTES_A_UN_AMI } from '../../../src/reglesPlus.ts'
 
 /** Une emote partie 6 s après la précédente peut arriver un peu avant : le réseau ne doit pas la refuser. */
 const MARGE_EMOTE_MS = 500
@@ -570,7 +570,7 @@ Deno.serve(async request => {
     // Rend une réponse d'erreur, ou `null` si c'est réglé.
     const repondreInvitation = async (invitation: InvitationRow, decision: 'accept' | 'decline'): Promise<Response | null> => {
       // Une partie à thème offerte (MotMan+) : 3 en tout pour un joueur sans abonnement.
-      const offerte = decision === 'accept' && Boolean(invitation.theme) && accessProfile?.role !== 'admin'
+      const offerte = consommeUnePartieOfferte({ decision, statut: invitation.status, theme: invitation.theme, abonne: accessProfile?.role === 'admin' })
       if (offerte && await partiesOffertes(admin, user.id) >= PARTIES_OFFERTES_A_UN_AMI) {
         return json(409, { error: 'Tu as déjà joué tes parties à thème offertes.', code: 'PARTIES_OFFERTES_EPUISEES' })
       }
@@ -626,6 +626,8 @@ Deno.serve(async request => {
       const { data: friendship } = await admin.from('friendships').select('left_user_id').eq('left_user_id', left).eq('right_user_id', right).maybeSingle()
       if (!friendship) return json(403, { error: 'Ce joueur n’est pas dans tes amis.' })
       if (theme) {
+        // Ce texte s'affiche chez l'ami : seul un thème du catalogue passe.
+        if (!await themeExiste(admin, theme)) return json(404, { error: 'Ce thème n’a pas encore de grille.' })
         const { data: ami } = await admin.from('profiles').select('role').eq('id', targetId).maybeSingle()
         if (ami?.role !== 'admin' && await partiesOffertes(admin, targetId) >= PARTIES_OFFERTES_A_UN_AMI) {
           return json(409, { error: 'Cet ami a déjà joué ses parties à thème offertes.', code: 'PARTIES_OFFERTES_EPUISEES' })

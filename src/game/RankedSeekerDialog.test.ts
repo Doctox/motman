@@ -11,6 +11,7 @@ describe('ce que rejoindre le classé coûte à la partie en cours', () => {
 
   it('en illimité : la partie attend', () => {
     expect(coutDuDepart('async')).toContain('t’attendra')
+    expect(coutDuDepart('async', true)).toBe('Ta partie au calme t’attendra.')
   })
 
   it('ne parle jamais de défaite ni d’abandon', () => {

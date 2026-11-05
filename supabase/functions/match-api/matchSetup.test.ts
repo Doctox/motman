@@ -2,6 +2,7 @@ import { createBotPersona, type BotSkill } from '../../../src/botOpponents.ts'
 import { botSkillForLevel, chooseGrid, createBot, forceDuProchainAdversaire, createMatch, FIRST_TURN_READING_MS, initialMatchState, prepareAtomicMatch, resolveAtomicGridCollision } from './matchSetup.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import { CHAINE_TOUR_MS, REALTIME_TURN_MS, type CatalogGrid, type MatchRow } from './matchModel.ts'
+import { lancerPartiePlus } from './matchPlus.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NAISSANCE D'UNE PARTIE.
@@ -256,6 +257,8 @@ function baseEnCollision(grilles: CatalogGrid[]) {
           return [{ id: 'partie-ancienne', grid_id: grilleOccupee, created_at: '2026-10-22T10:00:00.000Z' }]
         })
       }
+      // Aucune partie dans l'historique : la force de son adversaire part de son niveau.
+      if (table === 'grid_player_history') return requete(() => null)
       return requete(() => [])
     },
   } as unknown as AdminClient
@@ -331,4 +334,26 @@ Deno.test('le prochain adversaire en chaîne repart de la dernière partie, ou d
   verifie(lectures.some(lecture => lecture.force_adversaire === 'is'), 'seulement les parties qui en portent une')
   verifie(createBot('graine', 'expert', 0.8).force === 0.8, 'le bot la garde')
   verifie(createBot('graine', 'expert').force === undefined, 'ailleurs, aucune')
+})
+
+Deno.test('la partie au calme lancée pour de bon : sans échéance, contre l’adversaire qui s’adapte, même après une grille de rechange', async () => {
+  const { admin, misesAJour } = baseEnCollision(TROIS_GRILLES)
+  const { row } = await lancerPartiePlus(admin, HOTE, { theme: null, calme: true })
+  verifie(misesAJour.length === 1, 'la grille occupée doit céder, pour éprouver le changement')
+  verifie(row.pace === 'async', 'en base, une partie en temps illimité')
+  verifie(row.mode === 'solo', 'personne en recherche ne peut prendre sa place')
+  verifie(row.state.calme === true, 'la grille a changé, la partie reste au calme')
+  verifie(Date.parse(row.turn_ends_at) - Date.now() > 9 * 365 * 86_400_000, 'pas d’échéance')
+  verifie(row.state.bot?.force === 0.15 && row.state.bot.tuning?.accuracy === 78, 'sans historique : la force et le réglage de son niveau')
+})
+
+Deno.test('une partie à thème avec chrono lancée pour de bon : le thème, en temps limité, dans la grille tirée', async () => {
+  const grilles = [grilleNommee('sport-a', 'MOTIFS', 'Sport')]
+  const { admin, misesAJour } = baseEnCollision(grilles)
+  const { row, grid } = await lancerPartiePlus(admin, HOTE, { theme: 'Sport', calme: false })
+  verifie(grid.id === 'sport-a' && row.grid_id === 'sport-a', 'la grille du thème')
+  verifie(misesAJour.length === 0, 'une grille choisie ne tourne pas')
+  verifie(row.pace === 'realtime' && row.state.calme === undefined, 'avec chrono')
+  verifie(row.state.themeChoisi === 'Sport', 'la partie dit son thème')
+  verifie(Date.parse(row.turn_ends_at) - Date.now() < 2 * 60_000, 'un tour de 45 s, après la lecture')
 })

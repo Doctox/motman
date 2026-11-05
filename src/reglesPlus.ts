@@ -45,3 +45,12 @@ export function compterLesThemes(grilles: ReadonlyArray<{ id: string; theme: str
   }
   return [...themes.values()].sort((gauche, droite) => gauche.nom.localeCompare(droite.nom, 'fr'))
 }
+
+/**
+ * Cette réponse à une invitation consomme-t-elle une partie à thème offerte ? Une invitation
+ * déjà acceptée ne se recompte pas : la réponse s'est peut-être perdue, ou il a répondu depuis
+ * un second appareil, et sa partie existe.
+ */
+export function consommeUnePartieOfferte({ decision, statut, theme, abonne }: { decision: string; statut: string; theme?: string | null; abonne: boolean }): boolean {
+  return decision === 'accept' && statut === 'pending' && Boolean(theme) && !abonne
+}

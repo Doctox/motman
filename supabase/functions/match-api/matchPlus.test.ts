@@ -1,4 +1,4 @@
-import { compterLesThemes, lireDemandePlus } from '../../../src/reglesPlus.ts'
+import { compterLesThemes, consommeUnePartieOfferte, lireDemandePlus } from '../../../src/reglesPlus.ts'
 import { partieAReprendre } from './matchPlus.ts'
 import type { MatchRow, State } from './matchModel.ts'
 
@@ -42,4 +42,13 @@ Deno.test('chaque thème compte ses grilles et celles déjà jouées', () => {
     { nom: 'École', grilles: 1, jouees: 0 },
     { nom: 'Sport', grilles: 2, jouees: 1 },
   ], 'les nombres, dans l’ordre du français')
+})
+
+Deno.test('une partie offerte ne se compte qu’à la première acceptation, et jamais pour un abonné', () => {
+  const invitation = { decision: 'accept', statut: 'pending', theme: 'Sport', abonne: false }
+  egal(consommeUnePartieOfferte(invitation), true, 'la première acceptation')
+  egal(consommeUnePartieOfferte({ ...invitation, statut: 'accepted' }), false, 'la même, renvoyée')
+  egal(consommeUnePartieOfferte({ ...invitation, decision: 'decline' }), false, 'un refus')
+  egal(consommeUnePartieOfferte({ ...invitation, theme: null }), false, 'une partie ordinaire')
+  egal(consommeUnePartieOfferte({ ...invitation, abonne: true }), false, 'un abonné')
 })

@@ -38,6 +38,13 @@ export async function themesDuJoueur(admin: AdminClient, userId: string): Promis
   return compterLesThemes(grilles as Array<{ id: string; theme: string | null }>, historique?.counts ?? {})
 }
 
+export async function themeExiste(admin: AdminClient, theme: string): Promise<boolean> {
+  const { count, error } = await admin.from('server_grid_selection')
+    .select('id', { count: 'exact', head: true }).eq('active', true).eq('theme', theme)
+  if (error) throw error
+  return (count ?? 0) > 0
+}
+
 export async function lancerPartiePlus(admin: AdminClient, userId: string, demande: DemandePlus) {
   const niveau = botSkillForLevel(await playerLevel(admin, userId))
   const force = await forceDuProchainAdversaire(admin, userId, niveau, demande.calme ? 'calme' : 'classique')

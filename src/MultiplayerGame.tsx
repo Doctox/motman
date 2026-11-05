@@ -1478,6 +1478,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
         Elle passe sous « Tu es toujours là ? », qui décide d'une partie en cours. */}
     {classeCherche && match.status === 'active' ? <RankedSeekerDialog
       pace={match.pace === 'async' ? 'async' : 'realtime'}
+      calme={Boolean(match.calme)}
       refuser={() => { classeRefuse.current = true; setClasseCherche(false) }}
       rejoindre={() => { setClasseCherche(false); onRejoindreClasse?.() }}
     /> : null}
