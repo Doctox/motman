@@ -193,3 +193,11 @@ html[data-motion="off"] .mm-pseudo.is-arc-en-ciel{animation:none}
 .mm-pace-calme-plus svg{width:11px;height:11px}
 .mm-theme-sheet .mm-pace-choice>button{min-height:58px;flex-direction:column;justify-content:center;gap:2px;text-align:center}
 .mm-theme-sheet-rythme{margin:-5px 0 0;text-align:center;color:var(--mm-muted);font-size:0.6875rem}
+
+/* Inviter un ami sur un thème : le thème, au-dessus du rythme, et de quoi le retirer. */
+.mm-invite-theme{margin:12px 0 0;padding:9px 10px 9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;background:color-mix(in srgb,var(--mm-sage) 55%,var(--mm-surface))}
+.mm-invite-theme span{min-width:0;display:flex;flex-direction:column;gap:1px}
+.mm-invite-theme small{color:var(--mm-muted);font-size:.72rem}
+.mm-invite-theme strong{color:var(--mm-ink);font-size:.92rem;line-height:1.2;overflow-wrap:anywhere}
+.mm-invite-theme button{flex:0 0 auto;height:30px;padding:0 12px;border:0;border-radius:15px;background:var(--mm-surface);color:var(--mm-ink);font:inherit;font-size:.78rem;font-weight:700}
+.mm-match-rule+.mm-match-rule{margin-top:8px}
