@@ -899,6 +899,52 @@ test('pendant le tour de l’autre, ses lettres arrivent sous tes yeux, avant qu
   }
 })
 
+// Vu par le propriétaire au défi, 05/11/2026 : les lettres de l'autre apparaissaient
+// par groupes. Le test du dessus ne pouvait pas le voir : il n'en pose qu'une.
+test('les lettres de l’autre apparaissent une à une, même quand elles arrivent ensemble', async ({ browser, request }) => {
+  test.setTimeout(120_000)
+  const { first, second, matchId } = await createNormalMatch(request, 'realtime', 'Une a une', 40_000)
+  const initial = await loadMatch(request, first.playerId, matchId)
+  const spectateur = initial.currentPlayerId === first.playerId ? first : second
+  const joueur = spectateur === first ? second : first
+  const deJoueur = await openGame(browser, joueur, matchId, { width: 390, height: 844 })
+  const deSpectateur = await openGame(browser, spectateur, matchId, { width: 390, height: 844 })
+  try {
+    await submitTurn(request, initial, [], false)
+    const aJouer = await loadMatch(request, joueur.playerId, matchId)
+    const coups = playablePlacements(aJouer).slice(0, 3)
+    expect(coups.length, 'il faut plusieurs lettres justes au chevalet').toBeGreaterThan(1)
+    // À chaque image : combien de lettres de l'autre à l'écran.
+    await deSpectateur.page.evaluate(() => {
+      const fenetre = window as unknown as { arrivees: Array<{ t: number; plus: number }> }
+      fenetre.arrivees = []
+      let avant = 0
+      const regarde = () => {
+        const maintenant = document.querySelectorAll('.confirmed-board-letter.en-direct-effect').length
+        if (maintenant !== avant) fenetre.arrivees.push({ t: performance.now(), plus: maintenant - avant })
+        avant = maintenant
+        requestAnimationFrame(regarde)
+      }
+      regarde()
+    })
+    await attendreTourJouable(deJoueur.page, deJoueur.page.getByRole('button', { name: `Lettre ${coups[0].letter}` }).first())
+    // Assez vite pour qu'elles partent ensemble : un brouillon attend 700 ms sans nouvelle lettre.
+    for (const coup of coups) {
+      await deJoueur.page.getByRole('button', { name: `Lettre ${coup.letter}` }).first().click({ force: true })
+      await deJoueur.page.locator(`[data-cell="${coup.cellIndex}"]`).click({ force: true })
+    }
+    const enDirect = deSpectateur.page.locator('.confirmed-board-letter.en-direct-effect')
+    await expect(enDirect).toHaveCount(coups.length, { timeout: 15_000 })
+
+    const lettres = (await deSpectateur.page.evaluate(() => (window as unknown as { arrivees: Array<{ t: number; plus: number }> }).arrivees)).filter(vue => vue.plus > 0)
+    expect(lettres.map(vue => vue.plus), 'une seule lettre à la fois').toEqual(coups.map(() => 1))
+    lettres.slice(1).forEach((vue, rang) => expect(vue.t - lettres[rang].t, 'assez d’écart pour que l’œil suive').toBeGreaterThanOrEqual(150))
+  } finally {
+    await deJoueur.context.close()
+    await deSpectateur.context.close()
+  }
+})
+
 // Règle du propriétaire du 18/09/2026 (src/gameRules.ts) : plus de trois tours
 // manqués. En illimité, un tour de 24 h laissé passer est un abandon ; en
 // limité, c'est « Tu es toujours là ? » (30 s) qui tranche, jamais le compte.

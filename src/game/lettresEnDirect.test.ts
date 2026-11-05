@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { enDirectLePlusRecent, enDirectValide, lettresDeLAdversaire, type EnDirect } from './lettresEnDirect'
+import { PAS_LE_PLUS_COURT_MS } from './chaineDuTour'
+import { attenteAvantLaLettre, casesAMontrer, enDirectLePlusRecent, enDirectValide, lettresDeLAdversaire, lettresDejaMontrees, type EnDirect } from './lettresEnDirect'
 
 const MOI = 'moi'
 const AUTRE = 'autre'
@@ -52,6 +53,38 @@ describe('deux envois qui se croisent', () => {
 
   it('le premier reçu est pris tel quel', () => {
     expect(enDirectLePlusRecent(null, ancien)).toBe(ancien)
+  })
+})
+
+describe('une à une', () => {
+  const lot = envoi(4, '2026-11-02T18:00:00Z', [12, 'C'], [8, 'A'], [9, 'B'])
+  const lettres = lettresDeLAdversaire(lot, partie(), MOI)
+
+  it('dans l’ordre où elles sont arrivées, pas dans celui des cases', () => {
+    expect(casesAMontrer(lot, lettres, new Set())).toEqual([12, 8, 9])
+    expect(casesAMontrer(lot, lettres, new Set([12]))).toEqual([8, 9])
+  })
+
+  it('plus rien à montrer quand le tour est passé, ou tout vu', () => {
+    expect(casesAMontrer(lot, {}, new Set())).toEqual([])
+    expect(casesAMontrer(null, lettres, new Set())).toEqual([])
+    expect(casesAMontrer(lot, lettres, new Set([8, 9, 12]))).toEqual([])
+  })
+
+  it('l’écran n’affiche que ce qui a été montré, et une lettre reprise s’en va', () => {
+    expect(lettresDejaMontrees(lettres, new Set([8]))).toEqual({ 8: 'A' })
+    expect(lettresDejaMontrees({ 9: 'B' }, new Set([8, 9]))).toEqual({ 9: 'B' })
+  })
+
+  it('une lettre seule, longtemps après la précédente, n’attend pas', () => {
+    expect(attenteAvantLaLettre(1, 60_000)).toBe(0)
+  })
+
+  it('un lot s’étale, sans jamais descendre sous ce que l’œil suit', () => {
+    expect(attenteAvantLaLettre(2, 0)).toBe(650)
+    expect(attenteAvantLaLettre(2, 500)).toBe(150)
+    expect(attenteAvantLaLettre(5, 0)).toBe(400)
+    expect(attenteAvantLaLettre(50, 0)).toBe(PAS_LE_PLUS_COURT_MS)
   })
 })
 

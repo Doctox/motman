@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { MatchState } from '../matches'
+import { pasDeLaChaine } from './chaineDuTour'
 
 export type EnDirect = {
   turnNumber: number
@@ -48,4 +49,31 @@ export function lettresDeLAdversaire(enDirect: EnDirect | null, match: Pick<Matc
     if (!match.board[cellIndex]) lettres[cellIndex] = letter
   }
   return lettres
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNE À UNE (05/11/2026, vu par le propriétaire au défi). Les lettres arrivent par
+// lots : un sondage toutes les 1,9 s face à un adversaire automatique (mesuré en
+// production, pour une lettre toutes les 0,7 à 2,7 s), un brouillon qui attend 700 ms
+// sans nouvelle lettre face à une personne, en normale comme en classée. L'écran les
+// montre l'une après l'autre, comme En chaîne (chaineDuTour.ts). Seul l'écran les
+// retient : le serveur les a déjà, et le coup joué prend la suite quoi qu'il reste.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Le temps entre deux lots, à peu près : assez pour étaler un lot jusqu'au suivant. */
+const ENTRE_DEUX_LOTS_MS = 2_000
+
+/** Les cases à montrer encore, dans l'ordre où elles sont arrivées. */
+export function casesAMontrer(enDirect: EnDirect | null, lettres: Readonly<Record<number, string>>, montrees: ReadonlySet<number>): number[] {
+  return (enDirect?.placements ?? []).map(lettre => lettre.cellIndex).filter(cellIndex => lettres[cellIndex] && !montrees.has(cellIndex))
+}
+
+/** L'attente avant la prochaine lettre. Aucune si la précédente est déjà loin : une lettre seule ne perd pas de temps. */
+export function attenteAvantLaLettre(restantes: number, depuisLaPrecedenteMs: number): number {
+  return Math.max(0, pasDeLaChaine(restantes, ENTRE_DEUX_LOTS_MS) - depuisLaPrecedenteMs)
+}
+
+/** Ce que l'écran affiche. Une lettre reprise s'en va tout de suite, montrée ou non. */
+export function lettresDejaMontrees(lettres: Readonly<Record<number, string>>, montrees: ReadonlySet<number>): Readonly<Record<number, string>> {
+  return Object.fromEntries(Object.entries(lettres).filter(([cellIndex]) => montrees.has(Number(cellIndex))))
 }

@@ -48,6 +48,7 @@ import { fenetreDuCoupFrais, openingScores, planTurnSteps, revealRemainingMs, re
 import { appliquerEvenementDeChaine, chevaletStable, etapesDeChaine, fusionnerReponseDeLettre, ligneDeChaine, nouveautesDeChaine, numeroSuivant, PAS_LE_PLUS_COURT_MS, pasAvantLeTourSuivant, pasDeLaChaine, placeLiberee, REGLE_DE_LA_CHAINE, rythmeDeLaPartie, SECONDES_DU_TOUR_DE_CHAINE, statutDeFinDeTour, tourClos, tourEnCours, type AvisDeLettre, type EvenementDeChaine, type VuDeLaChaine } from './game/chaineDuTour'
 import { StableBoardLetters } from './game/StableBoardLetters'
 import { enDirectLePlusRecent, lettresDeLAdversaire, type EnDirect } from './game/lettresEnDirect'
+import { useLettresUneAUne } from './game/useLettresUneAUne'
 import { IDLE_ASSIST_DELAY_MS, idleAssistCue } from './game/idleAssist'
 import { acknowledgedAfter, stillTherePrompt } from './game/stillThere'
 import { StillThereDialog } from './game/StillThereDialog'
@@ -674,7 +675,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     recevoirChaine: recu => recevoirLaChaine(recu),
   })
   // Les lettres de l'autre pendant son tour (game/lettresEnDirect.ts).
-  const lettresEnDirect = useMemo(() => lettresDeLAdversaire(enDirect, match, playerId), [enDirect, match, playerId])
+  const lettresEnDirect = useLettresUneAUne(enDirect, useMemo(() => lettresDeLAdversaire(enDirect, match, playerId), [enDirect, match, playerId]))
   const plateauAffiche = useMemo(() => {
     const plateau = match?.board ?? {}
     return lettresRetenues.size ? Object.fromEntries(Object.entries(plateau).filter(([cellIndex]) => !lettresRetenues.has(Number(cellIndex)))) : plateau
