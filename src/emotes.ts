@@ -11,7 +11,8 @@
 // Les adversaires automatiques n'en envoient jamais : la plupart des joueurs ne
 // sont pas abonnés, un adversaire silencieux est donc la norme.
 //
-// Ce fichier n'autorise rien : le serveur revérifiera l'abonnement et la cadence.
+// Ce fichier n'autorise rien : le serveur revérifie le droit, et la base compte la cadence
+// avec les limites écrites ici (match-api, server_send_match_emote).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type EmoteId = 'coucou' | 'pouce' | 'bravo' | 'bonne-chance'

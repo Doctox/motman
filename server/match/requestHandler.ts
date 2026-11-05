@@ -7,6 +7,7 @@ import {
   REALTIME_SEARCH_STALE_MS, TURN_SUBMIT_GRACE_MS,
 } from './config'
 import { lireDemandeDeLettre, lireVariante } from '../../supabase/functions/match-api/matchChaine.ts'
+import { lireDemandePlus, lireTheme } from '../../src/reglesPlus'
 import { readBody, sendJson, sendNoContent } from './http'
 import {
   brouillonAccepte, cederLaPlace, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
@@ -26,6 +27,8 @@ export type MatchRequestContext = {
   lobbyState(playerId: string): unknown
   publicMatch(match: StoredMatch): unknown
   saveDatabase(): void
+  lancerPartiePlus(playerId: string, theme: string | null, calme: boolean): StoredMatch
+  themesDuCatalogue(playerId: string): unknown
   createMatch(hostId: string, guestId: string, mode: MatchMode, pace: MatchPace, sourceId: string, invitationId?: string | null, bot?: BotProfile | null, turnMs?: number, variante?: MatchVariante): StoredMatch
 }
 
@@ -35,7 +38,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   const recuA = Date.now()
   const {
     database, cleanPlayerId, publicUser, areFriends, activeMatches, resolveExpired, lobbyState,
-    publicMatch, saveDatabase, createMatch,
+    publicMatch, saveDatabase, createMatch, lancerPartiePlus, themesDuCatalogue,
   } = context
   const url = new URL(request.url ?? '/', 'http://motman.local')
   const route = url.pathname.replace(/^\/api\/matches\/?/, '').replace(/^\/+/, '')
@@ -108,6 +111,16 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     return sendJson(response, 200, { recorded: true })
   }
 
+  if (route === 'plus/themes') return sendJson(response, 200, { themes: themesDuCatalogue(playerId) })
+  if (route === 'plus/partie') {
+    resolveExpired()
+    const demande = lireDemandePlus(body)
+    if (!demande) return sendJson(response, 400, { error: 'Partie invalide.' })
+    return sendJson(response, 200, { match: publicMatch(lancerPartiePlus(playerId, demande.theme, demande.calme)) })
+  }
+  // Pas de temps réel ici : l'envoi est vérifié, et la bulle reste chez celui qui l'envoie.
+  if (route === 'emote') return sendJson(response, 200, { statut: 'envoyee' })
+
   if (route === 'create') {
     resolveExpired()
     const targetId = cleanPlayerId(body.targetId)
@@ -137,7 +150,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     if (!existing) {
       const createdAt = new Date()
       const invitationDuration = pace === 'async' ? ASYNC_INVITATION_DURATION_MS : INVITATION_DURATION_MS
-      database.invitations.push({ id: randomUUID(), hostId: playerId, guestId: targetId, pace, variante, createdAt: createdAt.toISOString(), expiresAt: new Date(createdAt.getTime() + invitationDuration).toISOString(), status: 'pending' })
+      database.invitations.push({ id: randomUUID(), hostId: playerId, guestId: targetId, pace, variante, theme: lireTheme(body.theme), createdAt: createdAt.toISOString(), expiresAt: new Date(createdAt.getTime() + invitationDuration).toISOString(), status: 'pending' })
       saveDatabase()
     }
     return sendJson(response, 200, lobbyState(playerId))
@@ -157,6 +170,7 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
       if (enCours.some(partie => !partieAuto(partie)))
         return sendJson(response, 409, { error: 'Un des joueurs est déjà en partie.' })
       const match = createMatch(invitation.hostId, invitation.guestId, 'friend', invitation.pace, invitation.id, invitation.id, null, undefined, invitation.variante)
+      if (invitation.theme) match.themeChoisi = invitation.theme
       enCours.forEach(partie => cederLaPlace(partie, match.id))
       database.matches.push(match)
       invitation.status = 'accepted'

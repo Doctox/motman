@@ -1,3 +1,4 @@
+import type { CouleurPseudoId } from './reglesPlus'
 import { validatePlayerName } from './playerNamePolicy'
 
 export type GuestIdentity = {
@@ -13,6 +14,8 @@ export type GuestIdentity = {
    * rôle en base. Ici, il ne sert qu'à montrer ou taire le compteur d'audience.
    */
   admin?: true
+  /** MotMan+ : la couleur de son pseudo, gardée par le compte (src/reglesPlus.ts). */
+  couleurPseudo?: CouleurPseudoId
 }
 
 const STORAGE_KEY = 'motman-player-v1'

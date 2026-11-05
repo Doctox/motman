@@ -25,7 +25,7 @@ export function partieIntrouvable(reason: unknown): boolean {
  * qu'en e2e. `marquerAJour` remet les compteurs à zéro quand une version de la
  * partie arrive par un autre chemin (un coup validé, un conflit récupéré).
  */
-export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError }: {
+export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, recevoirEmote, setError }: {
   matchId: string
   playerId: string
   /** La partie connue, pour ne demander que ce qui a changé. */
@@ -40,6 +40,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   recevoirEnDirect?: (enDirect: EnDirect) => void
   /** Une lettre de duel en chaîne, arrivée par le temps réel. */
   recevoirChaine?: (evenement: EvenementDeChaine) => void
+  /** Une emote, arrivée par le temps réel : la sienne comme celle de l'autre. */
+  recevoirEmote?: (emote: { playerId: string; emote: string }) => void
   setError: Dispatch<SetStateAction<string | null>>
 }): { pollingRef: RefObject<AdaptivePollingController | null>; marquerAJour: () => void } {
   const pollingRef = useRef<AdaptivePollingController | null>(null)
@@ -49,8 +51,8 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
   const erreurAffichee = useRef<string | null>(null)
   const prochaineLecture = useRef<{ tour: number; heure: string } | null>(null)
   // Les rappels changent à chaque rendu ; le sondage, lui, vit tant que l'écran.
-  const rappels = useRef({ appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError })
-  rappels.current = { appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, setError }
+  const rappels = useRef({ appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, recevoirEmote, setError })
+  rappels.current = { appliquer, recupererConflit, partieDisparue, recevoirEnDirect, recevoirChaine, recevoirEmote, setError }
 
   const marquerAJour = useCallback(() => {
     sondagesInchanges.current = 0
@@ -116,7 +118,7 @@ export function useSynchroDePartie({ matchId, playerId, partieRef, appliquer, re
     }, status => {
       tempsReelConnecte.current = status === 'connected'
       if (status === 'connected') polling.wake()
-    }, enDirect => rappels.current.recevoirEnDirect?.(enDirect), evenement => rappels.current.recevoirChaine?.(evenement))
+    }, enDirect => rappels.current.recevoirEnDirect?.(enDirect), evenement => rappels.current.recevoirChaine?.(evenement), emote => rappels.current.recevoirEmote?.(emote))
     return () => {
       vivant = false
       pollingRef.current = null

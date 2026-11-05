@@ -42,3 +42,13 @@
 html[data-motion="off"] .emote-jeton,html[data-motion="off"] .emote-salue img{animation:none}
 html[data-motion="off"] .emote-bulle-bd{animation:emoteFondu 2s linear both}
 @keyframes emoteFondu{0%,85%{opacity:1}100%{opacity:0}}
+
+/* La bulle de l'adversaire : à droite de son portrait, la queue vers lui. */
+.emote-bulle-bd.is-adverse::before{right:auto;left:var(--queue,24px)}
+.emote-bulle-bd-image.is-adverse::before{right:auto;left:-6px;box-shadow:-1.6px 1.6px 0 0 #c59b45}
+
+/* Le néon ne tourne pas en partie : pas d'animation continue près des ombres (lag GPU sur Samsung). */
+.scoreboard .mm-pseudo.is-arc-en-ciel{animation:none}
+
+/* La partie au calme : pas de chrono, seulement à qui c'est le tour. */
+.turn-timer.is-calme{font-size:.82rem;font-weight:700;line-height:1;letter-spacing:0}

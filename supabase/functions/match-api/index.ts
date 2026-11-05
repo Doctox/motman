@@ -46,9 +46,9 @@ import { allumerFantome, fantomeAllume } from './ghost.ts'
 import { joueursEnLigne } from './onlinePlayers.ts'
 import { bilanDesSources, jourAvant } from './playerSources.ts'
 import { enPleinDefi } from './enPleinDefi.ts'
-import { lancerPartiePlus, lireDemandePlus, lireTheme, noterPartieOfferte, partieAReprendre, partiesOffertes, themesDuJoueur } from './matchPlus.ts'
+import { lancerPartiePlus, noterPartieOfferte, partieAReprendre, partiesOffertes, themesDuJoueur } from './matchPlus.ts'
 import { ATTENTE_ENTRE_EMOTES_MS, EMOTES, EMOTES_PAR_PARTIE } from '../../../src/emotes.ts'
-import { PARTIES_OFFERTES_A_UN_AMI } from '../../../src/reglesPlus.ts'
+import { lireDemandePlus, lireTheme, PARTIES_OFFERTES_A_UN_AMI } from '../../../src/reglesPlus.ts'
 
 /** Une emote partie 6 s après la précédente peut arriver un peu avant : le réseau ne doit pas la refuser. */
 const MARGE_EMOTE_MS = 500

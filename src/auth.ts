@@ -320,6 +320,11 @@ export function updateServerProfile(displayName: string, avatarId: string, frame
   return accountAction('update-profile', { displayName, avatarId, frameId, animationId, titleId })
 }
 
+/** MotMan+ : le serveur revérifie le droit, et la couleur suit le compte. */
+export function enregistrerCouleurPseudo(couleur: string | null): Promise<AuthResponse> {
+  return accountAction('couleur-pseudo', { couleur })
+}
+
 export function equipServerCosmetic(kind: CosmeticKind, id: string): Promise<AuthResponse> {
   return accountAction('equip-cosmetic', { kind, id })
 }

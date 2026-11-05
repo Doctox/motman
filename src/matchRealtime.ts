@@ -22,6 +22,7 @@ export function subscribeToMatchUpdates(
   onStatus?: (status: MatchRealtimeStatus) => void,
   onLettres?: (enDirect: EnDirect) => void,
   onChaine?: (evenement: EvenementDeChaine) => void,
+  onEmote?: (emote: { playerId: string; emote: string }) => void,
 ): () => void {
   if (!supabaseConfigured || localTestServer) {
     onStatus?.('disconnected')
@@ -41,6 +42,10 @@ export function subscribeToMatchUpdates(
     .on('broadcast', { event: 'chaine' }, message => {
       const evenement = evenementDeChaineValide(message.payload)
       if (evenement) onChaine?.(evenement)
+    })
+    .on('broadcast', { event: 'emote' }, message => {
+      const { playerId, emote } = (message.payload ?? {}) as { playerId?: unknown; emote?: unknown }
+      if (typeof playerId === 'string' && typeof emote === 'string') onEmote?.({ playerId, emote })
     })
     .subscribe(status => {
       if (status === 'SUBSCRIBED') onStatus?.('connected')

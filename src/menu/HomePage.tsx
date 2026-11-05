@@ -20,6 +20,7 @@ import { ChronoRecherche } from './ChronoRecherche'
 import type { RankedMatchmakingState } from '../rankedMatchmaking'
 import { GamePulse } from './GamePulse'
 import { PseudoJoueur } from './PseudoJoueur'
+import { nomAffiche } from './themeApparence'
 import type { CouleurPseudoId } from '../abonnement'
 import { MOTMAN_INVITE_URL, shareText } from '../dailyShare'
 
@@ -30,6 +31,7 @@ export function matchOpponent(match: MatchState, playerId: string): string {
 }
 
 export function asyncTimeLeft(match: MatchState): string {
+  if (match.calme) return 'sans chrono'
   const remaining = Math.max(0, new Date(match.turnEndsAt).getTime() - Date.now())
   return remaining >= 3_600_000
     ? `${Math.ceil(remaining / 3_600_000)} h`
@@ -40,6 +42,8 @@ function activeMatchLabel(match: MatchState): string {
   // Le défi du jour porte le mode `solo` en base ; le mot a quitté l'interface
   // le 16/09/2026, il ne doit plus apparaître ici.
   if (match.isDaily) return 'Défi du jour'
+  if (match.themeChoisi) return nomAffiche(match.themeChoisi)
+  if (match.calme) return 'Au calme'
   if (match.mode === 'solo') return 'Entraînement'
   if (match.mode === 'friend') return 'Duel ami'
   return 'Match normal'

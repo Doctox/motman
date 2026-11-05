@@ -14,7 +14,7 @@ import { GameOptionsOverlay, ReportPlayerOverlay } from './GameOverlays'
 import { canUseHint, canUseReroll, gameWordCellIndexes, indicesRestants, INDICES_PAR_PARTIE, REWARD_EFFECT_LIFETIME_MS } from './gameRules'
 import type { ClueEntry, GeneratedGrid } from './generator'
 import { matchStateFromConflict } from './matchConflict'
-import {
+import { envoyerEmote, lancerPartiePlus,
   acknowledgeMatchResult, cancelMatchInvitation, confirmMatchPresence, createInstantMatch, forfeitMatch, loadMatch, loadMatchLobby, playMatchTurn,
   poserLettreDeChaine, requestMatchHint, rerollMatchRack, respondToMatchInvitation,
   type MatchInvitation, type MatchState, type MatchTurn, type ReponseDeLettre,
@@ -225,8 +225,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   const questsComptes = useRef(new Set<string>())
   const [questDone, setQuestDone] = useState<{ cle: number; titre: string } | null>(null)
   // Les emotes MotMan+ : l'abonnement est lu une fois ; le serveur le revérifiera à l'envoi.
-  const [abonnePlus] = useState(() => lireAbonnement(Boolean(identity.current.admin)).actif)
-  const emotes = useEmotesDeLaPartie(matchId, abonnePlus)
+  const [abonnePlus] = useState(() => lireAbonnement(Boolean(identity.current.admin), identity.current.couleurPseudo ?? null))
+  const emotes = useEmotesDeLaPartie(matchId, abonnePlus.actif, emote => void envoyerEmote(playerId, matchId, emote))
 
   const seenTurn = useRef<string | null>(null)
   const animationTimer = useRef<number | null>(null)
@@ -676,6 +676,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     partieDisparue: () => { if (alive.current) onHome() },
     recevoirEnDirect: recu => setEnDirect(actuel => enDirectLePlusRecent(actuel, recu)),
     recevoirChaine: recu => recevoirLaChaine(recu),
+    // Le canal renvoie aussi les siennes : elles sont déjà à l'écran.
+    recevoirEmote: recu => { if (recu.playerId !== playerId) emotes.recevoir(recu.emote) },
   })
   // Les lettres de l'autre pendant son tour (game/lettresEnDirect.ts).
   const lettresEnDirect = useLettresUneAUne(enDirect, useMemo(() => lettresDeLAdversaire(enDirect, match, playerId), [enDirect, match, playerId]))
@@ -1162,6 +1164,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
   // est la ceinture côté écran.
   const partieClassee = match?.mode === 'ranked'
   const partieDuJour = Boolean(match?.isDaily)
+  // « Rejouer » d'une partie MotMan+ : le même thème, au même rythme, tout de suite.
+  const rejouerPlus = () => {
+    void lancerPartiePlus(playerId, { theme: match?.themeChoisi ?? null, calme: Boolean(match?.calme) })
+      .then(nouvelle => onOuvrirPartie?.(nouvelle.id), () => onExit())
+  }
   useEffect(() => {
     if (!match || match.status !== 'active' || partieClassee || partieDuJour) return
     // La fenêtre SUIT l'état de la file : elle s'ouvre quand quelqu'un cherche
@@ -1413,7 +1420,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       résultat, elle restait affichée, grisée, sans rien faire (retiré à la
       demande du propriétaire, 19/09/2026). Une case vide garde le logo centré. */}
       {match.status === 'active' ? <button type="button" aria-label="Options de sortie" onClick={() => setLeaveOpen(true)}><ArrowLeft /></button> : <span aria-hidden="true" />}<img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
-    {showGame ? <><section className="scoreboard"><DuelPlayer name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div><DuelPlayer name={identity.current.displayName.trim() || 'Toi'} title={titres.mien} detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' ? emotes.ouvrir : undefined} /></section>
+    {showGame ? <><section className="scoreboard"><DuelPlayer couleur={opponent?.couleurPseudo} name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}>{match.calme ? <span className="turn-timer is-calme">{isMyTurn ? 'À toi' : '…'}</span> : <TurnTimer match={match} resolving={resolving} />}<strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div><DuelPlayer couleur={abonnePlus.couleurPseudo} name={identity.current.displayName.trim() || 'Toi'} title={titres.mien} detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' ? emotes.ouvrir : undefined} /></section>
       {emotes.calque}
     </> : null}
     {questDone ? <QuestAchieved key={questDone.cle} titre={questDone.titre} close={() => setQuestDone(null)} /> : null}
@@ -1459,7 +1466,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
         {match.chaine ? null : <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>}
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-bonus-pop rack-bonus-pop--${rackBonusEffect.owner}`} role="status" aria-live="polite">+{rackBonusEffect.points}</div> : null}</section>
       <div className={`turn-actions ${match.chaine ? 'is-chaine' : ''}`}>{match.chaine ? null : <button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button>}<button className={`validate ${isMyTurn && !resolving && rienAValider ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving || lettreEnVol} title={isMyTurn && rienAValider && !match.chaine ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : rienAValider ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button></div>
-    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
+    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerPlus={rejouerPlus} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}

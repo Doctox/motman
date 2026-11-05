@@ -12,14 +12,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import calendrier from './data/runtime.daily.themes.json'
+import { PARTIES_OFFERTES_A_UN_AMI, type CouleurPseudoId } from './reglesPlus'
+
+export { PARTIES_OFFERTES_A_UN_AMI, type CouleurPseudoId }
 
 /** Le nom affiché partout. Le changer ici le change dans toute l'appli. */
 export const NOM_ABONNEMENT = 'MotMan+'
 
 const SERVEUR_DE_TEST = import.meta.env.VITE_MOTMAN_LOCAL_TEST_SERVER === 'true'
-
-/** Parties à thème qu'un même ami non abonné peut jouer, en tout. */
-export const PARTIES_OFFERTES_A_UN_AMI = 3
 
 export type EtatAbonnement = {
   actif: boolean
@@ -32,8 +32,6 @@ export const SANS_ABONNEMENT: EtatAbonnement = { actif: false, couleurPseudo: nu
 // Huit teintes, chacune avec sa version pour le thème sombre. Toutes passent
 // 4,5:1 sur les fonds des cartes, clairs et sombres (abonnement.test.ts) : un
 // pseudo jaune pâle illisible n'existera pas.
-
-export type CouleurPseudoId = 'emeraude' | 'ocean' | 'indigo' | 'prune' | 'framboise' | 'ambre' | 'turquoise' | 'ardoise' | 'arc-en-ciel'
 
 export type CouleurPseudo = { id: Exclude<CouleurPseudoId, 'arc-en-ciel'>; nom: string; clair: string; sombre: string }
 
@@ -83,13 +81,14 @@ const CLE_TEST = 'motman-abonnement-test'
 
 /**
  * L'état affiché : ouvert sur le compte du propriétaire (`identity.admin`), fermé
- * pour tous les autres. La couleur choisie reste sur l'appareil tant que le serveur
- * ne la garde pas. Le serveur de test local, lui, se règle depuis la console :
+ * pour tous les autres. La couleur vient du compte (`couleurDuCompte`), et suit donc
+ * d'un appareil à l'autre. Le serveur de test local, lui, se règle depuis la console :
  * `localStorage.setItem('motman-abonnement-test', JSON.stringify({ actif: true, couleurPseudo: 'ocean' }))`.
  */
-export function lireAbonnement(proprietaire = false): EtatAbonnement {
+export function lireAbonnement(proprietaire = false, couleurDuCompte?: CouleurPseudoId | null): EtatAbonnement {
   if (!SERVEUR_DE_TEST && !proprietaire) return SANS_ABONNEMENT
-  const base = proprietaire ? { ...SANS_ABONNEMENT, actif: true } : SANS_ABONNEMENT
+  const base = proprietaire ? { ...SANS_ABONNEMENT, actif: true, couleurPseudo: couleurDuCompte ?? null } : SANS_ABONNEMENT
+  if (couleurDuCompte !== undefined && !SERVEUR_DE_TEST) return base
   try {
     const brut = localStorage.getItem(CLE_TEST)
     return brut ? { ...base, ...(JSON.parse(brut) as Partial<EtatAbonnement>) } : base
@@ -100,10 +99,11 @@ export function lireAbonnement(proprietaire = false): EtatAbonnement {
 
 export function enregistrerCouleur(couleur: CouleurPseudoId | null, proprietaire = false): EtatAbonnement {
   const etat = { ...lireAbonnement(proprietaire), couleurPseudo: couleur }
-  try { localStorage.setItem(CLE_TEST, JSON.stringify(etat)) } catch { /* retenue pour cette session */ }
+  // Le compte la garde (Menu.tsx) ; ici, seulement le serveur de test local.
+  if (SERVEUR_DE_TEST) try { localStorage.setItem(CLE_TEST, JSON.stringify(etat)) } catch { /* retenue pour cette session */ }
   return etat
 }
 
-/** Les thèmes du calendrier du défi. Le nombre de grilles viendra du serveur. */
+/** Les thèmes du calendrier du défi, en vitrine. Les nombres viennent du serveur (`chargerThemesPlus`). */
 export const THEMES: readonly ThemeAbonnement[] = [...new Set(Object.values((calendrier as { themes: Record<string, string> }).themes))]
   .map(nom => ({ nom, grilles: 0, jouees: 0 }))

@@ -13,6 +13,7 @@ import { noterOrigineDeLaPartie } from '../transitionPartie'
 import { useHauteurAnimee } from './hauteurAnimee'
 import { DefinitionEnAttente } from './DefinitionEnAttente'
 import { ThemesTab } from './ThemesAbonnement'
+import { nomAffiche } from './themeApparence'
 import { IconeMotManPlus } from './LogoMotManPlus'
 import { Link2 } from 'lucide-react'
 import type { RythmeChoisi } from '../matches'
@@ -121,11 +122,11 @@ function SearchingCard({ titre, detail, annuler, disabled }: { titre: string; de
   </section>
 }
 
-export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, rechercheEnvoyee = false, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab, abonnement, themes, ouvrirOffre, jouerTheme, inviterSurTheme, jouerAuCalme }: {
+export function PlayPage({ identity, social, lobby, invite, cancelInvite, searchMatch, cancelSearch, rechercheEnvoyee = false, nouveau = false, openAccount, resumeMatch, openFriends, ranked, rankedBusy, rankedTimedOut, rankedError, startRanked, cancelRanked, initialTab, abonnement, themes, ouvrirOffre, jouerTheme, jouerAuCalme }: {
   identity: GuestIdentity
   social: SocialState
   lobby: MatchLobbyState
-  invite: (friendId: string, rythme: RythmeChoisi) => Promise<void>
+  invite: (friendId: string, rythme: RythmeChoisi, theme?: string) => Promise<void>
   cancelInvite: (invitationId: string) => Promise<void>
   searchMatch: (rythme: RythmeChoisi) => Promise<void>
   cancelSearch: (pace: MatchPace) => Promise<void>
@@ -150,7 +151,6 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
   themes: readonly ThemeAbonnement[]
   ouvrirOffre: () => void
   jouerTheme: (theme: ThemeAbonnement, rythme: RythmeTheme) => void
-  inviterSurTheme: (theme: ThemeAbonnement) => void
   jouerAuCalme: () => void
 }) {
   const [onglet, setOnglet] = useState<PlayTabId>(() => initialTab ?? lireDernierMode())
@@ -191,6 +191,14 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
 
   const choisirOnglet = (id: PlayTabId) => setOnglet(id)
 
+  // « Inviter un ami sur ce thème » : la liste d'amis habituelle, avec le thème en plus.
+  const [themeAInviter, setThemeAInviter] = useState<string | null>(null)
+  const inviterSurTheme = (theme: ThemeAbonnement) => {
+    setThemeAInviter(theme.nom)
+    if (friendPace === 'chaine') setFriendPace('realtime')
+    setOnglet('friends')
+  }
+
   const lancerRechercheNormale = async (rythme: RythmeChoisi = normalPace) => {
     retenirMode('normal')
     setSearchBusy(rythme === 'async' ? 'async' : 'realtime')
@@ -224,7 +232,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
       <Avatar label={playerInitials(matchOpponent(reprise, identity.playerId))} small />
       <span className="mm-play-resume-copy">
         <strong>{matchOpponent(reprise, identity.playerId)} · {reprise.currentPlayerId === identity.playerId ? 'à toi' : 'en attente'}</strong>
-        <small>{reprise.pace === 'async' ? `Illimité · ${asyncTimeLeft(reprise)}` : reprise.chaine ? 'En chaîne' : 'Temps limité'}</small>
+        <small>{reprise.calme ? 'Au calme' : reprise.pace === 'async' ? `Illimité · ${asyncTimeLeft(reprise)}` : reprise.chaine ? 'En chaîne' : 'Temps limité'}</small>
       </span>
       <span className="mm-play-resume-go">Reprendre</span>
     </button> : null}
@@ -306,7 +314,12 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
             <span className="mm-play-card-icon" aria-hidden="true"><Users /></span>
             <span><h2>Amis</h2><small>{amisEnLigne ? `${amisEnLigne} ami${amisEnLigne > 1 ? 's' : ''} en ligne` : 'Invite un proche à une partie'}</small></span>
           </header>
-          <PaceChoice pace={friendPace} setPace={setFriendPace} label="Choisir le rythme de la partie entre amis" avecChaine />
+          {themeAInviter ? <p className="mm-invite-theme">
+            <span><small>Partie à thème</small><strong>{nomAffiche(themeAInviter)}</strong></span>
+            <button type="button" onClick={() => setThemeAInviter(null)}>Retirer</button>
+          </p> : null}
+          {/* Un thème se joue en règles normales : pas de choix « en chaîne » ici. */}
+          <PaceChoice pace={friendPace} setPace={setFriendPace} label="Choisir le rythme de la partie entre amis" avecChaine={!themeAInviter} />
         </section>
 
         <div className="mm-play-friends">
@@ -348,7 +361,7 @@ export function PlayPage({ identity, social, lobby, invite, cancelInvite, search
                 type="button"
                 disabled={injoignable || matchBusy !== null}
                 aria-label={`Inviter ${friend.displayName}`}
-                onClick={async () => { retenirMode('friends'); setMatchBusy(friend.playerId); await invite(friend.playerId, friendPace); setMatchBusy(null) }}
+                onClick={async () => { retenirMode('friends'); setMatchBusy(friend.playerId); await invite(friend.playerId, friendPace, themeAInviter ?? undefined); setThemeAInviter(null); setMatchBusy(null) }}
               >{friendPace !== 'async' && friend.activity === 'playing' ? 'En jeu' : 'Inviter'}</button>}
           </div>
         })}

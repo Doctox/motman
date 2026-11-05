@@ -7,9 +7,11 @@ export type { CatalogGrid, CatalogWord } from '../../supabase/functions/match-ap
 
 export type MatchPace = 'realtime' | 'async'
 export type MatchVariante = Variante
-export type MatchMode = 'friend' | 'normal'
+export type MatchMode = 'friend' | 'normal' | 'solo'
 
 export type MatchInvitation = {
+  /** MotMan+ : le thème de la partie proposée. */
+  theme?: string | null
   id: string
   hostId: string
   guestId: string
@@ -71,6 +73,9 @@ export type StoredMatch = {
   turnMs?: number
   /** Le temps mort entre deux tours, sur mesure (e2e seulement) : celui du serveur est à zéro. */
   souffleMs?: number
+  /** MotMan+ : la partie au calme, et le thème choisi (match-api/matchPlus.ts). */
+  calme?: boolean
+  themeChoisi?: string
   board: Record<string, { letter: string; playerId: string }>
   racks: Record<string, string[]>
   letterBag?: string[]

@@ -1,4 +1,5 @@
-import { Clock3, Hourglass, Link2, Swords } from 'lucide-react'
+import { Clock3, Hourglass, Link2, Shapes, Swords } from 'lucide-react'
+import { nomAffiche } from './themeApparence'
 import { libelleDuRythme, rythmeDeLInvitation, SECONDES_DU_TOUR_DE_CHAINE } from '../game/chaineDuTour'
 import type { MatchInvitation } from '../matches'
 import { playerInitials } from '../playerIdentity'
@@ -25,6 +26,7 @@ export function MatchInvitationPanel({ invitation, busy, accept, decline }: {
       <small>Invitation à jouer</small>
       <h2>{hostName} te défie</h2>
       <div className="mm-match-rule">{isChaine ? <Link2 /> : isAsync ? <Hourglass /> : <Clock3 />}<span><strong>{libelleDuRythme(rythme)}</strong><small>{isChaine ? `${SECONDES_DU_TOUR_DE_CHAINE} secondes par tour · une erreur et ça passe` : isAsync ? '24 heures par tour' : '45 secondes par tour'}</small></span></div>
+      {invitation.theme ? <div className="mm-match-rule"><Shapes /><span><strong>{nomAffiche(invitation.theme)}</strong><small>Partie à thème</small></span></div> : null}
       <div className="mm-match-invite-actions"><button type="button" className="secondary" disabled={busy} onClick={decline}>Refuser</button><button type="button" data-dialog-autofocus disabled={busy} onClick={accept}>{busy ? 'Connexion…' : 'Accepter'}</button></div>
     </section>
   </div>

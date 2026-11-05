@@ -55,7 +55,9 @@ export function useTurnPhase(match: MatchState | null): TurnPhase {
     // plus vue, et la validation automatique ne partait pas.
     const viser = (borne: number) => {
       const reste = borne - serverNow()
-      if (reste < 0) return
+      // Une partie au calme n'a pas d'échéance : au-delà de 24 jours, `setTimeout`
+      // déborde et se déclenche aussitôt, en boucle.
+      if (reste < 0 || reste > 2_000_000_000) return
       const minuteur = window.setTimeout(() => {
         minuteurs.delete(minuteur)
         if (serverNow() < borne) viser(borne)

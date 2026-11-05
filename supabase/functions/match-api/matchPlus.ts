@@ -11,23 +11,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { botSkillForLevel, niveauDeLaForce, reglageClassique } from '../../../src/botOpponents.ts'
+import { compterLesThemes, type DemandePlus, type ThemeDuJoueur } from '../../../src/reglesPlus.ts'
 import { toutesLesLignes } from '../_shared/lectures.ts'
 import type { AdminClient } from '../_shared/supabaseClients.ts'
 import type { MatchRow } from './matchModel.ts'
 import { chooseGrid, createBot, createMatch, forceDuProchainAdversaire, historiquesJoueurs, playerLevel } from './matchSetup.ts'
-
-export type DemandePlus = { theme: string | null; calme: boolean }
-
-/** Un thème, au calme ou avec chrono ; ou une partie au calme sur les grilles normales. Sans chrono ni thème, rien à lancer ici. */
-export function lireDemandePlus(corps: Record<string, unknown>): DemandePlus | null {
-  const theme = lireTheme(corps.theme)
-  const calme = corps.calme === true
-  return theme || calme ? { theme, calme } : null
-}
-
-export function lireTheme(valeur: unknown): string | null {
-  return typeof valeur === 'string' && valeur.trim() && valeur.length <= 80 ? valeur : null
-}
 
 /**
  * La partie à reprendre plutôt que d'en ouvrir une autre. Au calme : la même, restée
@@ -39,21 +27,6 @@ export function partieAReprendre(parties: readonly MatchRow[], demande: DemandeP
   return parties.find(partie => partie.status === 'active' && (demande.calme
     ? partie.state.calme === true && (partie.state.themeChoisi ?? null) === demande.theme
     : partie.pace === 'realtime' && !partie.state.isDaily)) ?? null
-}
-
-export type ThemeDuJoueur = { nom: string; grilles: number; jouees: number }
-
-/** Compte les grilles de chaque thème, et celles que ce joueur a déjà jouées. */
-export function compterLesThemes(grilles: ReadonlyArray<{ id: string; theme: string | null }>, parties: Readonly<Record<string, number>>): ThemeDuJoueur[] {
-  const themes = new Map<string, ThemeDuJoueur>()
-  for (const { id, theme } of grilles) {
-    if (!theme) continue
-    const ligne = themes.get(theme) ?? { nom: theme, grilles: 0, jouees: 0 }
-    ligne.grilles += 1
-    if ((parties[id] ?? 0) > 0) ligne.jouees += 1
-    themes.set(theme, ligne)
-  }
-  return [...themes.values()].sort((gauche, droite) => gauche.nom.localeCompare(droite.nom, 'fr'))
 }
 
 export async function themesDuJoueur(admin: AdminClient, userId: string): Promise<ThemeDuJoueur[]> {

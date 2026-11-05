@@ -48,6 +48,7 @@ export type MatchInvitation = {
   hostId: string
   guestId: string
   pace: MatchPace
+  theme?: string | null
   variante?: MatchVariante
   createdAt: string
   expiresAt: string
@@ -153,6 +154,9 @@ export type MatchState = {
   // Défi du jour : posés PAR LE SERVEUR (action 'daily'). Permettent à l'écran de
   // fin d'enregistrer la série via recordDailyResult(). Absents pour un match normal.
   isDaily?: boolean
+  /** MotMan+ : la partie au calme (pas de chrono à l'écran), et le thème choisi. */
+  calme?: boolean
+  themeChoisi?: string
   dailyDate?: string
   /** Présent : c'est un duel en chaîne. */
   chaine?: EtatDeChaine | null
@@ -211,10 +215,39 @@ function corpsDuRythme(rythme: RythmeChoisi): { pace: MatchPace; variante?: Matc
   return rythme === 'chaine' ? { pace: 'realtime', variante: 'chaine' } : { pace: rythme }
 }
 
-export async function createInstantMatch(playerId: string, targetId: string, rythme: RythmeChoisi): Promise<MatchLobbyState> {
-  if (localTestServer) return localMatch('create', { playerId, targetId, ...corpsDuRythme(rythme) })
+export async function createInstantMatch(playerId: string, targetId: string, rythme: RythmeChoisi, theme?: string): Promise<MatchLobbyState> {
+  const corps = { targetId, ...corpsDuRythme(rythme), ...(theme ? { theme } : {}) }
+  if (localTestServer) return localMatch('create', { playerId, ...corps })
   void playerId
-  return supabaseMatch<MatchLobbyState>('create', { targetId, ...corpsDuRythme(rythme) })
+  return supabaseMatch<MatchLobbyState>('create', corps)
+}
+
+// ── MotMan+ (match-api/matchPlus.ts) : le serveur revérifie le droit à chaque demande. ──
+
+export type ThemeDuServeur = { nom: string; grilles: number; jouees: number }
+export type DemandePartiePlus = { theme: string | null; calme: boolean }
+
+export async function chargerThemesPlus(playerId: string): Promise<ThemeDuServeur[]> {
+  const { themes } = localTestServer
+    ? await localMatch<{ themes: ThemeDuServeur[] }>('plus/themes', { playerId })
+    : await supabaseMatch<{ themes: ThemeDuServeur[] }>('plus-themes')
+  return themes
+}
+
+/** Une partie lancée tout de suite, ou celle à reprendre. */
+export async function lancerPartiePlus(playerId: string, demande: DemandePartiePlus): Promise<MatchState> {
+  const { match } = localTestServer
+    ? await localMatch<{ match: MatchState }>('plus/partie', { playerId, ...demande })
+    : await supabaseMatch<{ match: MatchState }>('plus-partie', demande)
+  return match
+}
+
+/** L'autre la voit par le canal de la partie. Une bulle perdue ne mérite ni erreur, ni relance. */
+export async function envoyerEmote(playerId: string, matchId: string, emote: string): Promise<void> {
+  try {
+    if (localTestServer) await localMatch('emote', { playerId, matchId, emote })
+    else await supabaseMatch('emote', { matchId, emote })
+  } catch { /* sans conséquence */ }
 }
 
 export async function respondToMatchInvitation(playerId: string, invitationId: string, decision: 'accept' | 'decline'): Promise<MatchLobbyState> {

@@ -67,7 +67,7 @@ function versLigne(match: StoredMatch): MatchRow {
       productiveTurns: match.productiveTurns, inactivity: match.inactivity, presenceAck: match.presenceAck,
       rackCompletions: match.rackCompletions ?? {}, wordsCompleted: match.wordsCompleted, imageWordsCompleted: match.imageWordsCompleted,
       hint: match.hint, hintUsed: match.hintUsed, rerollUsed: match.rerollUsed, lastTurn: match.lastTurn,
-      chaine: match.chaine,
+      chaine: match.chaine, calme: match.calme, themeChoisi: match.themeChoisi,
     },
   }
 }

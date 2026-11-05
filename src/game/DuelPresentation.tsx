@@ -27,6 +27,8 @@ import { haptic, motionReduced, playEffect } from '../sensoryPreferences'
 import { useDialogFocus } from '../useDialogFocus'
 import { useCountUp } from './countUp'
 import { recompenseDuMatch } from './matchRewardPrefetch'
+import { PseudoJoueur } from '../menu/PseudoJoueur'
+import type { CouleurPseudoId } from '../reglesPlus'
 import { loadSocialState, sendFriendRequestToPlayer } from '../social'
 import './duel-friend.css'
 import { dailyNote } from '../dailyScore'
@@ -83,14 +85,14 @@ function usePseudoSurDeuxLignes(nom: string) {
   return { pseudo, deuxLignes }
 }
 
-export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title, onPortrait }: { name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null; onPortrait?: (portrait: HTMLElement) => void }) {
+export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title, onPortrait, couleur }: { couleur?: CouleurPseudoId | null; name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null; onPortrait?: (portrait: HTMLElement) => void }) {
   // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
   // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
   const affiche = useCountUp(score)
   const { pseudo, deuxLignes } = usePseudoSurDeuxLignes(name)
   const portrait = avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>
   // Le portrait d'un abonné ouvre ses emotes (src/game/EmotesPartie.tsx).
-  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{onPortrait ? <button type="button" className="player-portrait-bouton" aria-label="Envoyer une emote" onClick={event => onPortrait(event.currentTarget)}>{portrait}</button> : portrait}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}>{name}</small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
+  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{onPortrait ? <button type="button" className="player-portrait-bouton" aria-label="Envoyer une emote" onClick={event => onPortrait(event.currentTarget)}>{portrait}</button> : portrait}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}><PseudoJoueur nom={name} couleur={couleur} /></small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
 }
 
 /**
@@ -138,7 +140,7 @@ function premierPanierDisponible(playerId: string): boolean {
   try { return isFirstBasketFree(loadPlayerCosmetics(playerId)) } catch { return false }
 }
 
-export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onEpicerie, revanche, rejouer, rejouerClassee }: {
+export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onEpicerie, revanche, rejouer, rejouerPlus, rejouerClassee }: {
   match: MatchState
   playerId: string
   opponentName: string
@@ -147,6 +149,8 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
   /** « Ouvrir » le panier offert, à l'Épicerie (02/11/2026). */
   onEpicerie?: () => void
   revanche?: Revanche
+  /** « Rejouer » d'une partie MotMan+ : le même thème, au même rythme, sans recherche. */
+  rejouerPlus?: () => void
   /** « Rejouer » : la même recherche, au même rythme (N3, 22/10/2026). */
   rejouer?: (rythme: RythmeChoisi) => void
   /** « Rejouer en classée » : la file classée, sans détour (C2, 22/10/2026). */
@@ -274,6 +278,8 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
     ? <button type="button" className="new-game is-ranked" disabled={leaving} onClick={() => void leaveResult(rejouerClassee)}><RotateCcw aria-hidden="true" />Rejouer en classée</button>
     : match.isDaily
       ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Jouer une partie</button>
+      : rejouerPlus && match.bot && (match.calme || match.themeChoisi)
+        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(rejouerPlus)}><RotateCcw aria-hidden="true" />{match.themeChoisi ? 'Rejouer ce thème' : 'Rejouer au calme'}</button>
       : rejouer && (match.mode === 'normal' || match.mode === 'solo')
         ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(premiereSansChrono ? 'realtime' : rythmeDeLaPartie(match)))}><RotateCcw aria-hidden="true" />{premiereSansChrono ? 'Rejouer · 45 s par tour' : 'Rejouer'}</button>
         : <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Nouvelle partie</button>

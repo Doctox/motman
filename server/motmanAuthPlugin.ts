@@ -278,6 +278,13 @@ async function handleAuthRequest(request: IncomingMessage, response: ServerRespo
     return sendJson(response, 200, sessionPayload(user))
   }
 
+  // MotMan+ : ici, la couleur reste sur l'appareil (src/abonnement.ts).
+  if (route === 'couleur-pseudo') {
+    const user = currentUser(request, response)
+    if (!user) return
+    return sendJson(response, 200, sessionPayload(user))
+  }
+
   if (route === 'claim-quest') {
     const user = currentUser(request, response)
     if (!user) return

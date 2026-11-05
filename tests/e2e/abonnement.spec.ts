@@ -167,7 +167,10 @@ test('en partie, l’abonné appuie sur son portrait et envoie une emote ; l’a
   await portrait.click()
   const eventail = page.getByRole('group', { name: 'Envoyer une emote' })
   await expect(eventail.getByRole('button')).toHaveCount(4)
+  const envoi = page.waitForRequest('**/api/matches/emote')
   await eventail.getByRole('button', { name: 'Envoyer Coucou' }).click()
+  // Le serveur reçoit l'emote : c'est lui qui la diffuse à l'autre, après avoir vérifié le droit.
+  expect((await envoi).postDataJSON().emote).toBe('coucou')
   await expect(eventail).toHaveCount(0)
   await expect(page.getByRole('status', { name: 'Coucou' })).toBeVisible()
   // La main de Coucou salue dans sa bulle (19/10/2026).
@@ -182,4 +185,94 @@ test('en partie, l’abonné appuie sur son portrait et envoie une emote ; l’a
 test('sans abonnement, le portrait en partie reste un simple portrait', async ({ page }) => {
   await ouvrirLaPartie(page, false)
   await expect(page.getByRole('button', { name: 'Envoyer une emote' })).toHaveCount(0)
+})
+
+/** Le compte du propriétaire : le serveur de test ne connaît pas ce rôle, sa réponse est complétée. */
+async function compteProprietaire(page: Page): Promise<void> {
+  await page.route('**/api/auth/bootstrap', async route => {
+    const reponse = await route.fetch()
+    const corps = await reponse.json() as { identity: Record<string, unknown> }
+    await route.fulfill({ response: reponse, json: { ...corps, identity: { ...corps.identity, admin: true } } })
+  })
+}
+
+test('la partie au calme part tout de suite, sans chrono, et se reprend', async ({ page }) => {
+  test.setTimeout(90_000)
+  await compteProprietaire(page)
+  await page.goto('/#jouer')
+  await page.getByRole('tab', { name: 'Normal', exact: true }).click()
+  await page.getByRole('button', { name: 'Au calme, sans chrono', exact: true }).click()
+  await page.getByRole('button', { name: 'Jouer une partie au calme' }).click()
+
+  // Pas de recherche, pas de fenêtre de lecture : c'est à lui, et aucun décompte ne court.
+  await expect(page.locator('.scoreboard .player-you')).toBeVisible()
+  await expect(page.locator('.turn-timer.is-calme')).toHaveText('À toi', { timeout: 15_000 })
+  await expect(page.locator('.turn-ring')).toHaveCount(0)
+  const partie = decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))
+  expect(partie).toBeTruthy()
+
+  // Il passe, l'adversaire joue, la main revient.
+  await page.getByRole('button', { name: 'Passer mon tour' }).click()
+  await expect(page.locator('.turn-timer.is-calme')).toHaveText('…')
+  await expect(page.locator('.turn-timer.is-calme')).toHaveText('À toi', { timeout: 30_000 })
+  await expect(page.getByText('Tu es toujours là')).toHaveCount(0)
+
+  // On la laisse, et le bouton de lancement la rouvre au lieu d'en créer une autre.
+  await page.goto('/')
+  await expect(page.locator('.mm-current-match-card')).toContainText('Au calme · sans chrono')
+  await page.goto('about:blank')
+  await page.goto('/#jouer')
+  await page.getByRole('tab', { name: 'Normal', exact: true }).click()
+  await page.getByRole('button', { name: 'Au calme, sans chrono', exact: true }).click()
+  await page.getByRole('button', { name: 'Jouer une partie au calme' }).click()
+  await expect(page.locator('.turn-timer.is-calme')).toBeVisible()
+  expect(decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))).toBe(partie)
+})
+
+test('un thème avec chrono se joue contre un adversaire, chrono à l’écran', async ({ page }) => {
+  await compteProprietaire(page)
+  await page.goto('/#jouer')
+  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await page.getByRole('button', { name: 'Animaux', exact: true }).click()
+  const fiche = page.getByRole('dialog', { name: 'Animaux' })
+  await fiche.getByRole('button', { name: 'Avec chrono, 45 secondes par tour' }).click()
+  await fiche.getByRole('button', { name: 'Jouer ce thème' }).click()
+  await expect(page.locator('.scoreboard .player-you')).toBeVisible()
+  await expect(page.locator('.turn-ring')).toBeVisible()
+  await expect(page.locator('.turn-timer.is-calme')).toHaveCount(0)
+})
+
+test('inviter un ami sur un thème : il le lit sur l’invitation, et la partie le porte', async ({ page, browser }) => {
+  const moi = identite('Theme Hote'), ami = identite('Theme Ami')
+  const apiMoi = await session(moi), apiAmi = await session(ami)
+  expect((await apiMoi.post('/api/social/request', { data: { targetId: ami.playerId } })).ok()).toBe(true)
+  expect((await apiAmi.post('/api/social/request', { data: { targetId: moi.playerId } })).ok()).toBe(true)
+  await compteProprietaire(page)
+  await page.addInitScript(stocke => localStorage.setItem('motman-player-v1', JSON.stringify(stocke)), moi)
+  await page.goto('/#jouer')
+  await page.getByRole('tab', { name: 'Thèmes', exact: true }).click()
+  await page.getByRole('button', { name: 'Animaux', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Animaux' }).getByRole('button', { name: /Inviter un ami sur ce thème/ }).click()
+
+  // La liste d'amis habituelle, avec le thème en plus : et pas de choix « en chaîne ».
+  await expect(page.locator('.mm-invite-theme')).toContainText('Animaux')
+  await expect(page.getByRole('button', { name: /En chaîne/ })).toHaveCount(0)
+  await page.getByRole('button', { name: `Inviter ${ami.displayName}` }).click()
+  await expect(page.locator('.mm-invite-theme')).toHaveCount(0)
+
+  const contexte = await browser.newContext()
+  const sienne = await contexte.newPage()
+  await sienne.addInitScript(stocke => {
+    localStorage.setItem('motman-player-v1', JSON.stringify(stocke))
+    localStorage.setItem('motman-first-run-tutorial', JSON.stringify({ version: 99, completedAt: '2026-07-30T12:00:00.000Z' }))
+  }, ami)
+  await sienne.goto('/#jouer')
+  await expect(sienne.getByRole('dialog', { name: 'Invitation à jouer' })).toContainText('Animaux')
+
+  const lobby = await (await apiAmi.get(`/api/matches/state?playerId=${encodeURIComponent(ami.playerId)}`)).json() as { incoming: Array<{ id: string; theme: string }> }
+  expect(lobby.incoming[0].theme).toBe('Animaux')
+  expect((await apiAmi.post('/api/matches/respond', { data: { playerId: ami.playerId, invitationId: lobby.incoming[0].id, decision: 'accept' } })).ok()).toBe(true)
+  const apres = await (await apiAmi.get(`/api/matches/state?playerId=${encodeURIComponent(ami.playerId)}`)).json() as { active: Array<{ themeChoisi?: string }> }
+  expect(apres.active[0].themeChoisi).toBe('Animaux')
+  await contexte.close()
 })

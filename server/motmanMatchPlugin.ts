@@ -5,6 +5,8 @@ import type { Plugin } from 'vite'
 import { botSkillForLevel, createBotPersona, type BotSkill } from '../src/botOpponents'
 import { isTurnSubmissionExpired } from '../src/gameRules'
 import { fnv1a } from '../src/hachage'
+import { compterLesThemes } from '../src/reglesPlus'
+import { TOUR_CALME_MS } from '../supabase/functions/match-api/matchModel.ts'
 import { isPresenceOnline } from '../src/presencePolicy'
 import { database as accountDatabase, type DatabaseUser } from './motmanDatabase'
 import {
@@ -278,9 +280,38 @@ function createMatch(hostId: string, guestId: string, mode: MatchMode, pace: Mat
   return nouvellePartie({ id: randomUUID(), hostId, guestId, mode, pace, grid, invitationId, bot, turnMs, now, variante })
 }
 
+/**
+ * MotMan+ : la même décision que match-api (matchPlus.ts), à ceci près que le serveur de
+ * test ne connaît pas les rôles, et que sa fixture n'a pas de grilles à thème : sans grille
+ * de ce thème, il en prend une normale.
+ */
+function lancerPartiePlus(playerId: string, theme: string | null, calme: boolean): StoredMatch {
+  const ouverte = database.matches.find(match => match.status === 'active' && match.playerIds.includes(playerId) && (calme
+    ? match.calme === true && (match.themeChoisi ?? null) === theme
+    : match.pace === 'realtime'))
+  if (ouverte) return ouverte
+  const now = new Date()
+  const bot = createBotProfile(randomUUID(), botSkillForLevel(niveauJoueur(playerId)))
+  const grid = grids.find(candidate => theme !== null && candidate.theme === theme) ?? selectGridForPlayers(playerId, bot.playerId, randomUUID(), now)
+  const match = nouvellePartie({ id: randomUUID(), hostId: playerId, guestId: bot.playerId, mode: 'solo', pace: calme ? 'async' : 'realtime', grid, invitationId: null, bot, now })
+  if (calme) {
+    match.calme = true
+    match.turnEndsAt = new Date(Date.parse(match.turnStartedAt) + TOUR_CALME_MS).toISOString()
+  }
+  if (theme) match.themeChoisi = theme
+  database.matches.push(match)
+  saveDatabase()
+  return match
+}
+
+function themesDuCatalogue(playerId: string) {
+  const parties = database.matches.filter(match => match.playerIds.includes(playerId))
+  return compterLesThemes(grids.filter(grid => grid.dailyOnly).map(grid => ({ id: grid.id, theme: grid.theme ?? null })), Object.fromEntries(parties.map(match => [match.gridId, 1])))
+}
+
 const requestContext = {
   database, cleanPlayerId, publicUser, areFriends, activeMatches, resolveExpired, lobbyState,
-  publicMatch, saveDatabase, createMatch,
+  publicMatch, saveDatabase, createMatch, lancerPartiePlus, themesDuCatalogue,
 }
 
 function attachMatchApi(middlewares: { use: (route: string, handler: (request: IncomingMessage, response: ServerResponse) => void) => void }): void {

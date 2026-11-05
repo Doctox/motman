@@ -13,27 +13,55 @@ import './emotes.css'
 // « Bonne chance ! ». Tout se pose dans le corps de la page, en position fixe,
 // d'après la place réelle du portrait : rien ne bouge dans le bandeau.
 //
-// L'envoi à l'adversaire et l'affichage de ses emotes restent à brancher (canal
-// temps réel de la partie, vérification de l'abonnement et de la cadence par le
-// serveur).
+// L'envoi part au serveur, qui revérifie le droit et la cadence, puis le diffuse sur
+// le canal de la partie. Tout joueur voit la bulle de l'autre, abonné ou non : elle
+// sort du portrait de l'adversaire, à droite de lui. Si la diffusion se perd, personne
+// n'en souffre : c'est une bulle de 2 s.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Ancre = { portrait: DOMRect; carte: DOMRect }
 type Bulle = Ancre & { emote: Emote; cle: number }
 
-export function useEmotesDeLaPartie(matchId: string, abonne: boolean): { ouvrir: ((portrait: HTMLElement) => void) | undefined; calque: ReactNode } {
+/** Où est le portrait de l'adversaire, à l'instant où son emote arrive. */
+function ancreDeLAdversaire(): Ancre | null {
+  const carte = document.querySelector('.scoreboard .player:not(.player-you)')
+  const portrait = carte?.querySelector('.game-portrait, .avatar')
+  return carte && portrait ? { portrait: portrait.getBoundingClientRect(), carte: carte.getBoundingClientRect() } : null
+}
+
+export function useEmotesDeLaPartie(matchId: string, abonne: boolean, envoyerAuServeur: (emote: Emote['id']) => void): {
+  ouvrir: ((portrait: HTMLElement) => void) | undefined
+  calque: ReactNode
+  /** L'emote de l'adversaire, arrivée par le temps réel. */
+  recevoir: (emote: string) => void
+} {
   const [ouvert, setOuvert] = useState<Ancre | null>(null)
   const [bulle, setBulle] = useState<Bulle | null>(null)
+  const [bulleAdverse, setBulleAdverse] = useState<Bulle | null>(null)
   const envois = useRef<number[]>([])
   const minuterie = useRef<number | undefined>(undefined)
+  const minuterieAdverse = useRef<number | undefined>(undefined)
 
   // Une nouvelle partie repart de zéro : compteur, éventail et bulle.
   useEffect(() => {
     envois.current = []
     setOuvert(null)
     setBulle(null)
-    return () => window.clearTimeout(minuterie.current)
+    setBulleAdverse(null)
+    return () => {
+      window.clearTimeout(minuterie.current)
+      window.clearTimeout(minuterieAdverse.current)
+    }
   }, [matchId])
+
+  const recevoir = useCallback((id: string) => {
+    const emote = EMOTES.find(candidate => candidate.id === id)
+    const ancre = ancreDeLAdversaire()
+    if (!emote || !ancre) return
+    setBulleAdverse({ ...ancre, emote, cle: Date.now() })
+    window.clearTimeout(minuterieAdverse.current)
+    minuterieAdverse.current = window.setTimeout(() => setBulleAdverse(null), DUREE_BULLE_MS)
+  }, [])
 
   const ouvrir = useCallback((portrait: HTMLElement) => {
     const carte = portrait.closest('.player') ?? portrait
@@ -43,7 +71,7 @@ export function useEmotesDeLaPartie(matchId: string, abonne: boolean): { ouvrir:
   const envoyer = (emote: Emote) => {
     if (!ouvert || !envoiPossible(envois.current, Date.now()).possible) return
     envois.current = [...envois.current, Date.now()]
-    // À brancher : l'envoi au serveur, qui revérifie l'abonnement et la cadence.
+    envoyerAuServeur(emote.id)
     setBulle({ ...ouvert, emote, cle: Date.now() })
     setOuvert(null)
     window.clearTimeout(minuterie.current)
@@ -53,8 +81,9 @@ export function useEmotesDeLaPartie(matchId: string, abonne: boolean): { ouvrir:
   const calque = <>
     {ouvert ? createPortal(<Eventail ancre={ouvert} envois={envois.current} envoyer={envoyer} fermer={() => setOuvert(null)} />, document.body) : null}
     {bulle ? createPortal(<BulleEmote key={bulle.cle} bulle={bulle} />, document.body) : null}
+    {bulleAdverse ? createPortal(<BulleEmote key={bulleAdverse.cle} bulle={bulleAdverse} adverse />, document.body) : null}
   </>
-  return { ouvrir: abonne ? ouvrir : undefined, calque }
+  return { ouvrir: abonne ? ouvrir : undefined, calque, recevoir }
 }
 
 function Eventail({ ancre, envois, envoyer, fermer }: { ancre: Ancre; envois: readonly number[]; envoyer: (emote: Emote) => void; fermer: () => void }) {
@@ -82,19 +111,22 @@ function Eventail({ ancre, envois, envoyer, fermer }: { ancre: Ancre; envois: re
   </div>
 }
 
-function BulleEmote({ bulle }: { bulle: Bulle }) {
+function BulleEmote({ bulle, adverse = false }: { bulle: Bulle; adverse?: boolean }) {
   const { emote, portrait, carte } = bulle
+  const cote = adverse ? 'is-adverse' : ''
   if (emote.texte) {
     // « Bonne chance ! » : dans la bande libre de 30 px entre la carte et la grille (26 px de haut,
     // posée 4 px sous la carte), la queue vers le portrait.
-    const style = { top: carte.bottom + 4, right: window.innerWidth - carte.right, '--queue': `${carte.right - (portrait.left + portrait.width / 2) - 6}px` } as CSSProperties
-    return <div className="emote-bulle-bd" style={style} role="status"><img src={assetUrl(emote.image)} alt="" /><span>{emote.texte.replace(/ !$/, '')}<i>&nbsp;!</i></span></div>
+    const style = adverse
+      ? { top: carte.bottom + 4, left: carte.left, '--queue': `${portrait.left + portrait.width / 2 - carte.left - 6}px` } as CSSProperties
+      : { top: carte.bottom + 4, right: window.innerWidth - carte.right, '--queue': `${carte.right - (portrait.left + portrait.width / 2) - 6}px` } as CSSProperties
+    return <div className={`emote-bulle-bd ${cote}`} style={style} role="status"><img src={assetUrl(emote.image)} alt="" /><span>{emote.texte.replace(/ !$/, '')}<i>&nbsp;!</i></span></div>
   }
   // Une image : la même bulle de BD (demande du 19/10/2026), à gauche du portrait, la queue vers lui ;
   // la main de Coucou y salue (emotes.css).
   const largeur = 54, hauteur = 46
-  const style = { left: portrait.left - largeur - 10, top: portrait.top + portrait.height / 2 - hauteur / 2, width: largeur, height: hauteur } as CSSProperties
-  return <div className="emote-bulle-bd emote-bulle-bd-image" style={style} role="status" aria-label={emote.nom}>
+  const style = { left: adverse ? portrait.right + 10 : portrait.left - largeur - 10, top: portrait.top + portrait.height / 2 - hauteur / 2, width: largeur, height: hauteur } as CSSProperties
+  return <div className={`emote-bulle-bd emote-bulle-bd-image ${cote}`} style={style} role="status" aria-label={emote.nom}>
     <span className={emote.id === 'coucou' ? 'emote-image emote-salue' : 'emote-image'}><img src={assetUrl(emote.image)} alt="" /></span>
   </div>
 }

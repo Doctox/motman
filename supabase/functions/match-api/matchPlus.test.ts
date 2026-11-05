@@ -1,4 +1,5 @@
-import { compterLesThemes, lireDemandePlus, partieAReprendre } from './matchPlus.ts'
+import { compterLesThemes, lireDemandePlus } from '../../../src/reglesPlus.ts'
+import { partieAReprendre } from './matchPlus.ts'
 import type { MatchRow, State } from './matchModel.ts'
 
 function egal(obtenu: unknown, attendu: unknown, quoi: string): void {
