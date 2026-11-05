@@ -50,5 +50,11 @@ html[data-motion="off"] .emote-bulle-bd{animation:emoteFondu 2s linear both}
 /* Le néon ne tourne pas en partie : pas d'animation continue près des ombres (lag GPU sur Samsung). */
 .scoreboard .mm-pseudo.is-arc-en-ciel{animation:none}
 
-/* La partie au calme : pas de chrono, seulement à qui c'est le tour. */
-.turn-timer.is-calme{font-size:.82rem;font-weight:700;line-height:1;letter-spacing:0}
+/* La partie au calme : le joueur seul, sa carte sur toute la largeur, et ce qu'il reste à poser. */
+.multiplayer-shell .scoreboard.is-seul{display:block}
+.multiplayer-shell .scoreboard.is-seul .player{flex-direction:row;justify-content:flex-start;text-align:left;width:100%;height:auto;min-height:64px;padding-inline:8px 14px;gap:10px}
+.multiplayer-shell .scoreboard.is-seul .player>span:not([class]){flex:1 1 auto;min-width:0;align-items:flex-start;text-align:left}
+.multiplayer-shell .scoreboard.is-seul .player em{text-transform:none;letter-spacing:0;white-space:normal;line-height:1.2}
+.multiplayer-shell .player-reste{flex:0 0 auto;margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;font-weight:400}
+.multiplayer-shell .player-reste strong{font-size:1.6rem;line-height:1.05}
+.multiplayer-shell .scoreboard.is-seul .player-reste small{max-width:none;font-size:.68rem;font-weight:600;letter-spacing:0;opacity:.75;white-space:nowrap}

@@ -38,11 +38,11 @@ export function playerOutcome(row: MatchRow, playerId: string) {
 
 /**
  * Une partie contre l'automate, en mode `solo`, rapportait comme un entraînement. Une
- * partie à thème rapporte comme une partie normale, et le joueur y voit « Multijoueur »,
- * comme toute partie normale contre lui (MotMan+, 05/11/2026).
+ * partie à thème avec chrono rapporte comme une partie normale, et le joueur y voit
+ * « Multijoueur », comme toute partie normale contre lui (MotMan+, 05/11/2026).
  */
 function compteCommeEntrainement(row: MatchRow): boolean {
-  return row.mode === 'solo' && !row.state.themeChoisi && !row.state.calme
+  return row.mode === 'solo' && (!row.state.themeChoisi || row.state.calme === true)
 }
 
 /** La force de l'adversaire dans cette partie, s'il s'adapte à ce joueur. */
@@ -50,8 +50,7 @@ function forceARetenir(row: MatchRow, opponentId: string) {
   const bot = row.state.bot
   if (bot?.playerId !== opponentId || bot.ghostOf) return {}
   if (row.state.chaine) return { force_adversaire: forceEnChaine(bot) }
-  if (row.state.calme) return { force_adversaire: forceEnChaine(bot), famille_force: 'calme' }
-  if (row.state.themeChoisi) return { force_adversaire: forceEnChaine(bot), famille_force: 'classique' }
+  if (row.state.themeChoisi && !row.state.calme) return { force_adversaire: forceEnChaine(bot), famille_force: 'classique' }
   return {}
 }
 
@@ -93,6 +92,8 @@ export async function recordMatchHistory(
     final_board: encodeBoardSnapshot(row.state.board, playerId),
     // Contre l'adversaire qui s'adapte : d'où repart le suivant (botOpponents.ts).
     ...forceARetenir(row, opponentId),
+    // Hors des statistiques du profil, et « Au calme » dans l'historique.
+    ...(row.state.calme ? { au_calme: true } : {}),
     // Défi du jour : de quoi classer la partie. `daily_date` distingue le défi
     // d'une partie solo tombée par hasard sur la même grille, et `turns` sert
     // la note — contrairement à `duration_seconds`, il ne dépend pas du temps

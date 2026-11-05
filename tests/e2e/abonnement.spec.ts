@@ -1,5 +1,6 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { lireCatalogueRuntime } from '../../scripts/lib/catalogue.mjs'
 
 // MotMan+, tel que le voit le joueur. Tant que le serveur ne sert pas les droits,
 // l'état vient du serveur de test local (src/abonnement.ts, `motman-abonnement-test`).
@@ -87,7 +88,7 @@ test('abonné, un thème ouvre sa fiche, et le pseudo prend sa couleur', async (
   await expect(fiche.getByRole('button', { name: 'Jouer ce thème' })).toBeVisible()
   // Le rythme se choisit (16/10/2026) : au calme la première fois, puis le dernier choix.
   await expect(fiche.getByRole('button', { name: 'Au calme, sans chrono' })).toHaveAttribute('aria-pressed', 'true')
-  await expect(fiche.getByText('Sans chrono ni récompense : juste pour le plaisir.')).toBeVisible()
+  await expect(fiche.getByText('Seul, sans chrono ni récompense : juste pour le plaisir.')).toBeVisible()
   await fiche.getByRole('button', { name: 'Avec chrono, 45 secondes par tour' }).click()
   await expect(fiche.getByText('XP et plumes, comme une partie normale.')).toBeVisible()
   // La fiche couvre la barre du bas : elle n'est pas enfermée dans la page.
@@ -187,6 +188,17 @@ test('sans abonnement, le portrait en partie reste un simple portrait', async ({
   await expect(page.getByRole('button', { name: 'Envoyer une emote' })).toHaveCount(0)
 })
 
+const catalogue = lireCatalogueRuntime().catalogue as { grids: Array<{ id: string; columns?: number; size?: number; words: Array<{ answer: string; cells: number[][] }> }> }
+
+/** Les cases d'une grille et leur lettre, pour jouer une lettre juste ou fausse. */
+function solutionsDe(gridId: string): Map<number, string> {
+  const grille = catalogue.grids.find(candidate => candidate.id === gridId)!
+  const colonnes = grille.columns ?? grille.size ?? 0
+  const cases = new Map<number, string>()
+  grille.words.forEach(mot => mot.cells.forEach(([rangee, colonne], rang) => cases.set(rangee * colonnes + colonne, mot.answer[rang])))
+  return cases
+}
+
 /** Le compte du propriétaire : le serveur de test ne connaît pas ce rôle, sa réponse est complétée. */
 async function compteProprietaire(page: Page): Promise<void> {
   await page.route('**/api/auth/bootstrap', async route => {
@@ -196,26 +208,45 @@ async function compteProprietaire(page: Page): Promise<void> {
   })
 }
 
-test('la partie au calme part tout de suite, sans chrono, et se reprend', async ({ page }) => {
-  test.setTimeout(90_000)
+test('la partie au calme : seul, une lettre posée en fait venir une autre, une fausse revient, et les indices vont jusqu’au bout', async ({ page }) => {
+  test.setTimeout(120_000)
+  const moi = identite('Calme Test')
+  const api = await session(moi)
   await compteProprietaire(page)
+  await page.addInitScript(stocke => localStorage.setItem('motman-player-v1', JSON.stringify(stocke)), moi)
   await page.goto('/#jouer')
   await page.getByRole('tab', { name: 'Normal', exact: true }).click()
   await page.getByRole('button', { name: 'Au calme, sans chrono', exact: true }).click()
   await page.getByRole('button', { name: 'Jouer une partie au calme' }).click()
 
-  // Pas de recherche, pas de fenêtre de lecture : c'est à lui, et aucun décompte ne court.
+  // Personne en face, aucun chrono, rien à valider.
   await expect(page.locator('.scoreboard .player-you')).toBeVisible()
-  await expect(page.locator('.turn-timer.is-calme')).toHaveText('À toi', { timeout: 15_000 })
+  await expect(page.locator('.scoreboard .player')).toHaveCount(1)
   await expect(page.locator('.turn-ring')).toHaveCount(0)
-  const partie = decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))
-  expect(partie).toBeTruthy()
+  await expect(page.getByRole('button', { name: 'Passer mon tour' })).toHaveCount(0)
+  await expect(page.locator('.rack-letter:not([disabled])')).toHaveCount(5, { timeout: 15_000 })
+  const partieId = decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))
+  const lire = async () => await (await api.get(`/api/matches/match/${encodeURIComponent(partieId)}?playerId=${encodeURIComponent(moi.playerId)}`)).json() as { gridId: string; status: string; board: Record<string, unknown>; racks: Record<string, string[]>; currentPlayerId: string }
 
-  // Il passe, l'adversaire joue, la main revient.
-  await page.getByRole('button', { name: 'Passer mon tour' }).click()
-  await expect(page.locator('.turn-timer.is-calme')).toHaveText('…')
-  await expect(page.locator('.turn-timer.is-calme')).toHaveText('À toi', { timeout: 30_000 })
-  await expect(page.getByText('Tu es toujours là')).toHaveCount(0)
+  // Une lettre fausse : elle revient au chevalet, et c'est toujours à lui.
+  const avant = await lire()
+  const reponses = solutionsDe(avant.gridId)
+  const lettre = avant.racks[moi.playerId][0]
+  const fausse = [...reponses].find(([cellIndex, attendue]) => attendue !== lettre && !avant.board[cellIndex])![0]
+  await page.locator(`.rack-letter[data-rack-letter="${lettre}"]`).first().click()
+  await page.locator(`[data-cell="${fausse}"]`).click()
+  await expect(page.locator(`[data-cell="${fausse}"]`)).toHaveClass(/wrong/)
+  await expect(page.locator(`[data-cell="${fausse}"]`)).not.toHaveClass(/wrong/, { timeout: 5_000 })
+  await expect(page.locator('.rack-letter:not([disabled])')).toHaveCount(5)
+  expect((await lire()).board).toEqual(avant.board)
+
+  // Une lettre juste : elle reste sur la grille, et une autre la remplace.
+  const juste = [...reponses].find(([cellIndex, attendue]) => avant.racks[moi.playerId].includes(attendue) && !avant.board[cellIndex])!
+  await page.locator(`.rack-letter[data-rack-letter="${juste[1]}"]`).first().click()
+  await page.locator(`[data-cell="${juste[0]}"]`).click()
+  await expect(page.locator(`[data-cell="${juste[0]}"]`)).toHaveAttribute('data-confirmed', 'true')
+  await expect(page.locator('.rack-letter:not([disabled])')).toHaveCount(5)
+  expect((await lire()).currentPlayerId).toBe(moi.playerId)
 
   // On la laisse, et le bouton de lancement la rouvre au lieu d'en créer une autre.
   await page.goto('/')
@@ -225,8 +256,20 @@ test('la partie au calme part tout de suite, sans chrono, et se reprend', async 
   await page.getByRole('tab', { name: 'Normal', exact: true }).click()
   await page.getByRole('button', { name: 'Au calme, sans chrono', exact: true }).click()
   await page.getByRole('button', { name: 'Jouer une partie au calme' }).click()
-  await expect(page.locator('.turn-timer.is-calme')).toBeVisible()
-  expect(decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))).toBe(partie)
+  await expect(page.locator('.scoreboard .player-you')).toBeVisible()
+  expect(decodeURIComponent(new URL(page.url()).hash.replace('#partie=', ''))).toBe(partieId)
+
+  // Les indices vont jusqu'au bout de la grille : bien plus que les trois d'une partie normale.
+  const indice = page.getByRole('button', { name: 'Indice' })
+  const fin = page.locator('.game-result-screen')
+  for (let rang = 0; rang < 80 && !(await fin.isVisible()); rang += 1) {
+    await expect(indice.or(fin).first()).toBeVisible()
+    if (await indice.isEnabled().catch(() => false)) await indice.click({ timeout: 2_000 }).catch(() => undefined)
+    await page.waitForTimeout(80)
+  }
+  await expect(fin).toContainText('Grille terminée', { timeout: 10_000 })
+  await expect(page.locator('.game-result-score')).toHaveCount(0)
+  await expect(fin.getByRole('button', { name: 'Une autre grille' })).toBeVisible()
 })
 
 test('un thème avec chrono se joue contre un adversaire, chrono à l’écran', async ({ page }) => {

@@ -418,15 +418,3 @@ Deno.test('en temps illimité, rien n’est préparé : personne ne regarde en d
   preparerCoupDuBot(ligne, GRILLE)
   egal(ligne.state.coupPrepare, undefined, 'même en le demandant')
 })
-
-Deno.test('une partie au calme n’a pas d’échéance : ni tour échu, ni absence, et ses lettres s’affichent', () => {
-  const { ligne } = partieContreUnBot()
-  ligne.pace = 'async'
-  ligne.state.calme = true
-  ligne.current_player_id = ligne.state.playerIds.find(id => id !== ligne.state.bot?.playerId)!
-  applyTurn(ligne, GRILLE, ligne.current_player_id, [])
-  const reste = Date.parse(ligne.turn_ends_at) - Date.now()
-  if (reste < 9 * 365 * 86_400_000) throw new Error('le tour suivant doit tomber dans des années')
-  if (absentSansTemoin(ligne, Date.now() + 30 * 86_400_000) !== null) throw new Error('jamais d’absence au calme')
-  if (ligne.state.coupPrepare?.turnNumber !== ligne.turn_number) throw new Error('le coup de l’adversaire est préparé pour s’afficher')
-})

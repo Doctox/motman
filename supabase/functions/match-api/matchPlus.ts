@@ -4,10 +4,11 @@
 // Le propriétaire les ouvre d'abord sur son seul compte : `index.ts` revérifie le rôle
 // en base à chaque demande, `identity.admin` côté téléphone ne sert qu'à afficher.
 //
-// Une partie lancée d'ici part tout de suite contre l'adversaire qui s'adapte aux
-// résultats (src/botOpponents.ts), en règles normales. Elle porte le mode `solo` : aucun
-// humain en recherche ne peut prendre sa place pendant la lecture (`human_takeover` ne
-// vise que les parties `normal`), et une demande de classée ne la met pas en pause.
+// Une partie lancée d'ici part tout de suite. Avec chrono, contre l'adversaire qui s'adapte
+// aux résultats (src/botOpponents.ts), en règles normales. Au calme, le joueur est seul.
+// Elle porte le mode `solo` : aucun humain en recherche ne peut prendre sa place pendant la
+// lecture (`human_takeover` ne vise que les parties `normal`), et une demande de classée ne
+// la met pas en pause.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { botSkillForLevel, niveauDeLaForce, reglageClassique } from '../../../src/botOpponents.ts'
@@ -46,15 +47,23 @@ export async function themeExiste(admin: AdminClient, theme: string): Promise<bo
 }
 
 export async function lancerPartiePlus(admin: AdminClient, userId: string, demande: DemandePlus) {
-  const niveau = botSkillForLevel(await playerLevel(admin, userId))
-  const force = await forceDuProchainAdversaire(admin, userId, niveau, demande.calme ? 'calme' : 'classique')
   const graine = `${userId}:plus:${demande.theme ?? 'normales'}:${Date.now()}`
-  const bot = { ...createBot(graine, niveauDeLaForce(force), force), tuning: reglageClassique(force) }
   // D'abord une grille jamais jouée, puis les moins revues (src/gridSelection.ts).
   const imposee = demande.theme ? await chooseGrid(admin, graine, [userId], undefined, demande.theme) : null
-  return createMatch(admin, userId, bot.playerId, 'solo', demande.calme ? 'async' : 'realtime', null, bot, {
+  if (demande.calme) {
+    // Personne en face : `seul` ne joue jamais. Il tient la place du second joueur, et son
+    // nom, celui de la grille, se lit dans l'historique et à l'accueil.
+    const seul = { ...createBot(graine, 'beginner'), displayName: demande.theme ?? 'Grilles normales' }
+    return createMatch(admin, userId, seul.playerId, 'solo', 'async', null, seul, {
+      forcedGridId: imposee?.id,
+      marques: { calme: true, ...(demande.theme ? { themeChoisi: demande.theme } : {}) },
+    })
+  }
+  const force = await forceDuProchainAdversaire(admin, userId, botSkillForLevel(await playerLevel(admin, userId)), 'classique')
+  const bot = { ...createBot(graine, niveauDeLaForce(force), force), tuning: reglageClassique(force) }
+  return createMatch(admin, userId, bot.playerId, 'solo', 'realtime', null, bot, {
     forcedGridId: imposee?.id,
-    marques: { ...(demande.calme ? { calme: true } : {}), ...(demande.theme ? { themeChoisi: demande.theme } : {}) },
+    marques: demande.theme ? { themeChoisi: demande.theme } : {},
   })
 }
 

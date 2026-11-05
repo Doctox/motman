@@ -31,14 +31,20 @@ select
   catalogue.payload ->> 'theme' as theme
 from public.server_grid_catalog as catalogue;
 
--- Une force d'adversaire par famille : sans chrono, un joueur gagne plus, et ça ne doit
--- pas durcir ses parties chronométrées. Null : En chaîne, comme depuis le 04/11.
+-- Une force d'adversaire par famille : une partie à thème ne doit pas durcir En chaîne, et
+-- inversement. Null : En chaîne, comme depuis le 04/11. La partie au calme n'a pas d'adversaire.
 alter table public.grid_player_history
   add column if not exists famille_force text
-  check (famille_force is null or famille_force in ('classique', 'calme'));
+  check (famille_force is null or famille_force = 'classique');
 
 comment on column public.grid_player_history.famille_force is
-  'De quelle force de l''adversaire parle force_adversaire : null pour En chaîne, classique ou calme pour MotMan+.';
+  'De quelle force de l''adversaire parle force_adversaire : null pour En chaîne, classique pour une partie à thème.';
+
+alter table public.grid_player_history
+  add column if not exists au_calme boolean not null default false;
+
+comment on column public.grid_player_history.au_calme is
+  'MotMan+ : une partie au calme, seul et sans enjeu. Hors des statistiques du profil.';
 
 -- L'invitation d'un ami sur un thème, et les parties qu'il a déjà reçues.
 alter table public.server_match_invitations

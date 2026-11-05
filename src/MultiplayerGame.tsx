@@ -56,6 +56,7 @@ import { TurnTimer, useTurnPhase } from './game/TurnTiming'
 import { useReadingWindow } from './game/ReadingWindow'
 import { prechargerRecompense } from './game/matchRewardPrefetch'
 import { useEmotesDeLaPartie } from './game/EmotesPartie'
+import { nomAffiche } from './menu/themeApparence'
 import { lireAbonnement } from './abonnement'
 
 export { LeaveMatchPanel } from './game/DuelPresentation'
@@ -825,6 +826,19 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       })
   }
 
+  const lettreFausseMinuteur = useRef<number | undefined>(undefined)
+  const montrerLaLettreFausse = (cellIndex: number, letter: string) => {
+    setWrongCells(new Set([cellIndex]))
+    setRevealedWrong({ [cellIndex]: letter })
+    playEffect('error')
+    window.clearTimeout(lettreFausseMinuteur.current)
+    lettreFausseMinuteur.current = window.setTimeout(() => {
+      if (!alive.current) return
+      setWrongCells(new Set())
+      setRevealedWrong({})
+    }, 900)
+  }
+
   const recevoirVerdict = (reponse: ReponseDeLettre) => {
     const jugee = lettresEnAttente.current.shift()
     const juste = 'juste' in reponse.lettre && reponse.lettre.juste === true
@@ -834,6 +848,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     peindreLesLettresEnAttente()
     const partie = matchRef.current
     if (!partie) return
+    // Au calme, une lettre fausse se montre un instant, puis revient au chevalet.
+    if (partie.calme && jugee && reponse.lettre.statut === 'jouee' && !juste) montrerLaLettreFausse(jugee.cellIndex, jugee.tile.letter)
     // Une réponse dépassée par une lecture plus récente : celle-ci a déjà tout dit, et
     // rejouer son ancien `lastTurn` ferait repasser le tour d'avant à l'écran.
     if (Date.parse(reponse.partie.updatedAt) < Date.parse(partie.updatedAt)) return
@@ -1102,8 +1118,11 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
         hintFlightTimer.current = window.setTimeout(() => {
           setHintFlight(null)
           setAutoHintCell(placedHint.cellIndex)
-          showEffect({ kind: 'letter', label: '+0', owner: 'player', cellIndex: placedHint.cellIndex })
-          setStatus('Indice placé · +0')
+          // Seul au calme, il n'y a pas de points à compter : la lettre se pose, c'est tout.
+          if (!matchRef.current?.calme) {
+            showEffect({ kind: 'letter', label: '+0', owner: 'player', cellIndex: placedHint.cellIndex })
+            setStatus('Indice placé · +0')
+          }
           haptic([15, 35, 15])
           playEffect('place')
           hintFlightTimer.current = null
@@ -1420,7 +1439,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
       résultat, elle restait affichée, grisée, sans rien faire (retiré à la
       demande du propriétaire, 19/09/2026). Une case vide garde le logo centré. */}
       {match.status === 'active' ? <button type="button" aria-label="Options de sortie" onClick={() => setLeaveOpen(true)}><ArrowLeft /></button> : <span aria-hidden="true" />}<img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
-    {showGame ? <><section className="scoreboard"><DuelPlayer couleur={opponent?.couleurPseudo} name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}>{match.calme ? <span className="turn-timer is-calme">{isMyTurn ? 'À toi' : '…'}</span> : <TurnTimer match={match} resolving={resolving} />}<strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div><DuelPlayer couleur={abonnePlus.couleurPseudo} name={identity.current.displayName.trim() || 'Toi'} title={titres.mien} detail={`Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' ? emotes.ouvrir : undefined} /></section>
+    {showGame ? <><section className={`scoreboard ${match.calme ? 'is-seul' : ''}`}>{match.calme ? null : <><DuelPlayer couleur={opponent?.couleurPseudo} name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div></>}<DuelPlayer reste={match.calme && grid ? grid.cells.filter(cellule => cellule.kind === 'letter').length - Object.keys(match.board).length : undefined} couleur={abonnePlus.couleurPseudo} name={identity.current.displayName.trim() || 'Toi'} title={match.calme ? null : titres.mien} detail={match.calme ? match.themeChoisi ? nomAffiche(match.themeChoisi) : 'Au calme' : `Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' && !match.calme ? emotes.ouvrir : undefined} /></section>
       {emotes.calque}
     </> : null}
     {questDone ? <QuestAchieved key={questDone.cle} titre={questDone.titre} close={() => setQuestDone(null)} /> : null}
@@ -1460,18 +1479,18 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     </div></section> : null}
     {showGame ? <>
       <section className={`rack-area ${!isMyTurn && lectureRestante === null ? 'duel-rack-waiting' : ''}`}>
-        {turnAlert ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{isMyTurn && chaineDeLaFile === null ? 'Tes lettres' : `${opponentName} joue…`}{isMyTurn && chaineDeLaFile === null ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(chaineDeLaFile ?? (match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0), isMyTurn && chaineDeLaFile === null, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''}`} data-rack="true" aria-label="Lettres disponibles">
+        {turnAlert && !match.calme ? <div className="turn-ready-flash" role="status"><span>À toi</span></div> : null}{lectureRestante !== null ? <div className="rack-heading is-lecture" role="status"><strong>Lis la grille</strong><span>{match.chaine ? `${SECONDES_DU_TOUR_DE_CHAINE} s par tour · une erreur et ça passe` : 'Touche une définition pour l’agrandir.'}</span></div> : <div className="rack-heading"><strong>{match.calme || (isMyTurn && chaineDeLaFile === null) ? 'Tes lettres' : `${opponentName} joue…`}{!match.calme && isMyTurn && chaineDeLaFile === null ? <button type="button" className="rack-bonus-info" aria-label="Règle du bonus chevalet" aria-expanded={bonusExplique} onClick={() => setBonusExplique(valeur => !valeur)}>i</button> : null}</strong><span>{match.calme ? 'Une lettre posée, une lettre de plus' : match.chaine ? bonusExplique ? REGLE_DE_LA_CHAINE : ligneDeChaine(chaineDeLaFile ?? (match.chaine.tour === match.turnNumber ? match.chaine.lettres.length : 0), isMyTurn && chaineDeLaFile === null, avisDeLettre) : bonusExplique ? 'Les 5 lettres justes en un tour, sans indice : 5 points de plus.' : isMyTurn ? premiereVraiePartie ? phraseDuPremierTour(match.turnNumber) : '' : 'Prépare ton prochain coup'}</span></div>}<div className={`rack ${dropTarget === -1 ? 'rack-drop' : ''} ${rackRolling ? 'is-rerolling' : ''} ${match.chaine ? 'is-chaine' : ''}`} data-rack="true" aria-label="Lettres disponibles">
         {rack.map(tile => <div className="rack-slot" key={tile.id}>{!placedIds.has(tile.id) ? <button type="button" data-rack-letter={tile.letter} data-rack-id={tile.id} disabled={!canAct || resolving} aria-label={`Lettre ${tile.letter}`} className={`rack-letter ${selected?.id === tile.id ? 'selected' : ''} ${drag?.glisse && drag.tile.id === tile.id ? 'drag-source' : ''}`} onClick={() => { noterActivite(); setSelected(current => current?.id === tile.id ? null : tile) }} onPointerDown={event => pointerDown(event, tile, 'rack')} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerCancel}>{tile.letter}</button> : null}</div>)}
         {Array.from({ length: Math.max(0, 5 - rack.length) }, (_, index) => <div className="rack-slot" aria-hidden="true" key={`empty-${index}`} />)}
         {match.chaine ? null : <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>}
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-bonus-pop rack-bonus-pop--${rackBonusEffect.owner}`} role="status" aria-live="polite">+{rackBonusEffect.points}</div> : null}</section>
-      <div className={`turn-actions ${match.chaine ? 'is-chaine' : ''}`}>{match.chaine ? null : <button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button>}<button className={`validate ${isMyTurn && !resolving && rienAValider ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving || lettreEnVol} title={isMyTurn && rienAValider && !match.chaine ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : rienAValider ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button></div>
+      <div className={`turn-actions ${match.chaine ? 'is-chaine' : ''}`}>{match.calme ? <button className="hint-button" type="button" onClick={requestHint} disabled={!canAct || resolving || hintRequesting} title="Un indice, autant que tu veux"><Lightbulb />Indice</button> : match.chaine ? null : <button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button>}{match.calme ? null : <button className={`validate ${isMyTurn && !resolving && rienAValider ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving || lettreEnVol} title={isMyTurn && rienAValider && !match.chaine ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : rienAValider ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button>}</div>
     </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerPlus={rejouerPlus} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
     {expandedClue ? <ClueZoom entry={expandedClue} origine={origineDefinition} longueur={focusedWordCells.size} enHaut={ficheEnHaut} onClose={() => setExpandedClue(null)} /> : null}
-    {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
+    {leaveOpen ? <LeaveMatchPanel opponentName={opponentName} isAsync={Boolean(isAsync)} isDaily={Boolean(match.isDaily)} calme={Boolean(match.calme)} cancel={() => setLeaveOpen(false)} continueLater={isAsync ? onHome : undefined} leave={() => void leave()} /> : null}
     {optionsOpen ? <GameOptionsOverlay close={() => setOptionsOpen(false)} report={match.bot ? undefined : () => setReportOpen(true)} leaveMatch={match.status === 'active' ? () => setLeaveOpen(true) : undefined} /> : null}
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}
     {/* Une VRAIE fenêtre, qui attend oui ou non (propriétaire, 20/09/2026).

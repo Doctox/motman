@@ -20,7 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { botTurnDelayMs } from '../../supabase/functions/match-api/botDelay.ts'
-import { avancerChaineDuBot, jugerLettre, reponseDeLettre, type DemandeDeLettre } from '../../supabase/functions/match-api/matchChaine.ts'
+import { avancerChaineDuBot, jugerLettre, poserUnIndiceAuCalme, reponseDeLettre, type DemandeDeLettre } from '../../supabase/functions/match-api/matchChaine.ts'
 import { brouillonRecevable, lettresDuBrouillon } from '../../supabase/functions/match-api/matchDrafts.ts'
 import { ensureFinalSprintRacks, ensureSharedLetterBag, neededLetters, publicGrid, refill, ruleGrid } from '../../supabase/functions/match-api/matchGrid.ts'
 import type { MatchRow } from '../../supabase/functions/match-api/matchModel.ts'
@@ -125,6 +125,11 @@ export function poserLettre(match: StoredMatch, playerId: string, demande: Deman
   const jugement = selonMatchApi(match, row => jugerLettre(row, grilleDe(match), playerId, demande, recuA, marges, cadenceDe(match)), { ecrit: false })
   if (jugement.ecrit) match.updatedAt = new Date().toISOString()
   return reponseDeLettre(versLigne(match), jugement, demande, playerId, cadenceDe(match))
+}
+
+/** L'indice de la partie au calme : `poserUnIndiceAuCalme` de match-api. */
+export function indiceAuCalme(match: StoredMatch, playerId: string): boolean {
+  return selonMatchApi(match, row => poserUnIndiceAuCalme(row, grilleDe(match), playerId))
 }
 
 /** « Passer », ou l'envoi de 00:00 d'un tour de chaîne : `fermerTourDeChaine` de match-api. */

@@ -31,7 +31,7 @@ const RANKED_SEARCH_TIMEOUT_MS = 10 * 60_000
 // ce fichier démarre un serveur à l'import.
 import { ensureFinalSprintRacks, neededLetters, publicGrid, refill, ruleGrid } from './matchGrid.ts'
 import { acknowledgePresence, applyTurn, closeExpiredTurn, fermerTourDeChaine, finish, sanitizePlacements, vainqueurAuxPoints } from './matchTurns.ts'
-import { jugerLettre, lireDemandeDeLettre, lireVariante, reponseDeLettre } from './matchChaine.ts'
+import { jugerLettre, lireDemandeDeLettre, lireVariante, poserUnIndiceAuCalme, reponseDeLettre } from './matchChaine.ts'
 import { brouillonRecevable, lettresDuBrouillon, lettresEnDirect, lireBrouillon, MANUAL_SUBMIT_GRACE_MS, noterBrouillon } from './matchDrafts.ts'
 import { notifyCurrentTurn, notifyFriendInvitation, notifyInvitationAccepted } from './matchNotifications.ts'
 import { getGrid, gridLoader, matchConflictResponse, profile, view, type GridLoader } from './matchView.ts'
@@ -199,7 +199,7 @@ Deno.serve(async request => {
         admin.from('server_match_invitations').select('*').eq('host_id', user.id).eq('status', 'pending').gt('expires_at', nowIso()),
         admin.from('server_match_searches').select('*').eq('user_id', user.id),
         admin.from('grid_player_history')
-          .select('id,play_key,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board,daily_date')
+          .select('id,play_key,grid_id,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,final_board,daily_date,au_calme')
           .eq('user_id', user.id).order('completed_at', { ascending: false }).limit(5),
         admin.from('grid_player_history')
           .select('id,play_key,mode,pace,outcome,score,opponent_score,opponent_name,completed_at,finish_reason,feedback')
@@ -249,6 +249,7 @@ Deno.serve(async request => {
       const pointsParPartie = new Map((pointsRecents ?? []).map(ligne => [String(ligne.match_id), ligne]))
       const recent = (recentRows ?? []).map(item => ({
         id: item.id, mode: item.mode, pace: item.pace, outcome: item.outcome,
+        ...(item.au_calme ? { auCalme: true } : {}),
         ...(() => {
           const classee = pointsParPartie.get(String(item.play_key ?? '').replace(/^match:/, ''))
           return classee ? { ranked: true, rankedDelta: Number(classee.points_delta) || 0, rankedSansPoints: classee.sans_points ?? null } : {}
@@ -843,7 +844,8 @@ Deno.serve(async request => {
     }
     // Pas d'indice ni de relance en chaîne, dans cette première version : le chevalet
     // se renouvelle à chaque lettre, et un indice mêlerait ses règles à la série.
-    if (row.state.chaine && (action === 'hint' || action === 'reroll')) return json(409, { error: 'Pas d’indice ni de relance dans une partie en chaîne.' })
+    // Sauf l'indice de la partie au calme, illimité (MotMan+).
+    if (row.state.chaine && (action === 'reroll' || (action === 'hint' && !row.state.calme))) return json(409, { error: 'Pas d’indice ni de relance dans une partie en chaîne.' })
     if (action === 'turn' && row.state.lastTurn?.playerId === user.id && row.state.lastTurn.turnNumber === Number(body.turnNumber)) {
       return json(200, { match: await view(admin, row, user.id, grid), result: row.state.lastTurn })
     }
@@ -909,6 +911,13 @@ Deno.serve(async request => {
     if (row.current_player_id !== user.id) return json(409, { error: 'Ce n’est pas ton tour.', match: await view(admin, row, user.id, grid) })
     if (Date.now() < new Date(row.turn_started_at).getTime()) return json(409, { error: 'Le tour n’a pas encore commencé.' })
 
+    if (action === 'hint' && row.state.calme) {
+      if (!poserUnIndiceAuCalme(row, grid, user.id)) return json(409, { error: 'Aucun indice disponible.' })
+      row = await persist(admin, row)
+      await awardFinished(admin, row)
+      return json(200, { match: await view(admin, row, user.id, grid) })
+    }
+
     const previousPlayerId = row.current_player_id
     let carnet: AvantLeTour | null = null
     if (action === 'turn') {
@@ -930,8 +939,7 @@ Deno.serve(async request => {
       // mais ne compte pas comme une absence : il vient de prouver qu'il est là.
       // Le carnet du propriétaire se lit AVANT le coup : `applyTurn` réécrit le
       // numéro et le début du tour.
-      // Pas au calme : un coup sans chrono ne dit rien de son rythme de jeu.
-      if (accessProfile?.role === 'admin' && !row.state.chaine && !row.state.calme) carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
+      if (accessProfile?.role === 'admin' && !row.state.chaine) carnet = avantLeTour(row, user.id, neededLetters(ruleGrid(grid), row.state.board).length, hasPlacedHint)
       // Trop tard, ou rien d'envoyé à 00:00 : les lettres du brouillon reçu
       // pendant le tour, s'il y en a, plutôt qu'un tour manqué (matchDrafts.ts).
       //

@@ -34,8 +34,8 @@ export type Pace = 'realtime' | 'async'
  * la variante pour rester séparées (migration 20261102220000).
  */
 export type Variante = 'classique' | 'chaine'
-/** D'où repart la force de l'adversaire : une par famille, En chaîne n'en porte pas (matchSetup.ts). */
-export type FamilleDeForce = 'classique' | 'calme'
+/** D'où repart la force de l'adversaire : les parties à thème avec chrono à part, En chaîne n'en porte pas (matchSetup.ts). */
+export type FamilleDeForce = 'classique'
 export type Mode = 'solo' | 'friend' | 'normal' | 'ranked'
 export type CatalogWord = { wordId?: string; answer: string; clue?: string; image?: unknown; direction: 'across' | 'down'; arrow?: string; clueCell: number[]; cells: number[][] }
 /** `theme` + `dailyOnly` : grille à thème, RÉSERVÉE au défi du jour (src/dailyThemes.ts). */
@@ -95,8 +95,10 @@ export type State = {
   /** Cette partie automatique a cédé la place à une partie entre humains : celle-ci (20261104120000). */
   remplaceePar?: string;
   /**
-   * MotMan+ (05/11/2026) : la partie au calme, sans chrono, sans absence, sans rappel ni
-   * récompense. Rien d'autre ne la marque : en base, c'est une partie en temps illimité.
+   * MotMan+ (05/11/2026) : la partie au calme. Le joueur est SEUL (`bot` ne joue jamais et
+   * n'a pas de lettres), sans chrono, sans absence, sans rappel ni récompense. Chaque lettre
+   * se juge comme En chaîne (`chaine` est présent) : juste, une autre arrive ; fausse, elle
+   * revient au chevalet. Les indices sont illimités.
    */
   calme?: boolean;
   /** MotMan+ : le thème choisi par le joueur, ou par l'ami qui l'a invité. */

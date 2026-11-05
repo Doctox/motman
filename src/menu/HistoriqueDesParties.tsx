@@ -23,10 +23,10 @@ function LigneDeMatch({ match, revoir }: { match: MatchHistoryEntry; revoir: (ma
   // jour (il en porte la date) ou une partie d'entraînement d'avant.
   // Une classée dit ses points (22/10/2026, code C6) : elle s'appelait
   // « Multijoueur », sans un mot de ce qu'elle avait rapporté.
-  const modeLabel = match.dailyDate ? 'Défi du jour' : match.ranked ? etiquetteClassee(match.rankedDelta, match.rankedSansPoints) : match.mode === 'solo' ? 'Entraînement' : 'Multijoueur'
+  const modeLabel = match.auCalme ? 'Au calme' : match.dailyDate ? 'Défi du jour' : match.ranked ? etiquetteClassee(match.rankedDelta, match.rankedSansPoints) : match.mode === 'solo' ? 'Entraînement' : 'Multijoueur'
   const contenu = <>
     <span className={`mm-recent-outcome ${tone}`}>{tone === 'won' ? 'V' : tone === 'drawn' ? 'N' : 'D'}</span>
-    <span className="mm-recent-match-copy"><strong>{opponentName}</strong><small>{matchHistoryResultLabel(match.outcome)} · {modeLabel} · {match.pace === 'async' ? 'Illimité' : 'Limité'}</small></span>
+    <span className="mm-recent-match-copy"><strong>{opponentName}</strong><small>{match.auCalme ? null : <>{matchHistoryResultLabel(match.outcome)} · </>}{modeLabel}{match.auCalme ? null : <> · {match.pace === 'async' ? 'Illimité' : 'Limité'}</>}</small></span>
     <span className="mm-recent-match-score"><b>{match.score}<i>–</i>{match.opponentScore}</b><small>{matchHistoryDateLabel(match.completedAt)}</small></span>
   </>
   // Seules les parties dont le plateau a survécu se revoient : avant la colonne

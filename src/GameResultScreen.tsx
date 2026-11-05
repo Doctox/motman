@@ -17,8 +17,11 @@ export function GameResultScreen({
   award,
   avantRecompense,
   sousAdversaire,
+  seul = false,
   children,
 }: {
+  /** La partie au calme : personne en face, donc pas de score à comparer. */
+  seul?: boolean
   outcome: GameResultOutcome
   title: string
   detail: string
@@ -51,15 +54,15 @@ export function GameResultScreen({
       <p>{detail}</p>
     </div>
 
-    <div className="game-result-score" aria-label={`Score final : ${playerScore} à ${opponentScore}`}>
+    {seul ? null : <div className="game-result-score" aria-label={`Score final : ${playerScore} à ${opponentScore}`}>
       <span className="game-result-score-side player-score"><strong>{playerScore}</strong><small>{playerName}</small></span>
       <i aria-hidden="true" />
       <span className="game-result-score-side opponent-score"><strong>{opponentScore}</strong><small>{opponentName}</small></span>
-    </div>
+    </div>}
     {/* Sous les scores, et non plus dans la colonne de l'adversaire : la pastille
         y cassait sur deux lignes (« Ajouter en / ami ») et décalait les deux
         scores de 25 px (passe visuelle du 22/10/2026). */}
-    {sousAdversaire ? <div className="game-result-sous-score">{sousAdversaire}</div> : null}
+    {sousAdversaire && !seul ? <div className="game-result-sous-score">{sousAdversaire}</div> : null}
 
     {/* Une partie sans récompense (bascule vers le classé) ou un compte illisible
         laissaient « Calcul de l'expérience… » affiché pour toujours. */}

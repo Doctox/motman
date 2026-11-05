@@ -325,8 +325,8 @@ Deno.test('le prochain adversaire en chaîne repart de la dernière partie, ou d
   verifie(await forceDuProchainAdversaire(historique(null), HOTE, 'regular') === 0.5, 'sans partie : la force de son niveau')
   verifie(lectures.some(lecture => lecture.famille_force === null), 'En chaîne ne lit que sa famille')
   lectures.length = 0
-  verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.2, outcome: 'win' }), HOTE, 'regular', 'calme') === 0.24, 'au calme : sa dernière partie au calme')
-  verifie(lectures.some(lecture => lecture.famille_force === 'calme'), 'chaque famille lit la sienne')
+  verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.2, outcome: 'win' }), HOTE, 'regular', 'classique') === 0.24, 'une partie à thème : sa dernière partie à thème')
+  verifie(lectures.some(lecture => lecture.famille_force === 'classique'), 'chaque famille lit la sienne')
   lectures.length = 0
   verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.8, outcome: 'win' }), HOTE, 'regular') === 0.84, 'il a gagné : plus fort')
   verifie(await forceDuProchainAdversaire(historique({ force_adversaire: 0.8, outcome: 'loss' }), HOTE, 'regular') === 0.74, 'il a perdu : moins fort')
@@ -336,15 +336,19 @@ Deno.test('le prochain adversaire en chaîne repart de la dernière partie, ou d
   verifie(createBot('graine', 'expert').force === undefined, 'ailleurs, aucune')
 })
 
-Deno.test('la partie au calme lancée pour de bon : sans échéance, contre l’adversaire qui s’adapte, même après une grille de rechange', async () => {
+Deno.test('la partie au calme lancée pour de bon : seul, sans échéance, même après une grille de rechange', async () => {
   const { admin, misesAJour } = baseEnCollision(TROIS_GRILLES)
   const { row } = await lancerPartiePlus(admin, HOTE, { theme: null, calme: true })
   verifie(misesAJour.length === 1, 'la grille occupée doit céder, pour éprouver le changement')
   verifie(row.pace === 'async', 'en base, une partie en temps illimité')
   verifie(row.mode === 'solo', 'personne en recherche ne peut prendre sa place')
-  verifie(row.state.calme === true, 'la grille a changé, la partie reste au calme')
+  verifie(row.state.calme === true && Boolean(row.state.chaine), 'la grille a changé : toujours au calme, lettre par lettre')
   verifie(Date.parse(row.turn_ends_at) - Date.now() > 9 * 365 * 86_400_000, 'pas d’échéance')
-  verifie(row.state.bot?.force === 0.15 && row.state.bot.tuning?.accuracy === 78, 'sans historique : la force et le réglage de son niveau')
+  verifie(row.current_player_id === HOTE, 'c’est à lui')
+  const personne = row.state.playerIds.find(id => id !== HOTE)!
+  verifie((row.state.racks[personne] ?? []).length === 0, 'personne d’autre ne garde de lettres')
+  verifie((row.state.racks[HOTE] ?? []).length > 0, 'lui a son chevalet')
+  verifie(row.state.bot?.force === undefined, 'pas d’adversaire, pas de force')
 })
 
 Deno.test('une partie à thème avec chrono lancée pour de bon : le thème, en temps limité, dans la grille tirée', async () => {

@@ -40,7 +40,7 @@ function Entete({ close, titre, accroche }: { close: () => void; titre: string; 
 function Avantages({ nombreThemes }: { nombreThemes: number }) {
   return <ul className="mm-plus-perks">
     <li><span aria-hidden="true"><Shapes /></span><div><strong>Les {nombreThemes} thèmes à volonté</strong><small>Choisis ton thème et joue à ton niveau, quand tu veux.</small></div></li>
-    <li><span aria-hidden="true"><Leaf /></span><div><strong>La partie au calme</strong><small>Sans chrono, à ton rythme : personne ne t’attend.</small></div></li>
+    <li><span aria-hidden="true"><Leaf /></span><div><strong>La partie au calme</strong><small>Seul, sans chrono, avec tous les indices que tu veux.</small></div></li>
     <li><span aria-hidden="true"><Smile /></span><div><strong>Des emotes en partie</strong><small>Coucou, pouce, bravo, bonne chance : un mot à ton adversaire, sans rien écrire.</small></div></li>
     <li><span aria-hidden="true"><Palette /></span><div><strong>Ton pseudo en couleur</strong><small>Huit couleurs ou le néon, dès le premier jour. Tous tes adversaires le voient.</small></div></li>
     <li><span aria-hidden="true"><Gift /></span><div><strong>Un objet exclusif chaque mois</strong><small>Un avatar, un cadre ou une animation, réservé aux abonnés.</small></div></li>

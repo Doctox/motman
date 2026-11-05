@@ -94,8 +94,8 @@ function PaceChoice({ pace, setPace, label, avecChaine = false }: { pace: Rythme
 
 /**
  * Le troisième rythme, celui de l'abonnement : « La partie au calme » (A9,
- * décidée le 15/10/2026). Sur les grilles normales, sans chrono, sans défaite
- * par absence ni récompense. Visible de tous : sans abonnement, le cadenas
+ * décidée le 15/10/2026, le joueur seul depuis le 05/11). Sur les grilles normales,
+ * sans chrono, sans défaite par absence ni récompense. Visible de tous : sans abonnement, le cadenas
  * ouvre la fiche de l'abonnement. Le mot « bot » n'y figure pas (16/10/2026).
  */
 function ChoixAuCalme({ choisi, verrouille, choisir }: { choisi: boolean; verrouille: boolean; choisir: () => void }) {

@@ -20,10 +20,11 @@
 //     partie changée, `index.ts` rejuge sur la ligne fraîche.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { evaluateTurn, keepRackLettersAfterTurn, RACK_COMPLETION_BONUS, RACK_SIZE } from '../../../src/gameRules.ts'
+import { evaluateTurn, hintCandidates, indicesUtilises, keepRackLettersAfterTurn, RACK_COMPLETION_BONUS, RACK_SIZE } from '../../../src/gameRules.ts'
+import { fnv1a } from '../../../src/hachage.ts'
 import { planBotChainLetter } from '../../../src/botOpponents.ts'
 import { heureDeLaLettreDuBot } from './botDelay.ts'
-import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
+import { ensureFinalSprintRacks, neededLetters, refill, ruleGrid } from './matchGrid.ts'
 import type { CatalogGrid, MatchRow, Variante } from './matchModel.ts'
 import { CADENCE_PRODUCTION, chaineVierge, currentPresenceDeadline, fermerTourDeChaine, finish, noterLesMotsFinis, sanitizePlacements, tourDeLaChaine, vainqueurAuxPoints, type Cadence } from './matchTurns.ts'
 
@@ -47,7 +48,7 @@ export type RaisonDeRefus = 'hors-tour' | 'pas-commence' | 'numero' | 'case' | '
 
 /** `ecrit` : la ligne a changé, à enregistrer. */
 export type Jugement =
-  | { statut: 'jouee'; juste: boolean; ecrit: true }
+  | { statut: 'jouee'; juste: boolean; ecrit: boolean }
   | { statut: 'deja-jugee'; juste: boolean; ecrit: false }
   | { statut: 'refusee'; raison: RaisonDeRefus; ecrit: boolean }
 
@@ -113,6 +114,8 @@ export function jugerLettre(row: MatchRow, grid: CatalogGrid, playerId: string, 
   const rules = ruleGrid(grid)
   const evaluation = evaluateTurn({ grid: rules, occupiedBefore: Object.keys(state.board).map(Number), placements: [pose] })
   if (!evaluation.correctPlacements.length) {
+    // Au calme, personne n'attend son tour : la lettre revient au chevalet, et rien ne change.
+    if (state.calme) return { statut: 'jouee', juste: false, ecrit: false }
     fermerTourDeChaine(row, { fausses: [pose], cadence })
     return { statut: 'jouee', juste: false, ecrit: true }
   }
@@ -139,10 +142,30 @@ export function jugerLettre(row: MatchRow, grid: CatalogGrid, playerId: string, 
     state.lastTurn = tourDeLaChaine(row)
     state.chaine = chaineVierge(row.turn_number)
     finish(state, row, vainqueurAuxPoints(state), 'completed')
-  } else if (!dansLaMarge || !state.racks[playerId].length) {
+  } else if (!state.calme && (!dansLaMarge || !state.racks[playerId].length)) {
     fermerTourDeChaine(row, { cadence })
   }
   return { statut: 'jouee', juste: true, ecrit: true }
+}
+
+/**
+ * L'indice de la partie au calme : autant qu'il veut, et une lettre de plus aussitôt.
+ * Il pose une lettre juste, sans point. Faux s'il n'y a plus rien à poser.
+ */
+export function poserUnIndiceAuCalme(row: MatchRow, grid: CatalogGrid, playerId: string): boolean {
+  const state = row.state
+  const rules = ruleGrid(grid)
+  const chevalet = state.racks[playerId] ?? []
+  const candidats = hintCandidates(rules, chevalet, Object.keys(state.board).map(Number))
+  if (!candidats.length) return false
+  const { cellIndex, letter } = candidats[fnv1a(`${row.id}:${Object.keys(state.board).length}:indice`) % candidats.length]
+  state.board[String(cellIndex)] = { letter, playerId }
+  state.hint = { playerId, cellIndex, letter, turnNumber: row.turn_number }
+  state.hintUsed[playerId] = indicesUtilises(state.hintUsed[playerId]) + 1
+  state.racks[playerId] = refill(rules, state, playerId, keepRackLettersAfterTurn(chevalet, [{ letter }]), [letter])
+  ensureFinalSprintRacks(rules, state)
+  if (neededLetters(rules, state.board).length === 0) finish(state, row, playerId, 'completed')
+  return true
 }
 
 /**

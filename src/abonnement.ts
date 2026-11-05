@@ -57,7 +57,7 @@ export function couleurPortee(etat: EtatAbonnement): CouleurPseudoId | null {
 
 // ── Le rythme d'une partie à thème ───────────────────────────────────────────
 // Le joueur choisit (décision du 16/10/2026, « on peut laisser le choix ») :
-// avec chrono, la partie rapporte comme une partie normale ; au calme, sans
+// avec chrono, la partie rapporte comme une partie normale ; au calme, seul, sans
 // chrono ni récompense, comme la partie au calme de la carte Normal (A9).
 
 export type RythmeTheme = 'chrono' | 'calme'

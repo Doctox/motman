@@ -13,7 +13,7 @@ import { planBotMove } from '../../../src/botOpponents.ts'
 import { evaluateTurn, keepRackLettersAfterTurn, PRESENCE_WINDOW_MS, presenceDeadline, REWARD_STEP_MS, shouldForfeitAfterInactivity, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
 import { botTurnDelayMs } from './botDelay.ts'
 import { ensureFinalSprintRacks, refill, ruleGrid } from './matchGrid.ts'
-import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, TOUR_CALME_MS, type CatalogGrid, type Chaine, type MatchRow, type State, type Turn } from './matchModel.ts'
+import { ASYNC_TURN_MS, CHAINE_TOUR_MS, nowIso, REALTIME_TURN_MS, type CatalogGrid, type Chaine, type MatchRow, type State, type Turn } from './matchModel.ts'
 
 /** Marge sur l'échéance « Je suis là », pour laisser arriver une réponse partie à temps. */
 export const PRESENCE_GRACE_MS = 2_000
@@ -65,11 +65,6 @@ export const CADENCE_PRODUCTION: Cadence = {
 /** La durée d'un tour au rythme de la partie. */
 export function dureeDuTour(pace: MatchRow['pace'], cadence: Cadence = CADENCE_PRODUCTION): number {
   return pace === 'realtime' ? cadence.tourLimiteMs : cadence.tourIllimiteMs
-}
-
-/** La durée du prochain tour de cette partie : une partie au calme n'a pas d'échéance. */
-export function dureeDuProchainTour(row: Pick<MatchRow, 'pace' | 'state'>, cadence: Cadence = CADENCE_PRODUCTION): number {
-  return row.state.calme ? TOUR_CALME_MS : dureeDuTour(row.pace, cadence)
 }
 
 /** La révélation du coup, puis le souffle avant le tour suivant (src/gameRules.ts). */
@@ -158,7 +153,7 @@ export function applyTurn(row: MatchRow, grid: CatalogGrid, playerId: string, pl
     const opponent = state.playerIds.find(id => id !== playerId)!
     const nextStart = new Date(Date.now() + revealDuration(turn, cadence))
     row.current_player_id = opponent; row.turn_number += 1; row.turn_started_at = nextStart.toISOString()
-    row.turn_ends_at = new Date(nextStart.getTime() + dureeDuProchainTour(row, cadence)).toISOString()
+    row.turn_ends_at = new Date(nextStart.getTime() + dureeDuTour(row.pace, cadence)).toISOString()
   }
   preparerCoupDuBot(row, grid)
   return turn
@@ -206,7 +201,7 @@ export function timeoutTurn(row: MatchRow, { absence = true, cadence = CADENCE_P
   else {
     const next = state.playerIds.find(id => id !== playerId)!
     const start = new Date(Date.now() + revealDuration(turn, cadence)); row.current_player_id = next; row.turn_number += 1; row.turn_started_at = start.toISOString()
-    row.turn_ends_at = new Date(start.getTime() + dureeDuProchainTour(row, cadence)).toISOString()
+    row.turn_ends_at = new Date(start.getTime() + dureeDuTour(row.pace, cadence)).toISOString()
   }
 }
 
@@ -355,8 +350,7 @@ export function botPlacements(row: MatchRow, grid: CatalogGrid) {
  */
 export function preparerCoupDuBot(row: MatchRow, grid: CatalogGrid): void {
   // En chaîne, ses lettres se décident une à une, à leur heure (matchChaine.ts).
-  // Au calme, ses lettres s'affichent aussi : ce sont elles qui occupent pendant son tour.
-  if (row.status === 'active' && (row.pace === 'realtime' || row.state.calme) && !row.state.chaine && row.state.bot?.playerId === row.current_player_id) {
+  if (row.status === 'active' && row.pace === 'realtime' && !row.state.chaine && row.state.bot?.playerId === row.current_player_id) {
     const placements = botPlacements(row, grid)
     row.state.coupPrepare = { turnNumber: row.turn_number, placements, ...(row.state.bot.ghostOf ? { gestes: gestesDeLOmbre(row, grid, placements) } : {}) }
   } else delete row.state.coupPrepare

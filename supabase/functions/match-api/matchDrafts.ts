@@ -49,8 +49,8 @@ export type Brouillon = { turnNumber: number; placements: Placement[]; receivedA
  * Pas non plus en duel en chaîne (matchChaine.ts) : chaque lettre y est jugée dès
  * qu'elle est posée, il ne reste rien à jouer à la fin du tour.
  */
-export function brouillonPossible(row: Pick<MatchRow, 'pace'> & { state?: Pick<State, 'chaine' | 'calme'> }): boolean {
-  return (row.pace === 'realtime' || row.state?.calme === true) && !row.state?.chaine
+export function brouillonPossible(row: Pick<MatchRow, 'pace'> & { state?: Pick<State, 'chaine'> }): boolean {
+  return row.pace === 'realtime' && !row.state?.chaine
 }
 
 /**

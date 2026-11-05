@@ -1,7 +1,7 @@
 import { forceDeDepart, forceEnChaine, forceSuivante, niveauDeLaForce, reglageDeChaine, type BotSkill } from '../../../src/botOpponents.ts'
 import { CHAINE_TOUR_MS, RACK_COMPLETION_BONUS, SOUFFLE_ENTRE_TOURS_MS } from '../../../src/gameRules.ts'
 import { heureDeLaLettreDuBot } from './botDelay.ts'
-import { avancerChaineDuBot, jugerLettre, lireDemandeDeLettre, lireVariante, reponseDeLettre, type DemandeDeLettre } from './matchChaine.ts'
+import { avancerChaineDuBot, jugerLettre, lireDemandeDeLettre, lireVariante, poserUnIndiceAuCalme, reponseDeLettre, type DemandeDeLettre } from './matchChaine.ts'
 import { brouillonPossible, lettresDuCoupPrepare } from './matchDrafts.ts'
 import { ruleGrid } from './matchGrid.ts'
 import { nowIso, type CatalogGrid, type MatchRow } from './matchModel.ts'
@@ -457,4 +457,66 @@ Deno.test('un duel en chaîne n’a pas de brouillon, une partie ordinaire le ga
   verifie(brouillonPossible({ pace: 'realtime', state: {} }), 'en temps limité, il reste')
   verifie(brouillonPossible({ pace: 'realtime' }), 'et sans état lu non plus')
   verifie(!brouillonPossible({ pace: 'async' }), 'pas en illimité')
+})
+
+// LA PARTIE AU CALME (MotMan+, 05/11/2026, le propriétaire : « même pas d'adversaire et indice
+// illimité, et quand tu poses une lettre tu as une nouvelle lettre »).
+function partieAuCalme(): MatchRow {
+  const seul = createBot('seul', 'beginner')
+  const ligne = partie()
+  return {
+    ...ligne, mode: 'solo', pace: 'async',
+    turn_ends_at: new Date(Date.now() + 10 * 365 * 86_400_000).toISOString(),
+    state: { ...initialMatchState(GRILLE, JOUEUR, seul.playerId, null, seul, 'chaine', true), calme: true },
+  }
+}
+
+Deno.test('au calme, une lettre juste en fait venir une autre, et la main ne passe jamais', () => {
+  const ligne = partieAuCalme()
+  const avant = ligne.state.racks[JOUEUR].length
+  const coup = coupJuste(ligne)
+  const jugement = jugerLettre(ligne, GRILLE, JOUEUR, demande(ligne, coup), MAINTENANT(), MARGES)
+  egal(jugement, { statut: 'jouee', juste: true, ecrit: true }, 'elle est juste')
+  egal(ligne.state.board[String(coup.cellIndex)]?.letter, coup.letter, 'elle est posée')
+  egal(ligne.state.racks[JOUEUR].length, avant, 'une nouvelle lettre la remplace')
+  egal(ligne.current_player_id, JOUEUR, 'c’est toujours à lui')
+  egal(ligne.turn_number, 1, 'le tour ne change pas')
+})
+
+Deno.test('au calme, une lettre fausse revient au chevalet : rien n’est écrit, et c’est toujours à lui', () => {
+  const ligne = partieAuCalme()
+  const chevalet = [...ligne.state.racks[JOUEUR]]
+  const plateau = { ...ligne.state.board }
+  const jugement = jugerLettre(ligne, GRILLE, JOUEUR, demande(ligne, coupFaux(ligne)), MAINTENANT(), MARGES)
+  egal(jugement, { statut: 'jouee', juste: false, ecrit: false }, 'elle est fausse, et rien à enregistrer')
+  egal(ligne.state.racks[JOUEUR], chevalet, 'le chevalet n’a pas bougé')
+  egal(ligne.state.board, plateau, 'le plateau non plus')
+  egal(ligne.current_player_id, JOUEUR, 'la main reste à lui')
+  egal(ligne.state.scores[JOUEUR], 0, 'rien de perdu')
+})
+
+Deno.test('au calme, les indices sont illimités, gardent le chevalet plein et finissent la grille', () => {
+  const ligne = partieAuCalme()
+  const lettres = MOTS.join('').length
+  for (let rang = 0; rang < lettres; rang += 1) {
+    verifie(ligne.status === 'active', `la partie vit encore à l’indice ${rang + 1}`)
+    verifie(poserUnIndiceAuCalme(ligne, GRILLE, JOUEUR), `l’indice ${rang + 1} doit passer`)
+    if (lettres - rang - 1 > 5) egal(ligne.state.racks[JOUEUR].length, 5, 'le chevalet reste plein')
+    egal(ligne.current_player_id === JOUEUR || ligne.status === 'finished', true, 'la main ne passe jamais')
+  }
+  egal(Object.keys(ligne.state.board).length, lettres, 'toute la grille est posée')
+  egal(ligne.status, 'finished', 'la grille finie clôt la partie')
+  egal(ligne.finish_reason, 'completed', 'finie, pas abandonnée')
+  egal(ligne.winner_id, JOUEUR, 'la grille est à lui')
+  egal(ligne.state.scores[JOUEUR], 0, 'un indice ne rapporte pas de point')
+  verifie(!poserUnIndiceAuCalme(ligne, GRILLE, JOUEUR), 'plus rien à poser')
+})
+
+Deno.test('au calme, la dernière lettre posée à la main finit la grille', () => {
+  const ligne = partieAuCalme()
+  while (Object.keys(ligne.state.board).length < MOTS.join('').length - 1) poserUnIndiceAuCalme(ligne, GRILLE, JOUEUR)
+  const jugement = jugerLettre(ligne, GRILLE, JOUEUR, demande(ligne, coupJuste(ligne)), MAINTENANT(), MARGES)
+  egal(jugement, { statut: 'jouee', juste: true, ecrit: true }, 'juste')
+  egal(ligne.status, 'finished', 'terminée')
+  egal(ligne.winner_id, JOUEUR, 'à lui')
 })

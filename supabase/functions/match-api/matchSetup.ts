@@ -228,9 +228,9 @@ export async function playerLevel(admin: AdminClient, userId: string): Promise<n
  * La force de son prochain adversaire, d'après sa dernière partie contre lui dans
  * l'historique, gardée 90 jours. Sans partie, celle de son niveau (`botOpponents.ts`).
  *
- * Une force par famille (05/11/2026) : En chaîne (`famille` absente), en règles normales
- * avec chrono, au calme. Elles ne mesurent pas la même chose : sans chrono, un joueur gagne
- * plus, et ça ne doit pas durcir ses parties chronométrées.
+ * Une force par famille (05/11/2026) : En chaîne (`famille` absente), et les parties à thème
+ * avec chrono, en règles normales. Elles ne se jouent pas pareil : l'une ne doit pas durcir
+ * l'autre.
  */
 export async function forceDuProchainAdversaire(admin: AdminClient, userId: string, skill: BotSkill, famille?: FamilleDeForce): Promise<number> {
   const requete = admin.from('grid_player_history').select('force_adversaire,outcome').eq('user_id', userId)
@@ -253,7 +253,7 @@ export async function playersBlocked(admin: AdminClient, firstId: string, second
   return Boolean(data?.length)
 }
 
-export function initialMatchState(grid: CatalogGrid, hostId: string, guestId: string, invitationId: string | null, bot: Bot | null, variante: Variante = 'classique'): State {
+export function initialMatchState(grid: CatalogGrid, hostId: string, guestId: string, invitationId: string | null, bot: Bot | null, variante: Variante = 'classique', seul = false): State {
   const rules = ruleGrid(grid)
   const state: State = {
     invitationId, difficulty: bot?.skill === 'beginner' ? 'easy' : bot?.skill === 'expert' ? 'hard' : 'normal',
@@ -264,7 +264,8 @@ export function initialMatchState(grid: CatalogGrid, hostId: string, guestId: st
     ...(variante === 'chaine' ? { chaine: chaineVierge(1) } : {}),
   }
   state.racks[hostId] = refill(rules, state, hostId, [])
-  state.racks[guestId] = refill(rules, state, guestId, [])
+  // Seul au calme : personne ne garde de lettres, toutes restent pour lui.
+  state.racks[guestId] = seul ? [] : refill(rules, state, guestId, [])
   return state
 }
 
@@ -314,7 +315,8 @@ export async function createMatch(
   const grid = forcedGrid ?? await chooseGrid(admin, selectionSeed, humanPlayerIds)
   const startedAt = new Date(Date.now() + (pace === 'realtime' ? FIRST_TURN_READING_MS : READY_MS))
   const endsAt = new Date(startedAt.getTime() + (options.marques?.calme ? TOUR_CALME_MS : pace === 'realtime' ? REALTIME_TURN_MS : ASYNC_TURN_MS))
-  const state = marquer(initialMatchState(grid, hostId, guestId, invitationId, bot))
+  const calme = Boolean(options.marques?.calme)
+  const state = marquer(initialMatchState(grid, hostId, guestId, invitationId, bot, calme ? 'chaine' : 'classique', calme))
   const { data: insertedRow, error } = await admin.from('server_matches').insert({
     mode, pace, grid_id: grid.id, state, status: 'active', current_player_id: hostId,
     turn_number: 1, turn_started_at: startedAt.toISOString(), turn_ends_at: endsAt.toISOString(),
@@ -397,7 +399,7 @@ export async function resolveAtomicGridCollision(
     const replacement = await chooseGrid(admin, `${selectionSeed}:collision:${collisionAttempt}`, humanPlayerIds, row.id, theme)
     if (replacement.id === grid.id) break
     // Une grille de rechange ne change pas la partie : un duel en chaîne le reste, un thème aussi.
-    const state = marquer({ ...initialMatchState(replacement, hostId, guestId, invitationId, bot, initialRow.state.chaine ? 'chaine' : 'classique'), ...(theme ? { themeChoisi: theme } : {}) })
+    const state = marquer({ ...initialMatchState(replacement, hostId, guestId, invitationId, bot, initialRow.state.chaine ? 'chaine' : 'classique', Boolean(initialRow.state.calme)), ...(theme ? { themeChoisi: theme } : {}) })
     const { data: updatedRow, error: updateError } = await admin.from('server_matches')
       // `updated_at` bouge avec la grille : un client qui avait lu la partie
       // avant le changement recevait sinon « rien de nouveau » et gardait

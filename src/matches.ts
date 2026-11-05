@@ -34,6 +34,8 @@ export type MatchHistoryEntry = {
   ranked?: boolean
   rankedDelta?: number
   rankedSansPoints?: 'abandon-rapide' | 'plafond-paire' | null
+  /** MotMan+ : une partie au calme, seul et sans enjeu. */
+  auCalme?: boolean
 }
 export type PendingMatchResult = MatchHistoryEntry & {
   matchId: string

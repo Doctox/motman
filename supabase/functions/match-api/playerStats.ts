@@ -84,7 +84,7 @@ export async function loadPlayerStats(admin: AdminClient, userId: string): Promi
       .select('outcome,completed')
       .eq('user_id', userId)
       // Plaisir seulement : la partie au calme ne compte pas au profil (MotMan+).
-      .or('famille_force.is.null,famille_force.neq.calme')
+      .eq('au_calme', false)
       .order('id')
       .range(de, a)),
     toutesLesLignes((de, a) => admin.from('grid_player_history_rollups')

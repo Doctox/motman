@@ -85,14 +85,14 @@ function usePseudoSurDeuxLignes(nom: string) {
   return { pseudo, deuxLignes }
 }
 
-export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title, onPortrait, couleur }: { couleur?: CouleurPseudoId | null; name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null; onPortrait?: (portrait: HTMLElement) => void }) {
+export function DuelPlayer({ name, score, active, initials, avatarId, frameId, animationId, player, detail, title, onPortrait, couleur, reste }: { couleur?: CouleurPseudoId | null; /** Seul au calme : ce qu'il reste à poser, à la place du score. */ reste?: number; name: string; score: number; active: boolean; initials: string; avatarId?: string; frameId?: string; animationId?: string; player?: boolean; detail?: string; title?: string | null; onPortrait?: (portrait: HTMLElement) => void }) {
   // Le chiffre défile ; la CLÉ reste sur la cible, pour que le petit rebond
   // `scoreSettle` joue une fois par gain et non à chaque image du défilement.
   const affiche = useCountUp(score)
   const { pseudo, deuxLignes } = usePseudoSurDeuxLignes(name)
   const portrait = avatarId ? <CosmeticPortrait avatarId={avatarId} frameId={frameId ?? 'cadre-ivoire'} animationId={animationId} alt="" className="game-portrait" /> : <span className="avatar">{initials}</span>
   // Le portrait d'un abonné ouvre ses emotes (src/game/EmotesPartie.tsx).
-  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{onPortrait ? <button type="button" className="player-portrait-bouton" aria-label="Envoyer une emote" onClick={event => onPortrait(event.currentTarget)}>{portrait}</button> : portrait}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}><PseudoJoueur nom={name} couleur={couleur} /></small>{detail ? <em>{detail}</em> : null}<strong className="score-value" key={score}>{affiche}</strong>{title ? <i className="player-title"><span>{title}</span></i> : null}</span></div>
+  return <div className={`player ${active ? 'active' : ''} ${player ? 'player-you' : ''} ${title ? 'has-title' : ''} ${deuxLignes ? 'pseudo-deux-lignes' : ''}`}>{onPortrait ? <button type="button" className="player-portrait-bouton" aria-label="Envoyer une emote" onClick={event => onPortrait(event.currentTarget)}>{portrait}</button> : portrait}<span><small ref={pseudo} data-longueur={longueurDuPseudo(name)}><PseudoJoueur nom={name} couleur={couleur} /></small>{detail ? <em>{detail}</em> : null}{reste === undefined ? <strong className="score-value" key={score}>{affiche}</strong> : null}{title ? <i className="player-title"><span>{title}</span></i> : null}</span>{reste === undefined ? null : <b className="player-reste"><strong>{reste}</strong><small>{reste > 1 ? 'lettres à poser' : 'lettre à poser'}</small></b>}</div>
 }
 
 /**
@@ -166,8 +166,11 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
   const draw = match.winnerId === null && (match.finishReason === 'completed' || administrativeDraw)
   // Espace fine insécable avant « ! » : avec une grande police système, le « ! »
   // passait seul à la ligne (22/10/2026).
-  const title = administrativeDraw ? 'Partie mise de côté' : draw ? 'Égalité\u202f!' : won ? 'Victoire\u202f!' : 'Partie terminée'
-  const detail = administrativeDraw
+  const grilleFinie = match.finishReason === 'completed'
+  const title = match.calme ? grilleFinie ? 'Grille terminée\u202f!' : 'Partie terminée' : administrativeDraw ? 'Partie mise de côté' : draw ? 'Égalité\u202f!' : won ? 'Victoire\u202f!' : 'Partie terminée'
+  const detail = match.calme
+    ? grilleFinie ? 'Tu as rempli toute la grille, à ton rythme.' : 'Tu as laissé cette grille de côté.'
+    : administrativeDraw
     ? DETAIL_BASCULE_CLASSEE
     : match.finishReason === 'timeout'
     ? absenceDetail(match.pace, won, opponentName)
@@ -279,12 +282,13 @@ export function ResultPanel({ match, playerId, opponentName, onExit, onHome, onE
     : match.isDaily
       ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Jouer une partie</button>
       : rejouerPlus && match.bot && (match.calme || match.themeChoisi)
-        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(rejouerPlus)}><RotateCcw aria-hidden="true" />{match.themeChoisi ? 'Rejouer ce thème' : 'Rejouer au calme'}</button>
+        ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(rejouerPlus)}><RotateCcw aria-hidden="true" />{match.calme ? 'Une autre grille' : 'Rejouer ce thème'}</button>
       : rejouer && (match.mode === 'normal' || match.mode === 'solo')
         ? <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(() => rejouer(premiereSansChrono ? 'realtime' : rythmeDeLaPartie(match)))}><RotateCcw aria-hidden="true" />{premiereSansChrono ? 'Rejouer · 45 s par tour' : 'Rejouer'}</button>
         : <button type="button" className="new-game" disabled={leaving} onClick={() => void leaveResult(onExit)}><Gamepad2 aria-hidden="true" />Nouvelle partie</button>
   return <GameResultScreen
-    outcome={draw ? 'draw' : won ? 'win' : 'loss'}
+    outcome={match.calme ? grilleFinie ? 'win' : 'draw' : draw ? 'draw' : won ? 'win' : 'loss'}
+    seul={Boolean(match.calme)}
     title={title}
     detail={detailDuDefi}
     playerScore={match.scores[playerId] ?? 0}
@@ -613,7 +617,7 @@ export function PendingResultPanel({
  * limité : accueil (la partie attend) ou abandon (demande du propriétaire).
  * Une vraie fenêtre (aria-modal) : le retour d'Android la referme.
  */
-export function LeaveMatchPanel({ opponentName, isAsync = false, isDaily = false, cancel, continueLater, leave }: { opponentName: string; isAsync?: boolean; isDaily?: boolean; cancel: () => void; continueLater?: () => void; leave: () => void }) {
+export function LeaveMatchPanel({ opponentName, isAsync = false, isDaily = false, calme = false, cancel, continueLater, leave }: { opponentName: string; isAsync?: boolean; isDaily?: boolean; calme?: boolean; cancel: () => void; continueLater?: () => void; leave: () => void }) {
   const dialogRef = useDialogFocus<HTMLElement>(cancel)
   const accueil = isAsync && continueLater
   return <div className="mm-modal-layer mm-pause-layer" role="presentation">
@@ -623,6 +627,7 @@ export function LeaveMatchPanel({ opponentName, isAsync = false, isDaily = false
           joueur doit le savoir AVANT de toucher le bouton. */}
       <p>{isDaily
         ? 'Abandonné, il compte pour ta série, mais tu ne pourras plus le retenter avant demain.'
+        : calme ? 'Elle t’attend à l’accueil, aussi longtemps que tu veux. Tu peux aussi l’abandonner.'
         : isAsync ? 'Elle t’attend à l’accueil — ou abandonne-la, et ton adversaire gagne.' : `${opponentName} remportera la partie par abandon.`}</p>
       {accueil ? <button type="button" data-dialog-autofocus onClick={continueLater}>Retour à l’accueil</button> : null}
       <button type="button" className={accueil ? 'secondary' : undefined} data-dialog-autofocus={accueil ? undefined : true} onClick={cancel}>Continuer à jouer</button>

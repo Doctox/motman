@@ -389,15 +389,15 @@ Deno.test('en chaîne contre l’adversaire automatique, l’historique garde sa
   verifie(entreHumains.length === 2 && entreHumains.every(appel => (appel.charge as { force_adversaire?: number }).force_adversaire === undefined), 'ni entre humains')
 })
 
-Deno.test('une partie au calme : l’historique et la force de l’adversaire, sans rien de plus', async () => {
-  const robot = { playerId: BOT, displayName: 'Léa', level: 12, skill: 'regular' as const, avatarId: 'a', frameId: 'c', force: 0.6 }
+Deno.test('une partie au calme : l’historique, sans rien de plus', async () => {
+  const seul = { playerId: BOT, displayName: 'Grilles normales', level: 12, skill: 'beginner' as const, avatarId: 'a', frameId: 'c' }
   const { client, tables, rpcs } = clientFactice()
-  await awardFinished(client, match({ mode: 'solo', pace: 'async' }, { playerIds: [HUMAIN_A, BOT], bot: robot, calme: true }))
+  await awardFinished(client, match({ mode: 'solo', pace: 'async' }, { playerIds: [HUMAIN_A, BOT], bot: seul, calme: true }))
   egal(rpcs.map(appel => appel.fonction), [], 'ni XP, ni plumes, ni quêtes')
   const ligne = tables.find(appel => appel.table === 'grid_player_history' && appel.operation === 'upsert')?.charge as Record<string, unknown>
-  egal(ligne.force_adversaire, 0.6, 'd’où repart le suivant')
-  egal(ligne.famille_force, 'calme', 'une force à part')
-  egal(ligne.mode, 'multiplayer', 'pas un entraînement')
+  egal(ligne.au_calme, true, 'hors des statistiques du profil')
+  egal(ligne.force_adversaire, undefined, 'pas d’adversaire, pas de force')
+  egal(ligne.opponent_name, 'Grilles normales', 'le nom de la grille, dans l’historique')
 })
 
 Deno.test('une partie à thème avec chrono rapporte comme une partie normale, pas comme un entraînement', async () => {

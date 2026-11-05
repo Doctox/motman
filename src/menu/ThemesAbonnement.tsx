@@ -99,7 +99,7 @@ function ThemeSheet({ theme, close, jouer, inviter }: { theme: ThemeAbonnement; 
           <strong>Au calme</strong><small>Sans chrono</small>
         </button>
       </div>
-      <p className="mm-theme-sheet-rythme">{rythme === 'calme' ? 'Sans chrono ni récompense : juste pour le plaisir.' : 'XP et plumes, comme une partie normale.'}</p>
+      <p className="mm-theme-sheet-rythme">{rythme === 'calme' ? 'Seul, sans chrono ni récompense : juste pour le plaisir.' : 'XP et plumes, comme une partie normale.'}</p>
       <button type="button" className="mm-play-cta" onClick={() => jouer(rythme)}>Jouer ce thème <ChevronRight /></button>
       <button type="button" className="mm-theme-sheet-friend" onClick={inviter}>
         <span aria-hidden="true"><UserPlus /></span>

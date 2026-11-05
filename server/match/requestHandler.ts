@@ -10,7 +10,7 @@ import { lireDemandeDeLettre, lireVariante } from '../../supabase/functions/matc
 import { lireDemandePlus, lireTheme } from '../../src/reglesPlus'
 import { readBody, sendJson, sendNoContent } from './http'
 import {
-  brouillonAccepte, cederLaPlace, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
+  brouillonAccepte, cederLaPlace, indiceAuCalme, cloreTourEchu, confirmerPresence, enDirectPour, fermerChaine, filtrerCoup, grilleDeRegles, jouerCoup,
   lettresRestantes, partieAuto, partieAutoEnLecture, poserLettre, preparerChevalets, remplirChevalet, terminer, vainqueurAuxPoints,
 } from './regles'
 import type { BotProfile, MatchDatabase, MatchMode, MatchPace, MatchVariante, StoredMatch } from './types'
@@ -309,6 +309,13 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
   if (match.currentPlayerId !== playerId) return sendJson(response, 409, { error: 'Ce n’est pas ton tour.', match: publicMatch(match) })
   if (!hasTurnStarted(Date.now(), new Date(match.turnStartedAt).getTime())) {
     return sendJson(response, 409, { error: 'Le prochain tour commence après les résultats.', match: publicMatch(match) })
+  }
+
+  if (route === 'hint' && match.calme) {
+    if (!indiceAuCalme(match, playerId)) return sendJson(response, 409, { error: 'Aucun indice disponible.' })
+    match.updatedAt = new Date().toISOString()
+    saveDatabase()
+    return sendJson(response, 200, publicMatch(match))
   }
 
   if (match.chaine && (route === 'hint' || route === 'reroll')) return sendJson(response, 409, { error: 'Pas d’indice ni de relance dans une partie en chaîne.' })

@@ -293,10 +293,13 @@ function lancerPartiePlus(playerId: string, theme: string | null, calme: boolean
   const now = new Date()
   const bot = createBotProfile(randomUUID(), botSkillForLevel(niveauJoueur(playerId)))
   const grid = grids.find(candidate => theme !== null && candidate.theme === theme) ?? selectGridForPlayers(playerId, bot.playerId, randomUUID(), now)
-  const match = nouvellePartie({ id: randomUUID(), hostId: playerId, guestId: bot.playerId, mode: 'solo', pace: calme ? 'async' : 'realtime', grid, invitationId: null, bot, now })
+  const match = nouvellePartie({ id: randomUUID(), hostId: playerId, guestId: bot.playerId, mode: 'solo', pace: calme ? 'async' : 'realtime', grid, invitationId: null, bot, now, variante: calme ? 'chaine' : undefined })
   if (calme) {
     match.calme = true
     match.turnEndsAt = new Date(Date.parse(match.turnStartedAt) + TOUR_CALME_MS).toISOString()
+    // Personne ne garde de lettres : toutes restent pour lui.
+    match.letterBag = [...(match.letterBag ?? []), ...(match.racks[bot.playerId] ?? [])]
+    match.racks[bot.playerId] = []
   }
   if (theme) match.themeChoisi = theme
   database.matches.push(match)
