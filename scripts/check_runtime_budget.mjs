@@ -58,10 +58,15 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // grilles. Le seuil de 200 Ko est donc franchi à ~640 grilles normales et
 // relevé à 300 Ko (~880 grilles). Le prochain franchissement est le bon
 // moment pour tirer en SQL : il n'a plus de marge à gagner ailleurs.
+//
+// 2026-11-05 : v44, 1 200 grilles dont 760 normales. 6 499 Ko bruts / 1 652 Ko
+// compressés : seuils relevés à 8 Mo et 2,1 Mo. Toujours aucun lecteur en jeu. 8 Mo
+// tombe juste sous la limite de l'export de Grid Factory (8 Mio, voir plus haut) :
+// ce seuil-ci sonnera avant elle. Le tirage lit 260 Ko sur 300 : pas franchi.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 6_000_000,
-  runtimeCatalogGzip: 1_500_000,
+  runtimeCatalog: 8_000_000,
+  runtimeCatalogGzip: 2_100_000,
   tirageParPartie: 300_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
