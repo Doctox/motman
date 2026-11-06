@@ -201,5 +201,9 @@ export function buildRuntimeCatalogSnapshot(rows: CatalogRow[]): RuntimeCatalogS
   }
 }
 
-/** Au-delà, on refuse plutôt que d'envoyer : l'atelier coupe lui-même à 25 Mio. */
-export const TAILLE_MAXIMALE_OCTETS = 8 * 1024 * 1024
+/**
+ * Au-delà, on refuse plutôt que d'envoyer : l'atelier coupe lui-même à 25 Mio.
+ * 8 Mio jusqu'au 06/11/2026 : la v45 en pesait déjà 7,8, les dessins étant écrits dans le
+ * catalogue. Relevé à 24 Mio à la demande du propriétaire, juste sous la coupure de l'atelier.
+ */
+export const TAILLE_MAXIMALE_OCTETS = 24 * 1024 * 1024

@@ -63,10 +63,14 @@ import { exigerCatalogueReel } from './lib/catalogue.mjs'
 // compressés : seuils relevés à 8 Mo et 2,1 Mo. Toujours aucun lecteur en jeu. 8 Mo
 // tombe juste sous la limite de l'export de Grid Factory (8 Mio, voir plus haut) :
 // ce seuil-ci sonnera avant elle. Le tirage lit 260 Ko sur 300 : pas franchi.
+//
+// 2026-11-06 : v45, la revue complète met 710 dessins de plus dans le catalogue : 7 841 Ko
+// bruts / 2 066 Ko compressés. L'export de Grid Factory passe de 8 à 24 Mio, à la demande du
+// propriétaire ; seuils relevés à 24 Mo et 6,5 Mo, toujours juste sous lui.
 const limits = {
   entryJavaScript: 20_000,
-  runtimeCatalog: 8_000_000,
-  runtimeCatalogGzip: 2_100_000,
+  runtimeCatalog: 24_000_000,
+  runtimeCatalogGzip: 6_500_000,
   tirageParPartie: 300_000,
   runtimePolicy: 100_000,
   avatar: 100_000,
