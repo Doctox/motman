@@ -412,5 +412,11 @@
     "ajoute": "2026-11-05T19:15",
     "titre": "MotMan+ arrive bientôt",
     "texte": "Des parties à thème quand tu veux, une partie au calme sans chrono, des émotes, une couleur pour ton pseudo, et plein d’autres choses arrivent."
+  },
+  {
+    "ajoute": "2026-11-06T12:01",
+    "titre": "Des grilles plus simples",
+    "texte": "710 définitions deviennent des dessins et 177 autres sont réécrites pour qu’on trouve le mot plus facilement.",
+    "genre": "grilles"
   }
 ]
