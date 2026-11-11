@@ -1,6 +1,7 @@
 import { evenementDeChaineValide, type EvenementDeChaine } from './game/chaineDuTour'
 import { enDirectValide, type EnDirect } from './game/lettresEnDirect'
 import { supabase, supabaseConfigured } from './supabaseClient'
+import { estPartieGuidee } from './partieGuidee/partieGuidee'
 
 const localTestServer = import.meta.env.VITE_MOTMAN_LOCAL_TEST_SERVER === 'true'
 
@@ -24,7 +25,8 @@ export function subscribeToMatchUpdates(
   onChaine?: (evenement: EvenementDeChaine) => void,
   onEmote?: (emote: { playerId: string; emote: string }) => void,
 ): () => void {
-  if (!supabaseConfigured || localTestServer) {
+  // La partie guidée se joue dans le téléphone : aucun canal à écouter (src/partieGuidee).
+  if (!supabaseConfigured || localTestServer || estPartieGuidee(matchId)) {
     onStatus?.('disconnected')
     return () => undefined
   }

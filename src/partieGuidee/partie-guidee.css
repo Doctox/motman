@@ -1,0 +1,59 @@
+/* La partie guidée (11/11/2026), posée sur le vrai écran de jeu.
+   Sous le fantôme de la lettre glissée (1000), le vol de l'indice (1600) et
+   « À toi » (1800) : le guide ne cache jamais le geste qu'il demande. */
+.guide-couche{position:fixed;inset:0;z-index:900;pointer-events:none;
+  --guide-encre:#073f36;--guide-terre:#a13c1d;--guide-laiton:#8a6a1e}
+.guide-voile{position:absolute;inset:0;pointer-events:none}
+/* Le voile arrête les touchers ; ses trous, non peints, les laissent passer. */
+.guide-voile path{fill:#09201ba6;pointer-events:visiblePainted}
+.guide-voile.is-transparent path{fill:transparent;pointer-events:all}
+.guide-voile.is-transparent{pointer-events:none}
+
+.guide-bulle{
+  position:absolute;left:50%;translate:-50% 0;width:min(calc(100% - 32px),360px);z-index:1;
+  display:grid;gap:8px;padding:14px 16px;pointer-events:auto;
+  border:1px solid #d9c8a9;border-radius:18px;background:#fffaf0;box-shadow:0 10px 28px #081e1930;color:var(--guide-encre);
+}
+.guide-bulle strong{font:600 1.1875rem/1.2 'Playfair Display',serif}
+.guide-bulle p{margin:0;font:400 1rem/1.4 'DM Sans',system-ui,sans-serif;color:#28463e;text-wrap:pretty}
+.guide-bulle-pied{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
+.guide-bulle-suivant{
+  min-height:44px;padding:0 20px;border:0;border-radius:999px;margin-left:auto;
+  background:var(--guide-encre);color:#fffaf0;font:600 1rem 'Playfair Display',serif;cursor:pointer;
+}
+.guide-bulle-suivant:disabled{opacity:.45;cursor:default}
+.guide-bulle-passer{min-height:44px;padding:0;border:0;background:transparent;color:#5d6b63;font:500 0.875rem 'DM Sans',sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+html:not([data-motion="off"]) .guide-bulle{animation:guideBulle .22s ease-out}
+@keyframes guideBulle{from{opacity:0;transform:translateY(6px)}}
+
+/* La fin : la victoire, puis la vraie partie. Elle remplace l'écran de résultat. */
+.guide-fin{
+  width:min(100%,440px);margin:auto;padding:26px 20px calc(22px + env(safe-area-inset-bottom));
+  display:grid;gap:4px;color:var(--guide-encre,#073f36);
+  --guide-encre:#073f36;--guide-terre:#a13c1d;--guide-laiton:#8a6a1e;
+}
+.guide-fin small{color:var(--guide-laiton);font:700 0.75rem 'DM Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.guide-fin h2{margin:2px 0 6px;font:600 1.875rem/1.1 'Playfair Display',serif}
+.guide-fin-scores{margin:0 0 14px;font:500 1rem 'DM Sans',sans-serif;color:#28463e}
+.guide-fin-scores b{font-weight:700;color:var(--guide-encre)}
+.guide-fin ul{display:grid;gap:10px;margin:0 0 18px;padding:0;list-style:none}
+.guide-fin li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font:400 1rem/1.4 'DM Sans',system-ui,sans-serif;color:#28463e}
+.guide-fin li svg{width:20px;height:20px;margin-top:1px;color:var(--guide-laiton)}
+.guide-fin-defi{margin:0 0 12px;font:400 0.9375rem/1.4 'DM Sans',system-ui,sans-serif;color:#28463e;text-wrap:pretty}
+.guide-fin-defi b{font-weight:600;color:var(--mm-coral,var(--guide-terre));white-space:nowrap}
+.guide-fin button{width:100%;min-height:50px;border-radius:999px;font:600 1.0625rem 'Playfair Display',serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px}
+.guide-fin button svg{width:20px;height:20px}
+.guide-fin-jouer{border:0;background:var(--guide-encre);color:#fffaf0}
+.guide-fin-relever{border:0;background:var(--mm-coral,var(--guide-terre));color:#fffaf0}
+.guide-fin-normale{margin-top:8px;border:1.5px solid var(--guide-encre);background:transparent;color:var(--guide-encre)}
+.guide-fin-plus-tard{margin-top:8px;border:0;background:transparent;color:#5d6b63}
+
+/* La nuit (data-theme="dark") : la fin se pose sur le fond de l'écran de jeu, qui
+   devient #111b18 ; le vert pin de jour n'y se lirait plus (themeSombre.test.ts).
+   La bulle, elle, garde son papier clair : c'est une fiche posée sur le voile. */
+[data-theme="dark"] .guide-fin{--guide-encre:#e8f3ec;--guide-laiton:#d9b866}
+[data-theme="dark"] .guide-fin-scores{color:#c9d6cf}
+[data-theme="dark"] .guide-fin li{color:#c9d6cf}
+[data-theme="dark"] .guide-fin-defi{color:#c9d6cf}
+[data-theme="dark"] .guide-fin-jouer{color:#111b18}
+[data-theme="dark"] .guide-fin-plus-tard{color:#a5b4ae}

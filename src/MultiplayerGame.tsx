@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ArrowLeft, Check, Hourglass, Lightbulb, Settings, Shuffle, Wifi } from 'lucide-react'
 import './styles.css'
 import { startAdaptivePolling } from './adaptivePolling'
@@ -58,6 +58,10 @@ import { prechargerRecompense } from './game/matchRewardPrefetch'
 import { useEmotesDeLaPartie } from './game/EmotesPartie'
 import { nomAffiche } from './menu/themeApparence'
 import { lireAbonnement } from './abonnement'
+import { estPartieGuidee } from './partieGuidee/partieGuidee'
+import { CoachGuide } from './partieGuidee/CoachGuide'
+import { FinDeLaPartieGuidee, premierLancement, terminerLeTutoriel } from './partieGuidee/FinDeLaPartieGuidee'
+import { noterPremierPas } from './premiersPas'
 
 export { LeaveMatchPanel } from './game/DuelPresentation'
 export { StableBoardLetters } from './game/StableBoardLetters'
@@ -118,12 +122,15 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
 }) {
   const identity = useRef(loadPlayerIdentity())
   const playerId = identity.current.playerId
+  // LA PARTIE GUIDÉE (src/partieGuidee, 11/11/2026) : le vrai écran, un guide par-dessus,
+  // et un moteur dans le téléphone à la place de match-api.
+  const guidee = estPartieGuidee(matchId)
   const playerCosmetics = useRef(loadPlayerCosmetics(playerId))
   const myLevel = useMemo(() => loadPlayerProgress(playerId).level, [playerId])
   // La toute première partie (N6, 22/10/2026) : une phrase par tour au-dessus du
   // chevalet, à la place de la ligne vide. Lue au début : elle reste la première
   // jusqu'au bout, même si l'XP arrive entre-temps.
-  const premiereVraiePartie = useMemo(() => loadPlayerProgress(playerId).lifetimeXp === 0, [playerId])
+  const premiereVraiePartie = useMemo(() => !guidee && loadPlayerProgress(playerId).lifetimeXp === 0, [guidee, playerId])
   // Les titres portés, sous les pseudos (12/10/2026) : le catalogue vient avec
   // la progression du joueur, celui de l'adversaire avec son profil public.
   const titres = useMemo(() => {
@@ -591,7 +598,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
    * encore être vide, et il change à minuit.
    */
   const annoncerQuetes = (tour: NonNullable<MatchState['lastTurn']>) => {
-    if (tour.playerId !== playerId || questsComptes.current.has(tour.id)) return
+    // La partie guidée ne compte pour aucune quête : le serveur ne la connaît pas.
+    if (guidee || tour.playerId !== playerId || questsComptes.current.has(tour.id)) return
     questsComptes.current.add(tour.id)
     const avant = questCounters.current
     const apres = addCounters(avant, countersFromTurn(tour))
@@ -687,14 +695,24 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     return lettresRetenues.size ? Object.fromEntries(Object.entries(plateau).filter(([cellIndex]) => !lettresRetenues.has(Number(cellIndex)))) : plateau
   }, [match?.board, lettresRetenues])
   const pollingRef = synchro.pollingRef
+  // Le guide de la partie guidée : les lettres posées (case → lettre), un réveil du
+  // sondage quand le moteur a changé, et la sortie « Passer le tutoriel ».
+  const lettresPosees = useMemo(() => Object.fromEntries(Object.entries(provisional).map(([index, tuile]) => [index, tuile.letter])) as Record<number, string>, [provisional])
+  const reveillerLaPartie = useCallback(() => pollingRef.current?.wake(), [pollingRef])
+  const passerLeGuide = () => {
+    const premiere = premierLancement()
+    if (premiere) noterPremierPas('essai_passe')
+    terminerLeTutoriel(premiere)
+    onHome()
+  }
 
   // La récompense XP / plumes est écrite par le serveur avec le dernier coup :
   // on la demande DÈS la fin, elle se charge pendant l'animation au lieu
   // d'attendre l'écran de fin (matchRewardPrefetch.ts, 18/09/2026).
   const partieFinie = match?.status === 'finished' ? match.id : null
   useEffect(() => {
-    if (partieFinie) void prechargerRecompense(partieFinie).catch(() => undefined)
-  }, [partieFinie])
+    if (partieFinie && !guidee) void prechargerRecompense(partieFinie).catch(() => undefined)
+  }, [guidee, partieFinie])
 
   useEffect(() => { provisionalRef.current = provisional }, [provisional])
   useEffect(() => { resolvingRef.current = resolving }, [resolving])
@@ -1438,8 +1456,8 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     <header>{/* La flèche ne sert qu'à quitter une partie EN COURS : sur l'écran de
       résultat, elle restait affichée, grisée, sans rien faire (retiré à la
       demande du propriétaire, 19/09/2026). Une case vide garde le logo centré. */}
-      {match.status === 'active' ? <button type="button" aria-label="Options de sortie" onClick={() => setLeaveOpen(true)}><ArrowLeft /></button> : <span aria-hidden="true" />}<img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
-    {showGame ? <><section className={`scoreboard ${match.calme ? 'is-seul' : ''}`}>{match.calme ? null : <><DuelPlayer couleur={opponent?.couleurPseudo} name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div></>}<DuelPlayer reste={match.calme && grid ? grid.cells.filter(cellule => cellule.kind === 'letter').length - Object.keys(match.board).length : undefined} couleur={abonnePlus.couleurPseudo} name={identity.current.displayName.trim() || 'Toi'} title={match.calme ? null : titres.mien} detail={match.calme ? match.themeChoisi ? nomAffiche(match.themeChoisi) : 'Au calme' : `Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' && !match.calme ? emotes.ouvrir : undefined} /></section>
+      {match.status === 'active' ? <button type="button" aria-label={guidee ? 'Passer le tutoriel' : 'Options de sortie'} onClick={() => guidee ? passerLeGuide() : setLeaveOpen(true)}><ArrowLeft /></button> : <span aria-hidden="true" />}<img className="game-brand-logo" src={assetUrl('/assets/motman-logo-v2.webp')} alt="MotMan" /><button type="button" aria-label="Paramètres" onClick={() => setOptionsOpen(true)}><Settings /></button></header>
+    {showGame ? <><section className={`scoreboard ${match.calme ? 'is-seul' : ''}`}>{match.calme ? null : <><DuelPlayer couleur={opponent?.couleurPseudo} name={opponentName} title={nomDuTitre(opponent?.titleId, titres.catalogue)} detail={opponentLevel ? `Niv. ${opponentLevel}` : undefined} score={opponentScore} initials={playerInitials(opponentName)} avatarId={match.bot?.avatarId ?? opponent?.avatarId} frameId={match.bot?.frameId ?? opponent?.frameId} animationId={opponent?.animationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === opponentId : turnHasStarted && !assignedToMe)} /><div className={`turn ${turnPhase.urgent && isMyTurn ? 'urgent' : ''} ${isAsync ? 'async-turn' : ''} ${turnAlert ? 'your-turn-pulse' : ''}`}><TurnTimer match={match} resolving={resolving} /><strong className={isRoutineTurnStatus(status) ? 'turn-status-routine' : undefined} aria-live="polite">{status}</strong></div></>}<DuelPlayer reste={match.calme && grid ? grid.cells.filter(cellule => cellule.kind === 'letter').length - Object.keys(match.board).length : undefined} couleur={abonnePlus.couleurPseudo} name={identity.current.displayName.trim() || 'Toi'} title={match.calme ? null : titres.mien} detail={match.calme ? match.themeChoisi ? nomAffiche(match.themeChoisi) : 'Au calme' : `Niv. ${myLevel}`} score={myScore} initials={playerInitials(identity.current.displayName)} avatarId={playerCosmetics.current.equippedAvatarId} frameId={playerCosmetics.current.equippedFrameId} animationId={playerCosmetics.current.equippedAnimationId} active={match.status === 'active' && (revelationEnCours ? revelationEnCours === playerId : isMyTurn)} player onPortrait={match.status === 'active' && !match.calme && !guidee ? emotes.ouvrir : undefined} /></section>
       {emotes.calque}
     </> : null}
     {questDone ? <QuestAchieved key={questDone.cle} titre={questDone.titre} close={() => setQuestDone(null)} /> : null}
@@ -1460,7 +1478,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
           if (!entries.length && index !== 0) return <div className="cell blocked" key={index} aria-hidden="true" />
           const row = Math.floor(index / grid.columns)
           const column = index % grid.columns
-          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={event => { noterActivite(); setOrigineDefinition(event.currentTarget.getBoundingClientRect()); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : <span className="clue-text">{compactClue(entry.text)}</span>}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
+          return <div className={`cell clue clue-tone-${(row + column) % 4} ${entries.length > 1 ? 'double-clue' : ''} ${entries.length ? '' : 'corner-clue'}`} key={index} data-clue-cell={index}>{entries.map(entry => <button type="button" className={`clue-entry ${entry.image ? 'image-entry' : ''}`} key={entry.wordId} aria-label={`Agrandir la définition ${entry.text || entry.image?.alt || ''}`} onClick={event => { noterActivite(); setOrigineDefinition(event.currentTarget.getBoundingClientRect()); setExpandedClue(entry) }}>{entry.image ? <img className="clue-image" src={assetUrl(entry.image.asset)} alt={entry.image.alt} /> : <span className="clue-text">{compactClue(entry.text)}</span>}<b aria-hidden="true">{entry.direction === 'across' ? '→' : '↓'}</b></button>)}</div>
         }
         const confirmed = plateauAffiche[index]
         const localTile = provisional[index]
@@ -1485,7 +1503,7 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
         {match.chaine ? null : <button className="reroll-button" type="button" data-idle-cue={idleCue.reroll ? 'true' : undefined} onClick={() => void rerollRack()} disabled={!canAct || resolving || rerollRequesting || rerollUsedInMatch || Object.keys(provisional).length > 0 || hintActiveThisTurn} aria-label={rerollUsedInMatch ? 'Relance déjà utilisée pendant cette partie' : 'Relancer les lettres'} title={rerollUsedInMatch ? 'Relance déjà utilisée' : 'Relancer les lettres'}><Shuffle /></button>}
       </div>{rackBonusEffect ? <div key={rackBonusEffect.id} className={`rack-bonus-pop rack-bonus-pop--${rackBonusEffect.owner}`} role="status" aria-live="polite">+{rackBonusEffect.points}</div> : null}</section>
       <div className={`turn-actions ${match.chaine ? 'is-chaine' : ''}`}>{match.calme ? <button className="hint-button" type="button" onClick={requestHint} disabled={!canAct || resolving || hintRequesting} title="Un indice, autant que tu veux"><Lightbulb />Indice</button> : match.chaine ? null : <button className="hint-button" type="button" data-idle-cue={idleCue.hint ? 'true' : undefined} onClick={requestHint} disabled={!canAct || resolving || hintRequesting || hintUsedInMatch} title={hintUsedInMatch ? 'Tes trois indices sont utilisés' : `Utiliser un indice · il t’en reste ${indicesQuiRestent} sur ${INDICES_PAR_PARTIE}`}><Lightbulb />Indice{hintUsedInMatch ? null : <em className="hint-left" aria-hidden="true">{indicesQuiRestent}</em>}</button>}{match.calme ? null : <button className={`validate ${isMyTurn && !resolving && rienAValider ? 'is-pass' : ''} ${!isMyTurn ? 'is-waiting' : ''}`} type="button" onClick={() => void validate(false)} disabled={!canAct || resolving || lettreEnVol} title={isMyTurn && rienAValider && !match.chaine ? 'Aucune lettre posée : ton tour passera sans marquer de point' : undefined}>{isMyTurn ? <Check /> : <Hourglass />}{isMyTurn ? resolving ? 'Résultats…' : rienAValider ? 'Passer mon tour' : 'Valider' : lectureRestante !== null ? assignedToMe ? 'Tu commences' : `${opponentName} commence` : `Au tour de ${opponentName}`}</button>}</div>
-    </> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerPlus={rejouerPlus} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
+    </> : guidee ? <FinDeLaPartieGuidee partie={match} joueur={playerId} adversaire={opponentName} rentrer={onHome} /> : <ResultPanel match={match} playerId={playerId} opponentName={opponentName} onExit={onExit} onHome={onHome} onEpicerie={onEpicerie} rejouer={onRejouer} rejouerPlus={rejouerPlus} rejouerClassee={onRejouerClassee} revanche={revancheProposable ? { etat: revanche, erreur: erreurRevanche, proposer: () => void proposerRevanche(), annuler: () => void annulerRevanche() } : undefined} />}
     {drag?.glisse ? <div ref={ghostRef} className="drag-ghost" style={{ left: drag.x, top: drag.y }}>{drag.tile.letter}</div> : null}
     {hintFlight ? <span className="hint-flight" style={{ left: hintFlight.fromX, top: hintFlight.fromY, '--hint-dx': `${hintFlight.deltaX}px`, '--hint-dy': `${hintFlight.deltaY}px`, '--hint-mid-x': `${hintFlight.deltaX * .7}px`, '--hint-mid-y': `${hintFlight.deltaY * .7 - 10}px` } as CSSProperties}>{hintFlight.letter}</span> : null}
     {match.pause ? <RankedMatchPausedOverlay opponentName={opponentName} expiresAt={match.pause.expiresAt} /> : null}
@@ -1495,7 +1513,10 @@ export function MultiplayerGameScreen({ matchId, onExit, onHome, onEpicerie, onP
     {reportOpen && !match.bot ? <ReportPlayerOverlay playerName={opponentName} close={() => setReportOpen(false)} submit={(reason, details) => reportPlayer(opponentId, reason, details, match.id)} /> : null}
     {/* Une VRAIE fenêtre, qui attend oui ou non (propriétaire, 20/09/2026).
         Elle passe sous « Tu es toujours là ? », qui décide d'une partie en cours. */}
-    {classeCherche && match.status === 'active' ? <RankedSeekerDialog
+    {guidee && showGame && match.status === 'active'
+      ? <CoachGuide vue={{ partie: match, joueur: playerId, posees: lettresPosees, revelation: resolving }} reveiller={reveillerLaPartie} passer={passerLeGuide} />
+      : null}
+    {classeCherche && !guidee && match.status === 'active' ? <RankedSeekerDialog
       pace={match.pace === 'async' ? 'async' : 'realtime'}
       calme={Boolean(match.calme)}
       refuser={() => { classeRefuse.current = true; setClasseCherche(false) }}

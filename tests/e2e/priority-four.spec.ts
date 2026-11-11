@@ -49,79 +49,94 @@ test('le mot du créateur paraît une fois par jour, avec Instagram et TikTok', 
   await expect(page.getByRole('dialog', { name: 'Un mot du créateur' })).toHaveCount(0)
 })
 
-test('le tutoriel est une partie d’essai qui prend par la main, puis lance la vraie partie', async ({ page }, testInfo) => {
-  // Demande du propriétaire (22/10/2026) : « un tuto plus interactif, qui te
-  // prend par la main : comment lancer ta partie, comment placer ». On joue ici
-  // AU DOIGT, comme un nouveau venu : rien ne passe par l'API.
+test('le tutoriel est une vraie partie guidée, chrono figé, qu’on gagne avant de lancer la vraie partie', async ({ page }, testInfo) => {
+  // Demande du propriétaire (11/11/2026) : « l'envoyer directement dans une partie
+  // chrono mais aménagée, avec des temps de pause du chrono pour l'explication,
+  // montrer le bouton aléatoire et l'indice, puis le laisser finir la grille en le
+  // faisant gagner à coup sûr ». On joue AU DOIGT, comme un nouveau venu.
   await page.goto('/')
-
-  const essai = page.getByRole('dialog', { name: 'Partie d’essai' })
-  await expect(essai).toBeVisible()
-  await expect(essai).toContainText('Bienvenue dans MotMan')
-  await essai.getByRole('button', { name: 'Compris' }).click()
-
-  // Pas à pas : le C d'abord, puis la première case du mot.
-  await expect(essai).toContainText('Touche la lettre C.')
-  await essai.getByRole('button', { name: 'Lettre C' }).click()
-  await expect(essai).toContainText('Puis touche la première case du mot.')
-  await essai.getByRole('button', { name: 'Il miaule, case 1 · vide' }).click()
-  await expect(essai.getByRole('button', { name: 'Il miaule, case 1 · C posée' })).toBeVisible()
-
-  // Une lettre fausse revient au chevalet, sans rien coûter.
-  for (const [lettre, rang] of [['H', 2], ['E', 3], ['T', 4]] as const) {
-    await essai.getByRole('button', { name: `Lettre ${lettre}` }).click()
-    await essai.getByRole('button', { name: `Il miaule, case ${rang} · vide` }).click()
+  await expect(page).toHaveURL(/#partie=partie-guidee$/)
+  const bulle = page.locator('.guide-bulle')
+  const poser = async (lettre: string, numero: number) => {
+    await page.getByRole('button', { name: `Lettre ${lettre}` }).first().click()
+    await page.getByRole('button', { name: `Case ${numero}`, exact: true }).click()
   }
-  await expect(essai).toContainText('touche Valider')
-  await essai.getByRole('button', { name: 'Valider' }).click()
-  await expect(essai).toContainText('Une lettre fausse ne coûte aucun point')
-  await expect(essai.getByRole('button', { name: 'Lettre E' })).toBeVisible()
-  await essai.getByRole('button', { name: 'Lettre A' }).click()
-  await essai.getByRole('button', { name: 'Il miaule, case 3 · vide' }).click()
-  await essai.getByRole('button', { name: 'Valider' }).click()
 
-  // Les vrais points : 3 lettres au premier coup, puis le A et le mot complet.
-  await expect(essai).toContainText('Bravo, +5 points !')
-  await expect(essai.locator('.essai-score-moi strong')).toHaveText('8')
-  await essai.getByRole('button', { name: 'Suivant' }).click()
+  // Tour 1, chrono figé : la bienvenue, une définition, puis AMIS lettre par lettre.
+  await expect(bulle).toContainText('Ta première partie')
+  await expect(page.locator('.turn-timer')).toHaveText('45')
+  await bulle.getByRole('button', { name: 'C’est parti' }).click()
+  await expect(bulle).toContainText('Tes copains')
+  await bulle.getByRole('button', { name: 'Compris' }).click()
+  await expect(bulle).toContainText('Glisse le A')
+  // Le premier geste comme la bulle le dit : glisser, d'une fenêtre du voile à l'autre.
+  const lettreA = (await page.getByRole('button', { name: 'Lettre A' }).boundingBox())!
+  const case7 = (await page.getByRole('button', { name: 'Case 7', exact: true }).boundingBox())!
+  await page.mouse.move(lettreA.x + lettreA.width / 2, lettreA.y + lettreA.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(case7.x + case7.width / 2, case7.y + case7.height / 2, { steps: 12 })
+  await page.mouse.up()
+  await expect(bulle).toContainText('Pose M, I et S')
+  for (const [lettre, numero] of [['M', 8], ['I', 9], ['S', 10]] as const) await poser(lettre, numero)
+  await expect(bulle).toContainText('touche Valider')
+  // Le guide parle aussi longtemps qu'il faut : le chrono ne bouge pas.
+  await page.waitForTimeout(1_500)
+  await expect(page.locator('.turn-timer')).toHaveText('45')
+  await page.getByRole('button', { name: 'Valider' }).click()
 
-  // MotMan joue son mot ; « Suivant » attend la fin de son coup.
-  const suivant = essai.getByRole('button', { name: 'Suivant' })
-  await expect(suivant).toBeEnabled({ timeout: 6_000 })
-  await expect(essai.locator('.essai-score-adverse strong')).toHaveText('6')
+  // Les vrais points, puis MotMan qui joue sous les yeux du joueur.
+  await expect(bulle).toContainText('Bravo, +8 points !', { timeout: 15_000 })
+  await bulle.getByRole('button', { name: 'Suivant' }).click()
+  await expect(bulle).toContainText('Au tour de MotMan')
+  const suivant = bulle.getByRole('button', { name: 'Suivant' })
+  await expect(suivant).toBeEnabled({ timeout: 15_000 })
   await suivant.click()
 
-  await expect(essai.getByRole('heading', { name: 'Prends ton temps' })).toBeVisible()
-  await page.screenshot({ path: `output/quality/partie-d-essai-fin-${testInfo.project.name}.png`, fullPage: false })
+  // Tour 3 : aucune lettre ne va → le bouton aléatoire, puis l'indice, puis ROLE.
+  await expect(bulle).toContainText('Pas de chance !')
+  await page.getByRole('button', { name: 'Relancer les lettres' }).click()
+  await expect(bulle).toContainText('Un coup de pouce')
+  await page.getByRole('button', { name: /^Indice/ }).click()
+  await expect(bulle).toContainText('Joué par un acteur')
+  await poser('L', 14)
+  await poser('E', 15)
+  await page.getByRole('button', { name: 'Valider' }).click()
+
+  // Tour 5 : à lui de finir, et cette fois le chrono tourne.
+  await expect(bulle).toContainText('À toi de finir !', { timeout: 20_000 })
+  await bulle.getByRole('button', { name: 'C’est parti' }).click()
+  await expect(page.locator('.guide-couche')).toHaveCount(0)
+  await expect(page.locator('.turn-timer')).not.toHaveText('45', { timeout: 4_000 })
+  for (const [lettre, numero] of [['I', 18], ['E', 19], ['L', 20]] as const) await poser(lettre, numero)
+  await page.getByRole('button', { name: 'Valider' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Tu as gagné !' })).toBeVisible({ timeout: 20_000 })
+  await page.screenshot({ path: `output/quality/partie-guidee-fin-${testInfo.project.name}.png`, fullPage: false })
   // Le défi du jour passe devant (23/10/2026), sa tentative unique dite avant.
-  // On ne le lance pas ici : il ne vit que par Supabase, que le serveur de
-  // test ne sert pas. La partie normale reste à un toucher.
-  await expect(essai.getByRole('button', { name: 'Relever le défi du jour' })).toBeVisible()
-  await expect(essai).toContainText('Une seule tentative')
-  await expect(essai.getByRole('button', { name: 'Jouer ma première partie' })).toHaveCount(0)
-  await essai.getByRole('button', { name: 'Une partie normale' }).click()
-  await expect(essai).toBeHidden()
-  // La recherche est lancée : on n'a pas à choisir un mode qu'on ne connaît pas.
+  // On ne le lance pas ici : il ne vit que par Supabase, que le serveur de test
+  // ne sert pas. La partie normale reste à un toucher.
+  await expect(page.getByRole('button', { name: 'Relever le défi du jour' })).toBeVisible()
+  await expect(page.locator('.guide-fin')).toContainText('Une seule tentative')
+  await page.getByRole('button', { name: 'Une partie normale' }).click()
   await expect(page).toHaveURL(/#jouer$/)
   await expect(page.getByText('On te trouve un adversaire…')).toBeVisible()
   await page.getByRole('button', { name: 'Annuler' }).click()
 
+  // Fini une fois, il ne revient plus tout seul ; il se rejoue depuis les paramètres, du début.
   await page.reload()
-  await expect(page.getByRole('dialog', { name: 'Partie d’essai' })).toBeHidden()
+  await expect(page).not.toHaveURL(/#partie=/)
   await page.getByRole('button', { name: 'Menu' }).click()
   await page.getByRole('button', { name: /Revoir le tutoriel/ }).click()
-  const revue = page.getByRole('dialog', { name: 'Partie d’essai' })
-  await expect(revue).toBeVisible()
-  await expect(revue).toContainText('Bienvenue dans MotMan')
-  await revue.getByRole('button', { name: 'Passer' }).click()
-  await expect(revue).toBeHidden()
+  await expect(page).toHaveURL(/#partie=partie-guidee$/)
+  await expect(bulle).toContainText('Ta première partie')
+  await bulle.getByRole('button', { name: 'Passer le tutoriel' }).click()
+  await expect(page).not.toHaveURL(/#partie=/)
 })
 
-test('un joueur qui n’avait fini que l’ancienne version reçoit la partie d’essai, une seule fois', async ({ page }) => {
+test('un joueur qui n’avait fini que l’ancienne version reçoit la partie guidée, une seule fois', async ({ page }) => {
   // Jusqu'au 15/10/2026, une étape « Quêtes » ajoutée en version 2 rouvrait le
-  // tutoriel directement sur elle. Depuis le 22/10/2026, le tutoriel est une
-  // partie d'essai : celui qui n'avait vu que la version 1 la reçoit en entier,
-  // et une seule fois.
+  // tutoriel directement sur elle. Celui qui n'avait vu que la version 1 reçoit
+  // aujourd'hui la partie guidée en entier, et une seule fois.
   // Une seule fois par onglet : le script d'amorçage repasse à chaque
   // rechargement, et réécrirait la version 1 que le joueur vient de dépasser.
   await page.addInitScript(() => {
@@ -131,15 +146,14 @@ test('un joueur qui n’avait fini que l’ancienne version reçoit la partie d�
   })
   await page.goto('/')
 
-  const tutorial = page.getByRole('dialog', { name: 'Partie d’essai' })
-  await expect(tutorial).toBeVisible()
-  await expect(tutorial).toContainText('Bienvenue dans MotMan')
-
-  await tutorial.getByRole('button', { name: 'Passer' }).click()
-  await expect(tutorial).toBeHidden()
+  await expect(page).toHaveURL(/#partie=partie-guidee$/)
+  const bulle = page.locator('.guide-bulle')
+  await expect(bulle).toContainText('Ta première partie')
+  await bulle.getByRole('button', { name: 'Passer le tutoriel' }).click()
+  await expect(page).not.toHaveURL(/#partie=/)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Partie' })).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Partie d’essai' })).toHaveCount(0)
+  await expect(page).not.toHaveURL(/#partie=/)
 
   // Il connaissait déjà l'Épicerie : pas de carte de premier passage pour lui.
   await page.getByRole('button', { name: 'Épicerie' }).click()
@@ -147,11 +161,12 @@ test('un joueur qui n’avait fini que l’ancienne version reçoit la partie d�
   await expect(page.locator('.mm-premier-passage')).toHaveCount(0)
 })
 
-test('après le tutoriel (la partie d’essai), l’Épicerie et les Quêtes s’expliquent une fois au nouveau venu', async ({ page }) => {
+test('après le tutoriel (la partie guidée), l’Épicerie et les Quêtes s’expliquent une fois au nouveau venu', async ({ page }) => {
   // Le guide ne dit plus tout (15/10/2026) : le reste s'explique la première
   // fois qu'on le croise, une seule fois, et seulement à qui découvre le jeu.
   await page.goto('/')
-  await page.getByRole('dialog', { name: 'Partie d’essai' }).getByRole('button', { name: 'Passer' }).click()
+  await page.locator('.guide-bulle').getByRole('button', { name: 'Passer le tutoriel' }).click()
+  await expect(page).not.toHaveURL(/#partie=/)
 
   await page.getByRole('button', { name: 'Épicerie' }).click()
   const epicerie = page.getByRole('complementary', { name: 'Bienvenue à l’Épicerie' })

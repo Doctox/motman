@@ -36,6 +36,8 @@ function phaseAt(match: MatchState | null, instant = serverNow()): TurnPhase {
   const startsAt = new Date(match.turnStartedAt).getTime()
   const endsAt = new Date(match.turnEndsAt).getTime()
   const started = instant >= startsAt
+  // La partie guidée fige le chrono pendant que le guide explique : rien n'échoit.
+  if (typeof match.chronoFige === 'number') return { started, expired: false, urgent: false }
   const expired = instant >= endsAt
   return { started, expired, urgent: match.pace === 'realtime' && started && !expired && endsAt - instant <= URGENCE_MS }
 }
@@ -94,12 +96,14 @@ export function TurnTimer({ match, resolving }: { match: MatchState; resolving: 
   const labelAt = () => {
     if (lectureRestante !== null) return String(lectureRestante)
     if (match.status !== 'active' || resolving) return '—'
+    // Chrono figé (partie guidée) : le reste du tour, immobile.
+    if (typeof match.chronoFige === 'number') return turnClockLabel(Math.ceil(match.chronoFige / 1_000), false)
     const seconds = Math.max(0, Math.ceil((new Date(match.turnEndsAt).getTime() - serverNow()) / 1_000))
     return turnClockLabel(seconds, match.pace === 'async', match.chaine ? SECONDES_DU_TOUR_DE_CHAINE : undefined)
   }
   // L'anneau autour du chiffre se vide avec le tour, comme une tasse qui
   // refroidit (A3). Plein pendant la lecture et la révélation : rien ne court.
-  const resteAt = () => lectureRestante !== null || match.status !== 'active' || resolving || serverNow() < new Date(match.turnStartedAt).getTime()
+  const resteAt = () => lectureRestante !== null || match.status !== 'active' || resolving || typeof match.chronoFige === 'number' || serverNow() < new Date(match.turnStartedAt).getTime()
     ? 1
     : resteDuTour(match, serverNow())
   const [label, setLabel] = useState(labelAt)
@@ -119,7 +123,7 @@ export function TurnTimer({ match, resolving }: { match: MatchState; resolving: 
     if (match.status !== 'active' || resolving) return
     const timer = window.setInterval(update, 250)
     return () => window.clearInterval(timer)
-  }, [match.pace, match.status, match.turnEndsAt, match.turnNumber, resolving, lectureRestante])
+  }, [match.pace, match.status, match.turnEndsAt, match.turnNumber, match.chronoFige, resolving, lectureRestante])
   return <>
     <svg className="turn-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
       <circle className="turn-ring-reste" cx="50" cy="50" r="48" pathLength="100" style={{ strokeDasharray: `${reste * 100} 100` }} />

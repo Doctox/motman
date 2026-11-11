@@ -51,6 +51,9 @@ const cas = [
   // Lot D : les pastilles du podium sont des métaux de nuit ; l'or (#4a3f22) est le plus clair des trois.
   { ecran: 'podium du classement', fichier: 'menu/menu-foundation.css', selecteur: '[data-theme="dark"] .mm-position.p1,[data-theme="dark"] .mm-position.p2,[data-theme="dark"] .mm-position.p3', propriete: 'color', fond: '#4a3f22', minimum: 4.5 },
   { ecran: 'podium du classement : fond de la 1re place', fichier: 'menu/menu-foundation.css', selecteur: '[data-theme="dark"] .mm-position.p1', propriete: 'background', fond: '#edf5ef', minimum: 4.5 },
+  { ecran: 'partie guidée : titre de la fin', fichier: 'partieGuidee/partie-guidee.css', selecteur: '[data-theme="dark"] .guide-fin', propriete: '--guide-encre', fond: NUIT, minimum: 4.5 },
+  { ecran: 'partie guidée : conseils de la fin', fichier: 'partieGuidee/partie-guidee.css', selecteur: '[data-theme="dark"] .guide-fin li', propriete: 'color', fond: NUIT, minimum: 4.5 },
+  { ecran: 'partie guidée : « Plus tard »', fichier: 'partieGuidee/partie-guidee.css', selecteur: '[data-theme="dark"] .guide-fin-plus-tard', propriete: 'color', fond: NUIT, minimum: 4.5 },
   { ecran: 'bouton du défi du jour', fichier: 'menu/menu-daily.css', selecteur: '[data-theme="dark"] .mm-shell .mm-daily-cta', propriete: 'color', fond: '#ef805d', minimum: 4.5 },
 ]
 

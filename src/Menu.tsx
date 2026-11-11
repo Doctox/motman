@@ -23,7 +23,7 @@ import { presenceHeartbeatDelay } from './presencePolicy'
 import { EMPTY_SOCIAL_STATE, loadSocialState, registerSocialProfile, setSocialPresence, type SocialState } from './social'
 import { AccountPanel } from './menu/AccountPanel'
 import { AppHeader, BottomNav } from './menu/MenuChrome'
-import { PartieDEssai } from './menu/PartieDEssai'
+import { demanderUnePartieGuideeNeuve, ID_PARTIE_GUIDEE, prendreSuiteGuidee } from './partieGuidee/partieGuidee'
 import { noterPremierPas } from './premiersPas'
 import { useDailyChallenge } from './menu/DailyChallenge'
 import { FriendsPanel } from './menu/FriendsPanel'
@@ -35,8 +35,7 @@ import { EditGuestPanel, ProfilePage, RankingPage } from './menu/ProfilePanels'
 import { SettingsPanel } from './menu/SettingsPanel'
 import { lireThemeChoisi } from './menu/types'
 import type { MenuAppProps, MenuPage, Theme } from './menu/types'
-import { completedTutorialVersion, completeFirstRunTutorial, hasCompletedFirstRunTutorial } from './tutorialProgress'
-import { ouvrirPremiersPassages } from './premiersPassages'
+import { completedTutorialVersion, hasCompletedFirstRunTutorial } from './tutorialProgress'
 import { useBalayageEntrePages } from './menu/balayage'
 import { demanderActualisation, useTirerPourActualiser } from './menu/actualiser'
 import { useEnteteDefile } from './menu/enteteDefile'
@@ -94,10 +93,6 @@ export function MenuApp({
   const [googleAuthIssue, setGoogleAuthIssue] = useState<GoogleAuthIssue | null>(currentGoogleAuthIssue)
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [editingGuest, setEditingGuest] = useState(false)
-  const [tutorialOpen, setTutorialOpen] = useState(() => !hasCompletedFirstRunTutorial())
-  // La partie d'essai rouverte depuis les paramètres : elle se termine sur
-  // « C'est compris », sans lancer de recherche.
-  const [essaiRevu, setEssaiRevu] = useState(false)
   // Un tout nouveau venu (aucun guide fini sur cet appareil) : à la fermeture
   // du guide court, l'Épicerie et les Quêtes s'expliqueront une fois à leur
   // première visite (src/premiersPassages.ts). Pas l'habitué qui le revoit.
@@ -416,21 +411,13 @@ export function MenuApp({
     demanderActualisation()
   })
 
-  // La fin de la partie d'essai (22/10/2026). « Jouer ma première partie »
-  // lance tout de suite une recherche normale (N1) : le guide
-  // finissait sur « Choisir un mode », trois onglets et deux rythmes posés à
-  // quelqu'un qui ne savait pas encore ce qu'ils voulaient dire. Depuis le
-  // 23/10/2026, le défi du jour à thème passe devant quand il est jouable.
-  const terminerEssai = (suite: 'partie' | 'defi' | null) => {
-    const premiere = premiereOuverture.current && !essaiRevu
-    premiereOuverture.current = false
-    completeFirstRunTutorial()
-    if (premiere) ouvrirPremiersPassages()
-    setTutorialOpen(false)
-    setEssaiRevu(false)
-    if (!premiere) return
-    if (suite === 'partie') jouerPremierePartie()
-    if (suite === 'defi') void playDailyChallenge()
+  // LA PARTIE GUIDÉE (11/11/2026, src/partieGuidee) remplace la partie d'essai :
+  // au tout premier lancement, le nouveau venu part directement dans une vraie
+  // partie contre MotMan, chrono figé pendant les explications. Elle se rejoue
+  // depuis les paramètres, et repart alors du début.
+  const ouvrirLaPartieGuidee = () => {
+    demanderUnePartieGuideeNeuve()
+    onStartMatch(ID_PARTIE_GUIDEE)
   }
   // Tant qu'aucune partie n'est finie, « Jouer ma première partie » lance la
   // recherche au lieu d'ouvrir l'écran des choix (N1, N2). EN ILLIMITÉ depuis le
@@ -441,6 +428,20 @@ export function MenuApp({
     navigate('play')
     void beginNormalSearch('async', true)
   }
+  // À l'arrivée du menu : le tout premier lancement part dans la partie guidée ;
+  // au retour de celle-ci, le menu lance ce que le joueur a choisi à la fin
+  // (le défi du jour d'abord quand il est jouable, depuis le 23/10/2026).
+  const arriveeTraitee = useRef(false)
+  useEffect(() => {
+    if (arriveeTraitee.current) return
+    arriveeTraitee.current = true
+    if (!hasCompletedFirstRunTutorial()) { ouvrirLaPartieGuidee(); return }
+    const suite = prendreSuiteGuidee()
+    if (suite === 'partie') jouerPremierePartie()
+    if (suite === 'defi') void playDailyChallenge()
+    // Une seule fois, à l'arrivée du menu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // MotMan+ : ouvert sur le compte du propriétaire, en vitrine pour les autres
   // (src/abonnement.ts). Le serveur revérifie le droit à chaque action.
@@ -631,7 +632,7 @@ export function MenuApp({
         nouveau du jeu. Le panier offert devient la récompense de sa première
         partie, annoncée sur l'écran de fin. */}
     <BottomNav page={page} setPage={navigate} basketAffordable={progress.lifetimeXp > 0 && BASKETS.some(basket => cosmetics.plumes >= basketPriceFor(cosmetics, basket))} />
-    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); setEssaiRevu(true); setTutorialOpen(true) }} theme={theme} setTheme={suivant => fondreLeTheme(suivant, () => setTheme(suivant))} /> : null}
+    {settings ? <SettingsPanel identity={identity} close={() => setSettings(false)} openAccount={() => { setSettings(false); setAccountOpen(true) }} openFriends={() => { setSettings(false); setFriendsOpen(true) }} openLegal={() => { setSettings(false); setLegalOpen(true) }} openTutorial={() => { setSettings(false); ouvrirLaPartieGuidee() }} theme={theme} setTheme={suivant => fondreLeTheme(suivant, () => setTheme(suivant))} /> : null}
     {legalOpen ? <Suspense fallback={<div className="mm-page mm-route-loading" role="status">Ouverture des informations…</div>}><LazyLegalPanel close={() => setLegalOpen(false)} identity={identity} /></Suspense> : null}
     {accountOpen ? <AccountPanel identity={identity} close={() => setAccountOpen(false)} apply={applyAuthenticatedState} notify={notify} googleAuthIssue={googleAuthIssue} dismissGoogleAuthIssue={() => { clearGoogleAuthIssue(); setGoogleAuthIssue(null) }} /> : null}
     {friendsOpen ? <FriendsPanel identity={identity} social={social} setSocial={setSocial} close={() => setFriendsOpen(false)} notify={notify} /> : null}
@@ -643,12 +644,7 @@ export function MenuApp({
     {outgoingInvitation ? <div className="mm-live-activities">
       <MatchWaitingPanel invitation={outgoingInvitation} busy={matchBusy} cancel={() => void cancelInvitation(outgoingInvitation.id)} />
     </div> : null}
-    {tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !offreOuverte && !matchLobby.incoming[0]
-      ? <PartieDEssai premiere={premiereOuverture.current && !essaiRevu} jouer={() => terminerEssai('partie')}
-        defi={defiDuJour.status === 'todo' ? { theme: defiDuJour.theme, jouer: () => terminerEssai('defi') } : null}
-        fermer={() => terminerEssai(null)} />
-      : null}
-    {motDuCreateur && page === 'home' && !tutorialOpen && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !offreOuverte && !matchLobby.incoming[0]
+    {motDuCreateur && page === 'home' && !settings && !legalOpen && !accountOpen && !friendsOpen && !editingGuest && !offreOuverte && !matchLobby.incoming[0]
       ? <CreatorNote close={() => { motDuCreateurMontre(dailyDateKey(Date.now())); setMotDuCreateur(false) }} />
       : null}
     {toast ? <div key={toastNumero.current} className="mm-toast" role="status"><span>{toast}</span></div> : null}

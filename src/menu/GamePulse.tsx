@@ -81,8 +81,8 @@ export function ligneDeSource(source: { semaine: number; mois: number }): string
 /** « signalement » ou « signalements » : zéro reste au singulier. */
 const NOMS_DES_PAS: ReadonlyArray<readonly [string, string]> = [
   ['menu', 'Arrivés au menu'],
-  ['essai_fini', 'Essai fini'],
-  ['essai_passe', 'Essai passé'],
+  ['essai_fini', 'Tuto gagné'],
+  ['essai_passe', 'Tuto passé'],
   ['choix_defi', 'Puis le défi'],
   ['choix_partie', 'Puis une partie'],
   ['choix_plus_tard', 'Puis « Plus tard »'],

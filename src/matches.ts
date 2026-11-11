@@ -5,6 +5,8 @@ import { FUNCTION_TIMEOUT_MS, invokeSupabaseFunction, RELANCES_FIN_DE_TOUR, RELA
 import type { EnDirect } from './game/lettresEnDirect'
 import type { BoardSnapshot } from './matchBoardSnapshot'
 import type { MatchHistoryOutcome } from './matchHistory'
+import { estPartieGuidee } from './partieGuidee/partieGuidee'
+import { serverNow } from './serverClock'
 
 export type MatchPace = 'realtime' | 'async'
 export type MatchMode = 'solo' | 'friend' | 'normal' | 'ranked'
@@ -164,6 +166,11 @@ export type MatchState = {
   chaine?: EtatDeChaine | null
   /** Cette partie a cédé la place pendant la lecture : l'écran saute à celle-ci, sans écran de fin. */
   remplaceePar?: string
+  /**
+   * La partie guidée (src/partieGuidee) : le chrono est FIGÉ sur ce reste, en
+   * millisecondes, pendant que le guide explique. Jamais posé par le serveur.
+   */
+  chronoFige?: number | null
 }
 
 /**
@@ -191,6 +198,13 @@ export type MatchLobbyState = {
 }
 export const EMPTY_MATCH_LOBBY: MatchLobbyState = { incoming: [], outgoing: [], active: [], searches: [], recent: [], pendingResults: [], rankedSeekers: 0 }
 const localTestServer = import.meta.env.VITE_MOTMAN_LOCAL_TEST_SERVER === 'true'
+
+/**
+ * LA PARTIE GUIDÉE (11/11/2026) se joue dans le téléphone : chaque appel qui la
+ * vise part vers son moteur (src/partieGuidee/moteurGuide.ts), jamais sur le
+ * réseau. Chargé à la demande, avec l'écran de jeu.
+ */
+const moteurGuide = () => import('./partieGuidee/moteurGuide')
 
 async function localMatch<T>(path: string, body?: Record<string, unknown>): Promise<T> {
   const response = await fetch(`/api/matches/${path}`, body ? {
@@ -246,6 +260,7 @@ export async function lancerPartiePlus(playerId: string, demande: DemandePartieP
 
 /** L'autre la voit par le canal de la partie. Une bulle perdue ne mérite ni erreur, ni relance. */
 export async function envoyerEmote(playerId: string, matchId: string, emote: string): Promise<void> {
+  if (estPartieGuidee(matchId)) return
   try {
     if (localTestServer) await localMatch('emote', { playerId, matchId, emote })
     else await supabaseMatch('emote', { matchId, emote })
@@ -307,6 +322,10 @@ export function isDailyClosedError(reason: unknown): boolean {
 
 /** `knownGridId` : en chaîne, celui qui a déjà la grille ne la reçoit pas à chaque relecture. */
 export async function loadMatch(playerId: string, matchId: string, knownUpdatedAt?: string, surEnDirect?: (enDirect: EnDirect) => void, knownGridId?: string): Promise<MatchState | null> {
+  if (estPartieGuidee(matchId)) {
+    const partie = (await moteurGuide()).lirePartieGuidee(playerId, serverNow())
+    return partie.updatedAt === knownUpdatedAt ? null : partie
+  }
   if (localTestServer) {
     const query = new URLSearchParams({ playerId, ...(knownUpdatedAt ? { since: knownUpdatedAt } : {}) })
     const local = await localMatch<(MatchState & { enDirect?: EnDirect; unchanged?: boolean }) | null>(`match/${encodeURIComponent(matchId)}?${query}`)
@@ -320,6 +339,7 @@ export async function loadMatch(playerId: string, matchId: string, knownUpdatedA
 }
 
 export async function playMatchTurn(playerId: string, matchId: string, turnNumber: number, placements: Array<{ cellIndex: number; letter: string }>, automatic = false, knownUpdatedAt?: string): Promise<{ match: MatchState; result: MatchTurn }> {
+  if (estPartieGuidee(matchId)) return (await moteurGuide()).jouerCoupGuide(playerId, placements, serverNow())
   if (localTestServer) return localMatch('turn', { playerId, matchId, turnNumber, placements, automatic, knownUpdatedAt })
   void playerId
   return supabaseMatch<{ match: MatchState; result: MatchTurn }>('turn', { matchId, turnNumber, placements, automatic, knownUpdatedAt }, FUNCTION_TIMEOUT_MS, automatic ? RELANCES_FIN_DE_TOUR : undefined)
@@ -356,18 +376,21 @@ const BROUILLON_DELAI_MS = 4_000
  * Sans retour utile : un brouillon perdu n'est pas une erreur à montrer.
  */
 export async function saveMatchDraft(playerId: string, matchId: string, turnNumber: number, placements: Array<{ cellIndex: number; letter: string }>, version: number): Promise<void> {
+  if (estPartieGuidee(matchId)) return
   if (localTestServer) { await localMatch('draft', { playerId, matchId, turnNumber, placements, version }); return }
   void playerId
   await supabaseMatch<{ ok: boolean }>('draft', { matchId, turnNumber, placements, version }, BROUILLON_DELAI_MS)
 }
 
 export async function requestMatchHint(playerId: string, matchId: string, placements: Array<{ cellIndex: number; letter: string }>, knownUpdatedAt?: string): Promise<MatchState> {
+  if (estPartieGuidee(matchId)) return (await moteurGuide()).indiceGuide(playerId, placements, serverNow())
   if (localTestServer) return localMatch('hint', { playerId, matchId, placements, knownUpdatedAt })
   void playerId
   return (await supabaseMatch<{ match: MatchState }>('hint', { matchId, placements, knownUpdatedAt })).match
 }
 
 export async function rerollMatchRack(playerId: string, matchId: string, knownUpdatedAt?: string): Promise<MatchState> {
+  if (estPartieGuidee(matchId)) return (await moteurGuide()).relanceGuidee(playerId, serverNow())
   if (localTestServer) return localMatch('reroll', { playerId, matchId, knownUpdatedAt })
   void playerId
   return (await supabaseMatch<{ match: MatchState }>('reroll', { matchId, knownUpdatedAt })).match
@@ -375,6 +398,7 @@ export async function rerollMatchRack(playerId: string, matchId: string, knownUp
 
 /** « Je suis là » : répondre à la fenêtre qui suit un tour manqué (temps limité). */
 export async function confirmMatchPresence(playerId: string, matchId: string): Promise<MatchState> {
+  if (estPartieGuidee(matchId)) return (await moteurGuide()).lirePartieGuidee(playerId, serverNow())
   if (localTestServer) return (await localMatch<{ match: MatchState }>('present', { playerId, matchId })).match
   void playerId
   return (await supabaseMatch<{ match: MatchState }>('present', { matchId })).match
@@ -456,6 +480,7 @@ export async function transferMatchToRanked(matchId: string, rankedMatchId: stri
 }
 
 export async function forfeitMatch(playerId: string, matchId: string, knownUpdatedAt?: string): Promise<MatchState> {
+  if (estPartieGuidee(matchId)) return (await moteurGuide()).abandonGuide(playerId, serverNow())
   if (localTestServer) return localMatch('forfeit', { playerId, matchId, knownUpdatedAt })
   void playerId
   return (await supabaseMatch<{ match: MatchState }>('forfeit', { matchId, knownUpdatedAt })).match
@@ -479,6 +504,8 @@ export async function acknowledgeMatchResult(
   playerId: string,
   reference: { resultId: string } | { matchId: string },
 ): Promise<MatchLobbyState> {
+  // La partie guidée n'a pas de résultat en base : rien à valider.
+  if ('matchId' in reference && estPartieGuidee(reference.matchId)) return EMPTY_MATCH_LOBBY
   if (localTestServer) return localMatch('result/acknowledge', { playerId, ...reference })
   void playerId
   return (await supabaseMatch<{ lobby: MatchLobbyState }>('acknowledge-result', reference)).lobby
