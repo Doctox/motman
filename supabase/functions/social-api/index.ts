@@ -106,8 +106,9 @@ async function battementDePresence(
     await admin.from('profiles').update({ activity, last_seen: new Date().toISOString() }).eq('id', userId)
     return
   }
-  const arrivee = data as { alerte?: boolean; enLigne?: number } | null
-  if (arrivee?.alerte) queuePush(prevenirDuneArrivee(admin, userId, arrivee.enLigne ?? 1))
+  // `nouveau` : sa toute première ouverture (20261111120000_un_nouveau_venu_previent.sql).
+  const arrivee = data as { alerte?: boolean; enLigne?: number; nouveau?: boolean } | null
+  if (arrivee?.alerte) queuePush(prevenirDuneArrivee(admin, userId, arrivee.enLigne ?? 1, arrivee.nouveau === true))
 }
 
 /**
@@ -121,12 +122,13 @@ async function prevenirDuneArrivee(
   admin: ReturnType<typeof createAdminClient>,
   arrivantId: string,
   enLigne: number,
+  nouveau: boolean,
 ): Promise<void> {
   const [{ data: proprietaires }, { data: arrivant }] = await Promise.all([
     admin.from('profiles').select('id').eq('role', 'admin'),
     admin.from('profiles').select('display_name').eq('id', arrivantId).maybeSingle(),
   ])
-  const message = messageArrivee(arrivant?.display_name ?? '', enLigne, Date.now())
+  const message = messageArrivee(arrivant?.display_name ?? '', enLigne, Date.now(), nouveau)
   await Promise.all((proprietaires ?? []).map(proprietaire => sendPushToUser(admin, proprietaire.id, message)))
 }
 

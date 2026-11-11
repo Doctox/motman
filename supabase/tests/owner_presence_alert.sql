@@ -10,7 +10,10 @@
 --   4. pendant le silence rien ne part, mais le battement s'écrit quand même ;
 --   5. le propriétaire ne se signale jamais lui-même, et ne se compte pas dans
 --      le nombre de joueurs en ligne ;
---   6. la fonction reste réservée au service.
+--   6. la fonction reste réservée au service ;
+--   8. la TOUTE PREMIÈRE ouverture d'un joueur est une arrivée, marquée
+--      `nouveau` (11/11/2026) : un profil naît « vu à l'instant », et son
+--      premier battement ne suivait aucun trou. Un retour n'est pas `nouveau`.
 
 begin;
 
@@ -18,6 +21,7 @@ do $$
 declare
   joueur constant uuid := 'f7ee0023-0000-4000-8000-0000000000a1';
   patron constant uuid := 'f7ee0023-0000-4000-8000-0000000000a2';
+  neuf constant uuid := 'f7ee0023-0000-4000-8000-0000000000a3';
   -- Le seuil du jeu : au-delà, un joueur est « hors ligne » pour ses amis.
   hors_ligne constant int := 75;
   reponse jsonb;
@@ -34,6 +38,9 @@ begin
     (patron, false, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp());
 
   update public.profiles set role = 'admin', last_seen = pg_catalog.now() where id = patron;
+  -- Ces deux-là sont des habitués : leur profil date d'hier. Sans ça, chacun
+  -- passerait pour un nouveau venu (promesse 8), dont le profil vient de naître.
+  update public.profiles set created_at = pg_catalog.now() - interval '1 day' where id in (joueur, patron);
 
   -- ── 1. Un battement qui suit une absence est une arrivée ──────────────────
   update public.profiles set last_seen = pg_catalog.now() - interval '10 minutes' where id = joueur;
@@ -41,6 +48,9 @@ begin
   reponse := public.server_presence_touch(joueur, 'online', true, hors_ligne, hors_ligne);
   if (reponse ->> 'alerte')::boolean is distinct from true then
     raise exception 'Dix minutes d''absence auraient du valoir une arrivee : %', reponse;
+  end if;
+  if (reponse ->> 'nouveau')::boolean is distinct from false then
+    raise exception 'Un habitue qui revient n''est pas un nouveau venu : %', reponse;
   end if;
 
   -- La présence a bien été écrite : la fonction remplace un `update`, elle ne
@@ -145,6 +155,25 @@ begin
   perform public.server_presence_touch(joueur, 'online', true, hors_ligne, hors_ligne);
   if (select pg_catalog.count(*) from realtime.messages where topic = 'user:' || patron::text) <> messages_apres then
     raise exception 'Un battement ordinaire ne doit reveiller personne';
+  end if;
+
+  -- ── 8. La toute première ouverture est une arrivée, marquée nouvelle ──────
+  -- Le profil naît « vu à l'instant » : avant le 11/11/2026, son premier
+  -- battement ne suivait aucun trou et le propriétaire n'apprenait jamais le
+  -- passage d'un invité venu une seule fois.
+  insert into auth.users(id, is_anonymous, created_at, updated_at)
+  values (neuf, true, pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp());
+
+  reponse := public.server_presence_touch(neuf, 'online', true, hors_ligne, hors_ligne);
+  if (reponse ->> 'alerte')::boolean is distinct from true
+     or (reponse ->> 'nouveau')::boolean is distinct from true then
+    raise exception 'La premiere ouverture d''un invite doit alerter, en nouveau venu : %', reponse;
+  end if;
+
+  -- Son battement suivant, 25 secondes plus tard, n'est plus une arrivée.
+  reponse := public.server_presence_touch(neuf, 'playing', true, hors_ligne, hors_ligne);
+  if (reponse ->> 'alerte')::boolean is distinct from false then
+    raise exception 'Le deuxieme battement d''un nouveau venu n''est pas une arrivee : %', reponse;
   end if;
 
   -- ── 6. Réservé au service ─────────────────────────────────────────────────

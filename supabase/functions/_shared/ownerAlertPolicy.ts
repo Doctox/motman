@@ -64,14 +64,21 @@ export function dansLeSilence(now: number): boolean {
  * exactement ce que le propriétaire veut lire. `instant` ne sert qu'à ça.
  *
  * Le pseudo reste dans le titre et le texte, jamais dans `data`.
+ *
+ * LE NOUVEAU VENU, DEPUIS LE 11/11/2026. La toute première ouverture d'un
+ * joueur ne sonnait jamais (voir 20261111120000_un_nouveau_venu_previent.sql) :
+ * les invités, qui ne viennent presque toujours qu'une fois, passaient sans
+ * bruit. Elle sonne maintenant, et se distingue d'un retour, comme le
+ * propriétaire l'a validé : « Nouveau : Lina arrive ».
  */
-export function messageArrivee(pseudo: string, enLigne: number, instant: number): PushMessage {
+export function messageArrivee(pseudo: string, enLigne: number, instant: number, nouveau = false): PushMessage {
   const qui = pseudo.trim() || 'Quelqu’un'
+  const action = nouveau ? 'ouvre MotMan pour la première fois' : 'vient d’ouvrir MotMan'
   return {
-    title: `${qui} arrive`,
+    title: nouveau ? `Nouveau : ${qui} arrive` : `${qui} arrive`,
     body: enLigne > 1
-      ? `${qui} vient d’ouvrir MotMan · ${enLigne} joueurs en ligne.`
-      : `${qui} vient d’ouvrir MotMan.`,
+      ? `${qui} ${action} · ${enLigne} joueurs en ligne.`
+      : `${qui} ${action}.`,
     data: { type: 'player_arrival' },
     tag: `arrivee-${instant}`,
   }

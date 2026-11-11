@@ -78,6 +78,18 @@ Deno.test('la notification nomme celui qui arrive (15/10/2026)', () => {
   assertEquals(Object.keys(seul.data), ['type'])
 })
 
+Deno.test('la toute première ouverture se distingue d’un retour (11/11/2026)', () => {
+  // Les invités ne venaient qu'une fois et ne sonnaient jamais : leur premier
+  // passage sonne maintenant, marqué « Nouveau ».
+  const nouveau = messageArrivee('Lina', 1, 1_000, true)
+  assertEquals(nouveau.title, 'Nouveau : Lina arrive')
+  assertEquals(nouveau.body, 'Lina ouvre MotMan pour la première fois.')
+  assertEquals(messageArrivee('Lina', 3, 1_000, true).body, 'Lina ouvre MotMan pour la première fois · 3 joueurs en ligne.')
+  assertEquals(nouveau.data.type, 'player_arrival')
+  // Sans la marque, c'est le retour habituel.
+  assertEquals(messageArrivee('Lina', 1, 1_000, false).title, 'Lina arrive')
+})
+
 Deno.test('chaque arrivée garde sa ligne dans le tiroir', () => {
   // Une étiquette commune remplaçait l'arrivée précédente : « Lina » cinq fois
   // et cinq joueurs différents ne laissaient alors qu'une seule ligne.
