@@ -47,6 +47,10 @@ html:not([data-motion="off"]) .guide-bulle{animation:guideBulle .22s ease-out}
 .guide-fin-relever{border:0;background:var(--mm-coral,var(--guide-terre));color:#fffaf0}
 .guide-fin-normale{margin-top:8px;border:1.5px solid var(--guide-encre);background:transparent;color:var(--guide-encre)}
 .guide-fin-plus-tard{margin-top:8px;border:0;background:transparent;color:#5d6b63}
+/* Avec ou sans chrono, côte à côte : deux choix de même poids. */
+.guide-fin-ou{margin:12px 0 2px;font:600 0.875rem 'DM Sans',sans-serif;color:#28463e}
+.guide-fin-rythmes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.guide-fin-rythmes .guide-fin-normale{margin-top:0}
 
 /* La nuit (data-theme="dark") : la fin se pose sur le fond de l'écran de jeu, qui
    devient #111b18 ; le vert pin de jour n'y se lirait plus (themeSombre.test.ts).
@@ -55,5 +59,6 @@ html:not([data-motion="off"]) .guide-bulle{animation:guideBulle .22s ease-out}
 [data-theme="dark"] .guide-fin-scores{color:#c9d6cf}
 [data-theme="dark"] .guide-fin li{color:#c9d6cf}
 [data-theme="dark"] .guide-fin-defi{color:#c9d6cf}
+[data-theme="dark"] .guide-fin-ou{color:#c9d6cf}
 [data-theme="dark"] .guide-fin-jouer{color:#111b18}
 [data-theme="dark"] .guide-fin-plus-tard{color:#a5b4ae}

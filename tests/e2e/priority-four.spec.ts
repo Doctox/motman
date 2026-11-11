@@ -117,7 +117,9 @@ test('le tutoriel est une vraie partie guidée, chrono figé, qu’on gagne avan
   // ne sert pas. La partie normale reste à un toucher.
   await expect(page.getByRole('button', { name: 'Relever le défi du jour' })).toBeVisible()
   await expect(page.locator('.guide-fin')).toContainText('Une seule tentative')
-  await page.getByRole('button', { name: 'Une partie normale' }).click()
+  // Le rythme de la vraie partie, au choix du joueur (propriétaire, 11/11/2026).
+  await expect(page.getByRole('button', { name: 'Une partie sans chrono' })).toBeVisible()
+  await page.getByRole('button', { name: 'Une partie avec chrono' }).click()
   await expect(page).toHaveURL(/#jouer$/)
   await expect(page.getByText('On te trouve un adversaire…')).toBeVisible()
   await page.getByRole('button', { name: 'Annuler' }).click()

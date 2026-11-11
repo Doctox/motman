@@ -424,20 +424,26 @@ export function MenuApp({
   // 02/11/2026, avec l'accord du propriétaire : 6 premières parties sur 7
   // finissaient abandonnées, et à 45 s par tour le seul moyen de quitter l'écran
   // était de perdre. Pour cette partie seulement : « Rejouer » repart en temps limité.
-  const jouerPremierePartie = () => {
+  // La fin de la partie guidée, elle, laisse choisir le rythme (11/11/2026).
+  // Une fonction à part : l'accueil branche `jouerPremierePartie` sur un clic, qui
+  // lui passerait l'événement en guise de rythme.
+  const lancerPremierePartie = (rythme: MatchPace) => {
     navigate('play')
-    void beginNormalSearch('async', true)
+    void beginNormalSearch(rythme, true)
   }
+  const jouerPremierePartie = () => lancerPremierePartie('async')
   // À l'arrivée du menu : le tout premier lancement part dans la partie guidée ;
   // au retour de celle-ci, le menu lance ce que le joueur a choisi à la fin
-  // (le défi du jour d'abord quand il est jouable, depuis le 23/10/2026).
+  // (le défi du jour d'abord quand il est jouable, depuis le 23/10/2026 ; puis
+  // une partie avec ou sans chrono, à son choix, depuis le 11/11/2026).
   const arriveeTraitee = useRef(false)
   useEffect(() => {
     if (arriveeTraitee.current) return
     arriveeTraitee.current = true
     if (!hasCompletedFirstRunTutorial()) { ouvrirLaPartieGuidee(); return }
     const suite = prendreSuiteGuidee()
-    if (suite === 'partie') jouerPremierePartie()
+    if (suite === 'chrono') lancerPremierePartie('realtime')
+    if (suite === 'sans-chrono') lancerPremierePartie('async')
     if (suite === 'defi') void playDailyChallenge()
     // Une seule fois, à l'arrivée du menu.
     // eslint-disable-next-line react-hooks/exhaustive-deps

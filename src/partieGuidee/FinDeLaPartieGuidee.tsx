@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Clock, Gamepad2, Grid2x2Check } from 'lucide-react'
+import { BookOpen, Clock, Coffee, Grid2x2Check, Timer } from 'lucide-react'
 import { dailyStatus, loadDailyChallengeState } from '../dailyChallenge'
 import { dailyDateKey } from '../dailyDate'
 import { dailyThemeFor } from '../dailyThemeSchedule'
@@ -7,13 +7,13 @@ import type { MatchState } from '../matches'
 import { noterPremierPas, type PremierPas } from '../premiersPas'
 import { ouvrirPremiersPassages } from '../premiersPassages'
 import { completedTutorialVersion, completeFirstRunTutorial } from '../tutorialProgress'
-import { demanderSuiteGuidee } from './partieGuidee'
+import { demanderSuiteGuidee, type SuiteGuidee } from './partieGuidee'
 import './partie-guidee.css'
 
 // LA FIN DE LA PARTIE GUIDÉE (11/11/2026). Elle remplace l'écran de résultat :
 // pas de gains (la partie n'existe pas en base), la victoire, puis la vraie
-// partie. Les choix sont ceux de l'ancienne partie d'essai (22-23/10/2026) : le
-// défi du jour d'abord quand il est jouable, la partie normale ensuite.
+// partie. Le défi du jour d'abord quand il est jouable (23/10/2026), puis une
+// partie normale, avec ou sans chrono, au choix du joueur (11/11/2026).
 
 /** Un tout nouveau venu : aucun tutoriel fini sur cet appareil. Lu AVANT de le marquer fini. */
 export function premierLancement(): boolean {
@@ -51,7 +51,7 @@ export function FinDeLaPartieGuidee({ partie, joueur, adversaire, rentrer }: {
     terminerLeTutoriel(premiere)
   }, [premiere])
 
-  const choisir = (etape: PremierPas, suite: 'defi' | 'partie' | null) => {
+  const choisir = (etape: PremierPas, suite: SuiteGuidee | null) => {
     pas(etape)
     if (suite) demanderSuiteGuidee(suite)
     rentrer()
@@ -59,6 +59,13 @@ export function FinDeLaPartieGuidee({ partie, joueur, adversaire, rentrer }: {
   const moi = partie.scores[joueur] ?? 0
   const lui = partie.scores[partie.playerIds.find(id => id !== joueur) ?? ''] ?? 0
   const gagne = partie.winnerId === joueur
+  // LE RYTHME, AU CHOIX DU JOUEUR (propriétaire, 11/11/2026 : « on le laisse choisir »).
+  // Il vient de jouer avec un chrono : il sait ce que c'est. Avant, la première
+  // vraie partie partait d'office en illimité (02/11/2026).
+  const rythmes = (classe: string) => <div className="guide-fin-rythmes">
+    <button type="button" className={classe} aria-label="Une partie avec chrono" onClick={() => choisir('choix_partie', 'chrono')}><Timer aria-hidden="true" />Avec chrono</button>
+    <button type="button" className={classe} aria-label="Une partie sans chrono" onClick={() => choisir('choix_partie', 'sans-chrono')}><Coffee aria-hidden="true" />Sans chrono</button>
+  </div>
 
   return <section className="guide-fin" aria-labelledby="guide-fin-titre">
     <small>Partie guidée</small>
@@ -66,8 +73,8 @@ export function FinDeLaPartieGuidee({ partie, joueur, adversaire, rentrer }: {
     <p className="guide-fin-scores">Toi <b>{moi}</b> · {adversaire} <b>{lui}</b></p>
     <ul>
       {premiere ? <>
-        {/* La première vraie partie se joue en illimité (02/11/2026, Menu.tsx) : on le dit. */}
-        <li><Clock aria-hidden="true" />Ta première vraie partie se joue sans chrono : quitte-la quand tu veux, elle t’attend 24 h.</li>
+        <li><Timer aria-hidden="true" />Avec chrono : 45 secondes par tour, une partie dure une dizaine de minutes.</li>
+        <li><Coffee aria-hidden="true" />Sans chrono : joue à ton rythme, chaque tour t’attend 24 h.</li>
         {defi ? <li><BookOpen aria-hidden="true" />Le défi du jour, lui, se joue à 45 secondes par tour, après 30 secondes pour lire la grille.</li> : null}
       </> : <li><Clock aria-hidden="true" />Une partie dure une dizaine de minutes.</li>}
     </ul>
@@ -78,10 +85,12 @@ export function FinDeLaPartieGuidee({ partie, joueur, adversaire, rentrer }: {
         {' '}Une seule tentative{' '}: gagnée, perdue ou abandonnée, elle compte pour le classement du jour.
       </p>
       <button type="button" className="guide-fin-relever" onClick={() => choisir('choix_defi', 'defi')}><Grid2x2Check aria-hidden="true" />Relever le défi du jour</button>
-      <button type="button" className="guide-fin-normale" onClick={() => choisir('choix_partie', 'partie')}><Gamepad2 aria-hidden="true" />Une partie normale</button>
+      <p className="guide-fin-ou">Ou une partie normale :</p>
+      {rythmes('guide-fin-normale')}
       <button type="button" className="guide-fin-plus-tard" onClick={() => choisir('choix_plus_tard', null)}>Plus tard</button>
     </> : premiere ? <>
-      <button type="button" className="guide-fin-jouer" onClick={() => choisir('choix_partie', 'partie')}><Gamepad2 aria-hidden="true" />Jouer ma première partie</button>
+      <p className="guide-fin-ou">Ta première vraie partie :</p>
+      {rythmes('guide-fin-jouer')}
       <button type="button" className="guide-fin-plus-tard" onClick={() => choisir('choix_plus_tard', null)}>Plus tard</button>
     </> : <button type="button" className="guide-fin-jouer" onClick={rentrer}>C’est compris</button>}
   </section>

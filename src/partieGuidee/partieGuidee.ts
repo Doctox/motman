@@ -33,7 +33,7 @@ export function partieGuideeNeuveDemandee(): boolean {
 }
 
 /** Ce que le joueur a choisi à la fin, que le menu lance en arrivant. */
-export type SuiteGuidee = 'defi' | 'partie'
+export type SuiteGuidee = 'defi' | 'chrono' | 'sans-chrono'
 
 let suite: SuiteGuidee | null = null
 
