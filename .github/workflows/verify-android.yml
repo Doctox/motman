@@ -44,8 +44,10 @@ jobs:
       # donc en 24 s, avant meme de compiler -- 32 fois d'affilee, sans que
       # personne le voie. On ne lui demande que ce qui existe encore ; les
       # plateformes et build-tools sont installees a l'etape suivante.
+      # Épinglée sur l'empreinte du commit, pas sur l'étiquette `v4`, qui peut
+      # être déplacée (12/11/2026, audit n° 4).
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           packages: platform-tools
 

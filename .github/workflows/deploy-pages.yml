@@ -74,8 +74,13 @@ jobs:
       # serveur — celui qui verse les plumes, applique le classé et clôt les
       # parties — partait donc en production sans qu'aucun compilateur ne l'ait
       # lu. Au premier passage, `deno check` a sorti 184 erreurs.
+      # Épinglée sur l'empreinte du commit, pas sur `v2` (12/11/2026, audit n° 4) :
+      # `v2` est une BRANCHE de l'auteur, qui bouge à chaque envoi, et ce travail
+      # reçoit ensuite SUPABASE_ACCESS_TOKEN et MOTMAN_UPDATE_SIGNING_KEY. Une
+      # action piratée lirait les deux. Pour monter de version : relire l'empreinte
+      # de la nouvelle version publiée, et la recopier ici.
       - name: Setup Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
 
