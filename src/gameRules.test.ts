@@ -256,6 +256,33 @@ describe('indice et chevalet', () => {
     expect(relu.racks).toEqual(premier.racks)
   })
 
+  it('une lettre posée en fait venir une seule autre : les quatre qui restent ne bougent pas', () => {
+    // Le joueur qui vient de jouer a posé le A du chevalet partagé ; l'autre l'a encore entier.
+    const finale = prepareFinalSprintRacks({
+      remainingLetters: ['B', 'C', 'D', 'E', 'F', 'G'],
+      playerIds: ['alex', 'lea'],
+      racks: { alex: ['D', 'B', 'E', 'C'], lea: ['D', 'A', 'B', 'E', 'C'] },
+    })
+
+    expect(finale.racks.alex).toEqual(finale.racks.lea)
+    expect(finale.racks.alex.slice(0, 4)).toEqual(['D', 'B', 'E', 'C'])
+    expect(['F', 'G']).toContain(finale.racks.alex[4])
+  })
+
+  it('au début du sprint, il ne montre pas à l’un le chevalet que l’autre avait en main', () => {
+    // Deux chevalets personnels : aucun n'est inclus dans l'autre, le tirage repart de zéro.
+    // Le tirage choisi prend toujours la dernière lettre de la réserve.
+    const finale = prepareFinalSprintRacks({
+      remainingLetters: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
+      playerIds: ['alex', 'lea'],
+      racks: { alex: ['A', 'B', 'C', 'D', 'E'], lea: ['F', 'G', 'H', 'I', 'J'] },
+      tirer: taille => taille - 1,
+    })
+
+    expect(finale.racks.alex).toEqual(['J', 'I', 'H', 'G', 'F'])
+    expect(finale.racks.lea).toEqual(['J', 'I', 'H', 'G', 'F'])
+  })
+
   it('tire avec le hasard qu’on lui donne, sans rien perdre ni doubler', () => {
     // Toujours la dernière lettre de la réserve : E, puis D, C, B, A.
     const finale = prepareFinalSprintRacks({

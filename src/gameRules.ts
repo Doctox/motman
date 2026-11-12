@@ -299,9 +299,24 @@ export function prepareFinalSprintRacks({
     && playerIds.every(playerId => (racks[playerId] ?? []).join('') === actuel.join(''))
   if (valable) return { active: true, changed: false, racks: nextRacks }
 
-  // Sinon, un nouveau tirage, le même pour tous les joueurs.
+  // UNE LETTRE POSÉE EN FAIT VENIR UNE AUTRE, PAS CINQ (12/11/2026, correctif du
+  // n° 1). Tout retirer à chaque lettre posée changeait le chevalet entier sous les
+  // doigts, en chaîne et au calme, où l'on pose lettre par lettre ; et une partie au
+  // calme menée à coups d'indices a fait planter WebKit en CI. On repart donc du
+  // chevalet partagé d'avant : celui du joueur qui vient de jouer en est un morceau
+  // (les autres l'ont encore entier). Ses lettres restent, à leur place ; seules les
+  // manquantes sont tirées au hasard.
+  //
+  // Au début du sprint, les chevalets sont personnels : aucun n'est inclus dans
+  // celui des autres, et le tirage repart de zéro, sans montrer à l'un ce que
+  // l'autre avait en main.
+  const chevalets = playerIds.map(playerId => racks[playerId] ?? [])
+  const base = chevalets.find(rack => rack.length <= taille
+    && contenuDans(rack, remainingLetters)
+    && chevalets.every(autre => contenuDans(rack, autre))) ?? []
   const reserve = [...remainingLetters]
-  const tirage: string[] = []
+  for (const lettre of base) reserve.splice(reserve.indexOf(lettre), 1)
+  const tirage = [...base]
   while (tirage.length < taille) tirage.push(reserve.splice(tirer(reserve.length), 1)[0])
   for (const playerId of playerIds) nextRacks[playerId] = [...tirage]
   return { active: true, changed: true, racks: nextRacks }
