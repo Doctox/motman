@@ -1,11 +1,14 @@
 -- Les passages par les adresses courtes (27/10/2026, migration 20261027130000).
 --
--- Trois promesses :
+-- Quatre promesses :
 --   1. LA TABLE EST FERMÉE : ni un visiteur ni un joueur ne lit ni n'écrit le
 --      compteur directement ;
 --   2. LA CLÉ PUBLIQUE COMPTE, ET RIEN DE PLUS : le Worker de doctox.fr, avec
 --      la clé publiable (rôle anon), ajoute un passage par appel ;
---   3. UN NOM QUI N'EST PAS CELUI D'UNE ADRESSE COURTE N'EST PAS COMPTÉ.
+--   3. UN NOM QUI N'EST PAS CELUI D'UNE ADRESSE COURTE N'EST PAS COMPTÉ ;
+--   4. LA TABLE NE PEUT PAS SE REMPLIR (12/11/2026, migration 20261112140000) :
+--      pas plus de 20 adresses différentes par jour, et une adresse déjà vue
+--      continue de compter.
 
 begin;
 
@@ -54,6 +57,28 @@ begin
      or public.note_short_link_pass('')
      or public.note_short_link_pass(null) then
     raise exception 'Un nom qui n''est pas celui d''une adresse courte a été compté';
+  end if;
+end;
+$$;
+
+-- ── 4. La table ne peut pas se remplir ──────────────────────────────────────
+-- Trente noms inventés, comme un script avec la clé publique : vingt au plus
+-- entrent dans la journée (ceux déjà vus aujourd'hui compris), et /roblox, vu
+-- plus haut dans cette transaction, compte encore une fois le plafond atteint.
+set local role anon;
+select public.note_short_link_pass('audit-plafond-' || rang) from pg_catalog.generate_series(1, 30) as rang;
+reset role;
+
+do $$
+declare
+  aujourdhui constant date := (pg_catalog.now() at time zone 'Europe/Paris')::date;
+begin
+  if (select count(*) from public.short_link_daily where jour = aujourdhui) > 20 then
+    raise exception 'Plus de 20 adresses différentes comptées aujourd''hui (%) : un script peut remplir la base',
+      (select count(*) from public.short_link_daily where jour = aujourdhui);
+  end if;
+  if not public.note_short_link_pass('roblox') then
+    raise exception 'Le plafond ne doit pas bloquer une adresse déjà vue aujourd''hui';
   end if;
 end;
 $$;
