@@ -10,6 +10,7 @@ import {
   gameWordCellIndexes,
   hasTurnStarted,
   hintCandidates,
+  hintCandidatesForRequest,
   isTurnSubmissionExpired,
   keepRackLettersAfterTurn,
   prepareFinalSprintRacks,
@@ -289,6 +290,24 @@ describe('indice et chevalet', () => {
     expect(finale.changed).toBe(true)
     expect(finale.racks.alex).toEqual(finale.racks.lea)
     expect(triees(finale.racks.alex)).toEqual(triees(['I', 'N', 'A', 'L']))
+  })
+
+  it('l’indice demandé ne répond plus « aucun » gratuitement (audit du 12/11/2026, n° 7)', () => {
+    // Deux cases vides, A puis B ; le joueur a posé B sur la case de A et A sur
+    // celle de B. En écartant ses lettres, il ne reste rien : répondre « aucun »
+    // lui aurait dit gratuitement que ses lettres ne vont nulle part ailleurs.
+    const grille = { cells: [{ kind: 'letter', solution: 'A' }, { kind: 'letter', solution: 'B' }] }
+    const posees = [{ cellIndex: 0, letter: 'B' }, { cellIndex: 1, letter: 'A' }]
+    expect(hintCandidates(grille, ['A', 'B'], [], posees)).toEqual([])
+    expect(hintCandidatesForRequest(grille, ['A', 'B'], [], posees).map(({ cellIndex, letter }) => ({ cellIndex, letter })))
+      .toEqual([{ cellIndex: 0, letter: 'A' }, { cellIndex: 1, letter: 'B' }])
+  })
+
+  it('l’indice demandé évite toujours les lettres posées quand il le peut', () => {
+    const grille = { cells: [{ kind: 'letter', solution: 'A' }, { kind: 'letter', solution: 'B' }, { kind: 'letter', solution: 'C' }] }
+    const posees = [{ cellIndex: 0, letter: 'A' }]
+    expect(hintCandidatesForRequest(grille, ['A', 'B', 'C'], [], posees)).toEqual(hintCandidates(grille, ['A', 'B', 'C'], [], posees))
+    expect(hintCandidatesForRequest(grille, ['A', 'B', 'C'], [], posees).some(candidat => candidat.cellIndex === 0)).toBe(false)
   })
 
   it('limite chaque bonus à une utilisation et bloque la relance avec une lettre posée', () => {

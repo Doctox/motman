@@ -1,5 +1,5 @@
 import { niveauDeLaForce } from '../../../src/botOpponents.ts'
-import { canUseHint, canUseReroll, hintCandidates, indicesUtilises } from '../../../src/gameRules.ts'
+import { canUseHint, canUseReroll, hintCandidatesForRequest, indicesUtilises } from '../../../src/gameRules.ts'
 import { fnv1a } from '../../../src/hachage.ts'
 import { requiredAndroidUpdate } from '../_shared/clientVersion.ts'
 import { dailyGridIdFor, parisDateKey } from '../_shared/dailyCalendar.ts'
@@ -966,7 +966,8 @@ Deno.serve(async request => {
         user.id,
         Array.isArray(body.placements) ? body.placements as Array<{ cellIndex: number; letter: string }> : [],
       ).sanitized
-      const candidates = hintCandidates(
+      // Sans oracle gratuit sur les lettres posées (audit du 12/11/2026, n° 7) : voir gameRules.ts.
+      const candidates = hintCandidatesForRequest(
         ruleGrid(grid),
         row.state.racks[user.id] ?? [],
         Object.keys(row.state.board).map(Number),

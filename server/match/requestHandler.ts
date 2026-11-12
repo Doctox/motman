@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { canUseHint, canUseReroll, hasTurnStarted, hintCandidates, indicesUtilises } from '../../src/gameRules'
+import { canUseHint, canUseReroll, hasTurnStarted, hintCandidatesForRequest, indicesUtilises } from '../../src/gameRules'
 import { fnv1a } from '../../src/hachage'
 import {
   ASYNC_INVITATION_DURATION_MS, AUTOMATIC_TURN_SUBMIT_GRACE_MS, INVITATION_DURATION_MS,
@@ -329,7 +329,8 @@ export async function handleMatchRequest(request: IncomingMessage, response: Ser
     if (!canUseHint(match.hintUsed[playerId])) return sendJson(response, 409, { error: 'Ton indice a déjà été utilisé.' })
     const pendingPlacements = filtrerCoup(match, playerId, Array.isArray(body.placements) ? body.placements : [])
     const rack = match.racks[playerId] ?? []
-    const candidates = hintCandidates(grilleDeRegles(match), rack, Object.keys(match.board).map(Number), pendingPlacements)
+    // La même règle que match-api, sans oracle gratuit (audit du 12/11/2026, n° 7).
+    const candidates = hintCandidatesForRequest(grilleDeRegles(match), rack, Object.keys(match.board).map(Number), pendingPlacements)
     if (!candidates.length) return sendJson(response, 409, { error: 'Aucun indice disponible.' })
     const selected = candidates[fnv1a(`${match.id}:${match.turnNumber}:hint`) % candidates.length]
     match.hint = { playerId, cellIndex: selected.cellIndex, letter: selected.letter, turnNumber: match.turnNumber }

@@ -154,6 +154,32 @@ export function hintCandidates(
       : []))
 }
 
+/**
+ * Les candidats d'un indice DEMANDÉ PAR LE JOUEUR, avec les lettres qu'il a
+ * posées sans les valider. On les écarte d'abord, pour que l'indice ne tombe pas
+ * sous ses doigts.
+ *
+ * PAS D'ORACLE GRATUIT (12/11/2026, audit n° 7). S'il ne restait rien en les
+ * écartant, le serveur répondait « Aucun indice disponible » avant de consommer
+ * l'indice : poser quatre lettres et demander, c'était apprendre gratuitement que
+ * la cinquième ne va dans aucune autre case. On cherche alors sans elles ; le
+ * téléphone retire sa lettre provisoire de la case de l'indice
+ * (MultiplayerGame.tsx, `requestHint`).
+ *
+ * Une seule règle pour match-api et le serveur local des e2e : les deux l'appellent.
+ */
+export function hintCandidatesForRequest(
+  grid: Pick<GameRuleGrid, 'cells'>,
+  rackLetters: readonly string[],
+  occupiedCells: Iterable<number>,
+  pendingPlacements: Iterable<GamePlacement> = [],
+): Array<GamePlacement & { rackIndex: number }> {
+  const enAttente = [...pendingPlacements]
+  const occupees = [...occupiedCells]
+  const candidats = hintCandidates(grid, rackLetters, occupees, enAttente)
+  return candidats.length || !enAttente.length ? candidats : hintCandidates(grid, rackLetters, occupees)
+}
+
 export function replenishRackFromNeeds({
   neededLetters,
   currentLetters,
