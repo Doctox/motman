@@ -93,9 +93,17 @@ try {
   // portaient un, deux y écrivaient la réponse (« Fer à repasser »). La
   // projection les assainit (scripts/lib/dessinsIndices.mjs) ; ceci le vérifie,
   // en CI aussi, sur le catalogue tiré de la base.
+  //
+  // Et tout dessin est un SVG EN LIGNE (12/11/2026, audit n° 12) : c'est le seul
+  // format que `publicGrid` nettoie avant de l'envoyer au téléphone
+  // (src/publicClue.ts). Une adresse de fichier, un PNG ou un JPEG partiraient
+  // tels quels, nom de fichier et métadonnées compris — et le nom d'un dessin
+  // porte souvent sa réponse (« fer-a-repasser.svg »).
   for (const grid of catalog.grids) {
     for (const word of grid.words) {
-      const asset = String(word.image?.asset ?? '')
+      if (!word.image) continue
+      const asset = String(word.image.asset ?? '')
+      assert.ok(asset.startsWith('data:image/svg+xml'), `Un dessin de ${grid.id} n'est pas un SVG en ligne : il partirait au téléphone sans être nettoyé.`)
       if (!asset.startsWith('data:image/svg+xml;base64,')) continue
       const svg = Buffer.from(asset.slice(asset.indexOf(',') + 1), 'base64').toString('utf8')
       assert.ok(!/<title|<desc/i.test(svg), `Un dessin de ${grid.id} porte encore un titre ou une description.`)
