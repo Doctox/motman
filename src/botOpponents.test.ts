@@ -1,6 +1,34 @@
 import { describe, expect, it } from 'vitest'
-import { BOT_THINKING_MAX_MS, BOT_THINKING_MIN_MS, botThinkingDelayMs, botTuning, forceDeDepart, niveauDeLaForce, planBotMove, reglageClassique, refillBotRack, type BotPersona } from './botOpponents'
+import { BOT_THINKING_MAX_MS, BOT_THINKING_MIN_MS, botThinkingDelayMs, botTuning, forceApresLaDernierePartie, forceDeDepart, niveauDeLaForce, planBotMove, reglageClassique, refillBotRack, type BotPersona } from './botOpponents'
 import type { GameRuleGrid } from './gameRules'
+
+describe('la force du prochain adversaire (audit du 12/11/2026, n° 8)', () => {
+  const depart = forceDeDepart('regular')
+
+  it('part du niveau du joueur quand il n’a pas encore joué contre lui', () => {
+    expect(forceApresLaDernierePartie(null, 'regular')).toBe(depart)
+  })
+
+  it('suit toujours les victoires et les vraies défaites, sous le niveau de départ compris', () => {
+    expect(forceApresLaDernierePartie({ force: 0.5, issue: 'win' }, 'regular')).toBe(0.54)
+    expect(forceApresLaDernierePartie({ force: 0.3, issue: 'loss' }, 'regular')).toBe(0.24)
+  })
+
+  it('un abandon le fait baisser, mais jamais sous le niveau de départ', () => {
+    expect(forceApresLaDernierePartie({ force: 0.7, issue: 'abandon' }, 'regular')).toBe(0.64)
+    expect(forceApresLaDernierePartie({ force: 0.52, issue: 'abandon' }, 'regular')).toBe(depart)
+  })
+
+  it('un abandon ne change rien quand il est déjà sous son niveau, et ne le fait pas remonter', () => {
+    expect(forceApresLaDernierePartie({ force: 0.3, issue: 'abandon' }, 'regular')).toBe(0.3)
+  })
+
+  it('dix abandons de suite ne l’amènent plus à zéro', () => {
+    let force = forceApresLaDernierePartie(null, 'regular')
+    for (let fois = 0; fois < 10; fois += 1) force = forceApresLaDernierePartie({ force, issue: 'abandon' }, 'regular')
+    expect(force).toBe(depart)
+  })
+})
 
 const expert: BotPersona = {
   displayName: 'Jade',

@@ -17,7 +17,7 @@
 // `persist` porte l'autre garde : une écriture conditionnée à `updated_at`, qui
 // refuse plutôt que d'écraser le tour joué entre-temps par l'adversaire.
 
-import { createBotPersona, forceDeDepart, forceSuivante, type BotSkill } from '../../../src/botOpponents.ts'
+import { createBotPersona, forceApresLaDernierePartie, type BotSkill } from '../../../src/botOpponents.ts'
 import { toutesLesLignes } from '../_shared/lectures.ts'
 import { normalRotationGrids } from '../../../src/dailyThemes.ts'
 import { RECENT_GRID_AVOIDANCE_LIMIT, selectGridForPlayers, shouldYieldActiveGridClaim } from '../../../src/gridSelection.ts'
@@ -237,7 +237,8 @@ export async function forceDuProchainAdversaire(admin: AdminClient, userId: stri
     .not('force_adversaire', 'is', null)
   const { data } = await (famille ? requete.eq('famille_force', famille) : requete.is('famille_force', null))
     .order('completed_at', { ascending: false }).limit(1).maybeSingle()
-  return data ? forceSuivante(Number(data.force_adversaire), data.outcome) : forceDeDepart(skill)
+  // Un abandon ne fait pas tomber l'adversaire sous son niveau (audit du 12/11/2026, n° 8).
+  return forceApresLaDernierePartie(data ? { force: Number(data.force_adversaire), issue: String(data.outcome) } : null, skill)
 }
 
 export function createBot(seed: string, preferredSkill?: BotSkill, force?: number): Bot {

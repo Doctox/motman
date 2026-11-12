@@ -266,6 +266,23 @@ export function forceSuivante(force: number, issue: string): number {
 }
 
 /**
+ * La force du prochain adversaire, d'après la dernière partie du joueur contre lui.
+ *
+ * UN ABANDON NE LE FAIT PAS TOMBER SOUS SON NIVEAU (12/11/2026, audit n° 8). Un abandon
+ * compte toujours comme une défaite, mais ne fait plus descendre la force sous celle de
+ * départ du niveau du joueur, et ne change rien si elle y est déjà. Sinon, une dizaine
+ * d'abandons gratuits ramenaient l'adversaire à 0, et on alternait ensuite victoire
+ * facile et abandon pour l'y garder. Les vraies défaites, elles, peuvent toujours
+ * l'affaiblir sous son niveau de départ.
+ */
+export function forceApresLaDernierePartie(derniere: { force: number; issue: string } | null, skill: BotSkill): number {
+  const depart = forceDeDepart(skill)
+  if (!derniere) return depart
+  const suivante = forceSuivante(derniere.force, derniere.issue)
+  return derniere.issue === 'abandon' ? Math.max(suivante, Math.min(derniere.force, depart)) : suivante
+}
+
+/**
  * LE MÊME ADVERSAIRE, EN RÈGLES NORMALES (05/11/2026, parties à thème et au calme de
  * MotMan+ ; le propriétaire : « les mêmes systèmes que normal / en chaîne »). La force suit
  * les résultats de la même façon, et ce réglage la traduit en coups entiers. Aux trois
