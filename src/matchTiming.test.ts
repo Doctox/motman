@@ -76,4 +76,20 @@ describe('le seuil de bascule sur un bot', () => {
     const serveur = readFileSync('supabase/functions/match-api/index.ts', 'utf8')
     expect(nombre(serveur, /BOT_SEARCH_MS = ([\d_]+)/)).toBe(BOT_SEARCH_MS)
   })
+
+  // La base refuse le bot avant ce délai (`server_create_bot_match_atomic`). Elle
+  // n'était liée à rien : le banc SQL vérifie 10 s puis 20 s, et passerait avec
+  // un seuil de 12 ou de 18 s (12/11/2026, audit n° 5).
+  it('vaut la même chose dans la base, qui refuse le bot avant ce délai', async () => {
+    const { BOT_SEARCH_MS } = await import('./menuSyncPolicy')
+    const dossier = 'supabase/migrations'
+    const signature = 'function public.server_create_bot_match_atomic('
+    const derniere = readdirSync(dossier).sort().reverse()
+      .map(nom => readFileSync(`${dossier}/${nom}`, 'utf8'))
+      .find(sql => sql.includes(signature))
+    expect(derniere, 'aucune migration ne définit server_create_bot_match_atomic').toBeDefined()
+    const fonction = derniere!.slice(derniere!.indexOf(signature))
+    const secondes = nombre(fonction, /created_at > pg_catalog\.clock_timestamp\(\) - interval '(\d+) seconds'/)
+    expect(secondes * 1000, 'le seuil de la base diffère de BOT_SEARCH_MS').toBe(BOT_SEARCH_MS)
+  })
 })
