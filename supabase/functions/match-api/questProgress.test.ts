@@ -84,6 +84,22 @@ Deno.test('une partie menée compte, une partie quittée ne compte pas', () => {
   egal(abandon['sans-indice'], undefined, 'ni la quête sans indice')
 })
 
+Deno.test('un adversaire qui part avant que j’aie joué ne me fait pas finir une partie (audit du 12/11/2026, n° 6)', () => {
+  const row = partie()
+  row.status = 'finished'
+  row.finish_reason = 'forfeit'
+  row.winner_id = MOI
+
+  const tropTot = questIncrements(row, MOI, 'opponent-abandoned')
+  egal(tropTot.partie, undefined, 'pas de partie menée sans un tour joué')
+  egal(tropTot['sans-indice'], undefined, 'ni de quête sans indice')
+
+  row.state.productiveTurns[MOI] = 2
+  const apresDeuxTours = questIncrements(row, MOI, 'opponent-abandoned')
+  egal(apresDeuxTours.partie, 1, 'après deux tours joués, elle compte')
+  egal(apresDeuxTours['sans-indice'], 1, 'et la quête sans indice aussi')
+})
+
 Deno.test('l’indice utilisé retire la quête sans indice, et le défi nourrit la semaine', () => {
   const row = partie()
   row.status = 'finished'

@@ -14,7 +14,12 @@ export function questIncrements(row: MatchRow, playerId: string, outcome: string
   const state = row.state
   // Une partie quittée ne compte pas comme « terminée » : sinon, abandonner
   // deviendrait le moyen le plus rapide de finir une quête.
+  //
+  // Ni une partie que L'AUTRE quitte avant que j'aie posé une lettre juste
+  // (12/11/2026, audit n° 6) : un second compte invité qui accepte puis
+  // abandonne aussitôt remplissait « partie » et « sans indice » sans jouer.
   const menee = row.status === 'finished' && outcome !== 'abandon'
+    && (outcome !== 'opponent-abandoned' || (state.productiveTurns[playerId] ?? 0) > 0)
 
   const lettres = Object.values(state.board).filter(cellule => cellule.playerId === playerId).length
   const compteurs: QuestCounters = {}
