@@ -15,7 +15,7 @@ import { MAX_STREAK_FREEZES } from '../dailyStreakRule'
 import { useQuestBoard } from '../questBoardState'
 import { useDialogFocus } from '../useDialogFocus'
 import { useTirerPourFermer } from './tirerPourFermer'
-import { useDailyCountdown } from './DailyChallenge'
+import { useDailyCountdown } from './useDailyCountdown'
 import { PremierPassageCarte } from './PremierPassage'
 import './menu-quests.css'
 

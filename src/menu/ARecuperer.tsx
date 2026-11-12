@@ -4,7 +4,7 @@ import { isBasketFree, type PlayerCosmetics } from '../cosmetics'
 import { currentDailyDateKey } from '../dailyDate'
 import { questReward, weekKey } from '../quests'
 import { useQuestBoard, type QuestBoard } from '../questBoardState'
-import { useDailyCountdown } from './DailyChallenge'
+import { useDailyCountdown } from './useDailyCountdown'
 import { QuestsPanel } from './QuestsPanel'
 
 // ─────────────────────────────────────────────────────────────────────────────
