@@ -21,6 +21,9 @@ import {
   type GameRuleGrid,
 } from './gameRules'
 
+/** Les lettres d'un chevalet sans leur ordre : le sprint final les tire au hasard. */
+const triees = (lettres: readonly string[]) => [...lettres].sort()
+
 const crossingGrid: GameRuleGrid = {
   columns: 3,
   rows: 3,
@@ -197,7 +200,7 @@ describe('indice et chevalet', () => {
     expect(keepRackLettersAfterTurn(rackBefore, evaluated.correctPlacements)).toEqual(['A', 'B', 'D', 'E'])
   })
 
-  it('duplique les cinq dernières lettres pour les deux joueurs', () => {
+  it('duplique les cinq dernières lettres pour les deux joueurs, dans un ordre tiré au hasard', () => {
     const finale = prepareFinalSprintRacks({
       remainingLetters: ['F', 'I', 'N', 'A', 'L'],
       playerIds: ['alex', 'lea'],
@@ -206,19 +209,62 @@ describe('indice et chevalet', () => {
 
     expect(finale.active).toBe(true)
     expect(finale.changed).toBe(true)
-    expect(finale.racks).toEqual({ alex: ['F', 'I', 'N', 'A', 'L'], lea: ['F', 'I', 'N', 'A', 'L'] })
+    expect(finale.racks.alex).toEqual(finale.racks.lea)
+    expect(triees(finale.racks.alex)).toEqual(triees(['F', 'I', 'N', 'A', 'L']))
   })
 
-  it('déclenche le sprint partagé dès dix cases et limite chaque chevalet à cinq lettres', () => {
+  it('déclenche le sprint partagé dès dix cases : cinq lettres tirées parmi celles qui restent', () => {
+    const restantes = ['D', 'E', 'B', 'L', 'O', 'C', 'A', 'G', 'E', 'S']
     const finale = prepareFinalSprintRacks({
-      remainingLetters: ['D', 'E', 'B', 'L', 'O', 'C', 'A', 'G', 'E', 'S'],
+      remainingLetters: restantes,
       playerIds: ['alex', 'lea'],
       racks: { alex: ['A'], lea: ['I', 'R'] },
     })
 
     expect(finale.active).toBe(true)
     expect(finale.changed).toBe(true)
-    expect(finale.racks).toEqual({ alex: ['D', 'E', 'B', 'L', 'O'], lea: ['D', 'E', 'B', 'L', 'O'] })
+    expect(finale.racks.alex).toHaveLength(5)
+    expect(finale.racks.alex).toEqual(finale.racks.lea)
+    const reserve = [...restantes]
+    for (const lettre of finale.racks.alex) {
+      expect(reserve).toContain(lettre)
+      reserve.splice(reserve.indexOf(lettre), 1)
+    }
+  })
+
+  it('ne donne jamais les cases dans l’ordre (audit du 12/11/2026, n° 1)', () => {
+    // Le chevalet prenait les cinq premières lettres manquantes dans l'ordre des
+    // cases : il donnait la réponse de chaque case vide. Huit lettres toutes
+    // différentes : tirer les cinq premières dans l'ordre a une chance sur 6 720.
+    const restantes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+    const dansLOrdre = Array.from({ length: 20 }, () => prepareFinalSprintRacks({
+      remainingLetters: restantes,
+      playerIds: ['alex', 'lea'],
+      racks: { alex: [], lea: [] },
+    }).racks.alex.join('')).filter(chevalet => chevalet === 'ABCDE').length
+
+    expect(dansLOrdre, 'le chevalet du sprint suit l’ordre des cases').toBeLessThanOrEqual(1)
+  })
+
+  it('garde le chevalet partagé tant qu’il reste valable : relire la partie ne le redistribue pas', () => {
+    const restantes = ['D', 'E', 'B', 'L', 'O', 'C', 'A']
+    const premier = prepareFinalSprintRacks({ remainingLetters: restantes, playerIds: ['alex', 'lea'], racks: { alex: [], lea: [] } })
+    const relu = prepareFinalSprintRacks({ remainingLetters: restantes, playerIds: ['alex', 'lea'], racks: premier.racks })
+
+    expect(relu.changed).toBe(false)
+    expect(relu.racks).toEqual(premier.racks)
+  })
+
+  it('tire avec le hasard qu’on lui donne, sans rien perdre ni doubler', () => {
+    // Toujours la dernière lettre de la réserve : E, puis D, C, B, A.
+    const finale = prepareFinalSprintRacks({
+      remainingLetters: ['A', 'B', 'C', 'D', 'E'],
+      playerIds: ['alex', 'lea'],
+      racks: { alex: [], lea: [] },
+      tirer: taille => taille - 1,
+    })
+
+    expect(finale.racks).toEqual({ alex: ['E', 'D', 'C', 'B', 'A'], lea: ['E', 'D', 'C', 'B', 'A'] })
   })
 
   it('ne déclenche pas le sprint partagé tant que onze cases restent', () => {
@@ -240,7 +286,9 @@ describe('indice et chevalet', () => {
       racks: { alex: ['F', 'I', 'N', 'A', 'L'], lea: ['F', 'I', 'N', 'A', 'L'] },
     })
 
-    expect(finale.racks).toEqual({ alex: ['I', 'N', 'A', 'L'], lea: ['I', 'N', 'A', 'L'] })
+    expect(finale.changed).toBe(true)
+    expect(finale.racks.alex).toEqual(finale.racks.lea)
+    expect(triees(finale.racks.alex)).toEqual(triees(['I', 'N', 'A', 'L']))
   })
 
   it('limite chaque bonus à une utilisation et bloque la relance avec une lettre posée', () => {

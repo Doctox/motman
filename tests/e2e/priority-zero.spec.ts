@@ -991,19 +991,24 @@ test('une grille complète atteint l’écran final', async ({ browser, request 
     const submitted = remainingBefore <= 6 ? placements.slice(0, 1) : placements
     match = (await submitTurn(request, match, submitted)).match
 
-    // Dans l'ordre des CASES, comme `neededLetters` de match-api, qui fait le
-    // chevalet du sprint final. `solutionFor` range ses lettres mot par mot :
-    // c'était l'ordre du serveur de test tant qu'il recopiait la règle, et le
-    // test le supposait (22/10/2026, K1).
+    // Le chevalet du sprint final est TIRÉ AU HASARD parmi les lettres qui
+    // restent (audit du 12/11/2026, n° 1). Il prenait les cinq premières dans
+    // l'ordre des cases, et ce test le vérifiait : c'était la faille, qui
+    // donnait la réponse de chaque case vide. On vérifie maintenant la taille,
+    // et qu'il ne contient rien qui ne manque plus.
     const remaining = [...solution.entries()]
       .filter(([index]) => !match.board[index])
-      .sort(([gauche], [droite]) => gauche - droite)
       .map(([, letter]) => letter)
     if (match.status === 'active' && remaining.length > 0 && remaining.length <= 10) {
       sawFinalSprint = true
-      const sharedRack = remaining.slice(0, 5)
       for (const playerId of match.playerIds) {
-        expect([...(match.racks[playerId] ?? [])].sort()).toEqual([...sharedRack].sort())
+        const rack = [...(match.racks[playerId] ?? [])]
+        expect(rack).toHaveLength(Math.min(5, remaining.length))
+        const reserve = [...remaining]
+        for (const letter of rack) {
+          expect(reserve).toContain(letter)
+          reserve.splice(reserve.indexOf(letter), 1)
+        }
       }
     }
   }

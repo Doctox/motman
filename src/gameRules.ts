@@ -204,6 +204,24 @@ export type FinalSprintRacks = {
   racks: Record<string, string[]>
 }
 
+/** Un indice tiré au hasard dans [0, taille). Le hasard du système, jamais une graine. */
+export function hasardSur(taille: number): number {
+  const tirage = new Uint32Array(1)
+  crypto.getRandomValues(tirage)
+  return tirage[0] % taille
+}
+
+/** Toutes les lettres de `lettres` se trouvent-elles dans `reserve`, doublons compris ? */
+function contenuDans(lettres: readonly string[], reserve: readonly string[]): boolean {
+  const reste = [...reserve]
+  return lettres.every(lettre => {
+    const index = reste.indexOf(lettre)
+    if (index < 0) return false
+    reste.splice(index, 1)
+    return true
+  })
+}
+
 /**
  * Gives both players the same useful rack once ten cells or fewer remain.
  *
@@ -214,40 +232,53 @@ export type FinalSprintRacks = {
  * players the same five still-useful letters, then refreshes that shared rack
  * as cells are confirmed. Once five cells or fewer remain, both players still
  * receive every remaining letter, preserving the original endgame behaviour.
+ *
+ * TIRÉ AU HASARD (audit du 12/11/2026, n° 1). Le chevalet prenait les cinq
+ * premières lettres manquantes DANS L'ORDRE DES CASES : il donnait la réponse de
+ * chaque case vide, lue de gauche à droite et de haut en bas — prouvé sur 24
+ * situations sur 24. Il est désormais tiré au hasard parmi les lettres qui
+ * restent, dans un ordre au hasard, et gardé tant qu'il reste valable : le
+ * téléphone relit la partie toutes les quelques secondes, et les lettres ne
+ * doivent pas changer de place sous ses doigts. Pas de graine : calculée sur ce
+ * que le téléphone connaît, un tricheur referait le mélange à l'envers.
  */
 export function prepareFinalSprintRacks({
   remainingLetters,
   playerIds,
   racks,
   threshold = FINAL_SPRINT_THRESHOLD,
+  tirer = hasardSur,
 }: {
   remainingLetters: readonly string[]
   playerIds: readonly string[]
   racks: Readonly<Record<string, readonly string[]>>
   threshold?: number
+  /** Pour les tests seulement : un tirage choisi. */
+  tirer?: (taille: number) => number
 }): FinalSprintRacks {
   const safeThreshold = Math.max(0, Math.floor(threshold))
-  if (remainingLetters.length === 0 || remainingLetters.length > safeThreshold) {
-    return {
-      active: false,
-      changed: false,
-      racks: Object.fromEntries(Object.entries(racks).map(([playerId, rack]) => [playerId, [...rack]])),
-    }
-  }
-
-  const finalRack = [...remainingLetters].slice(0, RACK_SIZE)
   const nextRacks: Record<string, string[]> = Object.fromEntries(
     Object.entries(racks).map(([playerId, rack]) => [playerId, [...rack]]),
   )
-  let changed = false
-
-  for (const playerId of playerIds) {
-    const current = racks[playerId] ?? []
-    if (current.length !== finalRack.length || current.some((letter, index) => letter !== finalRack[index])) changed = true
-    nextRacks[playerId] = [...finalRack]
+  if (remainingLetters.length === 0 || remainingLetters.length > safeThreshold) {
+    return { active: false, changed: false, racks: nextRacks }
   }
 
-  return { active: true, changed, racks: nextRacks }
+  const taille = Math.min(RACK_SIZE, remainingLetters.length)
+  // Le chevalet partagé reste tant qu'il est valable : même chevalet pour tous,
+  // bonne taille, et chacune de ses lettres manque encore.
+  const actuel = racks[playerIds[0]] ?? []
+  const valable = actuel.length === taille
+    && contenuDans(actuel, remainingLetters)
+    && playerIds.every(playerId => (racks[playerId] ?? []).join('') === actuel.join(''))
+  if (valable) return { active: true, changed: false, racks: nextRacks }
+
+  // Sinon, un nouveau tirage, le même pour tous les joueurs.
+  const reserve = [...remainingLetters]
+  const tirage: string[] = []
+  while (tirage.length < taille) tirage.push(reserve.splice(tirer(reserve.length), 1)[0])
+  for (const playerId of playerIds) nextRacks[playerId] = [...tirage]
+  return { active: true, changed: true, racks: nextRacks }
 }
 
 /**
