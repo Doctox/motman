@@ -54,7 +54,9 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 46],
+      ['version', catalog.version, 47],
+      // v47 (16/11) : correctif du défi du 15/11, 40 définitions réécrites (aucune grille,
+      // aucun dessin ne change).
       // v46 (06/11) : revue stricte, 4 356 définitions plus faciles et 24 dessins composés.
       // v45 (06/11) : revue complète (710 définitions changées en dessins, 177 réécrites)
       // et 42 grilles normales retirées du tirage, pour des mots déplacés dans un jeu familial.
