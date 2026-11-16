@@ -54,7 +54,9 @@ try {
   // de structure qui suivent restent bloquants partout.
   if (reel) {
     const attendus = [
-      ['version', catalog.version, 47],
+      ['version', catalog.version, 48],
+      // v48 (16/11) : grilles à thème plus faciles, 143 définitions réécrites et 63 dessins
+      // (aucune grille ne change).
       // v47 (16/11) : correctif du défi du 15/11, 40 définitions réécrites (aucune grille,
       // aucun dessin ne change).
       // v46 (06/11) : revue stricte, 4 356 définitions plus faciles et 24 dessins composés.
@@ -77,8 +79,8 @@ try {
       ['grilles', catalog.grids.length, 1158],
       // 413 en v35 ; les lots v36 à v38 en ont apporté 116, la v39 112 moins
       // les 11 des grilles retirées ; la v41, 224 ; la v42, 19 moins 15 ;
-      // la v43, 154 des lots, plus 236 moins 43 de la révision, moins 10 des grilles retirées ; la v44, 369 ; la v45, 710 de la revue moins 64 des grilles retirées ; la v46, 24.
-      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 2234],
+      // la v43, 154 des lots, plus 236 moins 43 de la révision, moins 10 des grilles retirées ; la v44, 369 ; la v45, 710 de la revue moins 64 des grilles retirées ; la v46, 24 ; la v48, 63.
+      ['mots en image', catalog.grids.reduce((count, grid) => count + grid.words.filter(word => word.image).length, 0), 2297],
       // Les grilles à thème du défi du jour : 75 en v35, +30 en v36, +15 en v38, +165 en v41, +25 −15 en v42, +145 en v43.
       ['grilles réservées au défi du jour', catalog.grids.filter(grid => grid.dailyOnly).length, 440],
     ]
